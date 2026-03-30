@@ -52,11 +52,13 @@ export default function GameCanvas() {
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto"
+      className="relative"
       style={{
         width: '100%',
         maxWidth: 1024,
+        maxHeight: '100dvh',
         aspectRatio: '640 / 480',
+        margin: '0 auto',
       }}
     >
       {dialogue && (
