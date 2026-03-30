@@ -53,6 +53,8 @@ export class PixiApp {
 
     const canvas = this.app.canvas as HTMLCanvasElement;
     canvas.style.imageRendering = 'pixelated';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
     container.appendChild(canvas);
 
     this.inputAdapter.attach(canvas);
