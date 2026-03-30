@@ -65,6 +65,8 @@ export enum TileType {
   PATH = 'path',
   WALL = 'wall',
   FLOOR = 'floor',
+  WATER = 'water',
+  BRIDGE = 'bridge',
 }
 
 export interface SpawnPoint {
@@ -145,4 +147,6 @@ export interface GameState {
   buildings: Building[];
   npcs: NPCData[];
   activeDialogue: DialogueState | null;
+  /** Spawn ID to use when exiting the current interior back to the outdoor map. */
+  returnSpawnId: string | null;
 }

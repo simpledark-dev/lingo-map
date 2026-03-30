@@ -38,7 +38,7 @@ function collidesWithTiles(map: MapData, box: WorldBox): boolean {
       // Out of bounds = blocked
       if (row < 0 || row >= map.height || col < 0 || col >= map.width) return true;
       const tile = map.tiles[row][col];
-      if (tile === TileType.WALL) return true;
+      if (tile === TileType.WALL || tile === TileType.WATER) return true;
     }
   }
   return false;

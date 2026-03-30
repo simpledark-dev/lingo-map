@@ -97,9 +97,12 @@ export class RenderSystem {
       if (roofTexture) {
         const roofSprite = new Sprite(roofTexture);
         roofSprite.anchor.set(building.anchor.x, 1.0);
-        // Position roof at top of building base
+        // Position roof so its bottom sits on top of the base sprite
+        // Base anchor is (0.5, 1.0), so base top = building.y - baseTexture.height
+        // Roof bottom should meet base top
+        const baseHeight = baseTexture ? baseTexture.height : 96;
         roofSprite.x = building.x;
-        roofSprite.y = building.y - 96 + 64; // base height offset
+        roofSprite.y = building.y - baseHeight;
         roofSprite.alpha = 1.0; // fully opaque for vertical slice
         this.roofLayer.addChild(roofSprite);
         this.roofSprites.set(building.id, roofSprite);

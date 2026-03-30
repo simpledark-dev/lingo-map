@@ -4,6 +4,8 @@ import { WorldBox, getWorldCollisionBox, checkAABBOverlap } from './CollisionSys
 export interface TransitionEvent {
   targetMapId: string;
   targetSpawnId: string;
+  /** The building ID that was entered, if triggered by a building door. */
+  buildingId?: string;
 }
 
 /**
@@ -46,6 +48,7 @@ export function checkDoorTriggers(
       return {
         targetMapId: building.targetMapId,
         targetSpawnId: building.targetSpawnId,
+        buildingId: building.id,
       };
     }
   }

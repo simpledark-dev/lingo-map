@@ -1,7 +1,6 @@
-const CACHE_NAME = 'lingo-map-v1';
+const CACHE_NAME = 'lingo-map-v15';
 
 const PRECACHE_URLS = [
-  '/',
   '/assets/placeholder/grass.png',
   '/assets/placeholder/path.png',
   '/assets/placeholder/player-down.png',
@@ -40,19 +39,20 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      // Network-first for navigation, cache-first for assets
-      if (event.request.mode === 'navigate') {
-        return fetch(event.request).catch(() => cached || new Response('Offline'));
-      }
-      return cached || fetch(event.request).then((response) => {
-        // Cache successful GET responses
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful GET responses for offline use
         if (response.ok && event.request.method === 'GET') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
-      });
-    })
+      })
+      .catch(() => {
+        // Offline — fall back to cache
+        return caches.match(event.request).then((cached) =>
+          cached || new Response('Offline', { status: 503 })
+        );
+      })
   );
 });

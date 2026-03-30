@@ -99,6 +99,7 @@ export class PixiApp {
       buildings: map.buildings,
       npcs: map.npcs,
       activeDialogue: null,
+      returnSpawnId: this.gameState?.returnSpawnId ?? null,
     };
 
     this.bridge.emit({ type: 'sceneChange', mapId });
@@ -204,7 +205,35 @@ export class PixiApp {
 
     if (transition) {
       this.transitioning = true;
-      this.loadScene(transition.targetMapId, transition.targetSpawnId).then(() => {
+
+      if (transition.buildingId) {
+        // Entering a building — save a return spawn just below the building's door
+        // Use the building ID as the return spawn ID
+        const building = this.gameState.buildings.find(b => b.id === transition.buildingId);
+        if (building) {
+          const returnId = `exit-${building.id}`;
+          // Register a dynamic spawn point on the outdoor map if not already there
+          const outdoorMap = loadMap(this.gameState.currentMapId);
+          if (!outdoorMap.spawnPoints.find(s => s.id === returnId)) {
+            outdoorMap.spawnPoints.push({
+              id: returnId,
+              x: building.x,
+              y: building.y + 16, // just below the door
+              facing: 'down',
+            });
+          }
+          this.gameState.returnSpawnId = returnId;
+        }
+      }
+
+      // If this is an indoor exit trigger, use the saved return spawn
+      let spawnId = transition.targetSpawnId;
+      if (!transition.buildingId && this.gameState.returnSpawnId) {
+        spawnId = this.gameState.returnSpawnId;
+        this.gameState.returnSpawnId = null;
+      }
+
+      this.loadScene(transition.targetMapId, spawnId).then(() => {
         this.transitioning = false;
       });
       return;
