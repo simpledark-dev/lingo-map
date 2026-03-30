@@ -56,6 +56,10 @@ export interface NPCData {
   collisionBox: CollisionBox;
   name: string;
   dialogue: string[];
+  /** If set, NPC wanders within this radius (pixels) of their spawn point. */
+  wanderRadius?: number;
+  /** Optional rectangular area the NPC is confined to (world pixels). */
+  wanderBounds?: { x: number; y: number; width: number; height: number };
 }
 
 // ── Map ──

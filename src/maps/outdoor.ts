@@ -245,8 +245,21 @@ function vLamps(col: number, r0: number, r1: number, spacing = 6): Entity[] {
 }
 
 let npcId = 0;
-function npc(x: number, y: number, name: string, lines: string[], sprite = 'npc'): NPCData {
-  return { id: `npc-${++npcId}`, x, y, spriteKey: sprite, anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name, dialogue: lines };
+interface NPCOpts {
+  sprite?: string;
+  wanderRadius?: number;
+  wanderBounds?: { x: number; y: number; width: number; height: number };
+}
+function npc(x: number, y: number, name: string, lines: string[], opts: NPCOpts = {}): NPCData {
+  return {
+    id: `npc-${++npcId}`, x, y,
+    spriteKey: opts.sprite ?? 'npc',
+    anchor: { x: 0.5, y: 1.0 }, sortY: y,
+    collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 },
+    name, dialogue: lines,
+    wanderRadius: opts.wanderRadius,
+    wanderBounds: opts.wanderBounds,
+  };
 }
 
 // ── Nature helpers ──
@@ -663,37 +676,37 @@ const objects: Entity[] = [
 // ══════════════════════════════════════════
 
 const npcs: NPCData[] = [
-  // Town center
-  npc(56 * T, 46 * T, 'Elder', ['Welcome to the village!', 'The plaza is our gathering place.', 'Head west for homes, east for shops.'], 'npc-white'),
-  npc(54 * T, 48 * T, 'Child', ['Tag! You\'re it!', 'Catch me if you can!'], 'npc-yellow'),
+  // Town center — Elder stays put, Child runs around the plaza
+  npc(56 * T, 46 * T, 'Elder', ['Welcome to the village!', 'The plaza is our gathering place.', 'Head west for homes, east for shops.'], { sprite: 'npc-white' }),
+  npc(54 * T, 48 * T, 'Child', ['Tag! You\'re it!', 'Catch me if you can!'], { sprite: 'npc-yellow', wanderRadius: 128, wanderBounds: { x: 50 * T, y: 42 * T, width: 12 * T, height: 8 * T } }),
 
-  // Residential
-  npc(15 * T, 28 * T, 'Neighbor', ['Morning! Lovely day.', 'The bakery down the road is wonderful.'], 'npc-blue'),
-  npc(10 * T, 40 * T, 'Gardener', ['I tend the gardens here.', 'Each house has its own little patch.'], 'npc-green'),
+  // Residential — Neighbor wanders the neighborhood, Gardener stays in their garden
+  npc(15 * T, 28 * T, 'Neighbor', ['Morning! Lovely day.', 'The bakery down the road is wonderful.'], { sprite: 'npc-blue', wanderRadius: 160 }),
+  npc(10 * T, 40 * T, 'Gardener', ['I tend the gardens here.', 'Each house has its own little patch.'], { sprite: 'npc-green', wanderRadius: 80 }),
 
-  // Commercial
-  npc(72 * T, 44 * T, 'Shopper', ['So many shops!', 'The bookstore is my favorite.'], 'npc-pink'),
-  npc(82 * T, 44 * T, 'Trader', ['Fresh goods every day!', 'The market has everything.'], 'npc-orange'),
+  // Commercial — Shopper wanders the shops, Trader stays at their stall
+  npc(72 * T, 44 * T, 'Shopper', ['So many shops!', 'The bookstore is my favorite.'], { sprite: 'npc-pink', wanderRadius: 192, wanderBounds: { x: 64 * T, y: 38 * T, width: 28 * T, height: 16 * T } }),
+  npc(82 * T, 44 * T, 'Trader', ['Fresh goods every day!', 'The market has everything.'], { sprite: 'npc-orange' }),
 
-  // River / bridge
-  npc(38 * T, 44 * T, 'Bridge Keeper', ['This bridge is the heart of town.', 'The river is beautiful at sunset.'], 'npc-brown'),
-  npc(36 * T, 52 * T, 'Fisher', ['The river is full of fish!', 'Well, placeholder fish.'], 'npc-teal'),
+  // River / bridge — Bridge Keeper patrols the bridge, Fisher sits still
+  npc(38 * T, 44 * T, 'Bridge Keeper', ['This bridge is the heart of town.', 'The river is beautiful at sunset.'], { sprite: 'npc-brown', wanderRadius: 96 }),
+  npc(36 * T, 52 * T, 'Fisher', ['The river is full of fish!', 'Well, placeholder fish.'], { sprite: 'npc-teal' }),
 
-  // Park
-  npc(16 * T, 56 * T, 'Old Man', ['The park is so peaceful.', 'I come here every afternoon.'], 'npc-brown'),
-  npc(24 * T, 66 * T, 'Jogger', ['Just doing my laps!', 'The paths are perfect for running.'], 'npc-orange'),
+  // Park — Old Man sits on bench, Jogger runs around the park
+  npc(16 * T, 56 * T, 'Old Man', ['The park is so peaceful.', 'I come here every afternoon.'], { sprite: 'npc-brown' }),
+  npc(24 * T, 66 * T, 'Jogger', ['Just doing my laps!', 'The paths are perfect for running.'], { sprite: 'npc-orange', wanderRadius: 256, wanderBounds: { x: 4 * T, y: 48 * T, width: 32 * T, height: 28 * T } }),
 
-  // Artisan
-  npc(68 * T, 58 * T, 'Apprentice', ['Learning the trade.', 'The blacksmith is a tough teacher!'], 'npc-purple'),
+  // Artisan — Apprentice wanders the workshop area
+  npc(68 * T, 58 * T, 'Apprentice', ['Learning the trade.', 'The blacksmith is a tough teacher!'], { sprite: 'npc-purple', wanderRadius: 128 }),
 
-  // Forest entrances
-  npc(55 * T, 14 * T, 'Ranger', ['The north forest is dense.', 'Stay on the path, traveler.'], 'npc-green'),
-  npc(55 * T, 86 * T, 'Hermit', ['I live at the edge of the south woods.', 'Quiet here. I like it.'], 'npc-brown'),
+  // Forest entrances — Ranger patrols, Hermit stays put
+  npc(55 * T, 14 * T, 'Ranger', ['The north forest is dense.', 'Stay on the path, traveler.'], { sprite: 'npc-green', wanderRadius: 160 }),
+  npc(55 * T, 86 * T, 'Hermit', ['I live at the edge of the south woods.', 'Quiet here. I like it.'], { sprite: 'npc-brown' }),
 
-  // Roaming
-  npc(45 * T, 30 * T, 'Traveler', ['Long road from the west.', 'Worth the journey though.'], 'npc-blue'),
-  npc(70 * T, 46 * T, 'Courier', ['Deliveries! Coming through!'], 'npc-yellow'),
-  npc(55 * T, 70 * T, 'Walker', ['Just enjoying a stroll south.', 'The meadows are lovely.'], 'npc-pink'),
+  // Roaming — these NPCs wander along roads
+  npc(45 * T, 30 * T, 'Traveler', ['Long road from the west.', 'Worth the journey though.'], { sprite: 'npc-blue', wanderRadius: 224 }),
+  npc(70 * T, 46 * T, 'Courier', ['Deliveries! Coming through!'], { sprite: 'npc-yellow', wanderRadius: 256 }),
+  npc(55 * T, 70 * T, 'Walker', ['Just enjoying a stroll south.', 'The meadows are lovely.'], { sprite: 'npc-pink', wanderRadius: 192 }),
 ];
 
 // ══════════════════════════════════════════

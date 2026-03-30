@@ -195,6 +195,21 @@ export class RenderSystem {
     this.worldContainer.y = -cameraY * zoom;
   }
 
+  /** Update an NPC sprite's position (for wandering). */
+  updateNPC(npcId: string, x: number, y: number): void {
+    const sprite = this.npcSprites.get(npcId);
+    if (!sprite) return;
+    sprite.x = x;
+    sprite.y = y;
+    sprite.zIndex = y;
+    // Update animation base position so idle bob is relative to new position
+    const anim = this.npcAnims.get(npcId);
+    if (anim) {
+      anim.baseX = x;
+      anim.baseY = y;
+    }
+  }
+
   /** Update idle animations for trees and NPCs. Call once per frame. */
   updateAnimations(time: number): void {
     if (!this.animationsEnabled) return;

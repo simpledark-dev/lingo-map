@@ -10,6 +10,7 @@ import { checkInteraction, advanceDialogue } from '../core/InteractionSystem';
 import { GameBridge } from '../core/GameBridge';
 import { CommandQueue } from '../core/CommandQueue';
 import { buildWalkGrid, findPath } from '../core/Pathfinding';
+import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
 import { loadAssets, preloadAllAssets } from './AssetLoader';
 import { InputAdapter } from './InputAdapter';
 import { RenderSystem } from './RenderSystem';
@@ -24,6 +25,7 @@ export class PixiApp {
   private initialized = false;
   private destroyed = false;
   private walkGrid: boolean[][] | null = null;
+  private npcWanderStates: NPCWanderState[] = [];
 
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
@@ -115,6 +117,9 @@ export class PixiApp {
 
     // Build walkability grid for pathfinding
     this.walkGrid = buildWalkGrid(map, map.objects, map.buildings, player.collisionBox);
+
+    // Initialize NPC wandering
+    this.npcWanderStates = initWanderStates(map.npcs);
 
     this.bridge.emit({ type: 'sceneChange', mapId });
   }
@@ -274,6 +279,27 @@ export class PixiApp {
 
     // Update camera
     this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
+
+    // Update NPC wandering
+    if (this.npcWanderStates.length > 0 && this.walkGrid) {
+      const grid = this.walkGrid;
+      const GRID_CELL = 16;
+      updateWanderStates(this.npcWanderStates, delta, (x, y) => {
+        const gc = Math.floor(x / GRID_CELL);
+        const gr = Math.floor(y / GRID_CELL);
+        return gr >= 0 && gr < grid.length && gc >= 0 && gc < (grid[0]?.length ?? 0) && grid[gr][gc];
+      });
+      // Sync NPC positions to game state and renderer
+      for (const ws of this.npcWanderStates) {
+        const npc = this.gameState.npcs.find(n => n.id === ws.npcId);
+        if (npc) {
+          npc.x = ws.currentX;
+          npc.y = ws.currentY;
+          npc.sortY = ws.currentY;
+        }
+        this.renderSystem.updateNPC(ws.npcId, ws.currentX, ws.currentY);
+      }
+    }
 
     // Update renderer
     this.renderSystem.updatePlayer(this.gameState.player);
