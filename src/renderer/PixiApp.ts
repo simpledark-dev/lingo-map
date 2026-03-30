@@ -9,7 +9,7 @@ import { checkDoorTriggers } from '../core/TriggerSystem';
 import { checkInteraction, advanceDialogue } from '../core/InteractionSystem';
 import { GameBridge } from '../core/GameBridge';
 import { CommandQueue } from '../core/CommandQueue';
-import { loadAssets } from './AssetLoader';
+import { loadAssets, preloadAllAssets } from './AssetLoader';
 import { InputAdapter } from './InputAdapter';
 import { RenderSystem } from './RenderSystem';
 import { DebugOverlay } from './DebugOverlay';
@@ -72,6 +72,9 @@ export class PixiApp {
     this.app.ticker.add((ticker) => {
       this.update(ticker.deltaMS / 1000);
     });
+
+    // Preload all remaining assets in the background so scene transitions are instant
+    preloadAllAssets().catch(() => {});
   }
 
   private async loadScene(mapId: string, spawnId: string): Promise<void> {

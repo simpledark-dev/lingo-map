@@ -93,12 +93,15 @@ export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Text
     toLoad.push({ key, path });
   }
 
-  // Load all missing textures
-  for (const { key, path } of toLoad) {
-    const texture = await Assets.load<Texture>(path);
-    // Nearest-neighbor filtering for pixel art
-    texture.source.scaleMode = 'nearest';
-    textureCache.set(key, texture);
+  // Load all missing textures in parallel
+  if (toLoad.length > 0) {
+    const textures = await Promise.all(
+      toLoad.map(({ path }) => Assets.load<Texture>(path))
+    );
+    for (let i = 0; i < toLoad.length; i++) {
+      textures[i].source.scaleMode = 'nearest';
+      textureCache.set(toLoad[i].key, textures[i]);
+    }
   }
 
   // Return the subset requested
@@ -112,4 +115,9 @@ export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Text
 
 export function getTexture(key: string): Texture | undefined {
   return textureCache.get(key);
+}
+
+/** Preload all known assets in the background. Call once after initial scene is ready. */
+export async function preloadAllAssets(): Promise<void> {
+  await loadAssets(Object.keys(spriteManifest));
 }
