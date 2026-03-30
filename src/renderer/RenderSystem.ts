@@ -154,6 +154,13 @@ export class RenderSystem {
     return this.roofSprites.get(buildingId);
   }
 
+  /** Total number of sprites currently in the scene graph. */
+  getSpriteCount(): number {
+    return this.groundLayer.children.length
+      + this.entityLayer.children.length
+      + this.roofLayer.children.length;
+  }
+
   static getRequiredAssets(map: MapData): string[] {
     const keys = new Set<string>();
 

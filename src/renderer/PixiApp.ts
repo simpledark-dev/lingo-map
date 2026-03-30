@@ -12,6 +12,7 @@ import { CommandQueue } from '../core/CommandQueue';
 import { loadAssets } from './AssetLoader';
 import { InputAdapter } from './InputAdapter';
 import { RenderSystem } from './RenderSystem';
+import { DebugOverlay } from './DebugOverlay';
 
 export class PixiApp {
   app: Application;
@@ -24,6 +25,7 @@ export class PixiApp {
 
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
+  private debugOverlay: DebugOverlay | null = null;
 
   constructor() {
     this.app = new Application();
@@ -54,6 +56,10 @@ export class PixiApp {
     container.appendChild(canvas);
 
     this.inputAdapter.attach(canvas);
+
+    if (process.env.NODE_ENV === 'development') {
+      this.debugOverlay = new DebugOverlay(container);
+    }
 
     await this.loadScene('outdoor', 'default');
 
@@ -106,6 +112,8 @@ export class PixiApp {
     const mapH = map.height * map.tileSize;
 
     this.inputAdapter.cameraOffset = { ...this.gameState.camera };
+    this.inputAdapter.playerPos = { x: this.gameState.player.x, y: this.gameState.player.y };
+    this.inputAdapter.npcs = this.gameState.npcs;
     const input = this.inputAdapter.getInputState();
 
     // Process commands from UI
@@ -127,8 +135,8 @@ export class PixiApp {
 
     // Handle dialogue state
     if (this.gameState.activeDialogue) {
-      // While in dialogue, only allow advancing with interact key
-      if (input.interact) {
+      // Advance with interact key OR any tap/click (for mobile)
+      if (input.interact || input.moveTarget) {
         const next = advanceDialogue(this.gameState.activeDialogue);
         if (next) {
           this.gameState.activeDialogue = next;
@@ -142,6 +150,7 @@ export class PixiApp {
       this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH);
       this.renderSystem.updatePlayer(this.gameState.player);
       this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y);
+      if (this.debugOverlay) this.debugOverlay.update();
       return;
     }
 
@@ -207,6 +216,14 @@ export class PixiApp {
     // Update renderer
     this.renderSystem.updatePlayer(this.gameState.player);
     this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y);
+
+    // Debug overlay
+    if (this.debugOverlay && this.renderSystem) {
+      this.debugOverlay.totalObjects =
+        map.objects.length + map.buildings.length + map.npcs.length + 1; // +1 for player
+      this.debugOverlay.renderedSprites = this.renderSystem.getSpriteCount();
+      this.debugOverlay.update();
+    }
   }
 
   getGameState(): GameState | null {
@@ -216,6 +233,10 @@ export class PixiApp {
   destroy(): void {
     this.destroyed = true;
     this.inputAdapter.destroy();
+    if (this.debugOverlay) {
+      this.debugOverlay.destroy();
+      this.debugOverlay = null;
+    }
     if (this.renderSystem) {
       this.renderSystem.destroy();
     }
