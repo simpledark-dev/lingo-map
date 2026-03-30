@@ -208,7 +208,7 @@ export const indoorMap: MapData = {
       id: 'housekeeper',
       x: tx(15),
       y: ty(12),
-      spriteKey: 'npc',
+      spriteKey: 'npc-blue',
       anchor: { x: 0.5, y: 1.0 },
       sortY: ty(12),
       collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 },

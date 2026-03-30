@@ -985,19 +985,56 @@ console.log('Outdoor decorations:');
   save('log-pile.png', c);
 }
 
-// NPC (32x48)
-{
+// NPCs — color variants (32x48)
+console.log('NPC variants:');
+
+function generateNpc(name, shirtColor, hairColor, pantsColor) {
   const c = createCanvas(32, 48);
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#c44a4a';
-  ctx.fillRect(4, 8, 24, 32);
+  // Body / shirt
+  ctx.fillStyle = shirtColor;
+  ctx.fillRect(4, 12, 24, 28);
+  // Collar / neckline
+  ctx.fillStyle = shirtColor;
+  ctx.fillRect(10, 10, 12, 4);
+  // Head
   ctx.fillStyle = '#f5c6a0';
-  ctx.fillRect(8, 0, 16, 16);
+  ctx.fillRect(8, 0, 16, 14);
+  // Hair
+  ctx.fillStyle = hairColor;
+  ctx.fillRect(8, 0, 16, 5);
+  ctx.fillRect(6, 1, 4, 6);  // side hair left
+  ctx.fillRect(22, 1, 4, 6); // side hair right
+  // Eyes
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(11, 6, 2, 2);
+  ctx.fillRect(19, 6, 2, 2);
+  // Pants
+  ctx.fillStyle = pantsColor;
+  ctx.fillRect(4, 34, 10, 8);
+  ctx.fillRect(18, 34, 10, 8);
+  // Shoes
   ctx.fillStyle = '#2c2c2c';
-  ctx.fillRect(6, 40, 8, 8);
-  ctx.fillRect(18, 40, 8, 8);
-  save('npc.png', c);
+  ctx.fillRect(4, 42, 10, 6);
+  ctx.fillRect(18, 42, 10, 6);
+  // Belt
+  ctx.fillStyle = '#4a3520';
+  ctx.fillRect(4, 33, 24, 2);
+  save(name, c);
 }
+
+// Default red NPC (backwards compat)
+generateNpc('npc.png', '#c44a4a', '#5a3a1a', '#3a3a5a');
+// Color variants
+generateNpc('npc-blue.png', '#3a6ab5', '#3a2a1a', '#4a4a4a');
+generateNpc('npc-green.png', '#3a8a4a', '#6a4a2a', '#3a3a5a');
+generateNpc('npc-purple.png', '#7a4a8a', '#2a2a3a', '#4a4a4a');
+generateNpc('npc-orange.png', '#cc7733', '#8a5a2a', '#3a3a3a');
+generateNpc('npc-yellow.png', '#b8a030', '#4a3a2a', '#5a4a3a');
+generateNpc('npc-teal.png', '#3a8a8a', '#5a3a2a', '#3a3a5a');
+generateNpc('npc-pink.png', '#c06088', '#3a2a2a', '#4a4a5a');
+generateNpc('npc-brown.png', '#8a6a4a', '#2a1a0a', '#3a3a3a');
+generateNpc('npc-white.png', '#d0d0d0', '#c4a060', '#3a4a5a');
 
 // ══════════════════════════════════════
 // INDOOR FURNITURE & OBJECTS

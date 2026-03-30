@@ -82,8 +82,8 @@ export const marketMap: MapData = {
   ],
   buildings: [],
   npcs: [
-    { id: 'merchant-1', x: tx(6), y: ty(5), spriteKey: 'npc', anchor: { x: 0.5, y: 1.0 }, sortY: ty(5), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Fruit Seller', dialogue: ['Fresh fruit!', 'The apples are especially rectangular today.'] },
-    { id: 'merchant-2', x: tx(14), y: ty(5), spriteKey: 'npc', anchor: { x: 0.5, y: 1.0 }, sortY: ty(5), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Spice Trader', dialogue: ['Spices from far-off lands!', 'They\'ll add flavor to any placeholder meal.'] },
+    { id: 'merchant-1', x: tx(6), y: ty(5), spriteKey: 'npc-yellow', anchor: { x: 0.5, y: 1.0 }, sortY: ty(5), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Fruit Seller', dialogue: ['Fresh fruit!', 'The apples are especially rectangular today.'] },
+    { id: 'merchant-2', x: tx(14), y: ty(5), spriteKey: 'npc-orange', anchor: { x: 0.5, y: 1.0 }, sortY: ty(5), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Spice Trader', dialogue: ['Spices from far-off lands!', 'They\'ll add flavor to any placeholder meal.'] },
   ],
   triggers: [{ id: 'market-exit', x: 13 * T, y: (H - 1) * T, width: 64, height: 16, type: 'door', targetMapId: 'outdoor', targetSpawnId: 'market-exit' }],
   spawnPoints: [{ id: 'entrance', x: tx(13), y: ty(18), facing: 'up' }],

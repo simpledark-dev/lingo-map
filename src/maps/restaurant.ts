@@ -115,8 +115,8 @@ export const restaurantMap: MapData = {
   ],
   buildings: [],
   npcs: [
-    { id: 'host', x: tx(12), y: ty(19), spriteKey: 'npc', anchor: { x: 0.5, y: 1.0 }, sortY: ty(19), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Host', dialogue: ['Welcome to the restaurant!', 'Table for one? Right this way.', 'Our chef is preparing something special tonight.'] },
-    { id: 'chef', x: tx(24), y: ty(6), spriteKey: 'npc', anchor: { x: 0.5, y: 1.0 }, sortY: ty(6), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Chef', dialogue: ['Can\'t talk — the souffl\u00e9 is rising!', 'The passion is real!'] },
+    { id: 'host', x: tx(12), y: ty(19), spriteKey: 'npc-white', anchor: { x: 0.5, y: 1.0 }, sortY: ty(19), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Host', dialogue: ['Welcome to the restaurant!', 'Table for one? Right this way.', 'Our chef is preparing something special tonight.'] },
+    { id: 'chef', x: tx(24), y: ty(6), spriteKey: 'npc-white', anchor: { x: 0.5, y: 1.0 }, sortY: ty(6), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Chef', dialogue: ['Can\'t talk — the souffl\u00e9 is rising!', 'The passion is real!'] },
   ],
   triggers: [{ id: 'restaurant-exit', x: 13 * T, y: (H - 1) * T, width: 64, height: 16, type: 'door', targetMapId: 'outdoor', targetSpawnId: 'restaurant-exit' }],
   spawnPoints: [{ id: 'entrance', x: tx(13), y: ty(20), facing: 'up' }],

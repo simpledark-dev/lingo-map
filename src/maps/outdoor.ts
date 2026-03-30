@@ -245,8 +245,8 @@ function vLamps(col: number, r0: number, r1: number, spacing = 6): Entity[] {
 }
 
 let npcId = 0;
-function npc(x: number, y: number, name: string, lines: string[]): NPCData {
-  return { id: `npc-${++npcId}`, x, y, spriteKey: 'npc', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name, dialogue: lines };
+function npc(x: number, y: number, name: string, lines: string[], sprite = 'npc'): NPCData {
+  return { id: `npc-${++npcId}`, x, y, spriteKey: sprite, anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name, dialogue: lines };
 }
 
 // ── Nature helpers ──
@@ -664,36 +664,36 @@ const objects: Entity[] = [
 
 const npcs: NPCData[] = [
   // Town center
-  npc(56 * T, 46 * T, 'Elder', ['Welcome to the village!', 'The plaza is our gathering place.', 'Head west for homes, east for shops.']),
-  npc(54 * T, 48 * T, 'Child', ['Tag! You\'re it!', 'Catch me if you can!']),
+  npc(56 * T, 46 * T, 'Elder', ['Welcome to the village!', 'The plaza is our gathering place.', 'Head west for homes, east for shops.'], 'npc-white'),
+  npc(54 * T, 48 * T, 'Child', ['Tag! You\'re it!', 'Catch me if you can!'], 'npc-yellow'),
 
   // Residential
-  npc(15 * T, 28 * T, 'Neighbor', ['Morning! Lovely day.', 'The bakery down the road is wonderful.']),
-  npc(10 * T, 40 * T, 'Gardener', ['I tend the gardens here.', 'Each house has its own little patch.']),
+  npc(15 * T, 28 * T, 'Neighbor', ['Morning! Lovely day.', 'The bakery down the road is wonderful.'], 'npc-blue'),
+  npc(10 * T, 40 * T, 'Gardener', ['I tend the gardens here.', 'Each house has its own little patch.'], 'npc-green'),
 
   // Commercial
-  npc(72 * T, 44 * T, 'Shopper', ['So many shops!', 'The bookstore is my favorite.']),
-  npc(82 * T, 44 * T, 'Trader', ['Fresh goods every day!', 'The market has everything.']),
+  npc(72 * T, 44 * T, 'Shopper', ['So many shops!', 'The bookstore is my favorite.'], 'npc-pink'),
+  npc(82 * T, 44 * T, 'Trader', ['Fresh goods every day!', 'The market has everything.'], 'npc-orange'),
 
   // River / bridge
-  npc(38 * T, 44 * T, 'Bridge Keeper', ['This bridge is the heart of town.', 'The river is beautiful at sunset.']),
-  npc(36 * T, 52 * T, 'Fisher', ['The river is full of fish!', 'Well, placeholder fish.']),
+  npc(38 * T, 44 * T, 'Bridge Keeper', ['This bridge is the heart of town.', 'The river is beautiful at sunset.'], 'npc-brown'),
+  npc(36 * T, 52 * T, 'Fisher', ['The river is full of fish!', 'Well, placeholder fish.'], 'npc-teal'),
 
   // Park
-  npc(16 * T, 56 * T, 'Old Man', ['The park is so peaceful.', 'I come here every afternoon.']),
-  npc(24 * T, 66 * T, 'Jogger', ['Just doing my laps!', 'The paths are perfect for running.']),
+  npc(16 * T, 56 * T, 'Old Man', ['The park is so peaceful.', 'I come here every afternoon.'], 'npc-brown'),
+  npc(24 * T, 66 * T, 'Jogger', ['Just doing my laps!', 'The paths are perfect for running.'], 'npc-orange'),
 
   // Artisan
-  npc(68 * T, 58 * T, 'Apprentice', ['Learning the trade.', 'The blacksmith is a tough teacher!']),
+  npc(68 * T, 58 * T, 'Apprentice', ['Learning the trade.', 'The blacksmith is a tough teacher!'], 'npc-purple'),
 
   // Forest entrances
-  npc(55 * T, 14 * T, 'Ranger', ['The north forest is dense.', 'Stay on the path, traveler.']),
-  npc(55 * T, 86 * T, 'Hermit', ['I live at the edge of the south woods.', 'Quiet here. I like it.']),
+  npc(55 * T, 14 * T, 'Ranger', ['The north forest is dense.', 'Stay on the path, traveler.'], 'npc-green'),
+  npc(55 * T, 86 * T, 'Hermit', ['I live at the edge of the south woods.', 'Quiet here. I like it.'], 'npc-brown'),
 
   // Roaming
-  npc(45 * T, 30 * T, 'Traveler', ['Long road from the west.', 'Worth the journey though.']),
-  npc(70 * T, 46 * T, 'Courier', ['Deliveries! Coming through!']),
-  npc(55 * T, 70 * T, 'Walker', ['Just enjoying a stroll south.', 'The meadows are lovely.']),
+  npc(45 * T, 30 * T, 'Traveler', ['Long road from the west.', 'Worth the journey though.'], 'npc-blue'),
+  npc(70 * T, 46 * T, 'Courier', ['Deliveries! Coming through!'], 'npc-yellow'),
+  npc(55 * T, 70 * T, 'Walker', ['Just enjoying a stroll south.', 'The meadows are lovely.'], 'npc-pink'),
 ];
 
 // ══════════════════════════════════════════

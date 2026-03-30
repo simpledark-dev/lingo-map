@@ -92,7 +92,7 @@ export const blacksmithMap: MapData = {
   ],
   buildings: [],
   npcs: [{
-    id: 'blacksmith-npc', x: tx(9), y: ty(6), spriteKey: 'npc',
+    id: 'blacksmith-npc', x: tx(9), y: ty(6), spriteKey: 'npc-brown',
     anchor: { x: 0.5, y: 1.0 }, sortY: ty(6),
     collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 },
     name: 'Blacksmith', dialogue: ['Need a blade sharpened?', 'My forge runs day and night.', 'Finest steel in the village.'],

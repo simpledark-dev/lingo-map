@@ -89,7 +89,7 @@ export const bookstoreMap: MapData = {
   ],
   buildings: [],
   npcs: [{
-    id: 'bookseller', x: tx(13), y: ty(17), spriteKey: 'npc',
+    id: 'bookseller', x: tx(13), y: ty(17), spriteKey: 'npc-purple',
     anchor: { x: 0.5, y: 1.0 }, sortY: ty(17),
     collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 },
     name: 'Bookseller', dialogue: ['Welcome to the bookstore!', 'We have stories from every corner of the world.', 'The reading nooks are cozy — make yourself at home.'],

@@ -99,8 +99,8 @@ export const innMap: MapData = {
   ],
   buildings: [],
   npcs: [
-    { id: 'innkeeper', x: tx(6), y: ty(11), spriteKey: 'npc', anchor: { x: 0.5, y: 1.0 }, sortY: ty(11), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Innkeeper', dialogue: ['Welcome to the inn!', 'Rooms are upstairs. Drinks down here.', 'We have eight beds — pick any you like.'] },
-    { id: 'traveler-inn', x: tx(16), y: ty(14), spriteKey: 'npc', anchor: { x: 0.5, y: 1.0 }, sortY: ty(14), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Weary Traveler', dialogue: ['*yawn* Long journey...', 'The beds are comfortable.', 'And the ale isn\'t bad either.'] },
+    { id: 'innkeeper', x: tx(6), y: ty(11), spriteKey: 'npc-orange', anchor: { x: 0.5, y: 1.0 }, sortY: ty(11), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Innkeeper', dialogue: ['Welcome to the inn!', 'Rooms are upstairs. Drinks down here.', 'We have eight beds — pick any you like.'] },
+    { id: 'traveler-inn', x: tx(16), y: ty(14), spriteKey: 'npc-teal', anchor: { x: 0.5, y: 1.0 }, sortY: ty(14), collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name: 'Weary Traveler', dialogue: ['*yawn* Long journey...', 'The beds are comfortable.', 'And the ale isn\'t bad either.'] },
   ],
   triggers: [{ id: 'inn-exit', x: 13 * T, y: (H - 1) * T, width: 64, height: 16, type: 'door', targetMapId: 'outdoor', targetSpawnId: 'inn-exit' }],
   spawnPoints: [{ id: 'entrance', x: tx(13), y: ty(20), facing: 'up' }],

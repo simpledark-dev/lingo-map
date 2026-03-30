@@ -100,7 +100,7 @@ export const cafeMap: MapData = {
   ],
   buildings: [],
   npcs: [{
-    id: 'barista', x: tx(6), y: ty(9), spriteKey: 'npc',
+    id: 'barista', x: tx(6), y: ty(9), spriteKey: 'npc-green',
     anchor: { x: 0.5, y: 1.0 }, sortY: ty(9),
     collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 },
     name: 'Barista', dialogue: ['Welcome to the cafe!', 'We have the best coffee in the village.', 'Try our pastries — freshly baked!'],

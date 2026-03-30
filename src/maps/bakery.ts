@@ -85,7 +85,7 @@ export const bakeryMap: MapData = {
   ],
   buildings: [],
   npcs: [{
-    id: 'baker', x: tx(7), y: ty(4), spriteKey: 'npc',
+    id: 'baker', x: tx(7), y: ty(4), spriteKey: 'npc-white',
     anchor: { x: 0.5, y: 1.0 }, sortY: ty(4),
     collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 },
     name: 'Baker', dialogue: ['Welcome! Everything is baked fresh today.', 'Try the croissants!', 'Once we get real assets, they\'ll look delicious.'],
