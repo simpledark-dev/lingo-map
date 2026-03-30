@@ -99,7 +99,7 @@ export class PixiApp {
     this.gameState = {
       currentMapId: mapId,
       player,
-      camera: updateCamera(player, mapW, mapH),
+      camera: updateCamera(player, mapW, mapH, this.inputAdapter.zoom),
       entities: map.objects,
       buildings: map.buildings,
       npcs: map.npcs,
@@ -153,9 +153,9 @@ export class PixiApp {
         }
       }
       // Update camera and render even during dialogue (player is frozen, but camera should stay)
-      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
       this.renderSystem.updatePlayer(this.gameState.player);
-      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y);
+      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
       if (this.debugOverlay) this.debugOverlay.update();
       return;
     }
@@ -166,9 +166,9 @@ export class PixiApp {
       this.gameState.activeDialogue = dialogueEvent;
       this.bridge.emit({ type: 'dialogueStart', dialogue: dialogueEvent });
       // Don't process movement this frame
-      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
       this.renderSystem.updatePlayer(this.gameState.player);
-      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y);
+      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
       return;
     }
 
@@ -245,11 +245,11 @@ export class PixiApp {
     }
 
     // Update camera
-    this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH);
+    this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
 
     // Update renderer
     this.renderSystem.updatePlayer(this.gameState.player);
-    this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y);
+    this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
 
     // Debug overlay
     if (this.debugOverlay && this.renderSystem) {

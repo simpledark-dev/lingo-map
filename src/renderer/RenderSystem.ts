@@ -147,9 +147,10 @@ export class RenderSystem {
     this.playerSprite.zIndex = player.sortY;
   }
 
-  updateCamera(cameraX: number, cameraY: number): void {
-    this.worldContainer.x = -cameraX;
-    this.worldContainer.y = -cameraY;
+  updateCamera(cameraX: number, cameraY: number, zoom: number = 1): void {
+    this.worldContainer.scale.set(zoom, zoom);
+    this.worldContainer.x = -cameraX * zoom;
+    this.worldContainer.y = -cameraY * zoom;
   }
 
   /** Get a roof sprite by building ID — for future per-roof behavior. */
