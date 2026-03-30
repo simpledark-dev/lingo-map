@@ -1,0 +1,1704 @@
+{
+  "id": "cafe",
+  "width": 26,
+  "height": 20,
+  "tileSize": 32,
+  "tiles": [
+    [
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "floor",
+      "floor",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "floor",
+      "floor",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall"
+    ]
+  ],
+  "objects": [
+    {
+      "id": "cafe-1",
+      "x": 80,
+      "y": 64,
+      "spriteKey": "coffee-machine",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-2",
+      "x": 144,
+      "y": 64,
+      "spriteKey": "coffee-machine",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-3",
+      "x": 208,
+      "y": 64,
+      "spriteKey": "coffee-machine",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-4",
+      "x": 80,
+      "y": 128,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-5",
+      "x": 144,
+      "y": 128,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-6",
+      "x": 272,
+      "y": 64,
+      "spriteKey": "crate",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-7",
+      "x": 336,
+      "y": 64,
+      "spriteKey": "crate",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-8",
+      "x": 272,
+      "y": 128,
+      "spriteKey": "barrel",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -22,
+        "width": 20,
+        "height": 22
+      }
+    },
+    {
+      "id": "cafe-9",
+      "x": 336,
+      "y": 128,
+      "spriteKey": "barrel",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -22,
+        "width": 20,
+        "height": 22
+      }
+    },
+    {
+      "id": "cafe-10",
+      "x": 592,
+      "y": 64,
+      "spriteKey": "crate",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-11",
+      "x": 656,
+      "y": 64,
+      "spriteKey": "crate",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-12",
+      "x": 720,
+      "y": 64,
+      "spriteKey": "crate",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-13",
+      "x": 784,
+      "y": 64,
+      "spriteKey": "barrel",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -22,
+        "width": 20,
+        "height": 22
+      }
+    },
+    {
+      "id": "cafe-14",
+      "x": 592,
+      "y": 128,
+      "spriteKey": "pastry-case",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -18,
+        "width": 28,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-15",
+      "x": 656,
+      "y": 128,
+      "spriteKey": "pastry-case",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -18,
+        "width": 28,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-16",
+      "x": 464,
+      "y": 64,
+      "spriteKey": "window-indoor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -936,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-17",
+      "x": 112,
+      "y": 288,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-18",
+      "x": 176,
+      "y": 288,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-19",
+      "x": 240,
+      "y": 288,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-20",
+      "x": 304,
+      "y": 288,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-21",
+      "x": 144,
+      "y": 256,
+      "spriteKey": "pastry-case",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 256,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -18,
+        "width": 28,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-22",
+      "x": 272,
+      "y": 256,
+      "spriteKey": "menu-board",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 256,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -28,
+        "width": 24,
+        "height": 28
+      }
+    },
+    {
+      "id": "cafe-23",
+      "x": 112,
+      "y": 384,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-24",
+      "x": 80,
+      "y": 384,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-25",
+      "x": 144,
+      "y": 384,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-26",
+      "x": 112,
+      "y": 352,
+      "spriteKey": "coffee-cup",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -648,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-27",
+      "x": 112,
+      "y": 480,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-28",
+      "x": 80,
+      "y": 480,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-29",
+      "x": 144,
+      "y": 480,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-30",
+      "x": 112,
+      "y": 448,
+      "spriteKey": "coffee-cup",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -552,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-31",
+      "x": 112,
+      "y": 576,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 576,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-32",
+      "x": 80,
+      "y": 576,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 576,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-33",
+      "x": 144,
+      "y": 576,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 576,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-34",
+      "x": 336,
+      "y": 384,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-35",
+      "x": 368,
+      "y": 384,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-36",
+      "x": 304,
+      "y": 384,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-37",
+      "x": 400,
+      "y": 384,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-38",
+      "x": 336,
+      "y": 352,
+      "spriteKey": "coffee-cup",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -648,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-39",
+      "x": 368,
+      "y": 352,
+      "spriteKey": "coffee-cup",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -648,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-40",
+      "x": 336,
+      "y": 480,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-41",
+      "x": 368,
+      "y": 480,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-42",
+      "x": 304,
+      "y": 480,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-43",
+      "x": 400,
+      "y": 480,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-44",
+      "x": 592,
+      "y": 384,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-45",
+      "x": 560,
+      "y": 384,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-46",
+      "x": 624,
+      "y": 384,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-47",
+      "x": 592,
+      "y": 352,
+      "spriteKey": "coffee-cup",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -648,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-48",
+      "x": 592,
+      "y": 480,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-49",
+      "x": 560,
+      "y": 480,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-50",
+      "x": 624,
+      "y": 480,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-51",
+      "x": 720,
+      "y": 384,
+      "spriteKey": "sofa",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -20,
+        "offsetY": -18,
+        "width": 40,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-52",
+      "x": 720,
+      "y": 480,
+      "spriteKey": "sofa",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -20,
+        "offsetY": -18,
+        "width": 40,
+        "height": 18
+      }
+    },
+    {
+      "id": "cafe-53",
+      "x": 720,
+      "y": 416,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 416,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "cafe-54",
+      "x": 720,
+      "y": 384,
+      "spriteKey": "coffee-cup",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -616,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-55",
+      "x": 48,
+      "y": 352,
+      "spriteKey": "window-indoor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -648,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-56",
+      "x": 48,
+      "y": 480,
+      "spriteKey": "window-indoor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -520,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-57",
+      "x": 784,
+      "y": 352,
+      "spriteKey": "window-indoor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -648,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-58",
+      "x": 784,
+      "y": 480,
+      "spriteKey": "window-indoor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -520,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-59",
+      "x": 48,
+      "y": 608,
+      "spriteKey": "pot",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 608,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -20,
+        "width": 16,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-60",
+      "x": 784,
+      "y": 608,
+      "spriteKey": "pot",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 608,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -20,
+        "width": 16,
+        "height": 20
+      }
+    },
+    {
+      "id": "cafe-61",
+      "x": 336,
+      "y": 576,
+      "spriteKey": "rug",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -424,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-62",
+      "x": 592,
+      "y": 576,
+      "spriteKey": "rug",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -424,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-63",
+      "x": 208,
+      "y": 288,
+      "spriteKey": "candle",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -712,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "cafe-64",
+      "x": 336,
+      "y": 448,
+      "spriteKey": "candle",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -552,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    }
+  ],
+  "buildings": [],
+  "npcs": [
+    {
+      "id": "barista",
+      "x": 208,
+      "y": 320,
+      "spriteKey": "npc",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 320,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      },
+      "name": "Barista",
+      "dialogue": [
+        "Welcome to the cafe!",
+        "We have the best coffee in the village.",
+        "Try our pastries — freshly baked!"
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "id": "cafe-exit",
+      "x": 384,
+      "y": 608,
+      "width": 64,
+      "height": 16,
+      "type": "door",
+      "targetMapId": "outdoor",
+      "targetSpawnId": "cafe-exit"
+    }
+  ],
+  "spawnPoints": [
+    {
+      "id": "entrance",
+      "x": 400,
+      "y": 608,
+      "facing": "up"
+    }
+  ]
+}

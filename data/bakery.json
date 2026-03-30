@@ -1,0 +1,1568 @@
+{
+  "id": "bakery",
+  "width": 26,
+  "height": 20,
+  "tileSize": 32,
+  "tiles": [
+    [
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "floor",
+      "wall"
+    ],
+    [
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "floor",
+      "floor",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall",
+      "wall"
+    ]
+  ],
+  "objects": [
+    {
+      "id": "bak-1",
+      "x": 144,
+      "y": 128,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-2",
+      "x": 208,
+      "y": 128,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-3",
+      "x": 272,
+      "y": 128,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-4",
+      "x": 336,
+      "y": 128,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-5",
+      "x": 144,
+      "y": 96,
+      "spriteKey": "pastry-case",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 96,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -18,
+        "width": 28,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-6",
+      "x": 208,
+      "y": 96,
+      "spriteKey": "pastry-case",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 96,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -18,
+        "width": 28,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-7",
+      "x": 272,
+      "y": 96,
+      "spriteKey": "pastry-case",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 96,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -18,
+        "width": 28,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-8",
+      "x": 336,
+      "y": 96,
+      "spriteKey": "bread-basket",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 96,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -14,
+        "width": 16,
+        "height": 14
+      }
+    },
+    {
+      "id": "bak-9",
+      "x": 400,
+      "y": 96,
+      "spriteKey": "bread-basket",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 96,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -14,
+        "width": 16,
+        "height": 14
+      }
+    },
+    {
+      "id": "bak-10",
+      "x": 464,
+      "y": 96,
+      "spriteKey": "bread-basket",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 96,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -14,
+        "width": 16,
+        "height": 14
+      }
+    },
+    {
+      "id": "bak-11",
+      "x": 48,
+      "y": 224,
+      "spriteKey": "bookshelf",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 224,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -28,
+        "width": 28,
+        "height": 28
+      }
+    },
+    {
+      "id": "bak-12",
+      "x": 48,
+      "y": 288,
+      "spriteKey": "bookshelf",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -28,
+        "width": 28,
+        "height": 28
+      }
+    },
+    {
+      "id": "bak-13",
+      "x": 496,
+      "y": 224,
+      "spriteKey": "bookshelf",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 224,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -28,
+        "width": 28,
+        "height": 28
+      }
+    },
+    {
+      "id": "bak-14",
+      "x": 496,
+      "y": 288,
+      "spriteKey": "bookshelf",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -28,
+        "width": 28,
+        "height": 28
+      }
+    },
+    {
+      "id": "bak-15",
+      "x": 176,
+      "y": 288,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "bak-16",
+      "x": 144,
+      "y": 288,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-17",
+      "x": 208,
+      "y": 288,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-18",
+      "x": 176,
+      "y": 256,
+      "spriteKey": "candle",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -744,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "bak-19",
+      "x": 368,
+      "y": 288,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "bak-20",
+      "x": 336,
+      "y": 288,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-21",
+      "x": 400,
+      "y": 288,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-22",
+      "x": 368,
+      "y": 256,
+      "spriteKey": "candle",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -744,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "bak-23",
+      "x": 176,
+      "y": 416,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 416,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "bak-24",
+      "x": 144,
+      "y": 416,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 416,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-25",
+      "x": 208,
+      "y": 416,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 416,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-26",
+      "x": 368,
+      "y": 416,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 416,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "bak-27",
+      "x": 336,
+      "y": 416,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 416,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-28",
+      "x": 400,
+      "y": 416,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 416,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-29",
+      "x": 272,
+      "y": 512,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 512,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "bak-30",
+      "x": 304,
+      "y": 512,
+      "spriteKey": "cafe-table",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 512,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      }
+    },
+    {
+      "id": "bak-31",
+      "x": 240,
+      "y": 512,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 512,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-32",
+      "x": 336,
+      "y": 512,
+      "spriteKey": "cafe-chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 512,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -18,
+        "width": 20,
+        "height": 18
+      }
+    },
+    {
+      "id": "bak-33",
+      "x": 48,
+      "y": 128,
+      "spriteKey": "window-indoor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -872,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "bak-34",
+      "x": 496,
+      "y": 128,
+      "spriteKey": "window-indoor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -872,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "bak-35",
+      "x": 48,
+      "y": 416,
+      "spriteKey": "window-indoor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -584,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "bak-36",
+      "x": 496,
+      "y": 416,
+      "spriteKey": "window-indoor",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -584,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "bak-37",
+      "x": 80,
+      "y": 608,
+      "spriteKey": "pot",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 608,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -20,
+        "width": 16,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-38",
+      "x": 464,
+      "y": 608,
+      "spriteKey": "pot",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 608,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -20,
+        "width": 16,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-39",
+      "x": 272,
+      "y": 576,
+      "spriteKey": "rug",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": -424,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "id": "bak-40",
+      "x": 656,
+      "y": 96,
+      "spriteKey": "stove",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 96,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -20,
+        "width": 28,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-41",
+      "x": 720,
+      "y": 96,
+      "spriteKey": "stove",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 96,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -20,
+        "width": 28,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-42",
+      "x": 784,
+      "y": 96,
+      "spriteKey": "stove",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 96,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -20,
+        "width": 28,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-43",
+      "x": 656,
+      "y": 160,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 160,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-44",
+      "x": 720,
+      "y": 160,
+      "spriteKey": "counter",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 160,
+      "collisionBox": {
+        "offsetX": -28,
+        "offsetY": -20,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-45",
+      "x": 784,
+      "y": 224,
+      "spriteKey": "barrel",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 224,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -22,
+        "width": 20,
+        "height": 22
+      }
+    },
+    {
+      "id": "bak-46",
+      "x": 784,
+      "y": 288,
+      "spriteKey": "barrel",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -22,
+        "width": 20,
+        "height": 22
+      }
+    },
+    {
+      "id": "bak-47",
+      "x": 656,
+      "y": 288,
+      "spriteKey": "crate",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-48",
+      "x": 720,
+      "y": 288,
+      "spriteKey": "crate",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 288,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-49",
+      "x": 656,
+      "y": 352,
+      "spriteKey": "bread-basket",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 352,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -14,
+        "width": 16,
+        "height": 14
+      }
+    },
+    {
+      "id": "bak-50",
+      "x": 720,
+      "y": 352,
+      "spriteKey": "bread-basket",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 352,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -14,
+        "width": 16,
+        "height": 14
+      }
+    },
+    {
+      "id": "bak-51",
+      "x": 784,
+      "y": 352,
+      "spriteKey": "bread-basket",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 352,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -14,
+        "width": 16,
+        "height": 14
+      }
+    },
+    {
+      "id": "bak-52",
+      "x": 656,
+      "y": 480,
+      "spriteKey": "barrel",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -22,
+        "width": 20,
+        "height": 22
+      }
+    },
+    {
+      "id": "bak-53",
+      "x": 720,
+      "y": 480,
+      "spriteKey": "crate",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -20,
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-54",
+      "x": 784,
+      "y": 480,
+      "spriteKey": "barrel",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 480,
+      "collisionBox": {
+        "offsetX": -10,
+        "offsetY": -22,
+        "width": 20,
+        "height": 22
+      }
+    },
+    {
+      "id": "bak-55",
+      "x": 624,
+      "y": 608,
+      "spriteKey": "pot",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 608,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -20,
+        "width": 16,
+        "height": 20
+      }
+    },
+    {
+      "id": "bak-56",
+      "x": 784,
+      "y": 608,
+      "spriteKey": "pot",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 608,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -20,
+        "width": 16,
+        "height": 20
+      }
+    }
+  ],
+  "buildings": [],
+  "npcs": [
+    {
+      "id": "baker",
+      "x": 240,
+      "y": 160,
+      "spriteKey": "npc",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 160,
+      "collisionBox": {
+        "offsetX": -12,
+        "offsetY": -16,
+        "width": 24,
+        "height": 16
+      },
+      "name": "Baker",
+      "dialogue": [
+        "Welcome! Everything is baked fresh today.",
+        "Try the croissants!",
+        "Once we get real assets, they'll look delicious."
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "id": "bakery-exit",
+      "x": 384,
+      "y": 608,
+      "width": 64,
+      "height": 16,
+      "type": "door",
+      "targetMapId": "outdoor",
+      "targetSpawnId": "bakery-exit"
+    }
+  ],
+  "spawnPoints": [
+    {
+      "id": "entrance",
+      "x": 400,
+      "y": 608,
+      "facing": "up"
+    }
+  ]
+}

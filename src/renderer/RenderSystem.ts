@@ -2,6 +2,15 @@ import { Application, Container, Sprite } from 'pixi.js';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { getTexture } from './AssetLoader';
 
+interface AnimData {
+  baseX: number;
+  baseY: number;
+  phase: number;     // random offset so each sprite sways independently
+  speed: number;     // oscillation speed
+  rotAmount: number; // max rotation in radians
+  swayAmount: number; // max X sway in pixels
+}
+
 export class RenderSystem {
   private app: Application;
   private worldContainer: Container;
@@ -21,6 +30,11 @@ export class RenderSystem {
 
   // Current map data (needed for sorting)
   private currentMap: MapData | null = null;
+
+  // Animation data — renderer-only, does not affect gameplay
+  private treeAnims = new Map<string, AnimData>();
+  private npcAnims = new Map<string, AnimData>();
+  animationsEnabled = true;
 
   constructor(app: Application) {
     this.app = app;
@@ -65,8 +79,11 @@ export class RenderSystem {
     this.buildingBaseSprites.clear();
     this.npcSprites.clear();
     this.roofSprites.clear();
+    this.treeAnims.clear();
+    this.npcAnims.clear();
 
     // Objects (trees, rocks)
+    let seed = 1;
     for (const obj of map.objects) {
       const texture = getTexture(obj.spriteKey);
       if (!texture) continue;
@@ -77,6 +94,20 @@ export class RenderSystem {
       sprite.zIndex = obj.sortY;
       this.entityLayer.addChild(sprite);
       this.objectSprites.set(obj.id, sprite);
+
+      // Register tree animations
+      if (obj.spriteKey === 'tree') {
+        // Deterministic per-tree variation using a simple hash
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        this.treeAnims.set(obj.id, {
+          baseX: obj.x,
+          baseY: obj.y,
+          phase: (seed % 1000) / 1000 * Math.PI * 2,
+          speed: 0.8 + (seed % 500) / 1000,  // 0.8–1.3
+          rotAmount: 0.015 + (seed % 300) / 30000, // 0.015–0.025 rad (~1–1.5 deg)
+          swayAmount: 0.5 + (seed % 200) / 400, // 0.5–1.0 px
+        });
+      }
     }
 
     // Building bases
@@ -120,6 +151,17 @@ export class RenderSystem {
       sprite.zIndex = npc.sortY;
       this.entityLayer.addChild(sprite);
       this.npcSprites.set(npc.id, sprite);
+
+      // NPC idle bob — very subtle vertical movement
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      this.npcAnims.set(npc.id, {
+        baseX: npc.x,
+        baseY: npc.y,
+        phase: (seed % 1000) / 1000 * Math.PI * 2,
+        speed: 1.2 + (seed % 400) / 1000, // 1.2–1.6
+        rotAmount: 0,
+        swayAmount: 0.8, // subtle vertical bob in pixels
+      });
     }
   }
 
@@ -151,6 +193,28 @@ export class RenderSystem {
     this.worldContainer.scale.set(zoom, zoom);
     this.worldContainer.x = -cameraX * zoom;
     this.worldContainer.y = -cameraY * zoom;
+  }
+
+  /** Update idle animations for trees and NPCs. Call once per frame. */
+  updateAnimations(time: number): void {
+    if (!this.animationsEnabled) return;
+
+    // Tree sway — rotation + slight X offset
+    for (const [id, anim] of this.treeAnims) {
+      const sprite = this.objectSprites.get(id);
+      if (!sprite) continue;
+      const t = time * anim.speed + anim.phase;
+      sprite.rotation = Math.sin(t) * anim.rotAmount;
+      sprite.x = anim.baseX + Math.sin(t * 0.7) * anim.swayAmount;
+    }
+
+    // NPC idle bob — slight Y oscillation
+    for (const [id, anim] of this.npcAnims) {
+      const sprite = this.npcSprites.get(id);
+      if (!sprite) continue;
+      const t = time * anim.speed + anim.phase;
+      sprite.y = anim.baseY + Math.sin(t) * anim.swayAmount;
+    }
   }
 
   /** Get a roof sprite by building ID — for future per-roof behavior. */

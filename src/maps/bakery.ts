@@ -1,7 +1,7 @@
 import { MapData, TileType, Entity } from '../core/types';
 
-const W = 14;
-const H = 12;
+const W = 26;
+const H = 20;
 const F = TileType.FLOOR;
 const WL = TileType.WALL;
 const T = 32;
@@ -12,11 +12,11 @@ function makeTiles(): TileType[][] {
     const r: TileType[] = [];
     for (let col = 0; col < W; col++) {
       if (row === 0 || row === H - 1 || col === 0 || col === W - 1) {
-        if (row === H - 1 && (col === 6 || col === 7)) r.push(F);
+        if (row === H - 1 && (col === 12 || col === 13)) r.push(F);
         else r.push(WL);
       }
-      // Kitchen partition — col 9, doorway at rows 4-5
-      else if (col === 9 && !(row === 4 || row === 5)) r.push(WL);
+      // Kitchen partition — col 17, doorway rows 8-9
+      else if (col === 17 && !(row === 8 || row === 9)) r.push(WL);
       else r.push(F);
     }
     tiles.push(r);
@@ -37,47 +37,59 @@ function ty(r: number) { return (r + 1) * T; }
 export const bakeryMap: MapData = {
   id: 'bakery', width: W, height: H, tileSize: T, tiles: makeTiles(),
   objects: [
-    // ── Shop front (cols 1-8) ──
-    // Display counter
-    obj(tx(3), ty(3), 'counter', 56, 20),
-    obj(tx(5), ty(3), 'counter', 56, 20),
-    // Pastry cases on counter
-    obj(tx(3), ty(2), 'pastry-case', 28, 18),
-    obj(tx(5), ty(2), 'pastry-case', 28, 18),
-    // Bread baskets
-    obj(tx(7), ty(3), 'bread-basket', 16, 14),
-    obj(tx(2), ty(6), 'bread-basket', 16, 14),
-    // Seating
-    obj(tx(3), ty(7), 'cafe-table', 24, 16),
-    obj(tx(2), ty(7), 'cafe-chair', 20, 18),
-    obj(tx(4), ty(7), 'cafe-chair', 20, 18),
-    obj(tx(7), ty(7), 'cafe-table', 24, 16),
-    obj(tx(6), ty(7), 'cafe-chair', 20, 18),
-    obj(tx(8), ty(7), 'cafe-chair', 20, 18),
-    decor(tx(3), ty(6), 'candle'), decor(tx(7), ty(6), 'candle'),
-    // Decor
-    decor(tx(1), ty(4), 'window-indoor'), decor(tx(8), ty(4), 'window-indoor'),
-    obj(tx(1), ty(10), 'pot', 16, 20), obj(tx(8), ty(10), 'pot', 16, 20),
-    decor(tx(5), ty(9), 'rug'),
+    // ═══ Shop front (cols 1-16, rows 1-18) ═══
+    // Display counter with pastries
+    obj(tx(4), ty(3), 'counter', 56, 20), obj(tx(6), ty(3), 'counter', 56, 20),
+    obj(tx(8), ty(3), 'counter', 56, 20), obj(tx(10), ty(3), 'counter', 56, 20),
+    obj(tx(4), ty(2), 'pastry-case', 28, 18), obj(tx(6), ty(2), 'pastry-case', 28, 18),
+    obj(tx(8), ty(2), 'pastry-case', 28, 18),
+    obj(tx(10), ty(2), 'bread-basket', 16, 14), obj(tx(12), ty(2), 'bread-basket', 16, 14),
+    obj(tx(14), ty(2), 'bread-basket', 16, 14),
 
-    // ── Kitchen (cols 10-12) ──
-    obj(tx(12), ty(1), 'stove', 28, 20),
-    obj(tx(12), ty(3), 'stove', 28, 20),
-    obj(tx(10), ty(1), 'counter', 56, 20),
-    obj(tx(10), ty(5), 'barrel', 20, 22),
-    obj(tx(12), ty(5), 'crate', 20, 20),
-    obj(tx(10), ty(8), 'bread-basket', 16, 14),
-    obj(tx(12), ty(8), 'bread-basket', 16, 14),
-    obj(tx(11), ty(10), 'barrel', 20, 22),
+    // Shelves on walls
+    obj(tx(1), ty(6), 'bookshelf', 28, 28), obj(tx(1), ty(8), 'bookshelf', 28, 28),
+    obj(tx(15), ty(6), 'bookshelf', 28, 28), obj(tx(15), ty(8), 'bookshelf', 28, 28),
+
+    // Seating area (center)
+    obj(tx(5), ty(8), 'cafe-table', 24, 16),
+    obj(tx(4), ty(8), 'cafe-chair', 20, 18), obj(tx(6), ty(8), 'cafe-chair', 20, 18),
+    decor(tx(5), ty(7), 'candle'),
+    obj(tx(11), ty(8), 'cafe-table', 24, 16),
+    obj(tx(10), ty(8), 'cafe-chair', 20, 18), obj(tx(12), ty(8), 'cafe-chair', 20, 18),
+    decor(tx(11), ty(7), 'candle'),
+
+    obj(tx(5), ty(12), 'cafe-table', 24, 16),
+    obj(tx(4), ty(12), 'cafe-chair', 20, 18), obj(tx(6), ty(12), 'cafe-chair', 20, 18),
+    obj(tx(11), ty(12), 'cafe-table', 24, 16),
+    obj(tx(10), ty(12), 'cafe-chair', 20, 18), obj(tx(12), ty(12), 'cafe-chair', 20, 18),
+
+    obj(tx(8), ty(15), 'cafe-table', 24, 16), obj(tx(9), ty(15), 'cafe-table', 24, 16),
+    obj(tx(7), ty(15), 'cafe-chair', 20, 18), obj(tx(10), ty(15), 'cafe-chair', 20, 18),
+
+    // Decoration
+    decor(tx(1), ty(3), 'window-indoor'), decor(tx(15), ty(3), 'window-indoor'),
+    decor(tx(1), ty(12), 'window-indoor'), decor(tx(15), ty(12), 'window-indoor'),
+    obj(tx(2), ty(18), 'pot', 16, 20), obj(tx(14), ty(18), 'pot', 16, 20),
+    decor(tx(8), ty(17), 'rug'),
+
+    // ═══ Kitchen (cols 18-24) ═══
+    obj(tx(20), ty(2), 'stove', 28, 20), obj(tx(22), ty(2), 'stove', 28, 20), obj(tx(24), ty(2), 'stove', 28, 20),
+    obj(tx(20), ty(4), 'counter', 56, 20), obj(tx(22), ty(4), 'counter', 56, 20),
+    obj(tx(24), ty(6), 'barrel', 20, 22), obj(tx(24), ty(8), 'barrel', 20, 22),
+    obj(tx(20), ty(8), 'crate', 20, 20), obj(tx(22), ty(8), 'crate', 20, 20),
+    obj(tx(20), ty(10), 'bread-basket', 16, 14), obj(tx(22), ty(10), 'bread-basket', 16, 14),
+    obj(tx(24), ty(10), 'bread-basket', 16, 14),
+    obj(tx(20), ty(14), 'barrel', 20, 22), obj(tx(22), ty(14), 'crate', 20, 20),
+    obj(tx(24), ty(14), 'barrel', 20, 22),
+    obj(tx(19), ty(18), 'pot', 16, 20), obj(tx(24), ty(18), 'pot', 16, 20),
   ],
   buildings: [],
   npcs: [{
-    id: 'baker', x: tx(4), y: ty(4), spriteKey: 'npc',
+    id: 'baker', x: tx(7), y: ty(4), spriteKey: 'npc',
     anchor: { x: 0.5, y: 1.0 }, sortY: ty(4),
     collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 },
-    name: 'Baker',
-    dialogue: ['Welcome! Everything is baked fresh today.', 'Try the croissants — they\'re our specialty!', '...Once we get real assets, they\'ll look delicious.'],
+    name: 'Baker', dialogue: ['Welcome! Everything is baked fresh today.', 'Try the croissants!', 'Once we get real assets, they\'ll look delicious.'],
   }],
-  triggers: [{ id: 'bakery-exit', x: 6 * T, y: (H - 1) * T, width: 64, height: 16, type: 'door', targetMapId: 'outdoor', targetSpawnId: 'bakery-exit' }],
-  spawnPoints: [{ id: 'entrance', x: tx(6), y: ty(10), facing: 'up' }],
+  triggers: [{ id: 'bakery-exit', x: 12 * T, y: (H - 1) * T, width: 64, height: 16, type: 'door', targetMapId: 'outdoor', targetSpawnId: 'bakery-exit' }],
+  spawnPoints: [{ id: 'entrance', x: tx(12), y: ty(18), facing: 'up' }],
 };

@@ -1,7 +1,7 @@
 import { MapData, TileType, Entity } from '../core/types';
 
-const W = 16;
-const H = 14;
+const W = 26;
+const H = 20;
 const F = TileType.FLOOR;
 const WL = TileType.WALL;
 const T = 32;
@@ -12,9 +12,12 @@ function makeTiles(): TileType[][] {
     const r: TileType[] = [];
     for (let col = 0; col < W; col++) {
       if (row === 0 || row === H - 1 || col === 0 || col === W - 1) {
-        if (row === H - 1 && (col === 7 || col === 8)) r.push(F);
+        if (row === H - 1 && (col === 12 || col === 13)) r.push(F);
         else r.push(WL);
-      } else r.push(F);
+      }
+      // Back storage room — row 6, doorway cols 12-13
+      else if (row === 6 && !(col === 12 || col === 13)) r.push(WL);
+      else r.push(F);
     }
     tiles.push(r);
   }
@@ -34,36 +37,63 @@ function ty(r: number) { return (r + 1) * T; }
 export const bookstoreMap: MapData = {
   id: 'bookstore', width: W, height: H, tileSize: T, tiles: makeTiles(),
   objects: [
+    // ═══ Back storage (rows 1-5) ═══
+    obj(tx(2), ty(1), 'bookshelf', 28, 28), obj(tx(4), ty(1), 'bookshelf', 28, 28),
+    obj(tx(6), ty(1), 'bookshelf', 28, 28), obj(tx(8), ty(1), 'bookshelf', 28, 28),
+    obj(tx(2), ty(4), 'crate', 20, 20), obj(tx(4), ty(4), 'crate', 20, 20),
+    obj(tx(6), ty(4), 'crate', 20, 20),
+    // Right side storage
+    obj(tx(18), ty(1), 'bookshelf', 28, 28), obj(tx(20), ty(1), 'bookshelf', 28, 28),
+    obj(tx(22), ty(1), 'bookshelf', 28, 28), obj(tx(24), ty(1), 'bookshelf', 28, 28),
+    obj(tx(18), ty(4), 'crate', 20, 20), obj(tx(20), ty(4), 'crate', 20, 20),
+    decor(tx(12), ty(1), 'window-indoor'),
+
+    // ═══ Main shop floor (rows 7-18) ═══
     // Bookshelves lining walls
-    obj(tx(1), ty(2), 'bookshelf', 28, 28), obj(tx(1), ty(4), 'bookshelf', 28, 28),
-    obj(tx(1), ty(6), 'bookshelf', 28, 28), obj(tx(1), ty(8), 'bookshelf', 28, 28),
-    obj(tx(14), ty(2), 'bookshelf', 28, 28), obj(tx(14), ty(4), 'bookshelf', 28, 28),
-    obj(tx(14), ty(6), 'bookshelf', 28, 28), obj(tx(14), ty(8), 'bookshelf', 28, 28),
-    // Shelves along north wall
-    obj(tx(4), ty(1), 'bookshelf', 28, 28), obj(tx(6), ty(1), 'bookshelf', 28, 28),
-    obj(tx(9), ty(1), 'bookshelf', 28, 28), obj(tx(11), ty(1), 'bookshelf', 28, 28),
-    // Center display table
-    obj(tx(7), ty(5), 'furniture', 24, 16), obj(tx(8), ty(5), 'furniture', 24, 16),
-    // Reading nook — lower left
-    obj(tx(4), ty(9), 'sofa', 40, 18),
-    obj(tx(4), ty(8), 'furniture', 24, 16),
-    decor(tx(4), ty(7), 'candle'),
+    obj(tx(1), ty(8), 'bookshelf', 28, 28), obj(tx(1), ty(10), 'bookshelf', 28, 28),
+    obj(tx(1), ty(12), 'bookshelf', 28, 28), obj(tx(1), ty(14), 'bookshelf', 28, 28),
+    obj(tx(24), ty(8), 'bookshelf', 28, 28), obj(tx(24), ty(10), 'bookshelf', 28, 28),
+    obj(tx(24), ty(12), 'bookshelf', 28, 28), obj(tx(24), ty(14), 'bookshelf', 28, 28),
+
+    // Center aisle shelves (freestanding)
+    obj(tx(8), ty(9), 'bookshelf', 28, 28), obj(tx(8), ty(11), 'bookshelf', 28, 28),
+    obj(tx(8), ty(13), 'bookshelf', 28, 28),
+    obj(tx(17), ty(9), 'bookshelf', 28, 28), obj(tx(17), ty(11), 'bookshelf', 28, 28),
+    obj(tx(17), ty(13), 'bookshelf', 28, 28),
+
+    // Display table (center)
+    obj(tx(12), ty(10), 'furniture', 24, 16), obj(tx(13), ty(10), 'furniture', 24, 16),
+    decor(tx(12), ty(9), 'candle'),
+
+    // Reading nook (lower left) — sofas + table
+    obj(tx(3), ty(16), 'sofa', 40, 18),
+    obj(tx(3), ty(14), 'cafe-table', 24, 16),
+    obj(tx(5), ty(14), 'cafe-chair', 20, 18),
+    decor(tx(3), ty(13), 'candle'),
+    decor(tx(2), ty(16), 'rug'),
+
+    // Reading nook (lower right)
+    obj(tx(22), ty(16), 'sofa', 40, 18),
+    obj(tx(22), ty(14), 'cafe-table', 24, 16),
+    obj(tx(20), ty(14), 'cafe-chair', 20, 18),
+    decor(tx(22), ty(13), 'candle'),
+    decor(tx(22), ty(16), 'rug'),
+
     // Checkout counter
-    obj(tx(10), ty(10), 'counter', 56, 20),
-    obj(tx(12), ty(10), 'counter', 56, 20),
-    // Decor
-    decor(tx(1), ty(10), 'rug'), decor(tx(7), ty(10), 'rug'),
-    decor(tx(1), ty(1), 'window-indoor'), decor(tx(14), ty(1), 'window-indoor'),
-    obj(tx(3), ty(12), 'pot', 16, 20), obj(tx(12), ty(12), 'pot', 16, 20),
+    obj(tx(12), ty(16), 'counter', 56, 20), obj(tx(14), ty(16), 'counter', 56, 20),
+
+    // Decoration
+    decor(tx(1), ty(16), 'window-indoor'), decor(tx(24), ty(16), 'window-indoor'),
+    obj(tx(6), ty(18), 'pot', 16, 20), obj(tx(19), ty(18), 'pot', 16, 20),
+    decor(tx(12), ty(18), 'rug'),
   ],
   buildings: [],
   npcs: [{
-    id: 'bookseller', x: tx(11), y: ty(11), spriteKey: 'npc',
-    anchor: { x: 0.5, y: 1.0 }, sortY: ty(11),
+    id: 'bookseller', x: tx(13), y: ty(17), spriteKey: 'npc',
+    anchor: { x: 0.5, y: 1.0 }, sortY: ty(17),
     collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 },
-    name: 'Bookseller',
-    dialogue: ['Welcome to the bookstore!', 'We have stories from every corner of the world.', 'Feel free to browse — the reading nook is cozy.'],
+    name: 'Bookseller', dialogue: ['Welcome to the bookstore!', 'We have stories from every corner of the world.', 'The reading nooks are cozy — make yourself at home.'],
   }],
-  triggers: [{ id: 'bookstore-exit', x: 7 * T, y: (H - 1) * T, width: 64, height: 16, type: 'door', targetMapId: 'outdoor', targetSpawnId: 'bookstore-exit' }],
-  spawnPoints: [{ id: 'entrance', x: tx(7), y: ty(12), facing: 'up' }],
+  triggers: [{ id: 'bookstore-exit', x: 12 * T, y: (H - 1) * T, width: 64, height: 16, type: 'door', targetMapId: 'outdoor', targetSpawnId: 'bookstore-exit' }],
+  spawnPoints: [{ id: 'entrance', x: tx(12), y: ty(18), facing: 'up' }],
 };

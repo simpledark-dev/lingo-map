@@ -76,6 +76,15 @@ const spriteManifest: Record<string, string> = {
   'market-stall': `${ASSET_BASE}market-stall.png`,
   'bread-basket': `${ASSET_BASE}bread-basket.png`,
   'inn-bed': `${ASSET_BASE}inn-bed.png`,
+  // Outdoor decorations
+  'flowers': `${ASSET_BASE}flowers.png`,
+  'lamp-post': `${ASSET_BASE}lamp-post.png`,
+  'fence': `${ASSET_BASE}fence.png`,
+  'well': `${ASSET_BASE}well.png`,
+  'bench': `${ASSET_BASE}bench.png`,
+  'signpost': `${ASSET_BASE}signpost.png`,
+  'bush': `${ASSET_BASE}bush.png`,
+  'log-pile': `${ASSET_BASE}log-pile.png`,
 };
 
 const textureCache = new Map<string, Texture>();

@@ -114,8 +114,10 @@ export interface InputState {
 // ── Player ──
 
 export interface MovementMode {
-  type: 'direct' | 'target';
+  type: 'direct' | 'target' | 'path';
   target?: Position;
+  /** Waypoints for pathfinding-based movement. Player follows them in order. */
+  waypoints?: Position[];
 }
 
 export interface PlayerState {

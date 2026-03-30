@@ -15,6 +15,13 @@ export function createPlayer(spawn: SpawnPoint): PlayerState {
   };
 }
 
+function faceDirection(tdx: number, tdy: number): Direction {
+  if (Math.abs(tdx) > Math.abs(tdy)) {
+    return tdx > 0 ? 'right' : 'left';
+  }
+  return tdy > 0 ? 'down' : 'up';
+}
+
 export function updatePlayer(
   player: PlayerState,
   input: InputState,
@@ -25,8 +32,11 @@ export function updatePlayer(
   // Determine movement mode
   let mode: MovementMode = player.movementMode;
   if (hasDirectional) {
+    // Keyboard always cancels any path/target movement
     mode = { type: 'direct' };
   } else if (input.moveTarget) {
+    // New tap — will be converted to path by PixiApp before reaching here,
+    // but fallback to straight-line if no path was set
     mode = { type: 'target', target: input.moveTarget };
   }
 
@@ -40,36 +50,60 @@ export function updatePlayer(
     if (input.left) dx -= 1;
     if (input.right) dx += 1;
 
-    // Normalize diagonal movement
     if (dx !== 0 && dy !== 0) {
       const len = Math.sqrt(dx * dx + dy * dy);
       dx /= len;
       dy /= len;
     }
 
-    // Update facing based on input
     if (input.down) facing = 'down';
     else if (input.up) facing = 'up';
     else if (input.left) facing = 'left';
     else if (input.right) facing = 'right';
+
+  } else if (mode.type === 'path' && mode.waypoints && mode.waypoints.length > 0) {
+    // Follow the next waypoint
+    const wp = mode.waypoints[0];
+    const tdx = wp.x - player.x;
+    const tdy = wp.y - player.y;
+    const dist = Math.sqrt(tdx * tdx + tdy * tdy);
+
+    if (dist < CLICK_ARRIVE_THRESHOLD) {
+      // Reached this waypoint — advance to next
+      const remaining = mode.waypoints.slice(1);
+      if (remaining.length === 0) {
+        mode = { type: 'direct' };
+      } else {
+        mode = { type: 'path', waypoints: remaining };
+        // Move toward the new next waypoint this frame
+        const nwp = remaining[0];
+        const ndx = nwp.x - player.x;
+        const ndy = nwp.y - player.y;
+        const ndist = Math.sqrt(ndx * ndx + ndy * ndy);
+        if (ndist > CLICK_ARRIVE_THRESHOLD) {
+          dx = ndx / ndist;
+          dy = ndy / ndist;
+          facing = faceDirection(ndx, ndy);
+        }
+      }
+    } else {
+      dx = tdx / dist;
+      dy = tdy / dist;
+      facing = faceDirection(tdx, tdy);
+    }
+
   } else if (mode.type === 'target' && mode.target) {
+    // Straight-line fallback (no path found, or short distance)
     const tdx = mode.target.x - player.x;
     const tdy = mode.target.y - player.y;
     const dist = Math.sqrt(tdx * tdx + tdy * tdy);
 
     if (dist < CLICK_ARRIVE_THRESHOLD) {
-      // Arrived
       mode = { type: 'direct' };
     } else {
       dx = tdx / dist;
       dy = tdy / dist;
-
-      // Face dominant direction
-      if (Math.abs(tdx) > Math.abs(tdy)) {
-        facing = tdx > 0 ? 'right' : 'left';
-      } else {
-        facing = tdy > 0 ? 'down' : 'up';
-      }
+      facing = faceDirection(tdx, tdy);
     }
   }
 

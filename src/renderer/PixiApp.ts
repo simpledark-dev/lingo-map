@@ -9,6 +9,7 @@ import { checkDoorTriggers } from '../core/TriggerSystem';
 import { checkInteraction, advanceDialogue } from '../core/InteractionSystem';
 import { GameBridge } from '../core/GameBridge';
 import { CommandQueue } from '../core/CommandQueue';
+import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { loadAssets, preloadAllAssets } from './AssetLoader';
 import { InputAdapter } from './InputAdapter';
 import { RenderSystem } from './RenderSystem';
@@ -22,6 +23,7 @@ export class PixiApp {
   private transitioning = false;
   private initialized = false;
   private destroyed = false;
+  private walkGrid: boolean[][] | null = null;
 
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
@@ -55,6 +57,10 @@ export class PixiApp {
     canvas.style.imageRendering = 'pixelated';
     canvas.style.width = '100%';
     canvas.style.height = '100%';
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.zIndex = '0';
     container.appendChild(canvas);
 
     this.inputAdapter.attach(canvas);
@@ -107,6 +113,9 @@ export class PixiApp {
       returnSpawnId: this.gameState?.returnSpawnId ?? null,
     };
 
+    // Build walkability grid for pathfinding
+    this.walkGrid = buildWalkGrid(map, map.objects, map.buildings, player.collisionBox);
+
     this.bridge.emit({ type: 'sceneChange', mapId });
   }
 
@@ -156,6 +165,7 @@ export class PixiApp {
       this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
       this.renderSystem.updatePlayer(this.gameState.player);
       this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
+      this.renderSystem.updateAnimations(performance.now() / 1000);
       if (this.debugOverlay) this.debugOverlay.update();
       return;
     }
@@ -170,6 +180,24 @@ export class PixiApp {
       this.renderSystem.updatePlayer(this.gameState.player);
       this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
       return;
+    }
+
+    // Convert moveTarget to pathfinding waypoints
+    if (input.moveTarget && this.walkGrid) {
+      const waypoints = findPath(
+        this.walkGrid,
+        this.gameState.player.x, this.gameState.player.y,
+        input.moveTarget.x, input.moveTarget.y,
+      );
+      if (waypoints.length > 0) {
+        // Override input — set path mode instead of straight-line target
+        this.gameState.player = {
+          ...this.gameState.player,
+          movementMode: { type: 'path', waypoints },
+        };
+        input.moveTarget = null; // consumed
+      }
+      // If no path found, fall through to straight-line target as fallback
     }
 
     // Update player movement
@@ -250,6 +278,7 @@ export class PixiApp {
     // Update renderer
     this.renderSystem.updatePlayer(this.gameState.player);
     this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
+    this.renderSystem.updateAnimations(performance.now() / 1000);
 
     // Debug overlay
     if (this.debugOverlay && this.renderSystem) {
@@ -262,6 +291,11 @@ export class PixiApp {
 
   getGameState(): GameState | null {
     return this.gameState;
+  }
+
+  getMapData(): import('../core/types').MapData | null {
+    if (!this.gameState) return null;
+    return loadMap(this.gameState.currentMapId);
   }
 
   destroy(): void {

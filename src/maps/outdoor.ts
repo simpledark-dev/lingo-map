@@ -1,37 +1,30 @@
 import { MapData, TileType, Entity, Building, NPCData } from '../core/types';
 
 // ══════════════════════════════════════════════════════════════
-// MAP DESIGN OVERVIEW (100×100 tiles)
+// MAP LAYOUT (100×100 tiles)
 //
-// ┌─────────────────────────────────────────────────────────┐
-// │  NORTH FOREST          │ river │    NORTH FOREST        │
-// │  (dense, clearings)    │  ↓↓↓ │                        │
-// │────────────────────────┤       ├────────────────────────│
-// │                        │       │                        │
-// │  RESIDENTIAL ZONE      │       │   COMMERCIAL ZONE      │
-// │  house, inn            │       │   cafe, bakery, market  │
-// │  (buildings on roads)  │       │   restaurant, bookstore │
-// │                        │       │                        │
-// │──── secondary road ────[bridge]──── secondary road ─────│
-// │                        │       │                        │
-// │  ════ MAIN EAST-WEST ROAD ═══[BRIDGE]═══════════════   │
-// │                        │  ↓↓↓  │                        │
-// │──── TOWN PLAZA ────────┤       ├────────────────────────│
-// │  (central landmark)    │       │    ARTISAN ZONE        │
-// │                        │       │    blacksmith, etc.     │
-// │────────────────────────┤       ├────────────────────────│
-// │                        │       │                        │
-// │  PARK / POND           │  ↓↓↓  │   SOUTH MEADOW         │
-// │  (open, peaceful)      │       │   (open grass, rocks)  │
-// │                        │       │                        │
-// │────────────────────────┤       ├────────────────────────│
-// │  SOUTH FOREST          │  exit │   SOUTH FOREST         │
-// └─────────────────────────────────────────────────────────┘
+// The map is organized around TWO main roads that cross at a
+// town center. The river runs vertically through col ~38.
 //
-// River: col 30-32, flows top to bottom
-// Main N-S road: col 50-51
-// Main E-W road: row 48-49
-// Secondary roads connect zones to main roads
+//   NORTH FOREST (rows 0-14) — dense, wraps top
+//   ─────────────────────────────────────────────
+//   RESIDENTIAL     │ river │  COMMERCIAL STRIP
+//   (rows 15-40)    │       │  (rows 15-40)
+//   houses + inn    │       │  cafe, bakery, market
+//   along branch rd │       │  along main E-W road
+//   ────────────MAIN E-W ROAD (row 45)──────────
+//   PARK / POND     │ river │  TOWN CENTER
+//   (rows 46-70)    │       │  (rows 42-52, cols 48-62)
+//   open, peaceful  │       │  plaza + key buildings
+//   ────────────────│       │───────────────────
+//   SW FARM         │       │  ARTISAN QUARTER
+//   (rows 70-85)    │       │  blacksmith, workshops
+//   ─────────────────────────────────────────────
+//   SOUTH FOREST (rows 86-100) — dense, wraps bottom
+//
+// Main N-S road: col 55
+// Main E-W road: row 45
+// River: col 38 (3 wide, meanders slightly)
 // ══════════════════════════════════════════════════════════════
 
 const W = 100;
@@ -82,89 +75,82 @@ function makeTiles(): TileType[][] {
       for (let c = c0; c <= c1; c++) set(r, c, t);
   }
 
-  // ─── RIVER (col 30-32, full height) ───
+  // ─── RIVER (col 38, 3 wide, gentle meander) ───
   for (let r = 0; r < H; r++) {
-    // Gentle meander
-    let offset = 0;
-    if (r >= 20 && r < 35) offset = 1;
-    if (r >= 55 && r < 70) offset = -1;
-    if (r >= 80) offset = 1;
-    for (let w = 0; w < 3; w++) set(r, 30 + offset + w, WA);
+    let off = 0;
+    if (r >= 25 && r < 40) off = 1;
+    if (r >= 60 && r < 75) off = -1;
+    for (let w = 0; w < 3; w++) set(r, 38 + off + w, WA);
   }
 
-  // ─── MAIN ROADS ───
-  // Main east-west road (row 48-49) — the spine of the town
-  hRoad(48, 0, 99, 2);
-  // Main north-south road (col 50-51)
-  vRoad(50, 0, 99, 2);
+  // ─── MAIN ROADS (only 2, the spine) ───
+  hRoad(45, 0, 99, 2);   // main E-W (row 45-46)
+  vRoad(55, 0, 99, 2);   // main N-S (col 55-56)
 
-  // ─── BRIDGES (where main roads cross river) ───
-  // E-W bridge at rows 48-49
-  for (let w = 0; w < 2; w++)
-    for (let c = 0; c < W; c++)
-      if (tiles[48 + w][c] === WA) set(48 + w, c, BR);
-  // N-S road doesn't cross the river (it's east of it)
+  // ─── TOWN CENTER PLAZA (rows 42-50, cols 50-62) ───
+  rect(42, 50, 50, 62, P);
 
-  // ─── SECONDARY ROADS ───
-  // Residential connector (west side, row 30) — from river bridge to residential
-  hRoad(30, 5, 50);
-  // Bridge for residential road
+  // ─── RESIDENTIAL BRANCH (west side, north of E-W road) ───
+  // A road branches NW from the main E-W road
+  hRoad(30, 5, 36);       // residential street (west of river)
+  vRoad(15, 18, 45);      // residential avenue going north
+  // Bridge where residential street crosses river
   for (let c = 0; c < W; c++)
     if (tiles[30][c] === WA) set(30, c, BR);
 
-  // Commercial connector (east side, row 30) — branches east
-  hRoad(30, 50, 92);
+  // Short spurs to houses (from residential street)
+  vRoad(8, 22, 30);
+  vRoad(22, 22, 30);
+  vRoad(8, 33, 45);
+  vRoad(22, 33, 45);
 
-  // Southern connector (row 65)
-  hRoad(65, 5, 92);
+  // ─── COMMERCIAL STRIP (east side, along E-W road) ───
+  // Buildings line the main E-W road east of the plaza
+  // Short access paths off the main road
+  vRoad(68, 38, 45);
+  vRoad(78, 38, 45);
+  vRoad(88, 38, 45);
+  vRoad(68, 47, 52);
+  vRoad(78, 47, 52);
+
+  // ─── ARTISAN QUARTER (SE, south of E-W road) ───
+  hRoad(60, 55, 82);     // artisan street branching east
+  vRoad(65, 47, 60);     // connector down from E-W road
+  vRoad(75, 47, 60);
+  vRoad(65, 60, 68);     // spurs to buildings
+  vRoad(75, 60, 68);
+
+  // ─── PARK PATHS (SW, south of E-W road, west of river) ───
+  vRoad(15, 47, 72);     // park path continuing south from residential
+  hRoad(58, 5, 36);      // cross path in park
+  // Winding lakeside loop
+  for (let r = 62; r <= 72; r++) {
+    const c = 10 + Math.round(Math.sin(r * 0.3) * 3);
+    set(r, c, P);
+  }
+
+  // ─── SOUTH FARM (SW) ───
+  hRoad(75, 5, 36);       // farm road
+
+  // ─── FOREST ENTRANCE PATHS ───
+  vRoad(55, 0, 14, 2);    // main road extends north into forest
+  vRoad(55, 86, 99, 2);   // main road extends south into forest
+  vRoad(15, 8, 18);       // residential path into north forest
+
+  // Winding forest trail (north)
+  for (let r = 2; r <= 12; r++) {
+    const c = 8 + Math.round(Math.sin(r * 0.6) * 2);
+    set(r, c, P);
+  }
+
+  // ─── BRIDGES ───
+  // Main E-W road bridge
+  for (let w = 0; w < 2; w++)
+    for (let c = 0; c < W; c++)
+      if (tiles[45 + w][c] === WA) set(45 + w, c, BR);
+  // Park cross-path bridge
   for (let c = 0; c < W; c++)
-    if (tiles[65][c] === WA) set(65, c, BR);
-
-  // Western avenue (col 15) — residential street, west of river
-  vRoad(15, 20, 72);
-  // Eastern avenue (col 75) — commercial/artisan east
-  vRoad(75, 20, 80);
-
-  // ─── TOWN PLAZA (the heart — rows 44-53, cols 45-56) ───
-  rect(44, 45, 53, 56, P);
-
-  // ─── BUILDING APPROACH PATHS (short spurs from roads) ───
-  // Residential zone (west) — paths from roads to building rows
-  vRoad(8, 24, 30);   // to residential row 1
-  vRoad(18, 24, 30);
-  vRoad(8, 42, 48);   // to residential row 2
-  vRoad(18, 42, 48);
-
-  // Commercial zone (east) — paths from roads to shops
-  vRoad(60, 24, 30);
-  vRoad(70, 24, 30);
-  vRoad(85, 24, 30);
-
-  // Artisan zone (SE) — paths to blacksmith, workshops
-  vRoad(60, 57, 65);
-  vRoad(70, 57, 65);
-
-  // Park paths (SW)
-  hRoad(72, 6, 28);
-  vRoad(12, 65, 78);
-  vRoad(22, 65, 78);
-
-  // Forest entrance paths
-  vRoad(15, 8, 20);    // north into forest from residential
-  vRoad(50, 0, 10, 2); // main road continues north into forest
-  vRoad(50, 90, 99, 2); // main road south exit
-
-  // ─── FOREST PATHS (winding, narrow) ───
-  // North forest trail (west side)
-  for (let r = 2; r <= 18; r++) {
-    const c = 8 + Math.round(Math.sin(r * 0.5) * 2);
-    set(r, c, P);
-  }
-  // South forest trail
-  for (let r = 82; r <= 96; r++) {
-    const c = 60 + Math.round(Math.sin(r * 0.4) * 3);
-    set(r, c, P);
-  }
+    if (tiles[58][c] === WA) set(58, c, BR);
 
   return tiles;
 }
@@ -174,15 +160,12 @@ function makeTiles(): TileType[][] {
 // ══════════════════════════════════════════
 
 let entityId = 0;
-
 function tree(x: number, y: number): Entity {
   return { id: `tree-${++entityId}`, x, y, spriteKey: 'tree', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -8, offsetY: -16, width: 16, height: 16 } };
 }
 function rock(x: number, y: number): Entity {
   return { id: `rock-${++entityId}`, x, y, spriteKey: 'rock', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -12, offsetY: -20, width: 24, height: 20 } };
 }
-
-// ── Building factories ──
 
 function house(id: string, col: number, row: number): Building {
   const x = col * T + 64, y = row * T + 96;
@@ -217,6 +200,50 @@ function blacksmith(id: string, col: number, row: number): Building {
   return { id, x, y, baseSpriteKey: 'blacksmith-base', roofSpriteKey: 'blacksmith-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -64, offsetY: -96, width: 128, height: 88 }, doorTrigger: { offsetX: -12, offsetY: -8, width: 24, height: 8 }, targetMapId: 'blacksmith', targetSpawnId: 'entrance' };
 }
 
+// ── Decoration helpers ──
+
+function bush(x: number, y: number): Entity {
+  return { id: `bush-${++entityId}`, x, y, spriteKey: 'bush', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -10, offsetY: -12, width: 20, height: 12 } };
+}
+function flowers(x: number, y: number): Entity {
+  // Decorative — no collision (walkable)
+  return { id: `flw-${++entityId}`, x, y, spriteKey: 'flowers', anchor: { x: 0.5, y: 1.0 }, sortY: y - 1000, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } };
+}
+function lampPost(x: number, y: number): Entity {
+  return { id: `lamp-${++entityId}`, x, y, spriteKey: 'lamp-post', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 } };
+}
+function fence(x: number, y: number): Entity {
+  return { id: `fnc-${++entityId}`, x, y, spriteKey: 'fence', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -14, offsetY: -8, width: 28, height: 8 } };
+}
+function well(x: number, y: number): Entity {
+  return { id: `well-${++entityId}`, x, y, spriteKey: 'well', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -14, offsetY: -20, width: 28, height: 20 } };
+}
+function bench(x: number, y: number): Entity {
+  return { id: `bnch-${++entityId}`, x, y, spriteKey: 'bench', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -14, offsetY: -10, width: 28, height: 10 } };
+}
+function signpost(x: number, y: number): Entity {
+  return { id: `sign-${++entityId}`, x, y, spriteKey: 'signpost', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -6, offsetY: -8, width: 12, height: 8 } };
+}
+function logPile(x: number, y: number): Entity {
+  return { id: `log-${++entityId}`, x, y, spriteKey: 'log-pile', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -12, offsetY: -12, width: 24, height: 12 } };
+}
+
+/** Lamp posts evenly along a horizontal road. */
+function hLamps(row: number, c0: number, c1: number, spacing = 6): Entity[] {
+  const lamps: Entity[] = [];
+  for (let c = c0; c <= c1; c += spacing)
+    lamps.push(lampPost(c * T + T / 2, (row - 1) * T));
+  return lamps;
+}
+
+/** Lamp posts evenly along a vertical road. */
+function vLamps(col: number, r0: number, r1: number, spacing = 6): Entity[] {
+  const lamps: Entity[] = [];
+  for (let r = r0; r <= r1; r += spacing)
+    lamps.push(lampPost((col - 1) * T, r * T + T / 2));
+  return lamps;
+}
+
 let npcId = 0;
 function npc(x: number, y: number, name: string, lines: string[]): NPCData {
   return { id: `npc-${++npcId}`, x, y, spriteKey: 'npc', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 }, name, dialogue: lines };
@@ -242,329 +269,435 @@ function rockCluster(cx: number, cy: number, count: number, spread: number): Ent
   return offsets.slice(0, Math.min(count, offsets.length)).map(([ox, oy]) => rock(cx + ox * spread, cy + oy * spread));
 }
 
-/** Evenly-spaced trees along both sides of a horizontal road. */
-function hRoadsideTrees(row: number, c0: number, c1: number, spacing = 4): Entity[] {
+/** Trees evenly spaced along one side of a horizontal road. */
+function hTreeRow(row: number, c0: number, c1: number, side: 'north' | 'south', spacing = 3): Entity[] {
   const trees: Entity[] = [];
-  const y = row * T;
+  const yOff = side === 'north' ? -2.5 * T : 2.5 * T;
   for (let c = c0; c <= c1; c += spacing) {
-    const x = c * T + T / 2;
-    trees.push(tree(x + Math.round((rand() - 0.5) * 8), y - 2 * T + Math.round((rand() - 0.5) * 8)));
-    trees.push(tree(x + Math.round((rand() - 0.5) * 8), y + 3 * T + Math.round((rand() - 0.5) * 8)));
+    const x = c * T + T / 2 + Math.round((rand() - 0.5) * 6);
+    const y = row * T + yOff + Math.round((rand() - 0.5) * 6);
+    trees.push(tree(x, y));
   }
   return trees;
 }
 
-/** Evenly-spaced trees along both sides of a vertical road. */
-function vRoadsideTrees(col: number, r0: number, r1: number, spacing = 4): Entity[] {
+/** Trees evenly spaced along one side of a vertical road. */
+function vTreeRow(col: number, r0: number, r1: number, side: 'west' | 'east', spacing = 3): Entity[] {
   const trees: Entity[] = [];
-  const x = col * T;
+  const xOff = side === 'west' ? -2.5 * T : 2.5 * T;
   for (let r = r0; r <= r1; r += spacing) {
-    const y = r * T + T / 2;
-    trees.push(tree(x - 2 * T + Math.round((rand() - 0.5) * 8), y + Math.round((rand() - 0.5) * 8)));
-    trees.push(tree(x + 3 * T + Math.round((rand() - 0.5) * 8), y + Math.round((rand() - 0.5) * 8)));
+    const x = col * T + xOff + Math.round((rand() - 0.5) * 6);
+    const y = r * T + T / 2 + Math.round((rand() - 0.5) * 6);
+    trees.push(tree(x, y));
   }
   return trees;
 }
 
-/** Transition zone: sparse trees graduating from open area toward forest. */
-function transitionTrees(x0: number, y0: number, x1: number, y1: number): Entity[] {
+/** Sparse transition trees — gradually thins out from forest to open area. */
+function transitionZone(x0: number, y0: number, x1: number, y1: number): Entity[] {
   const trees: Entity[] = [];
-  for (let y = y0; y < y1; y += 80)
-    for (let x = x0; x < x1; x += 80) {
-      if (rand() > 0.55) continue;
-      trees.push(tree(Math.round(x + (rand() - 0.5) * 56), Math.round(y + (rand() - 0.5) * 56)));
+  for (let y = y0; y < y1; y += 72)
+    for (let x = x0; x < x1; x += 72) {
+      if (rand() > 0.5) continue;
+      trees.push(tree(Math.round(x + (rand() - 0.5) * 48), Math.round(y + (rand() - 0.5) * 48)));
     }
   return trees;
 }
 
+/** Meadow fill — very sparse individual trees for open areas. */
+function meadowTrees(x0: number, y0: number, x1: number, y1: number, count: number): Entity[] {
+  const trees: Entity[] = [];
+  for (let i = 0; i < count; i++)
+    trees.push(tree(Math.round(x0 + rand() * (x1 - x0)), Math.round(y0 + rand() * (y1 - y0))));
+  return trees;
+}
+
 // ══════════════════════════════════════════
-// BUILDINGS — placed along roads, grouped by zone
+// BUILDINGS — placed along roads, facing them
 // ══════════════════════════════════════════
 
 const buildings: Building[] = [
-  // ── RESIDENTIAL ZONE (west of river, rows 22-47) ──
-  // Row 1: along secondary road at row 30, facing south
-  house('house-main', 6, 24),         // player's house
-  inn('inn-village', 16, 24),         // village inn
+  // ── TOWN CENTER (around the plaza, row 42-52, col 50-62) ──
+  cafe('cafe-plaza', 48, 38),          // north side of plaza
+  bakery('bakery-plaza', 60, 38),      // north side of plaza
+  inn('inn-plaza', 48, 52),            // south side of plaza
+  bookstore('bookstore-plaza', 62, 52), // south side of plaza
 
-  // Row 2: south residential, along main E-W road, facing south
-  house('house-south', 6, 42),
-  bakery('bakery-west', 16, 42),      // neighborhood bakery
+  // ── RESIDENTIAL (NW, west of river, along row-30 road) ──
+  house('house-1', 6, 22),
+  house('house-2', 20, 22),
+  inn('inn-res', 6, 33),
+  bakery('bakery-res', 20, 33),
 
-  // ── COMMERCIAL ZONE (east of main N-S road, rows 22-42) ──
-  // Along commercial road at row 30
-  cafe('cafe-main', 58, 24),           // main cafe
-  bookstore('bookstore', 70, 24),      // bookstore
-  market('market-main', 58, 35),       // market (south of road)
-  restaurant('rest-main', 72, 35),     // restaurant
+  // ── COMMERCIAL STRIP (east of plaza, along main E-W road) ──
+  cafe('cafe-east', 66, 38),
+  market('market-east', 76, 38),
+  restaurant('rest-east', 66, 48),
+  bookstore('bookstore-east', 78, 48),
+  bakery('bakery-far-east', 86, 38),
 
-  // ── TOWN CENTER (around the plaza, rows 44-55) ──
-  // Flanking the plaza — the most prominent buildings
-  bakery('bakery-central', 40, 44),    // west of plaza
-  cafe('cafe-plaza', 58, 44),          // east of plaza
-
-  // ── ARTISAN ZONE (SE, rows 55-70) ──
-  blacksmith('smith-main', 58, 58),    // blacksmith
-  market('market-south', 68, 58),      // south market
-
-  // ── SOUTHERN SETTLEMENT (along row 65 road) ──
-  inn('inn-south', 58, 68),            // traveler's inn
-  bookstore('bookstore-south', 70, 68),
+  // ── ARTISAN QUARTER (SE, along row-60 road) ──
+  blacksmith('smith-main', 63, 62),
+  market('market-artisan', 73, 62),
 ];
 
 // ══════════════════════════════════════════
-// NATURE — structured zones, not random scatter
+// OBJECTS — structured by zone
 // ══════════════════════════════════════════
 
 const objects: Entity[] = [
 
-  // ════════════════════════════════════
-  // 1. ROADSIDE TREES — every road gets lined
-  // Pattern: grass → trees → road → trees → grass
-  // ════════════════════════════════════
+  // ════════════════════════════════════════
+  // FORESTS — dense edges, transition zones
+  // ════════════════════════════════════════
 
-  // Main E-W road (row 48-49) — full length, spacing 5
-  ...hRoadsideTrees(48, 2, 28, 5),    // west of river
-  ...hRoadsideTrees(48, 34, 47, 5),   // between river and plaza
-  ...hRoadsideTrees(48, 57, 96, 5),   // east of plaza
+  // North forest (rows 0-14) — dense
+  ...treeForest(32, 32, 1184, 416, 40),    // NW of river
+  ...treeForest(1344, 32, 1728, 416, 44),  // between river and main N-S road
+  ...treeForest(1856, 32, 3168, 416, 40),  // NE block
 
-  // Main N-S road (col 50-51) — full length, spacing 5
-  ...vRoadsideTrees(50, 2, 18, 5),    // north forest section
-  ...vRoadsideTrees(50, 22, 43, 5),   // north town
-  ...vRoadsideTrees(50, 54, 63, 5),   // between plaza and south road
-  ...vRoadsideTrees(50, 67, 84, 5),   // south section
-  ...vRoadsideTrees(50, 88, 96, 5),   // south forest section
+  // North forest transition (rows 14-20) — thins out toward town
+  ...transitionZone(32, 448, 1184, 640),
+  ...transitionZone(1344, 448, 1728, 640),
+  ...transitionZone(1856, 448, 3168, 640),
 
-  // Secondary H road — row 30 (residential/commercial connector)
-  ...hRoadsideTrees(30, 6, 28, 5),    // west (residential side)
-  ...hRoadsideTrees(30, 34, 48, 5),   // between river and main road
-  ...hRoadsideTrees(30, 53, 74, 6),   // east (commercial side)
-  ...hRoadsideTrees(30, 77, 92, 6),   // far east
+  // South forest (rows 86-100) — dense
+  ...treeForest(32, 2784, 1184, 3168, 40),
+  ...treeForest(1344, 2784, 1728, 3168, 44),
+  ...treeForest(1856, 2784, 3168, 3168, 40),
 
-  // Secondary H road — row 65 (southern connector)
-  ...hRoadsideTrees(65, 6, 28, 5),    // west (park side)
-  ...hRoadsideTrees(65, 34, 48, 5),   // between river and main
-  ...hRoadsideTrees(65, 53, 74, 6),   // east
-  ...hRoadsideTrees(65, 77, 92, 6),   // far east
+  // South forest transition (rows 80-86) — thins out
+  ...transitionZone(32, 2560, 1184, 2784),
+  ...transitionZone(1856, 2560, 3168, 2784),
 
-  // Western avenue (col 15) — residential street
-  ...vRoadsideTrees(15, 22, 28, 4),   // north section
-  ...vRoadsideTrees(15, 32, 46, 4),   // mid section
-  ...vRoadsideTrees(15, 50, 63, 4),   // south toward park
-  ...vRoadsideTrees(15, 67, 72, 4),   // park entrance
+  // East forest edge (cols 90-100)
+  ...treeForest(2912, 448, 3168, 2784, 56),
+  // East transition (cols 86-90)
+  ...transitionZone(2752, 448, 2912, 2784),
 
-  // Eastern avenue (col 75) — commercial/artisan
-  ...vRoadsideTrees(75, 22, 28, 4),
-  ...vRoadsideTrees(75, 32, 46, 4),
-  ...vRoadsideTrees(75, 50, 63, 4),
-  ...vRoadsideTrees(75, 67, 80, 4),
+  // West forest (cols 0-6, west of river)
+  ...treeForest(32, 448, 192, 2784, 52),
 
-  // ════════════════════════════════════
-  // 2. TRANSITION ZONES — forest edge → town
-  // Gradually sparse as you approach buildings
-  // ════════════════════════════════════
+  // ════════════════════════════════════════
+  // ROADSIDE TREES — main E-W road
+  // Both sides, evenly spaced, the map's visual backbone
+  // ════════════════════════════════════════
 
-  // North forest → town (rows 16-22, the thinning zone)
-  ...transitionTrees(64, 576, 896, 704),     // NW transition
-  ...transitionTrees(1088, 576, 1568, 704),  // N-center-left
-  ...transitionTrees(1700, 576, 2400, 704),  // N-center-right
-  ...transitionTrees(2500, 576, 3136, 704),  // NE transition
+  // Main E-W road (row 45) — west segment (to river)
+  ...hTreeRow(45, 2, 36, 'north', 3),
+  ...hTreeRow(45, 2, 36, 'south', 3),
+  // Main E-W road — east of river to plaza
+  ...hTreeRow(45, 42, 48, 'north', 3),
+  ...hTreeRow(45, 42, 48, 'south', 3),
+  // Main E-W road — east of plaza
+  ...hTreeRow(45, 64, 88, 'north', 3),
+  ...hTreeRow(45, 64, 88, 'south', 3),
 
-  // South forest → town (rows 78-84)
-  ...transitionTrees(64, 2560, 928, 2720),
-  ...transitionTrees(1088, 2560, 1568, 2720),
-  ...transitionTrees(1700, 2560, 2400, 2720),
-  ...transitionTrees(2500, 2560, 3136, 2720),
+  // ════════════════════════════════════════
+  // ROADSIDE TREES — main N-S road
+  // ════════════════════════════════════════
 
-  // East forest → town (cols 82-88)
-  ...transitionTrees(2656, 640, 2816, 1440),
-  ...transitionTrees(2656, 1760, 2816, 2720),
+  ...vTreeRow(55, 16, 40, 'west', 3),
+  ...vTreeRow(55, 16, 40, 'east', 3),
+  ...vTreeRow(55, 52, 84, 'west', 3),
+  ...vTreeRow(55, 52, 84, 'east', 3),
 
-  // West forest → river (cols 6-9)
-  ...transitionTrees(224, 640, 416, 1440),
-  ...transitionTrees(224, 1760, 416, 2720),
+  // ════════════════════════════════════════
+  // ROADSIDE TREES — residential street (row 30)
+  // ════════════════════════════════════════
 
-  // ════════════════════════════════════
-  // 3. BUILDING-ADJACENT TREES (1-3 per building, not blocking doors)
-  // ════════════════════════════════════
+  ...hTreeRow(30, 6, 36, 'north', 4),
+  ...hTreeRow(30, 6, 36, 'south', 4),
 
-  // Residential — house (col 8, row 24)
-  tree(160, 768), tree(448, 736),
-  rock(352, 800),
-  // Residential — inn (col 18, row 24)
-  tree(736, 768), tree(480, 736),
-  // Residential — house south (col 8, row 42)
-  tree(160, 1376), tree(448, 1344),
-  rock(352, 1408),
-  // Residential — bakery (col 18, row 42)
-  tree(736, 1376), tree(480, 1344),
+  // ════════════════════════════════════════
+  // ROADSIDE TREES — residential avenue (col 15)
+  // ════════════════════════════════════════
 
-  // Commercial — cafe (col 58, row 24)
-  tree(1824, 768), tree(2016, 736),
-  // Commercial — bookstore (col 70, row 24)
-  tree(2336, 768), tree(2144, 736),
-  rock(2240, 800),
-  // Commercial — market (col 58, row 35)
-  tree(1824, 1152), tree(2016, 1184),
-  // Commercial — restaurant (col 72, row 35)
-  tree(2464, 1152), tree(2272, 1184),
-  rock(2368, 1216),
+  ...vTreeRow(15, 20, 44, 'west', 4),
+  ...vTreeRow(15, 20, 44, 'east', 4),
 
-  // Plaza — bakery west (col 40, row 44)
-  tree(1216, 1408), tree(1344, 1376),
-  // Plaza — cafe east (col 58, row 44)
-  tree(1952, 1408), tree(2016, 1376),
+  // ════════════════════════════════════════
+  // ROADSIDE TREES — artisan street (row 60)
+  // ════════════════════════════════════════
 
-  // Artisan — blacksmith (col 58, row 58)
-  tree(1824, 1888), rock(2016, 1920),
-  // Artisan — market south (col 68, row 58)
-  tree(2272, 1888), rock(2144, 1920),
+  ...hTreeRow(60, 56, 82, 'north', 4),
+  ...hTreeRow(60, 56, 82, 'south', 4),
 
-  // Southern — inn (col 58, row 68)
-  tree(1824, 2208), tree(2016, 2176),
-  // Southern — bookstore (col 70, row 68)
-  tree(2336, 2208), rock(2240, 2240),
+  // ════════════════════════════════════════
+  // RIVERSIDE VEGETATION — the river is a feature, not a divider
+  // ════════════════════════════════════════
 
-  // ════════════════════════════════════
-  // 4. FORESTS (existing, unchanged)
-  // ════════════════════════════════════
+  // West bank — organic tree line with gaps
+  ...vTreeRow(37, 2, 25, 'west', 4),
+  ...vTreeRow(37, 32, 44, 'west', 5),
+  ...vTreeRow(37, 48, 58, 'west', 5),
+  ...vTreeRow(37, 62, 84, 'west', 4),
 
-  // North forest — dense
-  ...treeForest(64, 64, 896, 576, 44),
-  ...treeForest(1088, 64, 1568, 384, 48),
-  ...treeForest(1700, 64, 3136, 384, 48),
-  ...treeForest(1088, 416, 1500, 576, 52),
-  ...treeForest(1700, 416, 2400, 576, 52),
-  ...treeForest(2500, 384, 3136, 576, 48),
+  // East bank
+  ...vTreeRow(42, 2, 25, 'east', 4),
+  ...vTreeRow(42, 32, 44, 'east', 5),
+  ...vTreeRow(42, 48, 58, 'east', 5),
+  ...vTreeRow(42, 62, 84, 'east', 4),
 
-  // Ancient Grove landmark
-  ...treeCluster(2048, 256, 12, 52),
+  // River rocks (along banks, natural feel)
+  ...rockCluster(37 * T - 48, 320, 4, 28),
+  ...rockCluster(42 * T + 128, 640, 3, 32),
+  ...rockCluster(37 * T - 48, 1200, 3, 28),
+  ...rockCluster(42 * T + 128, 1800, 4, 28),
+  ...rockCluster(37 * T - 48, 2400, 3, 32),
+  // Bushes along riverbanks (soften the edge)
+  bush(36 * T, 12 * T), bush(36 * T, 20 * T), bush(36 * T, 36 * T),
+  bush(43 * T, 16 * T), bush(43 * T, 24 * T), bush(43 * T, 40 * T),
+  bush(36 * T, 54 * T), bush(36 * T, 66 * T), bush(36 * T, 76 * T),
+  bush(43 * T, 50 * T), bush(43 * T, 62 * T), bush(43 * T, 72 * T),
+  // Flowers near bridges
+  flowers(36 * T, 44 * T), flowers(42 * T, 44 * T),
+  flowers(36 * T, 47 * T), flowers(42 * T, 47 * T),
+  flowers(36 * T, 57 * T), flowers(42 * T, 59 * T),
+  // Lamp posts at bridges
+  lampPost(37 * T, 44 * T), lampPost(42 * T, 44 * T),
+  lampPost(37 * T, 47 * T), lampPost(42 * T, 47 * T),
 
-  // South forest
-  ...treeForest(64, 2720, 928, 3136, 48),
-  ...treeForest(1088, 2720, 1568, 3136, 52),
-  ...treeForest(1700, 2720, 2400, 3136, 52),
-  ...treeForest(2500, 2720, 3136, 3136, 48),
+  // ════════════════════════════════════════
+  // STREET LAMPS — along main roads for cozy feel
+  // ════════════════════════════════════════
 
-  // East forest edge
-  ...treeForest(2816, 640, 3136, 1440, 64),
-  ...treeForest(2816, 1760, 3136, 2720, 64),
+  // Main E-W road lamps
+  ...hLamps(45, 4, 36, 8),
+  ...hLamps(45, 42, 48, 8),
+  ...hLamps(45, 64, 88, 8),
+  // Main N-S road lamps
+  ...vLamps(55, 16, 40, 8),
+  ...vLamps(55, 52, 84, 8),
+  // Residential street lamps
+  ...hLamps(30, 8, 34, 8),
+  // Commercial / artisan lamps
+  ...hLamps(60, 58, 80, 8),
 
-  // West forest (thin, west of river)
-  ...treeForest(32, 640, 256, 1440, 60),
-  ...treeForest(32, 1760, 256, 2720, 60),
+  // ════════════════════════════════════════
+  // TOWN CENTER — plaza as the heart of the village
+  // ════════════════════════════════════════
 
-  // ════════════════════════════════════
-  // 5. RIVERSIDE VEGETATION (existing, unchanged)
-  // ════════════════════════════════════
+  // Corner trees (like a village green)
+  tree(50 * T, 42 * T), tree(62 * T, 42 * T),
+  tree(50 * T, 50 * T + T), tree(62 * T, 50 * T + T),
+  // Interior trees (2 flanking the center)
+  tree(53 * T, 46 * T), tree(59 * T, 46 * T),
+  // WELL — central landmark
+  well(56 * T, 46 * T),
+  // Benches around the well (facing inward)
+  bench(54 * T, 44 * T), bench(58 * T, 44 * T),
+  bench(54 * T, 48 * T), bench(58 * T, 48 * T),
+  // Flower beds around plaza edges
+  flowers(51 * T, 43 * T), flowers(53 * T, 43 * T),
+  flowers(59 * T, 43 * T), flowers(61 * T, 43 * T),
+  flowers(51 * T, 50 * T), flowers(53 * T, 50 * T),
+  flowers(59 * T, 50 * T), flowers(61 * T, 50 * T),
+  // Signpost at plaza entrance
+  signpost(50 * T, 46 * T),
+  // Lamp posts at plaza corners
+  lampPost(50 * T + T, 43 * T), lampPost(61 * T, 43 * T),
+  lampPost(50 * T + T, 50 * T), lampPost(61 * T, 50 * T),
 
-  tree(832, 320), tree(800, 640), tree(864, 960),
-  tree(816, 1280), tree(848, 1504), tree(800, 1760),
-  tree(864, 2048), tree(816, 2336), tree(848, 2624), tree(800, 2880),
-  tree(1120, 256), tree(1088, 544), tree(1120, 832),
-  tree(1088, 1120), tree(1120, 1408), tree(1088, 1696),
-  tree(1120, 2016), tree(1088, 2304), tree(1120, 2592), tree(1088, 2880),
+  // ════════════════════════════════════════
+  // RESIDENTIAL ZONE — garden trees near houses
+  // ════════════════════════════════════════
 
-  ...rockCluster(864, 480, 3, 32),
-  ...rockCluster(1088, 800, 3, 28),
-  ...rockCluster(864, 1600, 4, 30),
-  ...rockCluster(1088, 2080, 3, 32),
-  ...rockCluster(864, 2720, 3, 28),
+  // Between houses (tidy, 1-2 per gap)
+  tree(14 * T, 24 * T), tree(14 * T, 28 * T),
+  tree(28 * T, 24 * T), tree(28 * T, 28 * T),
+  tree(14 * T, 36 * T), tree(14 * T, 40 * T),
+  tree(28 * T, 36 * T), tree(28 * T, 40 * T),
+  // Garden fences between properties
+  fence(14 * T, 26 * T), fence(14 * T, 30 * T),
+  fence(28 * T, 26 * T), fence(28 * T, 30 * T),
+  // Flower gardens next to houses
+  flowers(10 * T, 25 * T), flowers(10 * T, 27 * T),
+  flowers(24 * T, 25 * T), flowers(24 * T, 27 * T),
+  flowers(10 * T, 35 * T), flowers(10 * T, 37 * T),
+  flowers(24 * T, 35 * T), flowers(24 * T, 37 * T),
+  // Log piles near houses (cozy, lived-in)
+  logPile(5 * T, 28 * T), logPile(30 * T, 40 * T),
+  // Residential benches
+  bench(16 * T, 26 * T), bench(16 * T, 38 * T),
 
-  // ════════════════════════════════════
-  // 6. TOWN PLAZA LANDMARK
-  // ════════════════════════════════════
+  // Residential area meadow fill with bushes
+  ...meadowTrees(5 * T, 20 * T, 34 * T, 44 * T, 15),
+  bush(10 * T, 32 * T), bush(20 * T, 34 * T), bush(30 * T, 32 * T),
 
-  tree(1472, 1440), tree(1792, 1440),
-  tree(1472, 1728), tree(1792, 1728),
-  rock(1600, 1536), rock(1632, 1536),
-  rock(1600, 1600), rock(1632, 1600),
+  // ════════════════════════════════════════
+  // COMMERCIAL ZONE — street trees along shops
+  // ════════════════════════════════════════
 
-  // ════════════════════════════════════
-  // 7. PARK / POND (SW)
-  // ════════════════════════════════════
+  // Trees between commercial buildings
+  tree(74 * T, 40 * T), tree(84 * T, 40 * T),
+  tree(74 * T, 50 * T), tree(84 * T, 50 * T),
+  // Bushes along shopfronts
+  bush(66 * T, 42 * T), bush(72 * T, 42 * T),
+  bush(80 * T, 42 * T), bush(88 * T, 42 * T),
+  // Flower pots outside shops
+  flowers(70 * T, 40 * T), flowers(82 * T, 40 * T),
+  flowers(70 * T, 50 * T), flowers(82 * T, 50 * T),
+  // Benches for shoppers
+  bench(72 * T, 44 * T), bench(82 * T, 44 * T),
+  // Signposts at commercial zone entrance
+  signpost(64 * T, 42 * T),
 
-  ...treeCluster(320, 2240, 8, 52),
-  ...treeCluster(640, 2368, 6, 48),
-  ...treeCluster(256, 2560, 5, 56),
-  ...treeCluster(704, 2528, 4, 52),
-  rock(448, 2304), rock(448, 2432),
-  rock(576, 2304), rock(576, 2432),
-  tree(384, 2176), tree(512, 2176), tree(640, 2176),
-  tree(192, 2432), tree(768, 2432),
+  // ════════════════════════════════════════
+  // PARK / POND (SW, rows 48-75, west of river)
+  // Peaceful area — open with clusters + meadow trees
+  // ════════════════════════════════════════
 
-  // ════════════════════════════════════
-  // 8. SOUTH MEADOW (SE) — intentionally sparse
-  // ════════════════════════════════════
+  // Park clusters — organic, not uniform
+  ...treeCluster(8 * T, 54 * T, 8, 48),
+  ...treeCluster(24 * T, 52 * T, 6, 52),
+  ...treeCluster(12 * T, 64 * T, 10, 44),
+  ...treeCluster(28 * T, 68 * T, 6, 48),
 
-  tree(2048, 2368), tree(2304, 2432),
-  tree(2560, 2304), tree(2176, 2560), tree(2432, 2560),
-  rock(2112, 2400), rock(2368, 2496), rock(2240, 2624),
+  // Meadow trees (sparse, breathing room)
+  ...meadowTrees(4 * T, 48 * T, 34 * T, 74 * T, 12),
 
-  // ════════════════════════════════════
-  // 9. ARTISAN ZONE ROCKS
-  // ════════════════════════════════════
+  // Park benches (proper benches now!)
+  bench(10 * T, 56 * T), bench(10 * T, 60 * T),
+  bench(20 * T, 54 * T), bench(20 * T, 66 * T),
+  bench(26 * T, 58 * T),
+  // Flower beds along park paths
+  flowers(14 * T, 50 * T), flowers(14 * T, 52 * T),
+  flowers(14 * T, 62 * T), flowers(14 * T, 64 * T),
+  flowers(16 * T, 68 * T), flowers(18 * T, 68 * T),
+  // Bushes scattered in park
+  bush(6 * T, 52 * T), bush(30 * T, 56 * T),
+  bush(8 * T, 66 * T), bush(26 * T, 70 * T),
+  // Signpost at park entrance
+  signpost(15 * T, 48 * T),
+  // Decorative rocks (natural, by water features)
+  rock(8 * T, 70 * T), rock(24 * T, 72 * T),
 
-  ...rockCluster(1984, 1920, 5, 32),
-  ...rockCluster(2240, 2016, 4, 36),
+  // ════════════════════════════════════════
+  // ARTISAN QUARTER — work rocks + sparse trees
+  // ════════════════════════════════════════
 
-  // ════════════════════════════════════
-  // 10. FOREST EDGE ROCKS
-  // ════════════════════════════════════
+  ...rockCluster(68 * T, 58 * T, 5, 32),
+  ...rockCluster(76 * T, 56 * T, 4, 36),
+  tree(62 * T, 56 * T), tree(80 * T, 56 * T),
+  tree(62 * T, 66 * T), tree(80 * T, 66 * T),
+  // Log piles near workshops
+  logPile(64 * T, 64 * T), logPile(78 * T, 64 * T),
+  // Signpost at artisan entrance
+  signpost(56 * T, 56 * T),
 
-  ...rockCluster(640, 544, 5, 36),
-  ...rockCluster(1920, 544, 4, 40),
-  ...rockCluster(2720, 544, 5, 36),
-  ...rockCluster(640, 2752, 4, 36),
-  ...rockCluster(2080, 2784, 5, 32),
-  ...rockCluster(2720, 2752, 4, 36),
+  // ════════════════════════════════════════
+  // SW FARM — open with scattered rocks + few trees
+  // ════════════════════════════════════════
+
+  ...meadowTrees(4 * T, 76 * T, 34 * T, 84 * T, 8),
+  ...rockCluster(12 * T, 78 * T, 4, 40),
+  ...rockCluster(28 * T, 78 * T, 3, 36),
+  rock(18 * T, 80 * T), rock(22 * T, 82 * T),
+  // Farm feel — log piles and fences
+  logPile(8 * T, 76 * T), logPile(24 * T, 76 * T),
+  fence(10 * T, 76 * T), fence(12 * T, 76 * T), fence(14 * T, 76 * T),
+  fence(20 * T, 76 * T), fence(22 * T, 76 * T),
+  // Wildflowers in the meadow
+  flowers(8 * T, 78 * T), flowers(16 * T, 80 * T),
+  flowers(26 * T, 78 * T), flowers(20 * T, 82 * T),
+  bush(6 * T, 80 * T), bush(30 * T, 80 * T),
+
+  // ════════════════════════════════════════
+  // MID-MAP FILL — meadow trees in the open grass
+  // between zones so it's not barren
+  // ════════════════════════════════════════
+
+  // Between residential and river (east of col 30, north of E-W road)
+  ...meadowTrees(30 * T, 16 * T, 36 * T, 44 * T, 8),
+  // East of river, between road and commercial (cols 42-48)
+  ...meadowTrees(42 * T, 16 * T, 48 * T, 40 * T, 10),
+  // South of artisan, east side
+  ...meadowTrees(58 * T, 64 * T, 86 * T, 82 * T, 15),
+  // SW between park and south forest
+  ...meadowTrees(4 * T, 74 * T, 34 * T, 84 * T, 6),
+  // NE fill (cols 60-86, rows 16-38)
+  ...meadowTrees(60 * T, 16 * T, 86 * T, 36 * T, 18),
+  // NE bushes and flowers (soften the commercial area)
+  bush(62 * T, 20 * T), bush(72 * T, 22 * T), bush(82 * T, 20 * T),
+  flowers(66 * T, 24 * T), flowers(76 * T, 26 * T), flowers(86 * T, 24 * T),
+  // SE fill (cols 60-86, rows 62-82)
+  ...meadowTrees(60 * T, 62 * T, 86 * T, 82 * T, 12),
+  // SE bushes and wildflowers
+  bush(64 * T, 72 * T), bush(76 * T, 70 * T), bush(84 * T, 74 * T),
+  flowers(62 * T, 68 * T), flowers(72 * T, 76 * T), flowers(82 * T, 68 * T),
+  flowers(68 * T, 80 * T), flowers(78 * T, 78 * T),
+
+  // ════════════════════════════════════════
+  // BUILDING-ADJACENT TREES (1-2 per building, not blocking doors)
+  // ════════════════════════════════════════
+
+  // Plaza buildings
+  tree(47 * T, 40 * T), tree(63 * T, 40 * T),       // north of plaza bldgs
+  tree(47 * T, 55 * T), tree(66 * T, 55 * T),       // south of plaza bldgs
+
+  // Commercial strip
+  tree(64 * T, 38 * T), tree(90 * T, 38 * T),
+  tree(64 * T, 52 * T), tree(82 * T, 52 * T),
+  flowers(66 * T, 36 * T), flowers(80 * T, 36 * T),
+
+  // Artisan
+  tree(60 * T, 60 * T), tree(78 * T, 60 * T),
+
+  // ════════════════════════════════════════
+  // FOREST ENTRANCE MARKERS
+  // ════════════════════════════════════════
+
+  // North forest entrance (main road going north)
+  signpost(54 * T, 16 * T),
+  lampPost(54 * T, 14 * T), lampPost(57 * T, 14 * T),
+  // South forest entrance
+  signpost(54 * T, 86 * T),
+  lampPost(54 * T, 86 * T + T), lampPost(57 * T, 86 * T + T),
+  // Residential forest path entrance
+  signpost(15 * T, 18 * T),
 ];
 
 // ══════════════════════════════════════════
-// NPCs — placed at meaningful locations
+// NPCs
 // ══════════════════════════════════════════
 
 const npcs: NPCData[] = [
-  // Town plaza (the gathering point)
-  npc(1600, 1600, 'Elder', ['Welcome to our village!', 'The plaza is the heart of our community.', 'Head west for homes, east for shops.']),
-  npc(1536, 1696, 'Child', ['Tag! You\'re it!', 'The plaza is the best place to play.']),
+  // Town center
+  npc(56 * T, 46 * T, 'Elder', ['Welcome to the village!', 'The plaza is our gathering place.', 'Head west for homes, east for shops.']),
+  npc(54 * T, 48 * T, 'Child', ['Tag! You\'re it!', 'Catch me if you can!']),
 
-  // Residential zone
-  npc(384, 960, 'Neighbor', ['Morning! Lovely neighborhood, isn\'t it?', 'The baker next door is the best.']),
-  npc(576, 1440, 'Gardener', ['I tend the gardens along this street.', 'Each house has its own little patch.']),
+  // Residential
+  npc(15 * T, 28 * T, 'Neighbor', ['Morning! Lovely day.', 'The bakery down the road is wonderful.']),
+  npc(10 * T, 40 * T, 'Gardener', ['I tend the gardens here.', 'Each house has its own little patch.']),
 
-  // Commercial zone
-  npc(2080, 832, 'Shopper', ['So many shops on this street!', 'The bookstore is my favorite.']),
-  npc(2400, 960, 'Trader', ['The market has everything you need.', 'Fresh goods every day.']),
+  // Commercial
+  npc(72 * T, 44 * T, 'Shopper', ['So many shops!', 'The bookstore is my favorite.']),
+  npc(82 * T, 44 * T, 'Trader', ['Fresh goods every day!', 'The market has everything.']),
 
-  // Near the river / bridge
-  npc(1024, 1568, 'Bridge Keeper', ['This bridge connects the two halves of town.', 'The river is beautiful at sunset.']),
-  npc(960, 960, 'Fisher', ['The river is full of fish!', 'Placeholder fish, but still.']),
+  // River / bridge
+  npc(38 * T, 44 * T, 'Bridge Keeper', ['This bridge is the heart of town.', 'The river is beautiful at sunset.']),
+  npc(36 * T, 52 * T, 'Fisher', ['The river is full of fish!', 'Well, placeholder fish.']),
 
-  // Park area
-  npc(448, 2368, 'Old Man', ['I come here every afternoon.', 'The park is so peaceful.', 'Listen to the water...']),
-  npc(640, 2496, 'Jogger', ['Just doing my laps!', 'The park trail is perfect for running.']),
+  // Park
+  npc(16 * T, 56 * T, 'Old Man', ['The park is so peaceful.', 'I come here every afternoon.']),
+  npc(24 * T, 66 * T, 'Jogger', ['Just doing my laps!', 'The paths are perfect for running.']),
 
-  // Artisan zone
-  npc(2048, 1920, 'Apprentice', ['I\'m learning the trade.', 'The blacksmith is a tough teacher.']),
+  // Artisan
+  npc(68 * T, 58 * T, 'Apprentice', ['Learning the trade.', 'The blacksmith is a tough teacher!']),
 
   // Forest entrances
-  npc(512, 640, 'Ranger', ['The north forest is dense.', 'Stay on the paths, traveler.']),
-  npc(1600, 320, 'Scout', ['I patrol the northern approach.', 'All clear today.']),
+  npc(55 * T, 14 * T, 'Ranger', ['The north forest is dense.', 'Stay on the path, traveler.']),
+  npc(55 * T, 86 * T, 'Hermit', ['I live at the edge of the south woods.', 'Quiet here. I like it.']),
 
-  // South
-  npc(1600, 2880, 'Hermit', ['I live at the edge of the south woods.', 'It\'s quiet here. I like it.']),
-  npc(2240, 2432, 'Naturalist', ['The meadow wildflowers are lovely.', 'If only we had flower assets...']),
-
-  // Roads / travelers
-  npc(800, 1568, 'Traveler', ['The road from west is long.', 'But the village is worth the journey.']),
-  npc(2560, 1568, 'Courier', ['Deliveries! Coming through!', 'The commercial district keeps me busy.']),
-  npc(1600, 1200, 'Villager', ['Heading to the shops.', 'Need to pick up some bread.']),
-  npc(1600, 2112, 'Walker', ['Just enjoying a stroll south.', 'The park is lovely this time of year.']),
+  // Roaming
+  npc(45 * T, 30 * T, 'Traveler', ['Long road from the west.', 'Worth the journey though.']),
+  npc(70 * T, 46 * T, 'Courier', ['Deliveries! Coming through!']),
+  npc(55 * T, 70 * T, 'Walker', ['Just enjoying a stroll south.', 'The meadows are lovely.']),
 ];
 
 // ══════════════════════════════════════════
-// FILTER: remove objects overlapping buildings, water, or paths
+// FILTER
 // ══════════════════════════════════════════
 
 const mapTiles = makeTiles();
@@ -573,9 +706,8 @@ function isNearBuilding(ox: number, oy: number): boolean {
   for (const b of buildings) {
     const left = b.x - 100, right = b.x + 100;
     const top = b.y - 132, bottom = b.y + 40;
-    const doorBottom = b.y + 72;
     if (ox >= left && ox <= right && oy >= top && oy <= bottom) return true;
-    if (ox >= b.x - 36 && ox <= b.x + 36 && oy >= bottom && oy <= doorBottom) return true;
+    if (ox >= b.x - 36 && ox <= b.x + 36 && oy >= bottom && oy <= b.y + 72) return true;
   }
   return false;
 }
@@ -605,7 +737,7 @@ export const outdoorMap: MapData = {
   npcs,
   triggers: [],
   spawnPoints: [
-    { id: 'default', x: 1600, y: 1632, facing: 'down' },
-    { id: 'house-exit', x: 1600, y: 1536, facing: 'down' },
+    { id: 'default', x: 56 * T, y: 47 * T, facing: 'down' },
+    { id: 'house-exit', x: 56 * T, y: 46 * T, facing: 'down' },
   ],
 };

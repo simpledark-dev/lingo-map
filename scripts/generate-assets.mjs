@@ -785,6 +785,206 @@ console.log('Location-specific objects:');
   save('coffee-machine.png', c);
 }
 
+// ── Outdoor decorations ──
+console.log('Outdoor decorations:');
+
+// Flower patch (24x16) — colorful ground cover
+{
+  const c = createCanvas(24, 16);
+  const ctx = c.getContext('2d');
+  // Stems/leaves
+  ctx.fillStyle = '#3a7a2a';
+  ctx.fillRect(2, 8, 20, 8);
+  ctx.fillRect(4, 6, 16, 4);
+  // Flowers
+  ctx.fillStyle = '#dd4466'; ctx.fillRect(4, 4, 4, 4);
+  ctx.fillStyle = '#ffcc44'; ctx.fillRect(10, 2, 4, 4);
+  ctx.fillStyle = '#6644cc'; ctx.fillRect(16, 4, 4, 4);
+  ctx.fillStyle = '#ff8844'; ctx.fillRect(7, 6, 3, 3);
+  ctx.fillStyle = '#44aadd'; ctx.fillRect(14, 6, 3, 3);
+  // Centers
+  ctx.fillStyle = '#ffee88';
+  ctx.fillRect(5, 5, 2, 2);
+  ctx.fillRect(11, 3, 2, 2);
+  ctx.fillRect(17, 5, 2, 2);
+  save('flowers.png', c);
+}
+
+// Lamp post (12x40)
+{
+  const c = createCanvas(12, 40);
+  const ctx = c.getContext('2d');
+  // Base
+  ctx.fillStyle = '#555555';
+  ctx.fillRect(2, 34, 8, 6);
+  // Pole
+  ctx.fillStyle = '#666666';
+  ctx.fillRect(4, 8, 4, 28);
+  // Lamp housing
+  ctx.fillStyle = '#777777';
+  ctx.fillRect(1, 4, 10, 6);
+  // Light glow
+  ctx.fillStyle = '#ffcc44';
+  ctx.fillRect(3, 5, 6, 4);
+  ctx.fillStyle = '#ffee88';
+  ctx.fillRect(4, 6, 4, 2);
+  // Top cap
+  ctx.fillStyle = '#555555';
+  ctx.fillRect(2, 2, 8, 3);
+  save('lamp-post.png', c);
+}
+
+// Fence horizontal (32x16)
+{
+  const c = createCanvas(32, 16);
+  const ctx = c.getContext('2d');
+  // Posts
+  ctx.fillStyle = '#6b4226';
+  ctx.fillRect(1, 2, 4, 14);
+  ctx.fillRect(27, 2, 4, 14);
+  // Rails
+  ctx.fillStyle = '#8b6240';
+  ctx.fillRect(0, 4, 32, 3);
+  ctx.fillRect(0, 10, 32, 3);
+  // Post tops
+  ctx.fillStyle = '#7a5230';
+  ctx.fillRect(1, 0, 4, 3);
+  ctx.fillRect(27, 0, 4, 3);
+  save('fence.png', c);
+}
+
+// Well (32x32)
+{
+  const c = createCanvas(32, 32);
+  const ctx = c.getContext('2d');
+  // Stone base
+  ctx.fillStyle = '#888899';
+  ctx.fillRect(4, 16, 24, 16);
+  ctx.fillStyle = '#777788';
+  ctx.fillRect(2, 20, 28, 12);
+  // Water inside (visible from top)
+  ctx.fillStyle = '#3068a8';
+  ctx.fillRect(8, 14, 16, 8);
+  // Roof support posts
+  ctx.fillStyle = '#6b4226';
+  ctx.fillRect(6, 4, 3, 16);
+  ctx.fillRect(23, 4, 3, 16);
+  // Roof
+  ctx.fillStyle = '#8b6a4a';
+  ctx.fillRect(2, 2, 28, 4);
+  ctx.fillStyle = '#7a5a3a';
+  ctx.fillRect(4, 0, 24, 3);
+  // Bucket
+  ctx.fillStyle = '#8b6f47';
+  ctx.fillRect(14, 10, 6, 5);
+  // Rope
+  ctx.fillStyle = '#a08050';
+  ctx.fillRect(16, 4, 1, 7);
+  save('well.png', c);
+}
+
+// Bench (32x20)
+{
+  const c = createCanvas(32, 20);
+  const ctx = c.getContext('2d');
+  // Legs
+  ctx.fillStyle = '#555555';
+  ctx.fillRect(3, 14, 3, 6);
+  ctx.fillRect(26, 14, 3, 6);
+  // Seat
+  ctx.fillStyle = '#8b6f47';
+  ctx.fillRect(0, 10, 32, 6);
+  ctx.fillStyle = '#9a7f57';
+  ctx.fillRect(0, 10, 32, 2);
+  // Backrest
+  ctx.fillStyle = '#7a5f37';
+  ctx.fillRect(0, 2, 32, 10);
+  ctx.fillStyle = '#8b6f47';
+  ctx.fillRect(2, 4, 12, 6);
+  ctx.fillRect(18, 4, 12, 6);
+  // Arm rests
+  ctx.fillStyle = '#6b4f27';
+  ctx.fillRect(0, 4, 3, 12);
+  ctx.fillRect(29, 4, 3, 12);
+  save('bench.png', c);
+}
+
+// Signpost (16x36)
+{
+  const c = createCanvas(16, 36);
+  const ctx = c.getContext('2d');
+  // Post
+  ctx.fillStyle = '#6b4226';
+  ctx.fillRect(6, 8, 4, 28);
+  // Base
+  ctx.fillStyle = '#555555';
+  ctx.fillRect(3, 32, 10, 4);
+  // Sign board (pointing right)
+  ctx.fillStyle = '#8b6f47';
+  ctx.fillRect(2, 4, 14, 8);
+  // Arrow point
+  ctx.fillRect(14, 2, 2, 4);
+  ctx.fillRect(14, 10, 2, 4);
+  // Text line
+  ctx.fillStyle = '#3a2a1a';
+  ctx.fillRect(4, 7, 8, 2);
+  // Top cap
+  ctx.fillStyle = '#7a5a3a';
+  ctx.fillRect(5, 2, 6, 3);
+  save('signpost.png', c);
+}
+
+// Bush (28x20)
+{
+  const c = createCanvas(28, 20);
+  const ctx = c.getContext('2d');
+  // Main foliage
+  ctx.fillStyle = '#3a7a2a';
+  ctx.fillRect(4, 6, 20, 14);
+  ctx.fillStyle = '#4a8c3f';
+  ctx.fillRect(2, 8, 24, 10);
+  ctx.fillStyle = '#5a9c4f';
+  ctx.fillRect(6, 4, 16, 8);
+  // Highlight
+  ctx.fillStyle = '#6aac5f';
+  ctx.fillRect(8, 4, 8, 4);
+  // Small berries
+  ctx.fillStyle = '#cc3344';
+  ctx.fillRect(8, 10, 2, 2);
+  ctx.fillRect(16, 12, 2, 2);
+  ctx.fillRect(12, 14, 2, 2);
+  save('bush.png', c);
+}
+
+// Log pile (28x20)
+{
+  const c = createCanvas(28, 20);
+  const ctx = c.getContext('2d');
+  // Bottom row of logs
+  ctx.fillStyle = '#6b4226';
+  ctx.fillRect(0, 12, 28, 8);
+  // Log ends (circles-ish)
+  ctx.fillStyle = '#8b6240';
+  ctx.fillRect(2, 13, 6, 6);
+  ctx.fillRect(10, 13, 6, 6);
+  ctx.fillRect(18, 13, 6, 6);
+  // Inner rings
+  ctx.fillStyle = '#a08050';
+  ctx.fillRect(4, 15, 2, 2);
+  ctx.fillRect(12, 15, 2, 2);
+  ctx.fillRect(20, 15, 2, 2);
+  // Top row (smaller)
+  ctx.fillStyle = '#5a3a1a';
+  ctx.fillRect(4, 4, 20, 9);
+  ctx.fillStyle = '#7a5a3a';
+  ctx.fillRect(6, 5, 6, 7);
+  ctx.fillRect(14, 5, 6, 7);
+  ctx.fillStyle = '#8b6a4a';
+  ctx.fillRect(8, 7, 2, 2);
+  ctx.fillRect(16, 7, 2, 2);
+  save('log-pile.png', c);
+}
+
 // NPC (32x48)
 {
   const c = createCanvas(32, 48);
