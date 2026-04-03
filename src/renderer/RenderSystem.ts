@@ -1,6 +1,7 @@
 import { Application, Container, Sprite } from 'pixi.js';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { getTexture } from './AssetLoader';
+import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
 
 interface AnimData {
   baseX: number;
@@ -15,6 +16,7 @@ export class RenderSystem {
   private app: Application;
   private worldContainer: Container;
   private groundLayer: Container;
+  private transitionLayer: Container;
   private entityLayer: Container;
   private roofLayer: Container;
 
@@ -36,10 +38,18 @@ export class RenderSystem {
   private npcAnims = new Map<string, AnimData>();
   animationsEnabled = true;
 
+  // Player walk animation state
+  private playerWalkTimer = 0;
+  private playerWalkFrame = 0; // 0 = idle, 1 = walk1, 2 = walk2
+  private playerLastX = 0;
+  private playerLastY = 0;
+  private readonly WALK_FRAME_DURATION = 0.15; // seconds per frame
+
   constructor(app: Application) {
     this.app = app;
     this.worldContainer = new Container();
     this.groundLayer = new Container();
+    this.transitionLayer = new Container();
     this.entityLayer = new Container();
     this.roofLayer = new Container();
 
@@ -47,6 +57,7 @@ export class RenderSystem {
     this.entityLayer.sortableChildren = true;
 
     this.worldContainer.addChild(this.groundLayer);
+    this.worldContainer.addChild(this.transitionLayer);
     this.worldContainer.addChild(this.entityLayer);
     this.worldContainer.addChild(this.roofLayer);
     this.app.stage.addChild(this.worldContainer);
@@ -54,6 +65,7 @@ export class RenderSystem {
 
   renderTiles(map: MapData): void {
     this.groundLayer.removeChildren();
+    this.transitionLayer.removeChildren();
 
     for (let row = 0; row < map.height; row++) {
       for (let col = 0; col < map.width; col++) {
@@ -69,6 +81,10 @@ export class RenderSystem {
         this.groundLayer.addChild(sprite);
       }
     }
+
+    // Build transition overlays (grass ↔ dirt dithered edges)
+    const transitions = buildTransitionLayer(map);
+    this.transitionLayer.addChild(transitions);
   }
 
   renderObjects(map: MapData): void {
@@ -177,10 +193,40 @@ export class RenderSystem {
     this.entityLayer.addChild(this.playerSprite);
   }
 
-  updatePlayer(player: PlayerState): void {
+  updatePlayer(player: PlayerState, delta: number = 0): void {
     if (!this.playerSprite) return;
 
-    const texture = getTexture(player.spriteKey);
+    // Detect if player is moving
+    const dx = player.x - this.playerLastX;
+    const dy = player.y - this.playerLastY;
+    const isMoving = Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1;
+    this.playerLastX = player.x;
+    this.playerLastY = player.y;
+
+    // Determine sprite key with walk animation
+    let spriteKey = player.spriteKey; // e.g. 'player-down'
+
+    if (isMoving && delta > 0) {
+      this.playerWalkTimer += delta;
+      if (this.playerWalkTimer >= this.WALK_FRAME_DURATION) {
+        this.playerWalkTimer -= this.WALK_FRAME_DURATION;
+        // Cycle: walk1 → idle → walk2 → idle → walk1...
+        this.playerWalkFrame = (this.playerWalkFrame + 1) % 4;
+      }
+      // Frame mapping: 0=walk1, 1=idle, 2=walk2, 3=idle
+      if (this.playerWalkFrame === 0 || this.playerWalkFrame === 1) {
+        spriteKey = player.spriteKey + '-walk1';
+      } else {
+        spriteKey = player.spriteKey + '-walk2';
+      }
+    } else {
+      // Standing still — reset to idle
+      this.playerWalkTimer = 0;
+      this.playerWalkFrame = 0;
+    }
+
+    // Try walk frame, fall back to base sprite if not found
+    const texture = getTexture(spriteKey) || getTexture(player.spriteKey);
     if (texture) {
       this.playerSprite.texture = texture;
     }
@@ -232,6 +278,11 @@ export class RenderSystem {
     }
   }
 
+  /** Get the world container for attaching overlays (e.g. tap indicators). */
+  getWorldContainer(): Container {
+    return this.worldContainer;
+  }
+
   /** Get a roof sprite by building ID — for future per-roof behavior. */
   getRoofSprite(buildingId: string): Sprite | undefined {
     return this.roofSprites.get(buildingId);
@@ -260,10 +311,14 @@ export class RenderSystem {
     }
     for (const npc of map.npcs) keys.add(npc.spriteKey);
 
-    keys.add('player-down');
-    keys.add('player-up');
-    keys.add('player-left');
-    keys.add('player-right');
+    for (const dir of ['down', 'up', 'left', 'right']) {
+      keys.add(`player-${dir}`);
+      keys.add(`player-${dir}-walk1`);
+      keys.add(`player-${dir}-walk2`);
+    }
+
+    // Transition tiles
+    for (const k of TRANSITION_ASSET_KEYS) keys.add(k);
 
     return Array.from(keys);
   }

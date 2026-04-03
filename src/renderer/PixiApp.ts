@@ -15,6 +15,8 @@ import { loadAssets, preloadAllAssets } from './AssetLoader';
 import { InputAdapter } from './InputAdapter';
 import { RenderSystem } from './RenderSystem';
 import { DebugOverlay } from './DebugOverlay';
+import { TapFeedback } from './TapFeedback';
+import { BGMManager } from './BGMManager';
 
 export class PixiApp {
   app: Application;
@@ -26,6 +28,8 @@ export class PixiApp {
   private destroyed = false;
   private walkGrid: boolean[][] | null = null;
   private npcWanderStates: NPCWanderState[] = [];
+  private tapFeedback: TapFeedback | null = null;
+  private bgm: BGMManager;
 
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
@@ -36,6 +40,7 @@ export class PixiApp {
     this.inputAdapter = new InputAdapter();
     this.bridge = new GameBridge();
     this.commandQueue = new CommandQueue();
+    this.bgm = new BGMManager();
   }
 
   private container: HTMLDivElement | null = null;
@@ -115,6 +120,10 @@ export class PixiApp {
       returnSpawnId: this.gameState?.returnSpawnId ?? null,
     };
 
+    // Initialize tap feedback (sound + visual indicator)
+    if (this.tapFeedback) this.tapFeedback.destroy();
+    this.tapFeedback = new TapFeedback(this.renderSystem.getWorldContainer());
+
     // Build walkability grid for pathfinding
     this.walkGrid = buildWalkGrid(map, map.objects, map.buildings, player.collisionBox);
 
@@ -122,6 +131,7 @@ export class PixiApp {
     this.npcWanderStates = initWanderStates(map.npcs);
 
     this.bridge.emit({ type: 'sceneChange', mapId });
+    this.bgm.onSceneChange(mapId);
   }
 
   private update(delta: number): void {
@@ -168,9 +178,10 @@ export class PixiApp {
       }
       // Update camera and render even during dialogue (player is frozen, but camera should stay)
       this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
-      this.renderSystem.updatePlayer(this.gameState.player);
+      this.renderSystem.updatePlayer(this.gameState.player, delta);
       this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
       this.renderSystem.updateAnimations(performance.now() / 1000);
+      if (this.tapFeedback) this.tapFeedback.update(delta);
       if (this.debugOverlay) this.debugOverlay.update();
       return;
     }
@@ -182,9 +193,14 @@ export class PixiApp {
       this.bridge.emit({ type: 'dialogueStart', dialogue: dialogueEvent });
       // Don't process movement this frame
       this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
-      this.renderSystem.updatePlayer(this.gameState.player);
+      this.renderSystem.updatePlayer(this.gameState.player, delta);
       this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
       return;
+    }
+
+    // Tap feedback — sound + visual indicator
+    if (input.moveTarget && this.tapFeedback) {
+      this.tapFeedback.trigger(input.moveTarget.x, input.moveTarget.y);
     }
 
     // Convert moveTarget to pathfinding waypoints
@@ -302,9 +318,10 @@ export class PixiApp {
     }
 
     // Update renderer
-    this.renderSystem.updatePlayer(this.gameState.player);
+    this.renderSystem.updatePlayer(this.gameState.player, delta);
     this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
     this.renderSystem.updateAnimations(performance.now() / 1000);
+    if (this.tapFeedback) this.tapFeedback.update(delta);
 
     // Debug overlay
     if (this.debugOverlay && this.renderSystem) {
@@ -327,6 +344,11 @@ export class PixiApp {
   destroy(): void {
     this.destroyed = true;
     this.inputAdapter.destroy();
+    this.bgm.destroy();
+    if (this.tapFeedback) {
+      this.tapFeedback.destroy();
+      this.tapFeedback = null;
+    }
     if (this.debugOverlay) {
       this.debugOverlay.destroy();
       this.debugOverlay = null;

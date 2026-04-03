@@ -14,6 +14,38 @@ export default function GameCanvas() {
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
 
+  // — Sound —
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [soundOn, setSoundOn] = useState(false);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    };
+  }, []);
+
+  const handleToggleSound = useCallback(() => {
+    // Lazily create audio on first user gesture — required for mobile browsers
+    if (!audioRef.current) {
+      const audio = new Audio('/assets/audio/background-track.mp3');
+      audio.loop = true;
+      audio.volume = 0.4;
+      audioRef.current = audio;
+    }
+    const audio = audioRef.current;
+    if (soundOn) {
+      audio.pause();
+      setSoundOn(false);
+    } else {
+      audio.play().catch(console.error);
+      setSoundOn(true);
+    }
+  }, [soundOn]);
+
   useEffect(() => {
     if (!containerRef.current || pixiAppRef.current) return;
 
@@ -69,6 +101,21 @@ export default function GameCanvas() {
     setMinimapData(null);
   }, []);
 
+  const btnStyle: React.CSSProperties = {
+    pointerEvents: 'auto',
+    position: 'relative',
+    width: 36,
+    height: 36,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    background: 'rgba(0,0,0,0.5)',
+    color: 'white',
+    border: 'none',
+    cursor: 'pointer',
+  };
+
   return (
     <div
       style={{
@@ -85,34 +132,56 @@ export default function GameCanvas() {
 
       {/* UI overlay — always on top of canvas */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }}>
-        {/* Map button — only on outdoor map */}
-        {currentMapId === 'outdoor' && <button
-          onClick={handleOpenMinimap}
+        {/* Top-right icon group */}
+        <div
           style={{
             pointerEvents: 'auto',
             position: 'absolute',
             top: 8,
             right: 8,
-            width: 36,
-            height: 36,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 8,
-            background: 'rgba(0,0,0,0.5)',
-            color: 'white',
-            border: 'none',
-            cursor: 'pointer',
+            gap: 6,
           }}
-          aria-label="Open map"
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect x="2" y="2" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-            <line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" strokeWidth="1" opacity="0.5" />
-            <line x1="10" y1="2" x2="10" y2="18" stroke="currentColor" strokeWidth="1" opacity="0.5" />
-            <circle cx="10" cy="10" r="2" fill="currentColor" />
-          </svg>
-        </button>}
+          {/* Sound toggle — always visible */}
+          <button
+            onClick={handleToggleSound}
+            style={btnStyle}
+            aria-label={soundOn ? 'Mute background music' : 'Unmute background music'}
+          >
+            {soundOn ? (
+              // Speaker on
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M3 7.5h2.5L9 4v12l-3.5-3.5H3a.5.5 0 0 1-.5-.5v-4A.5.5 0 0 1 3 7.5Z" fill="currentColor" />
+                <path d="M12 6.5a5 5 0 0 1 0 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M14 4a8 8 0 0 1 0 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
+              </svg>
+            ) : (
+              // Speaker off (muted X)
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M3 7.5h2.5L9 4v12l-3.5-3.5H3a.5.5 0 0 1-.5-.5v-4A.5.5 0 0 1 3 7.5Z" fill="currentColor" opacity="0.5" />
+                <line x1="12" y1="8" x2="17" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <line x1="17" y1="8" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
+
+          {/* Map button — only on outdoor map */}
+          {currentMapId === 'outdoor' && (
+            <button
+              onClick={handleOpenMinimap}
+              style={btnStyle}
+              aria-label="Open map"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <rect x="2" y="2" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                <line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" strokeWidth="1" opacity="0.5" />
+                <line x1="10" y1="2" x2="10" y2="18" stroke="currentColor" strokeWidth="1" opacity="0.5" />
+                <circle cx="10" cy="10" r="2" fill="currentColor" />
+              </svg>
+            </button>
+          )}
+        </div>
 
         {dialogue && (
           <div style={{ pointerEvents: 'auto' }}>

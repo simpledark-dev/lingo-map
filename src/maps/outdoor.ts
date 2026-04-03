@@ -161,35 +161,35 @@ function makeTiles(): TileType[][] {
 
 let entityId = 0;
 function tree(x: number, y: number): Entity {
-  return { id: `tree-${++entityId}`, x, y, spriteKey: 'tree', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -8, offsetY: -16, width: 16, height: 16 } };
+  return { id: `tree-${++entityId}`, x, y, spriteKey: 'tree', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 } };
 }
 function rock(x: number, y: number): Entity {
   return { id: `rock-${++entityId}`, x, y, spriteKey: 'rock', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -12, offsetY: -20, width: 24, height: 20 } };
 }
 
 function house(id: string, col: number, row: number): Building {
-  const x = col * T + 64, y = row * T + 96;
-  return { id, x, y, baseSpriteKey: 'house-base', roofSpriteKey: 'house-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -64, offsetY: -96, width: 128, height: 88 }, doorTrigger: { offsetX: -12, offsetY: -8, width: 24, height: 8 }, targetMapId: 'indoor', targetSpawnId: 'entrance' };
+  const x = col * T + 96, y = row * T + 112;
+  return { id, x, y, baseSpriteKey: 'house-base', roofSpriteKey: 'house-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -96, offsetY: -112, width: 192, height: 104 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'indoor', targetSpawnId: 'entrance' };
 }
 function cafe(id: string, col: number, row: number): Building {
-  const x = col * T + 80, y = row * T + 96;
-  return { id, x, y, baseSpriteKey: 'cafe-base', roofSpriteKey: 'cafe-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -80, offsetY: -96, width: 160, height: 88 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'cafe', targetSpawnId: 'entrance' };
+  const x = col * T + 96, y = row * T + 99;
+  return { id, x, y, baseSpriteKey: 'cafe-base', roofSpriteKey: 'cafe-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -96, offsetY: -99, width: 192, height: 91 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'cafe', targetSpawnId: 'entrance' };
 }
 function restaurant(id: string, col: number, row: number): Building {
   const x = col * T + 96, y = row * T + 112;
   return { id, x, y, baseSpriteKey: 'restaurant-base', roofSpriteKey: 'restaurant-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -96, offsetY: -112, width: 192, height: 104 }, doorTrigger: { offsetX: -20, offsetY: -8, width: 40, height: 8 }, targetMapId: 'restaurant', targetSpawnId: 'entrance' };
 }
 function bookstore(id: string, col: number, row: number): Building {
-  const x = col * T + 64, y = row * T + 96;
-  return { id, x, y, baseSpriteKey: 'bookstore-base', roofSpriteKey: 'bookstore-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -64, offsetY: -96, width: 128, height: 88 }, doorTrigger: { offsetX: -12, offsetY: -8, width: 24, height: 8 }, targetMapId: 'bookstore', targetSpawnId: 'entrance' };
+  const x = col * T + 104, y = row * T + 151;
+  return { id, x, y, baseSpriteKey: 'bookstore-base', roofSpriteKey: 'bookstore-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -104, offsetY: -151, width: 208, height: 143 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'bookstore', targetSpawnId: 'entrance' };
 }
 function market(id: string, col: number, row: number): Building {
-  const x = col * T + 80, y = row * T + 96;
-  return { id, x, y, baseSpriteKey: 'market-base', roofSpriteKey: 'market-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -80, offsetY: -96, width: 160, height: 88 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'market', targetSpawnId: 'entrance' };
+  const x = col * T + 120, y = row * T + 141;
+  return { id, x, y, baseSpriteKey: 'market-base', roofSpriteKey: 'market-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -120, offsetY: -141, width: 240, height: 133 }, doorTrigger: { offsetX: -16, offsetY: -8, width: 32, height: 8 }, targetMapId: 'market', targetSpawnId: 'entrance' };
 }
 function bakery(id: string, col: number, row: number): Building {
-  const x = col * T + 64, y = row * T + 96;
-  return { id, x, y, baseSpriteKey: 'bakery-base', roofSpriteKey: 'bakery-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -64, offsetY: -96, width: 128, height: 88 }, doorTrigger: { offsetX: -12, offsetY: -8, width: 24, height: 8 }, targetMapId: 'bakery', targetSpawnId: 'entrance' };
+  const x = col * T + 104, y = row * T + 114;
+  return { id, x, y, baseSpriteKey: 'bakery-base', roofSpriteKey: 'bakery-roof', anchor: { x: 0.5, y: 1.0 }, sortY: y, collisionBox: { offsetX: -104, offsetY: -114, width: 208, height: 106 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'bakery', targetSpawnId: 'entrance' };
 }
 function inn(id: string, col: number, row: number): Building {
   const x = col * T + 80, y = row * T + 112;
