@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { DialogueState } from '../core/types';
 
 interface DialogueOverlayProps {
@@ -9,6 +10,24 @@ interface DialogueOverlayProps {
 
 export default function DialogueOverlay({ dialogue, onAdvance }: DialogueOverlayProps) {
   const isLastLine = dialogue.currentLine >= dialogue.lines.length - 1;
+  const currentLine = dialogue.lines[dialogue.currentLine] ?? '';
+
+  useEffect(() => {
+    if (!currentLine || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(currentLine);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, [currentLine, dialogue.npcId]);
 
   return (
     <div
@@ -20,7 +39,7 @@ export default function DialogueOverlay({ dialogue, onAdvance }: DialogueOverlay
           {dialogue.npcName}
         </div>
         <div className="text-white text-base leading-relaxed mb-3">
-          {dialogue.lines[dialogue.currentLine]}
+          {currentLine}
         </div>
         <div className="text-white/50 text-xs text-right">
           {isLastLine ? 'Press Space to close' : 'Press Space to continue'}
