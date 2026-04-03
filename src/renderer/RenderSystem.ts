@@ -210,15 +210,13 @@ export class RenderSystem {
       this.playerWalkTimer += delta;
       if (this.playerWalkTimer >= this.WALK_FRAME_DURATION) {
         this.playerWalkTimer -= this.WALK_FRAME_DURATION;
-        // Cycle: walk1 → idle → walk2 → idle → walk1...
-        this.playerWalkFrame = (this.playerWalkFrame + 1) % 4;
+        // Alternate: walk1 → idle → walk1 → idle...
+        this.playerWalkFrame = (this.playerWalkFrame + 1) % 2;
       }
-      // Frame mapping: 0=walk1, 1=idle, 2=walk2, 3=idle
-      if (this.playerWalkFrame === 0 || this.playerWalkFrame === 1) {
+      if (this.playerWalkFrame === 0) {
         spriteKey = player.spriteKey + '-walk1';
-      } else {
-        spriteKey = player.spriteKey + '-walk2';
       }
+      // frame 1 = idle (use base spriteKey, already set)
     } else {
       // Standing still — reset to idle
       this.playerWalkTimer = 0;

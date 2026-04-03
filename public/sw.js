@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lingo-map-v54';
+const CACHE_NAME = 'lingo-map-v55';
 
 const PRECACHE_URLS = [
   '/assets/placeholder/grass.png',
