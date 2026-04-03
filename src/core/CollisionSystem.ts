@@ -51,6 +51,7 @@ function collidesWithObjects(
   buildings: Building[],
 ): boolean {
   for (const obj of objects) {
+    if (obj.collisionBox.width <= 0 || obj.collisionBox.height <= 0) continue;
     const objBox = getWorldCollisionBox(obj.x, obj.y, obj.collisionBox);
     if (checkAABBOverlap(box, objBox)) return true;
   }

@@ -1,7 +1,8 @@
 import { Application } from 'pixi.js';
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../core/constants';
-import { GameState } from '../core/types';
+import { GameState, MapData } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
+import { buildStressMap, StressOptions } from '../core/MapStress';
 import { createPlayer, updatePlayer } from '../core/PlayerSystem';
 import { resolveMovement } from '../core/CollisionSystem';
 import { updateCamera } from '../core/CameraSystem';
@@ -18,11 +19,14 @@ import { DebugOverlay } from './DebugOverlay';
 import { TapFeedback } from './TapFeedback';
 import { BGMManager } from './BGMManager';
 
+export type PixiAppOptions = StressOptions;
+
 export class PixiApp {
   app: Application;
   private renderSystem: RenderSystem | null = null;
   private inputAdapter: InputAdapter;
   private gameState: GameState | null = null;
+  private currentMap: MapData | null = null;
   private transitioning = false;
   private initialized = false;
   private destroyed = false;
@@ -34,13 +38,15 @@ export class PixiApp {
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
   private debugOverlay: DebugOverlay | null = null;
+  private readonly options: PixiAppOptions;
 
-  constructor() {
+  constructor(options: PixiAppOptions = {}) {
     this.app = new Application();
     this.inputAdapter = new InputAdapter();
     this.bridge = new GameBridge();
     this.commandQueue = new CommandQueue();
     this.bgm = new BGMManager();
+    this.options = options;
   }
 
   private container: HTMLDivElement | null = null;
@@ -93,7 +99,8 @@ export class PixiApp {
   }
 
   private async loadScene(mapId: string, spawnId: string): Promise<void> {
-    const map = loadMap(mapId);
+    const map = buildStressMap(loadMap(mapId), this.options);
+    this.currentMap = map;
     const spawn = getSpawnPoint(map, spawnId);
     const player = createPlayer(spawn);
 
@@ -137,9 +144,9 @@ export class PixiApp {
   }
 
   private update(delta: number): void {
-    if (!this.gameState || !this.renderSystem || this.transitioning) return;
+    if (!this.gameState || !this.renderSystem || !this.currentMap || this.transitioning) return;
 
-    const map = loadMap(this.gameState.currentMapId);
+    const map = this.currentMap;
     const mapW = map.width * map.tileSize;
     const mapH = map.height * map.tileSize;
 
@@ -339,12 +346,12 @@ export class PixiApp {
   }
 
   getMapData(): import('../core/types').MapData | null {
-    if (!this.gameState) return null;
-    return loadMap(this.gameState.currentMapId);
+    return this.currentMap;
   }
 
   destroy(): void {
     this.destroyed = true;
+    this.currentMap = null;
     this.inputAdapter.destroy();
     this.bgm.destroy();
     if (this.tapFeedback) {

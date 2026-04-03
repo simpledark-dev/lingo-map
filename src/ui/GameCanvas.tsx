@@ -1,11 +1,18 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
+import { normalizeObjectMultiplier, STRESS_OBJECT_OPTIONS } from '../core/MapStress';
 import { PixiApp } from '../renderer/PixiApp';
 import { DialogueState, MapData, GameState } from '../core/types';
 import { GameEvent } from '../core/GameBridge';
 import DialogueOverlay from './DialogueOverlay';
 import Minimap from './Minimap';
+
+function readInitialObjectMultiplier(): number {
+  if (typeof window === 'undefined') return 1;
+  const value = Number(window.location.search ? new URLSearchParams(window.location.search).get('objects') : null);
+  return normalizeObjectMultiplier(value);
+}
 
 export default function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -13,10 +20,22 @@ export default function GameCanvas() {
   const [dialogue, setDialogue] = useState<DialogueState | null>(null);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
+  const [objectMultiplier, setObjectMultiplier] = useState(readInitialObjectMultiplier);
 
   // — Sound —
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [soundOn, setSoundOn] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (objectMultiplier <= 1) {
+      url.searchParams.delete('objects');
+    } else {
+      url.searchParams.set('objects', String(objectMultiplier));
+    }
+    window.history.replaceState({}, '', url);
+  }, [objectMultiplier]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -50,7 +69,7 @@ export default function GameCanvas() {
     if (!containerRef.current || pixiAppRef.current) return;
 
     let cancelled = false;
-    const pixiApp = new PixiApp();
+    const pixiApp = new PixiApp({ objectMultiplier });
     pixiAppRef.current = pixiApp;
 
     const unsubscribe = pixiApp.bridge.subscribe((event: GameEvent) => {
@@ -79,7 +98,7 @@ export default function GameCanvas() {
       pixiApp.destroy();
       pixiAppRef.current = null;
     };
-  }, []);
+  }, [objectMultiplier]);
 
   const handleAdvanceDialogue = useCallback(() => {
     const app = pixiAppRef.current;
@@ -99,6 +118,13 @@ export default function GameCanvas() {
 
   const handleCloseMinimap = useCallback(() => {
     setMinimapData(null);
+  }, []);
+
+  const handleObjectMultiplierChange = useCallback((value: number) => {
+    setDialogue(null);
+    setMinimapData(null);
+    setCurrentMapId('outdoor');
+    setObjectMultiplier(value);
   }, []);
 
   const btnStyle: React.CSSProperties = {
@@ -143,6 +169,38 @@ export default function GameCanvas() {
             gap: 6,
           }}
         >
+          {process.env.NODE_ENV === 'development' && (
+            <label
+              style={{
+                ...btnStyle,
+                width: 'auto',
+                padding: '0 10px',
+                gap: 8,
+                fontSize: 12,
+              }}
+            >
+              <span>Objs</span>
+              <select
+                value={objectMultiplier}
+                onChange={(event) => handleObjectMultiplierChange(normalizeObjectMultiplier(Number(event.target.value)))}
+                style={{
+                  background: 'transparent',
+                  color: 'white',
+                  border: 'none',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
+                aria-label="Stress test object multiplier"
+              >
+                {STRESS_OBJECT_OPTIONS.map((option) => (
+                  <option key={option} value={option} style={{ color: 'black' }}>
+                    {option}x
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           {/* Sound toggle — always visible */}
           <button
             onClick={handleToggleSound}
