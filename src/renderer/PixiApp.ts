@@ -62,8 +62,10 @@ export class PixiApp {
 
     const canvas = this.app.canvas as HTMLCanvasElement;
     canvas.style.imageRendering = 'pixelated';
+    // Maintain aspect ratio — fit inside container without stretching
     canvas.style.width = '100%';
     canvas.style.height = '100%';
+    canvas.style.objectFit = 'contain';
     canvas.style.position = 'absolute';
     canvas.style.top = '0';
     canvas.style.left = '0';

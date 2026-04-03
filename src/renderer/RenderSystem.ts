@@ -237,6 +237,46 @@ export class RenderSystem {
     this.worldContainer.scale.set(zoom, zoom);
     this.worldContainer.x = -cameraX * zoom;
     this.worldContainer.y = -cameraY * zoom;
+
+    // Viewport culling — hide sprites outside the visible area
+    this.cullViewport(cameraX, cameraY, zoom);
+  }
+
+  private cullViewport(camX: number, camY: number, zoom: number): void {
+    const margin = 128; // extra margin to avoid pop-in
+    const vw = 640 / zoom + margin * 2;
+    const vh = 480 / zoom + margin * 2;
+    const left = camX - margin;
+    const top = camY - margin;
+    const right = left + vw;
+    const bottom = top + vh;
+
+    // Cull ground tiles
+    const T = this.currentMap?.tileSize ?? 32;
+    for (const child of this.groundLayer.children) {
+      child.visible = child.x + T > left && child.x < right && child.y + T > top && child.y < bottom;
+    }
+
+    // Cull transition layer
+    for (const child of this.transitionLayer.children) {
+      // Transition layer has a single container child
+      if ('children' in child) {
+        for (const tc of (child as Container).children) {
+          tc.visible = tc.x + T > left && tc.x < right && tc.y + T > top && tc.y < bottom;
+        }
+      }
+    }
+
+    // Cull entity layer (trees, objects, NPCs, buildings — but not player)
+    for (const child of this.entityLayer.children) {
+      if (child === this.playerSprite) continue;
+      child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 32 > top && child.y - 192 < bottom;
+    }
+
+    // Cull roofs
+    for (const child of this.roofLayer.children) {
+      child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 128 > top && child.y - 128 < bottom;
+    }
   }
 
   /** Update an NPC sprite's position (for wandering). */
