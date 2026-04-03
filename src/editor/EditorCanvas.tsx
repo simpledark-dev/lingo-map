@@ -195,8 +195,30 @@ export default function EditorCanvas() {
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
+    const s = stateRef.current;
+    const app = editorAppRef.current;
+    if (!app) return;
+
+    const oldZoom = s.zoom;
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    dispatchRef.current({ type: 'SET_ZOOM', zoom: stateRef.current.zoom + delta });
+    const newZoom = Math.max(0.25, Math.min(3, oldZoom + delta));
+    if (newZoom === oldZoom) return;
+
+    // Get world position under the mouse cursor
+    const world = app.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, oldZoom);
+
+    // Adjust camera so the world point under the cursor stays in the same screen position
+    const canvas = app.getCanvas();
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const screenX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const screenY = (e.clientY - rect.top) * (canvas.height / rect.height);
+      const newCamX = world.x - screenX / newZoom;
+      const newCamY = world.y - screenY / newZoom;
+      dispatchRef.current({ type: 'SET_CAMERA', x: newCamX, y: newCamY });
+    }
+
+    dispatchRef.current({ type: 'SET_ZOOM', zoom: newZoom });
   }, []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {

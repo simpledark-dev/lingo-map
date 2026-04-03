@@ -82,7 +82,25 @@ export default function EditorTopBar({ state, dispatch }: Props) {
 
       <span style={{ color: '#777' }}>|</span>
 
-      <span>{state.mapWidth}x{state.mapHeight}</span>
+      <input
+        type="number"
+        value={state.mapWidth}
+        onChange={e => {
+          const v = Math.max(10, Math.min(200, parseInt(e.target.value) || 50));
+          dispatch({ type: 'RESIZE_MAP', width: v, height: state.mapHeight });
+        }}
+        style={{ width: 44, padding: '2px 4px', background: '#2a2a3a', border: '1px solid #444', borderRadius: 3, color: '#ddd', fontSize: 11, textAlign: 'center' }}
+      />
+      <span style={{ color: '#777' }}>x</span>
+      <input
+        type="number"
+        value={state.mapHeight}
+        onChange={e => {
+          const v = Math.max(10, Math.min(200, parseInt(e.target.value) || 50));
+          dispatch({ type: 'RESIZE_MAP', width: state.mapWidth, height: v });
+        }}
+        style={{ width: 44, padding: '2px 4px', background: '#2a2a3a', border: '1px solid #444', borderRadius: 3, color: '#ddd', fontSize: 11, textAlign: 'center' }}
+      />
 
       <span style={{ color: '#777' }}>|</span>
 
