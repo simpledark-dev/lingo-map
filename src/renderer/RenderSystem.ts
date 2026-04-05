@@ -307,13 +307,13 @@ export class RenderSystem {
       sprite.x = anim.baseX + Math.sin(t * 0.7) * anim.swayAmount;
     }
 
-    // NPC idle bob — slight Y oscillation
-    for (const [id, anim] of this.npcAnims) {
-      const sprite = this.npcSprites.get(id);
-      if (!sprite) continue;
-      const t = time * anim.speed + anim.phase;
-      sprite.y = anim.baseY + Math.sin(t) * anim.swayAmount;
-    }
+    // NPC idle bob — disabled temporarily
+    // for (const [id, anim] of this.npcAnims) {
+    //   const sprite = this.npcSprites.get(id);
+    //   if (!sprite) continue;
+    //   const t = time * anim.speed + anim.phase;
+    //   sprite.y = anim.baseY + Math.sin(t) * anim.swayAmount;
+    // }
   }
 
   /** Get the world container for attaching overlays (e.g. tap indicators). */

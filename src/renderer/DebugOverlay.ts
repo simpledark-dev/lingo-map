@@ -12,6 +12,7 @@ export class DebugOverlay {
   // Stats fed externally each frame
   totalObjects = 0;
   renderedSprites = 0;
+  zoomLevel = 1;
 
   constructor(container: HTMLDivElement) {
     this.el = document.createElement('div');
@@ -49,6 +50,7 @@ export class DebugOverlay {
     this.el.textContent =
       `FPS: ${fps.toFixed(0)}\n` +
       `Frame: ${avgMs.toFixed(1)} ms\n` +
+      `Zoom: ${this.zoomLevel.toFixed(1)}x\n` +
       `Objects: ${this.totalObjects}\n` +
       `Sprites: ${this.renderedSprites}`;
   }

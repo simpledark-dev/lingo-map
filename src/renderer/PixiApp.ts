@@ -19,7 +19,10 @@ import { DebugOverlay } from './DebugOverlay';
 import { TapFeedback } from './TapFeedback';
 import { BGMManager } from './BGMManager';
 
-export type PixiAppOptions = StressOptions;
+export type PixiAppOptions = StressOptions & {
+  musicEnabled?: boolean;
+  startMapId?: string;
+};
 
 export class PixiApp {
   app: Application;
@@ -45,7 +48,7 @@ export class PixiApp {
     this.inputAdapter = new InputAdapter();
     this.bridge = new GameBridge();
     this.commandQueue = new CommandQueue();
-    this.bgm = new BGMManager();
+    this.bgm = new BGMManager(options.musicEnabled ?? true);
     this.options = options;
   }
 
@@ -84,7 +87,7 @@ export class PixiApp {
       this.debugOverlay = new DebugOverlay(container);
     }
 
-    await this.loadScene('outdoor', 'default');
+    await this.loadScene(this.options.startMapId ?? 'outdoor', 'default');
 
     if (this.destroyed) return;
 
@@ -337,6 +340,7 @@ export class PixiApp {
       this.debugOverlay.totalObjects =
         map.objects.length + map.buildings.length + map.npcs.length + 1; // +1 for player
       this.debugOverlay.renderedSprites = this.renderSystem.getSpriteCount();
+      this.debugOverlay.zoomLevel = this.inputAdapter.zoom;
       this.debugOverlay.update();
     }
   }
@@ -347,6 +351,14 @@ export class PixiApp {
 
   getMapData(): import('../core/types').MapData | null {
     return this.currentMap;
+  }
+
+  setMusicEnabled(enabled: boolean): void {
+    this.bgm.setEnabled(enabled);
+  }
+
+  isMusicEnabled(): boolean {
+    return this.bgm.isEnabled();
   }
 
   destroy(): void {

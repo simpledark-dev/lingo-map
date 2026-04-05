@@ -1,5 +1,5 @@
 import { Application, Container, Sprite, Graphics } from 'pixi.js';
-import { TileType, Entity } from '../core/types';
+import { TileType, Entity, Building } from '../core/types';
 import { loadAssets, getTexture, preloadAllAssets } from '../renderer/AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from '../renderer/TransitionTiles';
 
@@ -9,12 +9,17 @@ export class EditorApp {
   private groundLayer: Container;
   private transitionLayer: Container;
   private entityLayer: Container;
+  private roofLayer: Container;
   private gridOverlay: Container;
   private hoverGraphics: Graphics;
   private selectionGraphics: Graphics;
+  private previewContainer: Container;
+  private previewSprites: Sprite[] = [];
 
   private tileSprites: (Sprite | null)[][] = [];
   private objectSprites = new Map<string, Sprite>();
+  private buildingBaseSprites = new Map<string, Sprite>();
+  private buildingRoofSprites = new Map<string, Sprite>();
 
   private mapWidth = 0;
   private mapHeight = 0;
@@ -31,9 +36,11 @@ export class EditorApp {
     this.groundLayer = new Container();
     this.transitionLayer = new Container();
     this.entityLayer = new Container();
+    this.roofLayer = new Container();
     this.gridOverlay = new Container();
     this.hoverGraphics = new Graphics();
     this.selectionGraphics = new Graphics();
+    this.previewContainer = new Container();
     this.entityLayer.sortableChildren = true;
   }
 
@@ -57,9 +64,11 @@ export class EditorApp {
     this.worldContainer.addChild(this.groundLayer);
     this.worldContainer.addChild(this.transitionLayer);
     this.worldContainer.addChild(this.entityLayer);
+    this.worldContainer.addChild(this.roofLayer);
     this.worldContainer.addChild(this.gridOverlay);
     this.worldContainer.addChild(this.hoverGraphics);
     this.worldContainer.addChild(this.selectionGraphics);
+    this.worldContainer.addChild(this.previewContainer);
     this.app.stage.addChild(this.worldContainer);
 
     // Load all assets
@@ -158,6 +167,49 @@ export class EditorApp {
     }
   }
 
+  renderBuildings(buildings: Building[]): void {
+    // Clear existing
+    for (const s of this.buildingBaseSprites.values()) { this.entityLayer.removeChild(s); s.destroy(); }
+    for (const s of this.buildingRoofSprites.values()) { this.roofLayer.removeChild(s); s.destroy(); }
+    this.buildingBaseSprites.clear();
+    this.buildingRoofSprites.clear();
+
+    for (const b of buildings) {
+      this.addBuildingSprites(b);
+    }
+  }
+
+  addBuildingSprites(b: Building): void {
+    const baseTex = getTexture(b.baseSpriteKey);
+    if (baseTex) {
+      const s = new Sprite(baseTex);
+      s.anchor.set(b.anchor.x, b.anchor.y);
+      s.x = b.x;
+      s.y = b.y;
+      s.zIndex = b.sortY;
+      this.entityLayer.addChild(s);
+      this.buildingBaseSprites.set(b.id, s);
+
+      // Roof
+      const roofTex = getTexture(b.roofSpriteKey);
+      if (roofTex) {
+        const rs = new Sprite(roofTex);
+        rs.anchor.set(b.anchor.x, 1.0);
+        rs.x = b.x;
+        rs.y = b.y - baseTex.height;
+        this.roofLayer.addChild(rs);
+        this.buildingRoofSprites.set(b.id, rs);
+      }
+    }
+  }
+
+  removeBuildingSprites(id: string): void {
+    const base = this.buildingBaseSprites.get(id);
+    if (base) { this.entityLayer.removeChild(base); base.destroy(); this.buildingBaseSprites.delete(id); }
+    const roof = this.buildingRoofSprites.get(id);
+    if (roof) { this.roofLayer.removeChild(roof); roof.destroy(); this.buildingRoofSprites.delete(id); }
+  }
+
   private rebuildGrid(): void {
     this.gridOverlay.removeChildren();
     const g = new Graphics();
@@ -197,6 +249,52 @@ export class EditorApp {
 
   clearHighlight(): void {
     this.hoverGraphics.clear();
+  }
+
+  /** Show a semi-transparent preview of a building at the given position. */
+  showBuildingPreview(baseSpriteKey: string, roofSpriteKey: string, x: number, y: number, anchor: { x: number; y: number }): void {
+    this.clearPreview();
+    const baseTex = getTexture(baseSpriteKey);
+    if (baseTex) {
+      const s = new Sprite(baseTex);
+      s.anchor.set(anchor.x, anchor.y);
+      s.x = x;
+      s.y = y;
+      s.alpha = 0.5;
+      this.previewContainer.addChild(s);
+      this.previewSprites.push(s);
+
+      const roofTex = getTexture(roofSpriteKey);
+      if (roofTex) {
+        const rs = new Sprite(roofTex);
+        rs.anchor.set(anchor.x, 1.0);
+        rs.x = x;
+        rs.y = y - baseTex.height;
+        rs.alpha = 0.5;
+        this.previewContainer.addChild(rs);
+        this.previewSprites.push(rs);
+      }
+    }
+  }
+
+  /** Show a semi-transparent preview of an object at the given position. */
+  showObjectPreview(spriteKey: string, x: number, y: number, anchor: { x: number; y: number }): void {
+    this.clearPreview();
+    const tex = getTexture(spriteKey);
+    if (!tex) return;
+    const s = new Sprite(tex);
+    s.anchor.set(anchor.x, anchor.y);
+    s.x = x;
+    s.y = y;
+    s.alpha = 0.5;
+    this.previewContainer.addChild(s);
+    this.previewSprites.push(s);
+  }
+
+  clearPreview(): void {
+    for (const s of this.previewSprites) { s.destroy(); }
+    this.previewSprites = [];
+    this.previewContainer.removeChildren();
   }
 
   clearSelection(): void {

@@ -1,4 +1,4 @@
-import { TileType, Entity, Anchor, CollisionBox } from '../core/types';
+import { TileType, Entity, Building, Anchor, CollisionBox } from '../core/types';
 
 // ── State ──
 
@@ -8,10 +8,12 @@ export interface EditorState {
   tileSize: number;
   tiles: TileType[][];
   objects: Entity[];
+  buildings: Building[];
 
-  activeTool: 'tile' | 'object' | 'select' | 'eraser';
+  activeTool: 'tile' | 'object' | 'building' | 'select' | 'eraser';
   selectedTileType: TileType;
   selectedObjectKey: string | null;
+  selectedBuildingKey: string | null;
   selectedObjectId: string | null;
 
   showGrid: boolean;
@@ -43,9 +45,11 @@ export function createInitialState(width = 50, height = 50): EditorState {
     tileSize: 32,
     tiles,
     objects: [],
+    buildings: [],
     activeTool: 'tile',
     selectedTileType: TileType.PATH,
     selectedObjectKey: null,
+    selectedBuildingKey: null,
     selectedObjectId: null,
     showGrid: true,
     zoom: 1,
@@ -64,16 +68,19 @@ export type EditorAction =
   | { type: 'PAINT_TILES'; cells: { row: number; col: number }[]; tileType: TileType }
   | { type: 'PLACE_OBJECT'; entity: Entity }
   | { type: 'DELETE_OBJECT'; id: string }
+  | { type: 'PLACE_BUILDING'; building: Building }
+  | { type: 'DELETE_BUILDING'; id: string }
   | { type: 'SELECT_OBJECT'; id: string | null }
   | { type: 'SET_TOOL'; tool: EditorState['activeTool'] }
   | { type: 'SET_SELECTED_TILE'; tileType: TileType }
   | { type: 'SET_SELECTED_OBJECT'; spriteKey: string }
+  | { type: 'SET_SELECTED_BUILDING'; buildingKey: string }
   | { type: 'SET_CAMERA'; x: number; y: number }
   | { type: 'SET_ZOOM'; zoom: number }
   | { type: 'TOGGLE_GRID' }
   | { type: 'SET_MAP_NAME'; name: string }
   | { type: 'RESIZE_MAP'; width: number; height: number }
-  | { type: 'IMPORT_MAP'; tiles: TileType[][]; objects: Entity[]; width: number; height: number }
+  | { type: 'IMPORT_MAP'; tiles: TileType[][]; objects: Entity[]; buildings: Building[]; width: number; height: number }
   | { type: 'UNDO' }
   | { type: 'REDO' };
 
@@ -143,6 +150,27 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       };
     }
 
+    case 'PLACE_BUILDING': {
+      return {
+        ...state,
+        buildings: [...state.buildings, action.building],
+        undoStack: [...state.undoStack, { type: 'PLACE_BUILDING', data: { id: action.building.id } }],
+        redoStack: [],
+      };
+    }
+
+    case 'DELETE_BUILDING': {
+      const bld = state.buildings.find(b => b.id === action.id);
+      if (!bld) return state;
+      return {
+        ...state,
+        buildings: state.buildings.filter(b => b.id !== action.id),
+        selectedObjectId: state.selectedObjectId === action.id ? null : state.selectedObjectId,
+        undoStack: [...state.undoStack, { type: 'DELETE_BUILDING', data: { building: bld } }],
+        redoStack: [],
+      };
+    }
+
     case 'SELECT_OBJECT':
       return { ...state, selectedObjectId: action.id };
 
@@ -154,6 +182,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
     case 'SET_SELECTED_OBJECT':
       return { ...state, selectedObjectKey: action.spriteKey, activeTool: 'object' };
+
+    case 'SET_SELECTED_BUILDING':
+      return { ...state, selectedBuildingKey: action.buildingKey, activeTool: 'building' };
 
     case 'SET_CAMERA':
       return { ...state, cameraX: action.x, cameraY: action.y };
@@ -185,6 +216,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         tiles: action.tiles,
         objects: action.objects,
+        buildings: action.buildings,
         mapWidth: action.width,
         mapHeight: action.height,
         undoStack: [],
@@ -240,6 +272,15 @@ function applyUndo(state: EditorState, entry: UndoEntry, newUndo: UndoEntry[]): 
       const { entity } = data as { entity: Entity };
       return { ...state, objects: [...state.objects, entity], undoStack: newUndo, redoStack: [...state.redoStack, { type: 'PLACE_OBJECT_REDO', data: { id: entity.id } }] };
     }
+    case 'PLACE_BUILDING': {
+      const { id } = data as { id: string };
+      const bld = state.buildings.find((b: Building) => b.id === id);
+      return { ...state, buildings: state.buildings.filter((b: Building) => b.id !== id), undoStack: newUndo, redoStack: [...state.redoStack, { type: 'DELETE_BUILDING_REDO', data: { building: bld } }] };
+    }
+    case 'DELETE_BUILDING': {
+      const { building } = data as { building: Building };
+      return { ...state, buildings: [...state.buildings, building], undoStack: newUndo, redoStack: [...state.redoStack, { type: 'PLACE_BUILDING_REDO', data: { id: building.id } }] };
+    }
     default:
       return { ...state, undoStack: newUndo };
   }
@@ -273,6 +314,15 @@ function applyRedo(state: EditorState, entry: UndoEntry, newRedo: UndoEntry[]): 
       const { id } = data as { id: string };
       const obj = state.objects.find(o => o.id === id);
       return { ...state, objects: state.objects.filter(o => o.id !== id), redoStack: newRedo, undoStack: [...state.undoStack, { type: 'DELETE_OBJECT', data: { entity: obj } }] };
+    }
+    case 'DELETE_BUILDING_REDO': {
+      const { building } = data as { building: Building };
+      return { ...state, buildings: [...state.buildings, building], redoStack: newRedo, undoStack: [...state.undoStack, { type: 'PLACE_BUILDING', data: { id: building.id } }] };
+    }
+    case 'PLACE_BUILDING_REDO': {
+      const { id } = data as { id: string };
+      const bld = state.buildings.find((b: Building) => b.id === id);
+      return { ...state, buildings: state.buildings.filter((b: Building) => b.id !== id), redoStack: newRedo, undoStack: [...state.undoStack, { type: 'DELETE_BUILDING', data: { building: bld } }] };
     }
     default:
       return { ...state, redoStack: newRedo };

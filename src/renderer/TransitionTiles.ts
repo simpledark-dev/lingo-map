@@ -4,24 +4,29 @@ import { getTexture } from './AssetLoader';
 
 /** All transition sprite keys for asset loading. */
 export const TRANSITION_ASSET_KEYS = [
+  // Dirt transitions
   'trans-n', 'trans-s', 'trans-w', 'trans-e',
   'trans-nw', 'trans-ne', 'trans-sw', 'trans-se',
   'trans-full',
   'trans-inner-nw', 'trans-inner-ne', 'trans-inner-sw', 'trans-inner-se',
   'trans-inner-nw-se', 'trans-inner-ne-sw',
+  // Water transitions
+  'trans-water-n', 'trans-water-s', 'trans-water-w', 'trans-water-e',
+  'trans-water-nw', 'trans-water-ne', 'trans-water-sw', 'trans-water-se',
+  'trans-water-full',
+  'trans-water-inner-nw', 'trans-water-inner-ne', 'trans-water-inner-sw', 'trans-water-inner-se',
 ];
 
 const DIRT_TILES = new Set<string>([TileType.PATH, TileType.BRIDGE]);
+const WATER_TILES = new Set<string>([TileType.WATER]);
 
-function isDirt(map: MapData, row: number, col: number): boolean {
+function isType(map: MapData, row: number, col: number, types: Set<string>): boolean {
   if (row < 0 || row >= map.height || col < 0 || col >= map.width) return false;
-  return DIRT_TILES.has(map.tiles[row][col]);
+  return types.has(map.tiles[row][col]);
 }
 
 /**
- * Build transition overlay sprites for grass tiles that border dirt.
- * Uses a quadrant-based approach: each grass tile checks its 4 cardinal
- * and 4 diagonal neighbors, then picks the right blended tile.
+ * Build transition overlays for grass tiles that border dirt or water.
  */
 export function buildTransitionLayer(map: MapData): Container {
   const layer = new Container();
@@ -31,70 +36,65 @@ export function buildTransitionLayer(map: MapData): Container {
     for (let col = 0; col < map.width; col++) {
       if (map.tiles[row][col] !== TileType.GRASS) continue;
 
-      const n = isDirt(map, row - 1, col);
-      const s = isDirt(map, row + 1, col);
-      const w = isDirt(map, row, col - 1);
-      const e = isDirt(map, row, col + 1);
-      const nw = isDirt(map, row - 1, col - 1);
-      const ne = isDirt(map, row - 1, col + 1);
-      const sw = isDirt(map, row + 1, col - 1);
-      const se = isDirt(map, row + 1, col + 1);
-
-      const cardinals = (n ? 1 : 0) + (s ? 1 : 0) + (w ? 1 : 0) + (e ? 1 : 0);
-
-      // No dirt neighbors at all — skip
-      if (cardinals === 0 && !nw && !ne && !sw && !se) continue;
-
-      let key: string | null = null;
-
-      if (cardinals >= 3) {
-        // 3 or 4 cardinal sides = almost all dirt
-        key = 'trans-full';
-      } else if (cardinals === 2) {
-        // 2 adjacent cardinal sides = outer corner
-        if (n && w) key = 'trans-nw';
-        else if (n && e) key = 'trans-ne';
-        else if (s && w) key = 'trans-sw';
-        else if (s && e) key = 'trans-se';
-        // 2 opposite sides (n+s or w+e) = treat as full dirt
-        else key = 'trans-full';
-      } else if (cardinals === 1) {
-        // 1 cardinal side = edge
-        if (n) key = 'trans-n';
-        else if (s) key = 'trans-s';
-        else if (w) key = 'trans-w';
-        else if (e) key = 'trans-e';
-      } else {
-        // 0 cardinal sides — check diagonals for inner corners
-        // Can have multiple inner corners on one tile
-        const diags = (nw ? 1 : 0) + (ne ? 1 : 0) + (sw ? 1 : 0) + (se ? 1 : 0);
-        if (diags === 1) {
-          if (nw) key = 'trans-inner-nw';
-          else if (ne) key = 'trans-inner-ne';
-          else if (sw) key = 'trans-inner-sw';
-          else if (se) key = 'trans-inner-se';
-        } else if (diags === 2) {
-          if (nw && se) key = 'trans-inner-nw-se';
-          else if (ne && sw) key = 'trans-inner-ne-sw';
-          else {
-            // Two adjacent diagonals — place both individually
-            if (nw) addSprite(layer, 'trans-inner-nw', col, row, T);
-            if (ne) addSprite(layer, 'trans-inner-ne', col, row, T);
-            if (sw) addSprite(layer, 'trans-inner-sw', col, row, T);
-            if (se) addSprite(layer, 'trans-inner-se', col, row, T);
-            continue;
-          }
-        } else if (diags >= 3) {
-          // 3+ diagonals — just go full dirt
-          key = 'trans-full';
-        }
-      }
-
-      if (key) addSprite(layer, key, col, row, T);
+      // Check dirt neighbors
+      addTransitionsForType(layer, map, row, col, T, DIRT_TILES, 'trans');
+      // Check water neighbors
+      addTransitionsForType(layer, map, row, col, T, WATER_TILES, 'trans-water');
     }
   }
 
   return layer;
+}
+
+function addTransitionsForType(
+  layer: Container, map: MapData, row: number, col: number, T: number,
+  tileSet: Set<string>, prefix: string,
+): void {
+  const n = isType(map, row - 1, col, tileSet);
+  const s = isType(map, row + 1, col, tileSet);
+  const w = isType(map, row, col - 1, tileSet);
+  const e = isType(map, row, col + 1, tileSet);
+  const nw = isType(map, row - 1, col - 1, tileSet);
+  const ne = isType(map, row - 1, col + 1, tileSet);
+  const sw = isType(map, row + 1, col - 1, tileSet);
+  const se = isType(map, row + 1, col + 1, tileSet);
+
+  const cardinals = (n ? 1 : 0) + (s ? 1 : 0) + (w ? 1 : 0) + (e ? 1 : 0);
+  if (cardinals === 0 && !nw && !ne && !sw && !se) return;
+
+  let key: string | null = null;
+
+  if (cardinals >= 3) {
+    key = `${prefix}-full`;
+  } else if (cardinals === 2) {
+    if (n && w) key = `${prefix}-nw`;
+    else if (n && e) key = `${prefix}-ne`;
+    else if (s && w) key = `${prefix}-sw`;
+    else if (s && e) key = `${prefix}-se`;
+    else key = `${prefix}-full`;
+  } else if (cardinals === 1) {
+    if (n) key = `${prefix}-n`;
+    else if (s) key = `${prefix}-s`;
+    else if (w) key = `${prefix}-w`;
+    else if (e) key = `${prefix}-e`;
+  } else {
+    const diags = (nw ? 1 : 0) + (ne ? 1 : 0) + (sw ? 1 : 0) + (se ? 1 : 0);
+    if (diags === 1) {
+      if (nw) key = `${prefix}-inner-nw`;
+      else if (ne) key = `${prefix}-inner-ne`;
+      else if (sw) key = `${prefix}-inner-sw`;
+      else if (se) key = `${prefix}-inner-se`;
+    } else if (diags >= 2) {
+      // Place each individually
+      if (nw) addSprite(layer, `${prefix}-inner-nw`, col, row, T);
+      if (ne) addSprite(layer, `${prefix}-inner-ne`, col, row, T);
+      if (sw) addSprite(layer, `${prefix}-inner-sw`, col, row, T);
+      if (se) addSprite(layer, `${prefix}-inner-se`, col, row, T);
+      return;
+    }
+  }
+
+  if (key) addSprite(layer, key, col, row, T);
 }
 
 function addSprite(layer: Container, key: string, col: number, row: number, T: number): void {

@@ -2,7 +2,7 @@
 
 import { TileType } from '../core/types';
 import { EditorAction, EditorState } from './editorState';
-import { TILE_ITEMS, OBJECT_CATEGORIES } from './objectDefaults';
+import { TILE_ITEMS, OBJECT_CATEGORIES, BUILDING_ITEMS } from './objectDefaults';
 
 interface Props {
   state: EditorState;
@@ -35,6 +35,21 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
               label={t.label}
               active={state.activeTool === 'tile' && state.selectedTileType === t.key}
               onClick={() => dispatch({ type: 'SET_SELECTED_TILE', tileType: t.key as TileType })}
+            />
+          ))}
+        </div>
+      </Section>
+
+      {/* Buildings */}
+      <Section title="Buildings">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+          {BUILDING_ITEMS.map(b => (
+            <AssetBtn
+              key={b.key}
+              path={b.path}
+              label={b.label}
+              active={state.activeTool === 'building' && state.selectedBuildingKey === b.key}
+              onClick={() => dispatch({ type: 'SET_SELECTED_BUILDING', buildingKey: b.key })}
             />
           ))}
         </div>

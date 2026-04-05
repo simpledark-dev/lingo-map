@@ -17,14 +17,12 @@ function readInitialObjectMultiplier(): number {
 export default function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pixiAppRef = useRef<PixiApp | null>(null);
+  const soundOnRef = useRef(true);
   const [dialogue, setDialogue] = useState<DialogueState | null>(null);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
   const [objectMultiplier, setObjectMultiplier] = useState(readInitialObjectMultiplier);
-
-  // — Sound —
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [soundOn, setSoundOn] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -37,39 +35,51 @@ export default function GameCanvas() {
     window.history.replaceState({}, '', url);
   }, [objectMultiplier]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-    };
-  }, []);
-
   const handleToggleSound = useCallback(() => {
-    // Lazily create audio on first user gesture — required for mobile browsers
-    if (!audioRef.current) {
-      const audio = new Audio('/assets/audio/background-track.mp3');
-      audio.loop = true;
-      audio.volume = 0.4;
-      audioRef.current = audio;
+    const nextSoundOn = !soundOn;
+    pixiAppRef.current?.setMusicEnabled(nextSoundOn);
+    soundOnRef.current = nextSoundOn;
+    setSoundOn(nextSoundOn);
+  }, [soundOn]);
+
+  useEffect(() => {
+    const app = pixiAppRef.current;
+    if (app && app.isMusicEnabled() !== soundOn) {
+      app.setMusicEnabled(soundOn);
     }
-    const audio = audioRef.current;
-    if (soundOn) {
-      audio.pause();
-      setSoundOn(false);
-    } else {
-      audio.play().catch(console.error);
-      setSoundOn(true);
-    }
+    soundOnRef.current = soundOn;
   }, [soundOn]);
 
   useEffect(() => {
     if (!containerRef.current || pixiAppRef.current) return;
 
     let cancelled = false;
-    const pixiApp = new PixiApp({ objectMultiplier });
+    // Check for play-test map from editor
+    let startMapId = 'outdoor';
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('map') === 'custom') {
+        try {
+          const raw = localStorage.getItem('playtest-map');
+          if (raw) {
+            const { registerMap } = require('../core/MapLoader');
+            const mapData = JSON.parse(raw);
+            // Ensure it has required spawn point
+            if (!mapData.spawnPoints?.length) {
+              mapData.spawnPoints = [{ id: 'default', x: mapData.width * 16, y: mapData.height * 16, facing: 'down' }];
+            }
+            registerMap('custom', mapData);
+            startMapId = 'custom';
+          }
+        } catch (e) { console.error('Failed to load playtest map:', e); }
+      }
+    }
+
+    const pixiApp = new PixiApp({
+      objectMultiplier,
+      musicEnabled: soundOnRef.current,
+      startMapId,
+    });
     pixiAppRef.current = pixiApp;
 
     const unsubscribe = pixiApp.bridge.subscribe((event: GameEvent) => {

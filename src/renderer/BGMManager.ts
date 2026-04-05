@@ -5,9 +5,18 @@
 export class BGMManager {
   private audio: HTMLAudioElement | null = null;
   private shouldPlay = false;
+  private enabled = true;
   private unlocked = false;
+  private readonly unlockAudio = () => {
+    this.unlocked = true;
+    this.syncPlayback();
+    if (typeof window === 'undefined') return;
+    window.removeEventListener('pointerdown', this.unlockAudio);
+    window.removeEventListener('keydown', this.unlockAudio);
+  };
 
-  constructor() {
+  constructor(enabled = true) {
+    this.enabled = enabled;
     if (typeof Audio === 'undefined') return;
     this.audio = new Audio('/assets/audio/background-track.mp3');
     this.audio.loop = true;
@@ -15,25 +24,33 @@ export class BGMManager {
     this.audio.preload = 'auto';
 
     // Unlock audio on first user interaction
-    const unlock = () => {
-      this.unlocked = true;
-      if (this.shouldPlay) this.play();
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-    };
-    window.addEventListener('pointerdown', unlock, { once: false });
-    window.addEventListener('keydown', unlock, { once: false });
+    if (typeof window === 'undefined') return;
+    window.addEventListener('pointerdown', this.unlockAudio);
+    window.addEventListener('keydown', this.unlockAudio);
   }
 
   /** Call on scene change. Only plays on outdoor map. */
   onSceneChange(mapId: string): void {
-    if (mapId === 'outdoor') {
-      this.shouldPlay = true;
-      if (this.unlocked) this.play();
-    } else {
-      this.shouldPlay = false;
-      this.pause();
+    this.shouldPlay = mapId === 'outdoor';
+    this.syncPlayback();
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    this.syncPlayback();
+  }
+
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  private syncPlayback(): void {
+    if (this.enabled && this.shouldPlay && this.unlocked) {
+      this.play();
+      return;
     }
+
+    this.pause();
   }
 
   private play(): void {
@@ -47,6 +64,10 @@ export class BGMManager {
   }
 
   destroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('pointerdown', this.unlockAudio);
+      window.removeEventListener('keydown', this.unlockAudio);
+    }
     if (this.audio) {
       this.audio.pause();
       this.audio.src = '';

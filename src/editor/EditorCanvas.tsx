@@ -1,17 +1,42 @@
 'use client';
 
 import { useRef, useEffect, useReducer, useCallback } from 'react';
-import { TileType } from '../core/types';
+import { TileType, Entity } from '../core/types';
 import { EditorApp } from './EditorApp';
 import { editorReducer, createInitialState, EditorAction, generateObjectId } from './editorState';
-import { OBJECT_DEFAULTS } from './objectDefaults';
+import { OBJECT_DEFAULTS, BUILDING_DEFAULTS } from './objectDefaults';
 import EditorToolPanel from './EditorToolPanel';
 import EditorTopBar from './EditorTopBar';
 
 export default function EditorCanvas() {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const editorAppRef = useRef<EditorApp | null>(null);
-  const [state, dispatch] = useReducer(editorReducer, null, () => createInitialState(50, 50));
+  const [state, dispatch] = useReducer(editorReducer, null, () => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Try loading last active map
+        const { getActiveMapName, loadSavedMap } = require('./mapStorage');
+        const activeName = getActiveMapName();
+        if (activeName) {
+          const saved = loadSavedMap(activeName);
+          if (saved) {
+            const base = createInitialState(saved.mapWidth, saved.mapHeight);
+            return { ...base, tiles: saved.tiles, objects: saved.objects, buildings: saved.buildings, mapWidth: saved.mapWidth, mapHeight: saved.mapHeight, mapName: saved.mapName };
+          }
+        }
+        // Fallback: try old autosave format
+        const autosave = localStorage.getItem('editor-autosave');
+        if (autosave) {
+          const data = JSON.parse(autosave);
+          if (data.tiles && data.mapWidth && data.mapHeight) {
+            const base = createInitialState(data.mapWidth, data.mapHeight);
+            return { ...base, tiles: data.tiles, objects: data.objects || [], buildings: data.buildings || [], mapWidth: data.mapWidth, mapHeight: data.mapHeight, mapName: data.mapName || 'custom-map' };
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    return createInitialState(50, 50);
+  });
 
   // Track refs for event handlers
   const stateRef = useRef(state);
@@ -24,6 +49,25 @@ export default function EditorCanvas() {
   const paintedCellsRef = useRef<Set<string>>(new Set());
   const isPanningRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
+  const spaceDownRef = useRef(false);
+
+  // ── Auto-save current map ──
+  useEffect(() => {
+    if (!state.mapName.trim()) return;
+    try {
+      const { saveMap, setActiveMapName } = require('./mapStorage');
+      saveMap({
+        mapName: state.mapName,
+        tiles: state.tiles,
+        objects: state.objects,
+        buildings: state.buildings,
+        mapWidth: state.mapWidth,
+        mapHeight: state.mapHeight,
+        savedAt: '',
+      });
+      setActiveMapName(state.mapName);
+    } catch { /* storage full */ }
+  }, [state.tiles, state.objects, state.buildings, state.mapWidth, state.mapHeight, state.mapName]);
 
   // ── Initialize PixiJS ──
   useEffect(() => {
@@ -35,6 +79,7 @@ export default function EditorCanvas() {
     app.init(canvasContainerRef.current).then(() => {
       app.renderTiles(stateRef.current.tiles, stateRef.current.mapWidth, stateRef.current.mapHeight, stateRef.current.tileSize);
       app.renderObjects(stateRef.current.objects);
+      app.renderBuildings(stateRef.current.buildings);
       app.setGridVisible(stateRef.current.showGrid);
       app.updateCamera(stateRef.current.cameraX, stateRef.current.cameraY, stateRef.current.zoom);
     });
@@ -51,7 +96,8 @@ export default function EditorCanvas() {
     if (!app) return;
     app.renderTiles(state.tiles, state.mapWidth, state.mapHeight, state.tileSize);
     app.renderObjects(state.objects);
-  }, [state.tiles, state.objects, state.mapWidth, state.mapHeight]);
+    app.renderBuildings(state.buildings);
+  }, [state.tiles, state.objects, state.buildings, state.mapWidth, state.mapHeight]);
 
   useEffect(() => {
     editorAppRef.current?.setGridVisible(state.showGrid);
@@ -64,7 +110,7 @@ export default function EditorCanvas() {
   useEffect(() => {
     const app = editorAppRef.current;
     if (!app || !state.selectedObjectId) { app?.clearSelection(); return; }
-    const obj = state.objects.find(o => o.id === state.selectedObjectId);
+    const obj = state.objects.find((o: Entity) => o.id === state.selectedObjectId);
     if (obj) app.highlightObject(obj);
     else app.clearSelection();
   }, [state.selectedObjectId, state.objects]);
@@ -81,8 +127,8 @@ export default function EditorCanvas() {
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     const s = stateRef.current;
 
-    // Middle mouse or space — pan
-    if (e.button === 1) {
+    // Middle mouse or space+click — pan
+    if (e.button === 1 || spaceDownRef.current) {
       isPanningRef.current = true;
       panStartRef.current = { x: e.clientX, y: e.clientY, camX: s.cameraX, camY: s.cameraY };
       return;
@@ -105,7 +151,6 @@ export default function EditorCanvas() {
       // We'll batch dispatch on pointer up
     } else if (s.activeTool === 'object' && s.selectedObjectKey) {
       const defaults = OBJECT_DEFAULTS[s.selectedObjectKey] ?? { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } };
-      // Snap to tile center
       const snapX = col * s.tileSize + s.tileSize / 2;
       const snapY = (row + 1) * s.tileSize;
       const entity = {
@@ -117,23 +162,61 @@ export default function EditorCanvas() {
         collisionBox: defaults.collisionBox,
       };
       dispatchRef.current({ type: 'PLACE_OBJECT', entity });
+    } else if (s.activeTool === 'building' && s.selectedBuildingKey) {
+      const bd = BUILDING_DEFAULTS[s.selectedBuildingKey];
+      if (bd) {
+        const snapX = col * s.tileSize + bd.baseWidth / 2;
+        const snapY = (row + 1) * s.tileSize + bd.baseHeight - s.tileSize;
+        const building = {
+          id: generateObjectId(),
+          x: snapX, y: snapY,
+          baseSpriteKey: bd.baseSpriteKey,
+          roofSpriteKey: bd.roofSpriteKey,
+          anchor: bd.anchor,
+          sortY: snapY,
+          collisionBox: bd.collisionBox,
+          doorTrigger: bd.doorTrigger,
+          targetMapId: bd.targetMapId,
+          targetSpawnId: 'entrance',
+        };
+        dispatchRef.current({ type: 'PLACE_BUILDING', building });
+      }
     } else if (s.activeTool === 'select') {
-      // Hit test objects (check from top — highest sortY first)
-      const sorted = [...s.objects].sort((a, b) => b.sortY - a.sortY);
+      // Hit test buildings first (larger), then objects
       let found = false;
-      for (const obj of sorted) {
-        const tex = editorAppRef.current?.getCanvas() ? true : false; // simplified
-        const dx = x - obj.x;
-        const dy = y - obj.y;
-        if (Math.abs(dx) < 32 && Math.abs(dy) < 48) {
-          dispatchRef.current({ type: 'SELECT_OBJECT', id: obj.id });
+      for (const b of s.buildings) {
+        const dx = x - b.x;
+        const dy = y - b.y;
+        if (Math.abs(dx) < 96 && Math.abs(dy) < 96) {
+          dispatchRef.current({ type: 'SELECT_OBJECT', id: b.id });
           found = true;
           break;
         }
       }
+      if (!found) {
+        const sorted = [...s.objects].sort((a, b) => b.sortY - a.sortY);
+        for (const obj of sorted) {
+          const dx = x - obj.x;
+          const dy = y - obj.y;
+          if (Math.abs(dx) < 32 && Math.abs(dy) < 48) {
+            dispatchRef.current({ type: 'SELECT_OBJECT', id: obj.id });
+            found = true;
+            break;
+          }
+        }
+      }
       if (!found) dispatchRef.current({ type: 'SELECT_OBJECT', id: null });
     } else if (s.activeTool === 'eraser') {
-      // Try erasing an object first
+      // Try erasing a building first
+      for (const b of s.buildings) {
+        const dx = x - b.x;
+        const dy = y - b.y;
+        if (Math.abs(dx) < 96 && Math.abs(dy) < 96) {
+          dispatchRef.current({ type: 'DELETE_BUILDING', id: b.id });
+          return;
+        }
+      }
+      // Then try objects
       const sorted = [...s.objects].sort((a, b) => b.sortY - a.sortY);
       for (const obj of sorted) {
         const dx = x - obj.x;
@@ -162,7 +245,27 @@ export default function EditorCanvas() {
     }
 
     const { row, col } = getWorldPos(e);
-    editorAppRef.current?.highlightCell(row, col);
+    const app = editorAppRef.current;
+    app?.highlightCell(row, col);
+
+    // Show placement preview
+    if (app && s.activeTool === 'building' && s.selectedBuildingKey) {
+      const bd = BUILDING_DEFAULTS[s.selectedBuildingKey];
+      if (bd) {
+        const snapX = col * s.tileSize + bd.baseWidth / 2;
+        const snapY = (row + 1) * s.tileSize + bd.baseHeight - s.tileSize;
+        app.showBuildingPreview(bd.baseSpriteKey, bd.roofSpriteKey, snapX, snapY, bd.anchor);
+      }
+    } else if (app && s.activeTool === 'object' && s.selectedObjectKey) {
+      const defaults = OBJECT_DEFAULTS[s.selectedObjectKey];
+      if (defaults) {
+        const snapX = col * s.tileSize + s.tileSize / 2;
+        const snapY = (row + 1) * s.tileSize;
+        app.showObjectPreview(s.selectedObjectKey, snapX, snapY, defaults.anchor);
+      }
+    } else {
+      app?.clearPreview();
+    }
 
     if (isPaintingRef.current) {
       const key = `${row},${col}`;
@@ -193,32 +296,48 @@ export default function EditorCanvas() {
     }
   }, []);
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const s = stateRef.current;
-    const app = editorAppRef.current;
-    if (!app) return;
+  // Wheel handler — attached as native event to prevent browser zoom
+  useEffect(() => {
+    const el = canvasContainerRef.current;
+    if (!el) return;
 
-    const oldZoom = s.zoom;
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    const newZoom = Math.max(0.25, Math.min(3, oldZoom + delta));
-    if (newZoom === oldZoom) return;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    // Get world position under the mouse cursor
-    const world = app.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, oldZoom);
+      const s = stateRef.current;
+      const app = editorAppRef.current;
+      if (!app) return;
 
-    // Adjust camera so the world point under the cursor stays in the same screen position
-    const canvas = app.getCanvas();
-    if (canvas) {
-      const rect = canvas.getBoundingClientRect();
-      const screenX = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const screenY = (e.clientY - rect.top) * (canvas.height / rect.height);
-      const newCamX = world.x - screenX / newZoom;
-      const newCamY = world.y - screenY / newZoom;
-      dispatchRef.current({ type: 'SET_CAMERA', x: newCamX, y: newCamY });
-    }
+      if (e.ctrlKey) {
+        // Ctrl+scroll or trackpad pinch = zoom
+        const oldZoom = s.zoom;
+        const step = 0.05;
+        const delta = e.deltaY > 0 ? -step : step;
+        const newZoom = Math.max(0.25, Math.min(3, oldZoom + delta));
+        if (newZoom === oldZoom) return;
 
-    dispatchRef.current({ type: 'SET_ZOOM', zoom: newZoom });
+        const world = app.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, oldZoom);
+        const canvas = app.getCanvas();
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          const screenX = (e.clientX - rect.left) * (canvas.width / rect.width);
+          const screenY = (e.clientY - rect.top) * (canvas.height / rect.height);
+          dispatchRef.current({ type: 'SET_CAMERA', x: world.x - screenX / newZoom, y: world.y - screenY / newZoom });
+        }
+        dispatchRef.current({ type: 'SET_ZOOM', zoom: newZoom });
+      } else {
+        // Regular scroll = pan
+        dispatchRef.current({
+          type: 'SET_CAMERA',
+          x: s.cameraX + e.deltaX / s.zoom,
+          y: s.cameraY + e.deltaY / s.zoom,
+        });
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
   }, []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -227,21 +346,35 @@ export default function EditorCanvas() {
 
   // ── Keyboard shortcuts ──
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === 'z') {
         e.preventDefault();
         dispatchRef.current(e.shiftKey ? { type: 'REDO' } : { type: 'UNDO' });
       }
+      if (e.key === 'Escape') {
+        dispatchRef.current({ type: 'SET_TOOL', tool: 'select' });
+        editorAppRef.current?.clearPreview();
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const s = stateRef.current;
         if (s.selectedObjectId) {
-          dispatchRef.current({ type: 'DELETE_OBJECT', id: s.selectedObjectId });
+          // Check if it's a building or object
+          if (s.buildings.some((b: { id: string }) => b.id === s.selectedObjectId)) {
+            dispatchRef.current({ type: 'DELETE_BUILDING', id: s.selectedObjectId });
+          } else {
+            dispatchRef.current({ type: 'DELETE_OBJECT', id: s.selectedObjectId });
+          }
         }
       }
       if (e.key === 'g') dispatchRef.current({ type: 'TOGGLE_GRID' });
+      if (e.code === 'Space') { e.preventDefault(); spaceDownRef.current = true; }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') spaceDownRef.current = false;
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
   }, []);
 
   return (
@@ -256,7 +389,6 @@ export default function EditorCanvas() {
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
-          onWheel={handleWheel}
           onContextMenu={handleContextMenu}
         />
       </div>
