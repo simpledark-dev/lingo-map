@@ -59,6 +59,7 @@ const spriteManifest: Record<string, string> = {
   'player-right-walk2': `${ASSET_BASE}player-right-walk2.png`,
   // Objects
   'tree': `${ASSET_BASE}tree.png`,
+  'tree-test': `${ASSET_BASE}tree_test.png`,
   'rock': `${ASSET_BASE}rock.png`,
   'house-base': `${ASSET_BASE}house-base.png`,
   'house-roof': `${ASSET_BASE}house-roof.png`,

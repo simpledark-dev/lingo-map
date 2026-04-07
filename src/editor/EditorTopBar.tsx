@@ -211,26 +211,50 @@ export default function EditorTopBar({ state, dispatch }: Props) {
       <button
         style={{ ...btnStyle, background: '#4a3a6a', borderColor: '#6a5a9a' }}
         onClick={() => {
-          const mapData = {
-            id: 'custom',
-            width: state.mapWidth,
-            height: state.mapHeight,
-            tileSize: state.tileSize,
-            tiles: state.tiles,
-            objects: state.objects,
-            buildings: state.buildings,
-            npcs: [],
-            triggers: [],
-            spawnPoints: [{ id: 'default', x: Math.floor(state.mapWidth / 2) * state.tileSize, y: Math.floor(state.mapHeight / 2) * state.tileSize, facing: 'down' }],
-          };
+          const mapData = buildPlaytestMapData(state);
           localStorage.setItem('playtest-map', JSON.stringify(mapData));
           window.open('/?map=custom', '_blank');
         }}
       >Play Test</button>
+      <button
+        style={{ ...btnStyle, background: '#3a4a2a', borderColor: '#6a8a4a' }}
+        title="Make this map load when visiting / (the home page)"
+        onClick={() => {
+          const mapData = buildPlaytestMapData(state);
+          localStorage.setItem('playtest-map', JSON.stringify(mapData));
+          localStorage.setItem('use-custom-as-default', '1');
+          alert('This map will now load when visiting the home page. Use "Clear Default" to revert.');
+        }}
+      >Set as Default</button>
+      {typeof window !== 'undefined' && localStorage.getItem('use-custom-as-default') && (
+        <button
+          style={{ ...btnStyle, color: '#c44', borderColor: '#844' }}
+          onClick={() => {
+            localStorage.removeItem('use-custom-as-default');
+            alert('Reverted — the home page will now load the built-in outdoor map.');
+          }}
+        >Clear Default</button>
+      )}
 
       <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleFileChange} />
     </div>
   );
+}
+
+/** Build the MapData JSON used by both Play Test and Set-as-Default. */
+function buildPlaytestMapData(state: EditorState) {
+  return {
+    id: 'custom',
+    width: state.mapWidth,
+    height: state.mapHeight,
+    tileSize: state.tileSize,
+    tiles: state.tiles,
+    objects: state.objects,
+    buildings: state.buildings,
+    npcs: [],
+    triggers: [],
+    spawnPoints: [{ id: 'default', x: Math.floor(state.mapWidth / 2) * state.tileSize, y: Math.floor(state.mapHeight / 2) * state.tileSize, facing: 'down' }],
+  };
 }
 
 /** Number input that only applies on Enter or blur — no live resize while typing. */

@@ -7,6 +7,7 @@ interface ObjectDefault {
 
 export const OBJECT_DEFAULTS: Record<string, ObjectDefault> = {
   'tree':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 } },
+  'tree-test': { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 } },
   'rock':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -12, offsetY: -20, width: 24, height: 20 } },
   'bush':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -10, offsetY: -12, width: 20, height: 12 } },
   'flowers':   { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
@@ -86,6 +87,7 @@ export const OBJECT_CATEGORIES = [
     label: 'Nature',
     items: [
       { key: 'tree', label: 'Tree', path: '/assets/placeholder/tree.png' },
+      { key: 'tree-test', label: 'Tree 2', path: '/assets/placeholder/tree_test.png' },
       { key: 'rock', label: 'Rock', path: '/assets/placeholder/rock.png' },
       { key: 'bush', label: 'Bush', path: '/assets/placeholder/bush.png' },
       { key: 'flowers', label: 'Flowers', path: '/assets/placeholder/flowers.png' },

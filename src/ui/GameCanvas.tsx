@@ -59,15 +59,27 @@ export default function GameCanvas() {
     let startMapId = 'outdoor';
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('map') === 'custom') {
+      const useCustomAsDefault = localStorage.getItem('use-custom-as-default') === '1';
+      if (params.get('map') === 'custom' || useCustomAsDefault) {
         try {
           const raw = localStorage.getItem('playtest-map');
           if (raw) {
             const { registerMap } = require('../core/MapLoader');
+            const { outdoorMap } = require('../maps/outdoor');
             const mapData = JSON.parse(raw);
             // Ensure it has required spawn point
             if (!mapData.spawnPoints?.length) {
               mapData.spawnPoints = [{ id: 'default', x: mapData.width * 16, y: mapData.height * 16, facing: 'down' }];
+            }
+            // Inherit NPCs from outdoor map (editor doesn't have NPC placement
+            // yet). Filter to NPCs whose spawn position is in-bounds for the
+            // custom map so we don't spawn them in walls / outside the world.
+            if (!mapData.npcs?.length && outdoorMap?.npcs) {
+              const maxX = mapData.width * mapData.tileSize;
+              const maxY = mapData.height * mapData.tileSize;
+              mapData.npcs = outdoorMap.npcs.filter((n: { x: number; y: number }) =>
+                n.x >= 0 && n.x < maxX && n.y >= 0 && n.y < maxY
+              );
             }
             registerMap('custom', mapData);
             startMapId = 'custom';
@@ -236,7 +248,7 @@ export default function GameCanvas() {
           </button>
 
           {/* Map button — only on outdoor map */}
-          {currentMapId === 'outdoor' && (
+          {(currentMapId === 'outdoor' || currentMapId === 'custom') && (
             <button
               onClick={handleOpenMinimap}
               style={btnStyle}
