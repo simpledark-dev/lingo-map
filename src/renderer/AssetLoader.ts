@@ -8,6 +8,7 @@ const spriteManifest: Record<string, string> = {
   // Tiles
   [TileType.GRASS]: `${ASSET_BASE}grass.png`,
   [TileType.GRASS_DARK]: `${ASSET_BASE}grass_dark.png`,
+  [TileType.DIRT]: `${ASSET_BASE}dirt.png`,
   [TileType.PATH]: `${ASSET_BASE}path.png`,
   [TileType.FLOOR]: `${ASSET_BASE}floor.png`,
   [TileType.WALL]: `${ASSET_BASE}wall.png`,
@@ -143,10 +144,6 @@ const spriteManifest: Record<string, string> = {
   'log-pile': `${ASSET_BASE}log-pile.png`,
 };
 
-// Wang-corner water blob tiles (16 variants, indexed by NW*8+NE*4+SW*2+SE*1, water=1)
-for (let i = 0; i < 16; i++) {
-  spriteManifest[`water_blob_${i}`] = `${ASSET_BASE}wang/water_blob_${i}.png`;
-}
 
 const textureCache = new Map<string, Texture>();
 

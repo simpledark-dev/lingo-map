@@ -47,7 +47,7 @@ export function createInitialState(width = 50, height = 50): EditorState {
     objects: [],
     buildings: [],
     activeTool: 'tile',
-    selectedTileType: TileType.PATH,
+    selectedTileType: TileType.DIRT,
     selectedObjectKey: null,
     selectedBuildingKey: null,
     selectedObjectId: null,

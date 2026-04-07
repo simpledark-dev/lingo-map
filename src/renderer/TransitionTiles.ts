@@ -17,7 +17,9 @@ export const TRANSITION_ASSET_KEYS = [
   'trans-water-inner-nw', 'trans-water-inner-ne', 'trans-water-inner-sw', 'trans-water-inner-se',
 ];
 
-const DIRT_TILES = new Set<string>([TileType.PATH, TileType.BRIDGE]);
+// Path/bridge dithered transitions are disabled — dirt now uses the dual-grid
+// AutoTileset system. Bridge stays without a transition for now.
+const DIRT_TILES = new Set<string>([]);
 const WATER_TILES = new Set<string>([TileType.WATER]);
 
 function isType(map: MapData, row: number, col: number, types: Set<string>): boolean {

@@ -74,7 +74,7 @@ const SHEET = 64;
 export const TILE_ITEMS: TileItem[] = [
   { key: 'grass', label: 'Grass', path: TILESET_PATH, frame: { x: 0, y: 48, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
   { key: 'grass_dark', label: 'Dark Grass', path: '/assets/tileset-2.png', frame: { x: 0, y: 48, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
-  { key: 'path', label: 'Path', path: '/assets/placeholder/path.png' },
+  { key: 'dirt', label: 'Dirt', path: '/assets/tileset-3.png', frame: { x: 0, y: 48, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
   { key: 'water', label: 'Water', path: TILESET_PATH, frame: { x: 32, y: 16, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
   { key: 'bridge', label: 'Bridge', path: '/assets/placeholder/bridge.png' },
   { key: 'wall', label: 'Wall', path: '/assets/placeholder/wall.png' },

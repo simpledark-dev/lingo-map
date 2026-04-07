@@ -54,8 +54,19 @@ interface TilesetConfig {
   path: string;
   /** True if this tile is the *upper* terrain in this tileset's binary split. */
   isUpper: (t: TileType) => boolean;
-  /** True if this tile participates at all (used to skip empty render slots). */
+  /**
+   * True if this tile is one of the two terrains the tileset depicts. ALL four
+   * surrounding cells of a render slot must satisfy this for the slot to draw —
+   * otherwise the wrong terrain would bleed over unrelated tile types.
+   */
   isAutoTile: (t: TileType) => boolean;
+  /**
+   * Optional: at least one of the four surrounding cells must satisfy this
+   * for the slot to draw. Use this to ensure a tileset only fires near its
+   * "feature" terrain (e.g. dark grass, dirt) and doesn't paint a flat layer
+   * of its lower terrain over the whole map.
+   */
+  requiresPresenceOf?: (t: TileType) => boolean;
 }
 
 interface LoadedTileset extends TilesetConfig {
@@ -65,21 +76,31 @@ interface LoadedTileset extends TilesetConfig {
 const tilesets: LoadedTileset[] = [
   {
     path: '/assets/tileset-1.png',
-    // Anything that isn't water counts as upper — so floor/path next to water
-    // still draws a shoreline. Render slots with no grass/water are skipped.
-    isUpper: (t) => t !== TileType.WATER,
+    // Grass-like cells are upper; water is lower. Other tiles (dirt, path,
+    // floor, wall) are not part of this tileset and are filtered out by
+    // isAutoTile, so isUpper for them is irrelevant.
+    isUpper: (t) => t === TileType.GRASS || t === TileType.GRASS_DARK,
     isAutoTile: (t) => t === TileType.GRASS || t === TileType.GRASS_DARK || t === TileType.WATER,
     frames: null,
   },
   {
     path: '/assets/tileset-2.png',
-    // Dark grass is the upper terrain; everything else is lower.
+    // Dark grass is the upper terrain, light grass is lower.
     isUpper: (t) => t === TileType.GRASS_DARK,
-    // Only render render slots that actually touch dark grass. Without this,
-    // a water-vs-grass boundary would resolve to mask 0000 → "all lower" =
-    // plain grass, and tileset-2 would paint over the water shoreline that
-    // tileset-1 just drew.
-    isAutoTile: (t) => t === TileType.GRASS_DARK,
+    // Both participate so the dual-grid finds the boundary; we additionally
+    // require at least one corner to actually be GRASS_DARK (see render loop)
+    // so the tileset doesn't paint plain-grass tiles over unrelated areas.
+    isAutoTile: (t) => t === TileType.GRASS || t === TileType.GRASS_DARK,
+    requiresPresenceOf: (t) => t === TileType.GRASS_DARK,
+    frames: null,
+  },
+  {
+    path: '/assets/tileset-3.png',
+    // Dirt is the upper terrain (this sheet is laid out as "dirt over grass"
+    // — index 12 = mask 1111 is the all-dirt cell).
+    isUpper: (t) => t === TileType.DIRT,
+    isAutoTile: (t) => t === TileType.GRASS || t === TileType.GRASS_DARK || t === TileType.DIRT,
+    requiresPresenceOf: (t) => t === TileType.DIRT,
     frames: null,
   },
 ];
@@ -143,8 +164,15 @@ export function buildAutoTileLayer(
         const swT = clamped(tiles, width, height, r, c - 1);
         const seT = clamped(tiles, width, height, r, c);
 
-        // Skip render slots that don't touch this tileset's terrain at all.
-        if (!ts.isAutoTile(nwT) && !ts.isAutoTile(neT) && !ts.isAutoTile(swT) && !ts.isAutoTile(seT)) continue;
+        // ALL four corners must be participating terrains, otherwise we'd
+        // paint the wrong tile over a foreign cell type (floor/wall/bridge).
+        if (!ts.isAutoTile(nwT) || !ts.isAutoTile(neT) || !ts.isAutoTile(swT) || !ts.isAutoTile(seT)) continue;
+
+        // Some tilesets additionally require at least one corner to be the
+        // "feature" terrain (e.g. tileset-2 only fires near dark grass).
+        if (ts.requiresPresenceOf
+            && !ts.requiresPresenceOf(nwT) && !ts.requiresPresenceOf(neT)
+            && !ts.requiresPresenceOf(swT) && !ts.requiresPresenceOf(seT)) continue;
 
         const mask = (ts.isUpper(nwT) ? 8 : 0)
           | (ts.isUpper(neT) ? 4 : 0)
