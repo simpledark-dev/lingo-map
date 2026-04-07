@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
+import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from '../core/constants';
 import { normalizeObjectMultiplier, STRESS_OBJECT_OPTIONS } from '../core/MapStress';
 import { PixiApp } from '../renderer/PixiApp';
 import { DialogueState, MapData, GameState } from '../core/types';
@@ -159,7 +160,7 @@ export default function GameCanvas() {
         width: '100%',
         maxWidth: 1024,
         maxHeight: '100dvh',
-        aspectRatio: '640 / 480',
+        aspectRatio: `${VIEWPORT_WIDTH} / ${VIEWPORT_HEIGHT}`,
         margin: '0 auto',
       }}
     >

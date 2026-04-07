@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useCallback } from 'react';
+import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from '../core/constants';
 import { MapData, TileType, GameState } from '../core/types';
 
 const TILE_COLORS: Record<string, string> = {
@@ -107,8 +108,8 @@ export default function Minimap({ mapData, gameState, onClose }: MinimapProps) {
     // Draw camera viewport rectangle
     const cam = gameState.camera;
     const zoom = 1; // minimap shows world positions
-    const vpW = (640 / T / zoom) * scale;
-    const vpH = (480 / T / zoom) * scale;
+    const vpW = (VIEWPORT_WIDTH / T / zoom) * scale;
+    const vpH = (VIEWPORT_HEIGHT / T / zoom) * scale;
     const vpX = (cam.x / T) * scale;
     const vpY = (cam.y / T) * scale;
     ctx.strokeStyle = 'rgba(255,255,255,0.6)';
