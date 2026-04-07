@@ -1,4 +1,5 @@
 import { Application, Container, Sprite } from 'pixi.js';
+import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from '../core/constants';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { getTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
@@ -257,8 +258,8 @@ export class RenderSystem {
 
   private cullViewport(camX: number, camY: number, zoom: number): void {
     const margin = 128; // extra margin to avoid pop-in
-    const vw = 640 / zoom + margin * 2;
-    const vh = 480 / zoom + margin * 2;
+    const vw = VIEWPORT_WIDTH / zoom + margin * 2;
+    const vh = VIEWPORT_HEIGHT / zoom + margin * 2;
     const left = camX - margin;
     const top = camY - margin;
     const right = left + vw;
