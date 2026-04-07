@@ -66,6 +66,7 @@ export interface NPCData {
 
 export enum TileType {
   GRASS = 'grass',
+  GRASS_DARK = 'grass_dark',
   PATH = 'path',
   WALL = 'wall',
   FLOOR = 'floor',

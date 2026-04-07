@@ -7,6 +7,7 @@ const ASSET_BASE = '/assets/placeholder/';
 const spriteManifest: Record<string, string> = {
   // Tiles
   [TileType.GRASS]: `${ASSET_BASE}grass.png`,
+  [TileType.GRASS_DARK]: `${ASSET_BASE}grass_dark.png`,
   [TileType.PATH]: `${ASSET_BASE}path.png`,
   [TileType.FLOOR]: `${ASSET_BASE}floor.png`,
   [TileType.WALL]: `${ASSET_BASE}wall.png`,
