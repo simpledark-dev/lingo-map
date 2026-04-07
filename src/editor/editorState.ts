@@ -78,6 +78,7 @@ export type EditorAction =
   | { type: 'SET_CAMERA'; x: number; y: number }
   | { type: 'SET_ZOOM'; zoom: number }
   | { type: 'TOGGLE_GRID' }
+  | { type: 'SET_TILE_SIZE'; tileSize: number }
   | { type: 'SET_MAP_NAME'; name: string }
   | { type: 'RESIZE_MAP'; width: number; height: number }
   | { type: 'IMPORT_MAP'; tiles: TileType[][]; objects: Entity[]; buildings: Building[]; width: number; height: number }
@@ -194,6 +195,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
     case 'TOGGLE_GRID':
       return { ...state, showGrid: !state.showGrid };
+
+    case 'SET_TILE_SIZE':
+      return { ...state, tileSize: action.tileSize };
 
     case 'SET_MAP_NAME':
       return { ...state, mapName: action.name };

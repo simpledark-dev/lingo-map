@@ -36,10 +36,8 @@ export function buildTransitionLayer(map: MapData): Container {
     for (let col = 0; col < map.width; col++) {
       if (map.tiles[row][col] !== TileType.GRASS) continue;
 
-      // Check dirt neighbors
+      // Check dirt neighbors (water transitions are handled by WaterBlobLayer wang tiles)
       addTransitionsForType(layer, map, row, col, T, DIRT_TILES, 'trans');
-      // Check water neighbors
-      addTransitionsForType(layer, map, row, col, T, WATER_TILES, 'trans-water');
     }
   }
 

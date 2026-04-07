@@ -3,6 +3,7 @@ import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from '../core/constants';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { getTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
+import { buildWaterBlobLayer } from './WaterBlobLayer';
 
 interface AnimData {
   baseX: number;
@@ -82,6 +83,9 @@ export class RenderSystem {
         this.groundLayer.addChild(sprite);
       }
     }
+
+    // Wang-corner water blob (replaces grass/water visuals with seamless shoreline)
+    this.transitionLayer.addChild(buildWaterBlobLayer(map));
 
     // Build transition overlays (grass ↔ dirt dithered edges)
     const transitions = buildTransitionLayer(map);

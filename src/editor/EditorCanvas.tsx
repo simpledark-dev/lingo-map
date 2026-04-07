@@ -97,7 +97,7 @@ export default function EditorCanvas() {
     app.renderTiles(state.tiles, state.mapWidth, state.mapHeight, state.tileSize);
     app.renderObjects(state.objects);
     app.renderBuildings(state.buildings);
-  }, [state.tiles, state.objects, state.buildings, state.mapWidth, state.mapHeight]);
+  }, [state.tiles, state.objects, state.buildings, state.mapWidth, state.mapHeight, state.tileSize]);
 
   useEffect(() => {
     editorAppRef.current?.setGridVisible(state.showGrid);

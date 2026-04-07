@@ -2,6 +2,7 @@ import { Application, Container, Sprite, Graphics } from 'pixi.js';
 import { TileType, Entity, Building } from '../core/types';
 import { loadAssets, getTexture, preloadAllAssets } from '../renderer/AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from '../renderer/TransitionTiles';
+import { buildWaterBlobLayer } from '../renderer/WaterBlobLayer';
 
 export class EditorApp {
   app: Application;
@@ -134,8 +135,8 @@ export class EditorApp {
 
     this.transitionLayer.removeChildren();
     const mapData = { id: 'editor', width: w, height: h, tileSize: ts, tiles: t, objects: [], buildings: [], npcs: [], triggers: [], spawnPoints: [] };
-    const layer = buildTransitionLayer(mapData);
-    this.transitionLayer.addChild(layer);
+    this.transitionLayer.addChild(buildWaterBlobLayer(mapData));
+    this.transitionLayer.addChild(buildTransitionLayer(mapData));
   }
 
   renderObjects(objects: Entity[]): void {

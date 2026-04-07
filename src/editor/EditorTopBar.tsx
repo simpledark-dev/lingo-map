@@ -82,7 +82,7 @@ export default function EditorTopBar({ state, dispatch }: Props) {
       buildings: state.buildings,
       npcs: [],
       triggers: [],
-      spawnPoints: [{ id: 'default', x: state.mapWidth * 16, y: state.mapHeight * 16, facing: 'down' }],
+      spawnPoints: [{ id: 'default', x: state.mapWidth * state.tileSize / 2, y: state.mapHeight * state.tileSize / 2, facing: 'down' }],
     };
     const blob = new Blob([JSON.stringify(mapData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -191,6 +191,16 @@ export default function EditorTopBar({ state, dispatch }: Props) {
         Grid
       </label>
 
+      <select
+        value={state.tileSize}
+        onChange={e => dispatch({ type: 'SET_TILE_SIZE', tileSize: parseInt(e.target.value) })}
+        style={{ ...inputStyle, width: 58 }}
+        title="Tile size (px)"
+      >
+        <option value={16}>16 px</option>
+        <option value={32}>32 px</option>
+      </select>
+
       <div style={{ flex: 1 }} />
 
       {savedMaps.includes(state.mapName) && (
@@ -211,7 +221,7 @@ export default function EditorTopBar({ state, dispatch }: Props) {
             buildings: state.buildings,
             npcs: [],
             triggers: [],
-            spawnPoints: [{ id: 'default', x: Math.floor(state.mapWidth / 2) * 32, y: Math.floor(state.mapHeight / 2) * 32, facing: 'down' }],
+            spawnPoints: [{ id: 'default', x: Math.floor(state.mapWidth / 2) * state.tileSize, y: Math.floor(state.mapHeight / 2) * state.tileSize, facing: 'down' }],
           };
           localStorage.setItem('playtest-map', JSON.stringify(mapData));
           window.open('/?map=custom', '_blank');

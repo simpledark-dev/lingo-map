@@ -142,6 +142,11 @@ const spriteManifest: Record<string, string> = {
   'log-pile': `${ASSET_BASE}log-pile.png`,
 };
 
+// Wang-corner water blob tiles (16 variants, indexed by NW*8+NE*4+SW*2+SE*1, water=1)
+for (let i = 0; i < 16; i++) {
+  spriteManifest[`water_blob_${i}`] = `${ASSET_BASE}wang/water_blob_${i}.png`;
+}
+
 const textureCache = new Map<string, Texture>();
 
 export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Texture>> {
