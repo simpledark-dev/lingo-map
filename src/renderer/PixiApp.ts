@@ -13,6 +13,7 @@ import { CommandQueue } from '../core/CommandQueue';
 import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
 import { loadAssets, preloadAllAssets } from './AssetLoader';
+import { loadAutoTileset } from './AutoTileset';
 import { InputAdapter } from './InputAdapter';
 import { RenderSystem } from './RenderSystem';
 import { DebugOverlay } from './DebugOverlay';
@@ -86,6 +87,10 @@ export class PixiApp {
     if (process.env.NODE_ENV === 'development') {
       this.debugOverlay = new DebugOverlay(container);
     }
+
+    // Load the grass↔water auto-tileset before the first scene so RenderSystem
+    // can paint the dual-grid layer immediately rather than waiting for a paint.
+    await loadAutoTileset();
 
     await this.loadScene(this.options.startMapId ?? 'outdoor', 'default');
 
