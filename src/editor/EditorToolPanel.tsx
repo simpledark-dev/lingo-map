@@ -33,6 +33,7 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
               key={t.key}
               path={t.path}
               label={t.label}
+              frame={t.frame}
               active={state.activeTool === 'tile' && state.selectedTileType === t.key}
               onClick={() => dispatch({ type: 'SET_SELECTED_TILE', tileType: t.key as TileType })}
             />
@@ -97,7 +98,31 @@ function ToolBtn({ active, onClick, label }: { active: boolean; onClick: () => v
   );
 }
 
-function AssetBtn({ path, label, active, onClick }: { path: string; label: string; active: boolean; onClick: () => void }) {
+interface AssetBtnFrame { x: number; y: number; w: number; h: number; sheetW: number; sheetH: number }
+
+function AssetBtn({ path, label, active, onClick, frame }: { path: string; label: string; active: boolean; onClick: () => void; frame?: AssetBtnFrame }) {
+  // When `frame` is set, render the asset as a CSS background slice (so we
+  // can show one tile out of a tileset) instead of a plain `<img>`.
+  const thumbSize = 32;
+  const thumb = frame ? (
+    <div
+      aria-label={label}
+      style={{
+        width: thumbSize,
+        height: thumbSize,
+        backgroundImage: `url(${path})`,
+        backgroundRepeat: 'no-repeat',
+        // Scale the entire sheet so that one cell becomes `thumbSize` px,
+        // then offset to the requested cell.
+        backgroundSize: `${frame.sheetW * (thumbSize / frame.w)}px ${frame.sheetH * (thumbSize / frame.h)}px`,
+        backgroundPosition: `-${frame.x * (thumbSize / frame.w)}px -${frame.y * (thumbSize / frame.h)}px`,
+        imageRendering: 'pixelated',
+      }}
+    />
+  ) : (
+    <img src={path} alt={label} style={{ width: thumbSize, height: thumbSize, imageRendering: 'pixelated', objectFit: 'contain' }} />
+  );
+
   return (
     <button
       onClick={onClick}
@@ -108,7 +133,7 @@ function AssetBtn({ path, label, active, onClick }: { path: string; label: strin
         cursor: 'pointer', color: '#ccc', fontSize: 10,
       }}
     >
-      <img src={path} alt={label} style={{ width: 32, height: 32, imageRendering: 'pixelated', objectFit: 'contain' }} />
+      {thumb}
       {label}
     </button>
   );

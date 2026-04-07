@@ -56,10 +56,25 @@ export const BUILDING_ITEMS = [
   { key: 'blacksmith', label: 'Blacksmith', path: '/assets/placeholder/blacksmith-base.png' },
 ];
 
-export const TILE_ITEMS = [
-  { key: 'grass', label: 'Grass', path: '/assets/placeholder/grass.png' },
+export interface TileItem {
+  key: string;
+  label: string;
+  path: string;
+  /** Optional crop into the source image — used for tileset slices. */
+  frame?: { x: number; y: number; w: number; h: number; sheetW: number; sheetH: number };
+}
+
+// `tileset-1.png` is a 64×64 sheet of 16×16 blob tiles.
+// idx 12 (row 3, col 0) = solid grass; idx 6 (row 1, col 2) = solid water.
+// Indices come from `MASK_TO_INDEX[15]` and `MASK_TO_INDEX[0]` in AutoTileset.ts.
+const TILESET_PATH = '/assets/tileset-1.png';
+const TS = 16;
+const SHEET = 64;
+
+export const TILE_ITEMS: TileItem[] = [
+  { key: 'grass', label: 'Grass', path: TILESET_PATH, frame: { x: 0, y: 48, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
   { key: 'path', label: 'Path', path: '/assets/placeholder/path.png' },
-  { key: 'water', label: 'Water', path: '/assets/placeholder/water.png' },
+  { key: 'water', label: 'Water', path: TILESET_PATH, frame: { x: 32, y: 16, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
   { key: 'bridge', label: 'Bridge', path: '/assets/placeholder/bridge.png' },
   { key: 'wall', label: 'Wall', path: '/assets/placeholder/wall.png' },
   { key: 'floor', label: 'Floor', path: '/assets/placeholder/floor.png' },

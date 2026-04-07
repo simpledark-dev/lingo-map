@@ -1,14 +1,15 @@
 import { Application, Container, Sprite, Graphics } from 'pixi.js';
 import { TileType, Entity, Building } from '../core/types';
-import { loadAssets, getTexture, preloadAllAssets } from '../renderer/AssetLoader';
-import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from '../renderer/TransitionTiles';
-import { buildWaterBlobLayer } from '../renderer/WaterBlobLayer';
+import { getTexture, preloadAllAssets } from '../renderer/AssetLoader';
+import { buildTransitionLayer } from '../renderer/TransitionTiles';
+import { loadAutoTileset, buildAutoTileLayer, isAutoTilesetReady } from '../renderer/AutoTileset';
 
 export class EditorApp {
   app: Application;
   private worldContainer: Container;
   private groundLayer: Container;
   private transitionLayer: Container;
+  private autoTileLayer: Container;
   private entityLayer: Container;
   private roofLayer: Container;
   private gridOverlay: Container;
@@ -36,6 +37,7 @@ export class EditorApp {
     this.worldContainer = new Container();
     this.groundLayer = new Container();
     this.transitionLayer = new Container();
+    this.autoTileLayer = new Container();
     this.entityLayer = new Container();
     this.roofLayer = new Container();
     this.gridOverlay = new Container();
@@ -64,6 +66,7 @@ export class EditorApp {
 
     this.worldContainer.addChild(this.groundLayer);
     this.worldContainer.addChild(this.transitionLayer);
+    this.worldContainer.addChild(this.autoTileLayer);
     this.worldContainer.addChild(this.entityLayer);
     this.worldContainer.addChild(this.roofLayer);
     this.worldContainer.addChild(this.gridOverlay);
@@ -72,8 +75,9 @@ export class EditorApp {
     this.worldContainer.addChild(this.previewContainer);
     this.app.stage.addChild(this.worldContainer);
 
-    // Load all assets
+    // Load all assets (including the auto-tileset for grass↔water transitions)
     await preloadAllAssets();
+    await loadAutoTileset();
 
     // Responsive resize
     const observer = new ResizeObserver((entries) => {
@@ -93,7 +97,9 @@ export class EditorApp {
     this.mapWidth = width;
     this.mapHeight = height;
     this.tileSize = tileSize;
-    this.currentTiles = tiles;
+    // Clone — `updateSingleTile` mutates this during paint drags before the
+    // React state has been dispatched, and we mustn't mutate the React array.
+    this.currentTiles = tiles.map(row => [...row]);
     this.groundLayer.removeChildren();
     this.tileSprites = [];
 
@@ -114,6 +120,7 @@ export class EditorApp {
     }
 
     this.rebuildTransitions(tiles, width, height, tileSize);
+    this.rebuildAutoTiles();
     this.rebuildGrid();
   }
 
@@ -124,6 +131,17 @@ export class EditorApp {
     if (existing) {
       existing.texture = tex;
     }
+    // Mutate the source-of-truth so the auto-tile rebuild sees this paint stroke.
+    // EditorApp keeps `currentTiles` in sync between full re-renders.
+    if (this.currentTiles[row]) this.currentTiles[row][col] = tileType;
+    this.rebuildAutoTiles();
+  }
+
+  private rebuildAutoTiles(): void {
+    if (!isAutoTilesetReady() || this.currentTiles.length === 0) return;
+    this.autoTileLayer.removeChildren();
+    const layer = buildAutoTileLayer(this.currentTiles, this.mapWidth, this.mapHeight, this.tileSize);
+    this.autoTileLayer.addChild(layer);
   }
 
   rebuildTransitions(tiles?: TileType[][], width?: number, height?: number, tileSize?: number): void {
@@ -135,8 +153,9 @@ export class EditorApp {
 
     this.transitionLayer.removeChildren();
     const mapData = { id: 'editor', width: w, height: h, tileSize: ts, tiles: t, objects: [], buildings: [], npcs: [], triggers: [], spawnPoints: [] };
-    this.transitionLayer.addChild(buildWaterBlobLayer(mapData));
-    this.transitionLayer.addChild(buildTransitionLayer(mapData));
+    // Skip water — the AutoTileset layer below handles grass↔water.
+    const layer = buildTransitionLayer(mapData, false);
+    this.transitionLayer.addChild(layer);
   }
 
   renderObjects(objects: Entity[]): void {

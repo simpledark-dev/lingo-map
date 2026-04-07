@@ -27,8 +27,12 @@ function isType(map: MapData, row: number, col: number, types: Set<string>): boo
 
 /**
  * Build transition overlays for grass tiles that border dirt or water.
+ *
+ * `includeWater` defaults to true for the in-game renderer. The editor passes
+ * false because it draws grass↔water transitions through the dual-grid
+ * `AutoTileset` instead, and the two systems would otherwise overlap.
  */
-export function buildTransitionLayer(map: MapData): Container {
+export function buildTransitionLayer(map: MapData, includeWater = true): Container {
   const layer = new Container();
   const T = map.tileSize;
 
@@ -36,8 +40,12 @@ export function buildTransitionLayer(map: MapData): Container {
     for (let col = 0; col < map.width; col++) {
       if (map.tiles[row][col] !== TileType.GRASS) continue;
 
-      // Check dirt neighbors (water transitions are handled by WaterBlobLayer wang tiles)
+      // Check dirt neighbors
       addTransitionsForType(layer, map, row, col, T, DIRT_TILES, 'trans');
+      // Check water neighbors
+      if (includeWater) {
+        addTransitionsForType(layer, map, row, col, T, WATER_TILES, 'trans-water');
+      }
     }
   }
 

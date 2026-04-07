@@ -3,7 +3,7 @@ import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from '../core/constants';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { getTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
-import { buildWaterBlobLayer } from './WaterBlobLayer';
+import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
 
 interface AnimData {
   baseX: number;
@@ -19,6 +19,7 @@ export class RenderSystem {
   private worldContainer: Container;
   private groundLayer: Container;
   private transitionLayer: Container;
+  private autoTileLayer: Container;
   private entityLayer: Container;
   private roofLayer: Container;
 
@@ -52,6 +53,7 @@ export class RenderSystem {
     this.worldContainer = new Container();
     this.groundLayer = new Container();
     this.transitionLayer = new Container();
+    this.autoTileLayer = new Container();
     this.entityLayer = new Container();
     this.roofLayer = new Container();
 
@@ -60,6 +62,7 @@ export class RenderSystem {
 
     this.worldContainer.addChild(this.groundLayer);
     this.worldContainer.addChild(this.transitionLayer);
+    this.worldContainer.addChild(this.autoTileLayer);
     this.worldContainer.addChild(this.entityLayer);
     this.worldContainer.addChild(this.roofLayer);
     this.app.stage.addChild(this.worldContainer);
@@ -68,6 +71,7 @@ export class RenderSystem {
   renderTiles(map: MapData): void {
     this.groundLayer.removeChildren();
     this.transitionLayer.removeChildren();
+    this.autoTileLayer.removeChildren();
 
     for (let row = 0; row < map.height; row++) {
       for (let col = 0; col < map.width; col++) {
@@ -84,12 +88,17 @@ export class RenderSystem {
       }
     }
 
-    // Wang-corner water blob (replaces grass/water visuals with seamless shoreline)
-    this.transitionLayer.addChild(buildWaterBlobLayer(map));
-
-    // Build transition overlays (grass ↔ dirt dithered edges)
-    const transitions = buildTransitionLayer(map);
+    // Build transition overlays (grass ↔ dirt dithered edges).
+    // Skip water — `AutoTileset` below handles grass↔water with the dual-grid blob set.
+    const transitions = buildTransitionLayer(map, false);
     this.transitionLayer.addChild(transitions);
+
+    // Dual-grid auto-tile layer for grass/water. Will be empty until
+    // `loadAutoTileset()` has resolved; PixiApp awaits that before loadScene().
+    if (isAutoTilesetReady()) {
+      const autoTiles = buildAutoTileLayer(map.tiles, map.width, map.height, map.tileSize);
+      this.autoTileLayer.addChild(autoTiles);
+    }
   }
 
   renderObjects(map: MapData): void {
@@ -265,6 +274,15 @@ export class RenderSystem {
     // Cull transition layer
     for (const child of this.transitionLayer.children) {
       // Transition layer has a single container child
+      if ('children' in child) {
+        for (const tc of (child as Container).children) {
+          tc.visible = tc.x + T > left && tc.x < right && tc.y + T > top && tc.y < bottom;
+        }
+      }
+    }
+
+    // Cull auto-tile layer (same nested structure as transitions)
+    for (const child of this.autoTileLayer.children) {
       if ('children' in child) {
         for (const tc of (child as Container).children) {
           tc.visible = tc.x + T > left && tc.x < right && tc.y + T > top && tc.y < bottom;
