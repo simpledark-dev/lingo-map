@@ -38,7 +38,23 @@ function collidesWithTiles(map: MapData, box: WorldBox): boolean {
       // Out of bounds = blocked
       if (row < 0 || row >= map.height || col < 0 || col >= map.width) return true;
       const tile = map.tiles[row][col];
-      if (tile === TileType.WALL || tile === TileType.WALL_INTERIOR || tile === TileType.WALL_INTERIOR_CORNER || tile === TileType.WATER || tile === TileType.VOID) return true;
+      if (
+        tile === TileType.WALL ||
+        tile === TileType.WALL_INTERIOR ||
+        tile === TileType.WALL_INTERIOR_TOP ||
+        tile === TileType.WALL_INTERIOR_TOP_LEFT ||
+        tile === TileType.WALL_INTERIOR_TOP_CORNER_BL ||
+        tile === TileType.WALL_INTERIOR_TOP_CORNER_INNER_TR ||
+        tile === TileType.WALL_INTERIOR_TOP_BL ||
+        tile === TileType.WALL_INTERIOR_TOP_BR ||
+        tile === TileType.WALL_INTERIOR_BOTTOM ||
+        tile === TileType.WALL_INTERIOR_LEFT ||
+        tile === TileType.WALL_INTERIOR_RIGHT ||
+        tile === TileType.WALL_INTERIOR_CORNER_BOTTOM_LEFT ||
+        tile === TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT ||
+        tile === TileType.WATER ||
+        tile === TileType.VOID
+      ) return true;
     }
   }
   return false;

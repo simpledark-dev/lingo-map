@@ -1,6 +1,6 @@
 import { Application } from 'pixi.js';
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DEFAULT_ZOOM } from '../core/constants';
-import { GameState, MapData } from '../core/types';
+import { GameState, MapData, TileType } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
 import { buildStressMap, StressOptions } from '../core/MapStress';
 import { createPlayer, updatePlayer } from '../core/PlayerSystem';
@@ -105,7 +105,77 @@ export class PixiApp {
   }
 
   private async loadScene(mapId: string, spawnId: string): Promise<void> {
-    const map = buildStressMap(loadMap(mapId), this.options);
+    const baseMap = buildStressMap(loadMap(mapId), this.options);
+    // Auto-generate door triggers from entities with `transition` metadata
+    // (e.g., staircases). Trigger zone covers the bottom row of the entity's
+    // visual footprint so clicking anywhere on the sprite walks the player
+    // into a forgiving 2-tile-wide zone.
+    const transitionEntities = baseMap.objects.filter(o => o.transition);
+    const T = baseMap.tileSize;
+    // Trigger zone: covers walkable tiles on the entity's feet row, up to 2
+    // tiles wide. Skips wall cells so the trigger only spans tiles the player
+    // can physically reach (otherwise half the zone might sit over a wall).
+    const isWalkableTile = (tile: TileType): boolean => {
+      return tile !== TileType.WALL
+        && tile !== TileType.WALL_INTERIOR
+        && tile !== TileType.WALL_INTERIOR_BOTTOM
+        && tile !== TileType.WALL_INTERIOR_LEFT
+        && tile !== TileType.WALL_INTERIOR_RIGHT
+        && tile !== TileType.WALL_INTERIOR_TOP
+        && tile !== TileType.WALL_INTERIOR_TOP_LEFT
+        && tile !== TileType.WALL_INTERIOR_TOP_BL
+        && tile !== TileType.WALL_INTERIOR_TOP_BR
+        && tile !== TileType.WALL_INTERIOR_TOP_CORNER_BL
+        && tile !== TileType.WALL_INTERIOR_TOP_CORNER_INNER_TR
+        && tile !== TileType.WALL_INTERIOR_CORNER_BOTTOM_LEFT
+        && tile !== TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT
+        && tile !== TileType.WATER
+        && tile !== TileType.VOID;
+    };
+    const dynamicTriggers = transitionEntities.flatMap((o, i) => {
+      const feetRow = Math.floor((o.y - 1) / T);
+      const candidateCols = [
+        Math.floor((o.x - T) / T),
+        Math.floor(o.x / T),
+      ];
+      const walkableCols = candidateCols.filter(col => {
+        if (feetRow < 0 || feetRow >= baseMap.height || col < 0 || col >= baseMap.width) return false;
+        return isWalkableTile(baseMap.tiles[feetRow][col]);
+      });
+      if (walkableCols.length === 0) return [];
+      return [{
+        id: `auto-${o.id}-${i}`,
+        x: Math.min(...walkableCols) * T,
+        y: feetRow * T,
+        width: (Math.max(...walkableCols) - Math.min(...walkableCols) + 1) * T,
+        height: T,
+        type: 'door' as const,
+        targetMapId: o.transition!.targetMapId,
+        targetSpawnId: o.transition!.targetSpawnId,
+      }];
+    });
+    // Spawn point: 1 tile BELOW the entity's feet, so arriving players don't
+    // immediately land in the trigger zone above.
+    const dynamicSpawns = transitionEntities
+      .filter(o => o.transition!.incomingSpawnId)
+      .map(o => ({
+        id: o.transition!.incomingSpawnId!,
+        x: o.x,
+        y: o.y + T,
+        facing: 'down' as const,
+      }));
+    const mergedSpawns = dynamicSpawns.length > 0
+      ? [
+          ...baseMap.spawnPoints.filter(s => !dynamicSpawns.some(d => d.id === s.id)),
+          ...dynamicSpawns,
+        ]
+      : baseMap.spawnPoints;
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[loadScene ${mapId}] transition entities:`, transitionEntities.length, 'triggers:', dynamicTriggers, 'spawns:', dynamicSpawns);
+    }
+    const map = (dynamicTriggers.length > 0 || dynamicSpawns.length > 0)
+      ? { ...baseMap, triggers: [...baseMap.triggers, ...dynamicTriggers], spawnPoints: mergedSpawns }
+      : baseMap;
     this.currentMap = map;
     const spawn = getSpawnPoint(map, spawnId);
     const player = createPlayer(spawn);
@@ -260,8 +330,10 @@ export class PixiApp {
     };
 
     // Clamp to map bounds
-    this.gameState.player.x = Math.max(16, Math.min(mapW - 16, this.gameState.player.x));
-    this.gameState.player.y = Math.max(16, Math.min(mapH - 16, this.gameState.player.y));
+    // Clamp to map bounds — collision handles walls, this is a safety net
+    // against ever leaving the map. Feet can sit at the exact bottom edge.
+    this.gameState.player.x = Math.max(0, Math.min(mapW, this.gameState.player.x));
+    this.gameState.player.y = Math.max(0, Math.min(mapH, this.gameState.player.y));
     this.gameState.player.sortY = this.gameState.player.y;
 
     // Check door triggers
@@ -288,7 +360,7 @@ export class PixiApp {
             currentMap.spawnPoints.push({
               id: returnId,
               x: building.x,
-              y: building.y + 40, // far enough below the door trigger
+              y: building.y + 16, // 1 tile below the door — right at the threshold
               facing: 'down',
             });
           }

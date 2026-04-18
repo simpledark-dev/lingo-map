@@ -14,20 +14,38 @@ interface Props {
 export default function EditorTopBar({ state, dispatch }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleLoadGameMap = useCallback((mapId: string) => {
-    if (!mapId) return;
-    const map = loadMap(mapId);
+  const applyMapData = useCallback((data: { id?: string; tiles: unknown; objects?: unknown[]; buildings?: unknown[]; width: number; height: number; tileSize?: number }, fallbackId: string) => {
     dispatch({
       type: 'IMPORT_MAP',
-      tiles: map.tiles,
-      objects: map.objects,
-      buildings: map.buildings,
-      width: map.width,
-      height: map.height,
+      tiles: data.tiles as never,
+      objects: (data.objects as never[]) || [],
+      buildings: (data.buildings as never[]) || [],
+      width: data.width,
+      height: data.height,
     });
-    dispatch({ type: 'SET_MAP_NAME', name: map.id });
-    if (map.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: map.tileSize });
+    dispatch({ type: 'SET_MAP_NAME', name: data.id || fallbackId });
+    if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });
   }, [dispatch]);
+
+  const handleLoadGameMap = useCallback(async (mapId: string) => {
+    if (!mapId) return;
+
+    // 1) Prefer disk-persisted version
+    try {
+      const res = await fetch(`/api/maps/${encodeURIComponent(mapId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.tiles && data.width && data.height) {
+          applyMapData(data, mapId);
+          return;
+        }
+      }
+    } catch { /* fall through */ }
+
+    // 2) Fall back to compiled map
+    const map = loadMap(mapId);
+    applyMapData(map, mapId);
+  }, [applyMapData]);
 
   const handleExport = useCallback(() => {
     const mapData = {

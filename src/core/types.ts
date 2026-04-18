@@ -30,6 +30,14 @@ export interface Entity {
   anchor: Anchor;
   sortY: number; // explicit depth value — hand-set, not computed from sprite
   collisionBox: CollisionBox;
+  /** Optional door-like transition. When the player walks onto this entity's
+   * footprint, the engine fires a scene change. Used for staircases inside
+   * interior maps so the trigger follows the visual decor.
+   * - targetMapId/targetSpawnId: where this entity sends the player.
+   * - incomingSpawnId: the spawn ID someone uses when arriving AT this entity
+   *   from the other map. The engine auto-registers this spawn just below the
+   *   entity's feet so spawn position always matches the visual position. */
+  transition?: { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string };
 }
 
 export interface Building {
@@ -71,9 +79,21 @@ export enum TileType {
   PATH = 'path',
   WALL = 'wall',
   WALL_INTERIOR = 'wall-interior',
-  WALL_INTERIOR_CORNER = 'wall-interior-corner',
+  WALL_INTERIOR_TOP = 'wall-interior-top',
+  WALL_INTERIOR_TOP_LEFT = 'wall-interior-top-left',
+  WALL_INTERIOR_TOP_CORNER_BL = 'wall-interior-top-corner-bl',
+  WALL_INTERIOR_TOP_CORNER_INNER_TR = 'wall-interior-top-corner-inner-tr',
+  WALL_INTERIOR_TOP_BL = 'wall-interior-top-bl',
+  WALL_INTERIOR_TOP_BR = 'wall-interior-top-br',
+  WALL_INTERIOR_BOTTOM = 'wall-interior-bottom',
+  WALL_INTERIOR_LEFT = 'wall-interior-left',
+  WALL_INTERIOR_RIGHT = 'wall-interior-right',
+  WALL_INTERIOR_CORNER_BOTTOM_LEFT = 'wall-interior-corner-bottom-left',
+  WALL_INTERIOR_CORNER_BOTTOM_RIGHT = 'wall-interior-corner-bottom-right',
   FLOOR = 'floor',
   FLOOR_WOOD = 'floor-wood',
+  FLOOR_WOOD_2 = 'floor-wood-2',
+  FLOOR_WOOD_3 = 'floor-wood-3',
   WATER = 'water',
   BRIDGE = 'bridge',
   VOID = 'void',

@@ -52,7 +52,7 @@ export function createInitialState(width = 50, height = 50): EditorState {
     selectedBuildingKey: null,
     selectedObjectId: null,
     showGrid: true,
-    zoom: 1,
+    zoom: 2,
     cameraX: 0,
     cameraY: 0,
     undoStack: [],

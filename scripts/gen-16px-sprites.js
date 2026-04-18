@@ -1,15 +1,23 @@
 #!/usr/bin/env node
 // Generates 16px-scale placeholder sprites for Pokemon-style game.
+// SAFETY: never overwrites an existing file. Pass --force to regenerate.
 // Run: node scripts/gen-16px-sprites.js
+//      node scripts/gen-16px-sprites.js --force   (DANGEROUS — overwrites everything)
 
 const { createCanvas } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 
 const OUT = path.join(__dirname, '../public/assets/placeholder');
+const FORCE = process.argv.includes('--force');
 
 function save(name, canvas) {
-  fs.writeFileSync(path.join(OUT, name), canvas.toBuffer('image/png'));
+  const filePath = path.join(OUT, name);
+  if (!FORCE && fs.existsSync(filePath)) {
+    console.log(`  ${name.padEnd(30)} skipped (already exists)`);
+    return;
+  }
+  fs.writeFileSync(filePath, canvas.toBuffer('image/png'));
   console.log(`  ${name.padEnd(30)} ${canvas.width}x${canvas.height}`);
 }
 

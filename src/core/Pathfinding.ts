@@ -54,7 +54,23 @@ function isCellWalkable(
     for (let c = startCol; c <= endCol; c++) {
       if (r < 0 || r >= map.height || c < 0 || c >= map.width) return false;
       const t = map.tiles[r][c];
-      if (t === TileType.WALL || t === TileType.WALL_INTERIOR || t === TileType.WALL_INTERIOR_CORNER || t === TileType.WATER || t === TileType.VOID) return false;
+      if (
+        t === TileType.WALL ||
+        t === TileType.WALL_INTERIOR ||
+        t === TileType.WALL_INTERIOR_TOP ||
+        t === TileType.WALL_INTERIOR_TOP_LEFT ||
+        t === TileType.WALL_INTERIOR_TOP_CORNER_BL ||
+        t === TileType.WALL_INTERIOR_TOP_CORNER_INNER_TR ||
+        t === TileType.WALL_INTERIOR_TOP_BL ||
+        t === TileType.WALL_INTERIOR_TOP_BR ||
+        t === TileType.WALL_INTERIOR_BOTTOM ||
+        t === TileType.WALL_INTERIOR_LEFT ||
+        t === TileType.WALL_INTERIOR_RIGHT ||
+        t === TileType.WALL_INTERIOR_CORNER_BOTTOM_LEFT ||
+        t === TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT ||
+        t === TileType.WATER ||
+        t === TileType.VOID
+      ) return false;
     }
   }
 

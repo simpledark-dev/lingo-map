@@ -66,8 +66,21 @@ export const TILE_ITEMS: TileItem[] = [
   { key: 'bridge', label: 'Bridge', path: '/assets/placeholder/bridge.png' },
   { key: 'wall', label: 'Wall', path: '/assets/placeholder/wall.png' },
   { key: 'wall-interior', label: 'Int. Wall', path: '/assets/placeholder/wall-interior.png' },
+  { key: 'wall-interior-top', label: 'Wall Top', path: '/assets/placeholder/wall-interior-top.png' },
+  { key: 'wall-interior-top-left', label: 'Wall TL', path: '/assets/placeholder/wall-interior-top-left.png' },
+  { key: 'wall-interior-top-corner-bl', label: 'Wall T-Cnr', path: '/assets/placeholder/wall-interior-top-corner-bl.png' },
+  { key: 'wall-interior-top-corner-inner-tr', label: 'Wall T-iTR', path: '/assets/placeholder/wall-interior-top-corner-inner-tr.png' },
+  { key: 'wall-interior-top-bl', label: 'Wall T-BL', path: '/assets/placeholder/wall-interior-top-bl.png' },
+  { key: 'wall-interior-top-br', label: 'Wall T-BR', path: '/assets/placeholder/wall-interior-top-br.png' },
+  { key: 'wall-interior-bottom', label: 'Wall Btm', path: '/assets/placeholder/wall-interior-bottom.png' },
+  { key: 'wall-interior-left', label: 'Wall Left', path: '/assets/placeholder/wall-interior-left.png' },
+  { key: 'wall-interior-right', label: 'Wall Right', path: '/assets/placeholder/wall-interior-right.png' },
+  { key: 'wall-interior-corner-bottom-left', label: 'Wall BL', path: '/assets/placeholder/wall-interior-corner-bottom-left.png' },
+  { key: 'wall-interior-corner-bottom-right', label: 'Wall BR', path: '/assets/placeholder/wall-interior-corner-bottom-right.png' },
   { key: 'floor', label: 'Floor', path: '/assets/placeholder/floor.png' },
   { key: 'floor-wood', label: 'Wood Floor', path: '/assets/placeholder/floor-wood.png' },
+  { key: 'floor-wood-2', label: 'Wood Floor 2', path: '/assets/placeholder/floor-wood-2.png' },
+  { key: 'floor-wood-3', label: 'Wood Floor 3', path: '/assets/placeholder/floor-wood-3.png' },
 ];
 
 export const OBJECT_CATEGORIES = [

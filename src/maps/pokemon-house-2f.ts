@@ -58,11 +58,12 @@ function obj(x: number, y: number, key: string, cw: number, ch: number): Entity 
     collisionBox: { offsetX: -Math.floor(cw / 2), offsetY: -ch, width: cw, height: ch },
   };
 }
-function decor(x: number, y: number, key: string): Entity {
+function decor(x: number, y: number, key: string, transition?: { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string }): Entity {
   return {
     id: `2f-${++nextId}`, x, y, spriteKey: key,
     anchor: { x: 0.5, y: 1.0 }, sortY: y - 1000,
     collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 },
+    transition,
   };
 }
 
@@ -72,8 +73,9 @@ const objects: Entity[] = [
   decor(tx(8),       ty(1), 'wall-clock'),
   decor(tx(13),      ty(1), 'wall-window'),
 
-  // ── Staircase decor (rows 1-2, cols 16-17) ──
-  decor(tx(16) + 8,  ty(2), 'wall-staircase'),
+  // ── Staircase decor — transition is dynamic from this entity's position. ──
+  decor(tx(16) + 8,  ty(2), 'wall-staircase',
+    { targetMapId: 'pokemon-house-1f', targetSpawnId: 'from-2f', incomingSpawnId: 'from-1f' }),
 
   // ── Bedroom left side ──
   obj(tx(2),       ty(5),  'bed',     28, 28),
@@ -97,17 +99,7 @@ export const pokemonHouse2fMap: MapData = {
   buildings: [],
   npcs: [],
   triggers: [
-    // Staircase down to 1F — placed in walkable space just below wall gap
-    {
-      id: '2f-to-1f',
-      x: 16 * T,
-      y: 2 * T,
-      width: 2 * T,
-      height: T,
-      type: 'door',
-      targetMapId: 'pokemon-house-1f',
-      targetSpawnId: 'from-2f',
-    },
+    // Staircase trigger is derived dynamically from the staircase decor above.
   ],
   spawnPoints: [
     { id: 'from-1f', x: tx(16) + 8, y: ty(4), facing: 'down' },

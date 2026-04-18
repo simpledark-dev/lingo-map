@@ -32,7 +32,6 @@ const FW = TileType.FLOOR_WOOD;
 const ALCOVE_COL = 14; // wall step-in starts at this column
 const ALCOVE_ROW = 5;  // alcove wall extends down to this row
 const V = TileType.VOID; // nothing renders — black canvas background shows through
-const WC = TileType.WALL_INTERIOR_CORNER; // inside-corner piece for the L-shape
 
 function makeTiles(): TileType[][] {
   const tiles: TileType[][] = [];
@@ -44,7 +43,7 @@ function makeTiles(): TileType[][] {
       // The column right at the alcove edge gets a corner piece that shows
       // the wall's perpendicular side face (sells the L-shape depth).
       if (row <= 2 && col === ALCOVE_COL) {
-        r.push(WC);
+        r.push(WI);
       }
       else if (row <= 2 && col > ALCOVE_COL) {
         r.push(V);
@@ -96,11 +95,12 @@ function obj(x: number, y: number, key: string, cw: number, ch: number): Entity 
     collisionBox: { offsetX: -Math.floor(cw / 2), offsetY: -ch, width: cw, height: ch },
   };
 }
-function decor(x: number, y: number, key: string): Entity {
+function decor(x: number, y: number, key: string, transition?: { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string }): Entity {
   return {
     id: `1f-${++nextId}`, x, y, spriteKey: key,
     anchor: { x: 0.5, y: 1.0 }, sortY: y - 1000,
     collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 },
+    transition,
   };
 }
 
@@ -110,8 +110,11 @@ const objects: Entity[] = [
   decor(tx(9),       ty(1), 'wall-clock'),
   decor(tx(14),      ty(1), 'wall-window-double'),
 
-  // ── Staircase decor (alcove wall, cols 17-18, bottom of alcove) ──
-  decor(tx(17) + 8,  ty(ALCOVE_ROW), 'wall-staircase'),
+  // ── Staircase decor — wherever this entity sits, the engine generates a
+  // dynamic trigger zone at its bottom row. Move the decor in the editor and
+  // the entrance follows. ──
+  decor(tx(17) + 8,  ty(ALCOVE_ROW), 'wall-staircase',
+    { targetMapId: 'pokemon-house-2f', targetSpawnId: 'from-1f', incomingSpawnId: 'from-2f' }),
 
   // ── Kitchen strip (row 3, against north wall) ──
   obj(tx(1),      ty(4), 'fridge',          14, 14),
@@ -140,31 +143,24 @@ export const pokemonHouse1fMap: MapData = {
   buildings: [],
   npcs: [],
   triggers: [
-    // Exit door — placed in walkable space just above bottom wall gap
+    // Exit door — sits on the bottom wall gap tiles. Player must walk all
+    // the way down to the door before the trigger fires.
     {
       id: '1f-exit',
       x: 9 * T,
-      y: (H - 2) * T,
+      y: (H - 1) * T,
       width: 2 * T,
       height: T,
       type: 'door',
       targetMapId: 'pokemon',
       targetSpawnId: 'from-house',
     },
-    // Staircase up to 2F — placed in walkable space just below alcove staircase gap
-    {
-      id: '1f-to-2f',
-      x: 17 * T,
-      y: ALCOVE_ROW * T,
-      width: 2 * T,
-      height: T,
-      type: 'door',
-      targetMapId: 'pokemon-house-2f',
-      targetSpawnId: 'from-1f',
-    },
+    // Staircase trigger is now derived dynamically from the staircase decor
+    // entity above (see Entity.transition). Move the decor in the editor and
+    // the trigger zone follows automatically.
   ],
   spawnPoints: [
-    { id: 'entrance', x: tx(9) + 8, y: ty(12), facing: 'up' },
-    { id: 'from-2f',  x: tx(17) + 8, y: ty(ALCOVE_ROW + 2), facing: 'down' },
+    { id: 'entrance', x: tx(9) + 8, y: ty(H - 3), facing: 'up' },
+    { id: 'from-2f',  x: tx(17), y: ty(7), facing: 'down' },
   ],
 };

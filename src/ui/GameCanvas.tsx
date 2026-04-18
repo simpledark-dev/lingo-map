@@ -61,52 +61,98 @@ export default function GameCanvas() {
       const params = new URLSearchParams(window.location.search);
       const mapParam = params.get('map');
       if (mapParam) startMapId = mapParam;
-
-      // Load editor-modified maps from localStorage (overrides compiled maps)
-      const { registerMap } = require('../core/MapLoader');
-      const editorKeys = Object.keys(localStorage).filter(k => k.startsWith('editor-map:'));
-      for (const key of editorKeys) {
-        try {
-          const mapData = JSON.parse(localStorage.getItem(key)!);
-          if (mapData?.id && mapData.tiles && mapData.width && mapData.height) {
-            registerMap(mapData.id, mapData);
-          }
-        } catch { /* skip corrupt entries */ }
-      }
     }
 
-    const pixiApp = new PixiApp({
-      objectMultiplier,
-      musicEnabled: soundOnRef.current,
-      startMapId,
-    });
-    pixiAppRef.current = pixiApp;
+    const { loadMap, registerMap } = require('../core/MapLoader');
 
-    const unsubscribe = pixiApp.bridge.subscribe((event: GameEvent) => {
-      if (cancelled) return;
-      switch (event.type) {
-        case 'dialogueStart':
-        case 'dialogueAdvance':
-          setDialogue(event.dialogue);
-          break;
-        case 'dialogueEnd':
-          setDialogue(null);
-          break;
-        case 'sceneChange':
-          setCurrentMapId(event.mapId);
-          break;
-      }
-    });
+    // Fetch disk-persisted map edits, register them as overrides, then start the game.
+    // We only take the edited parts (tiles/objects/buildings/dimensions) — triggers,
+    // spawnPoints and NPCs always come from the compiled map so gameplay logic
+    // isn't broken by a stale version.
+    const applyOverride = (mapData: { id?: string; width?: number; height?: number; tileSize?: number; tiles?: unknown; objects?: unknown[]; buildings?: unknown[] }) => {
+      if (!mapData?.id || !Array.isArray(mapData.tiles) || typeof mapData.width !== 'number' || typeof mapData.height !== 'number') return;
+      let compiled: ReturnType<typeof loadMap> | null = null;
+      try { compiled = loadMap(mapData.id); } catch { /* map not in registry */ }
 
-    pixiApp.init(containerRef.current).catch((err) => {
-      if (!cancelled) console.error(err);
-    });
+      // The editor doesn't know about engine-only entity metadata (e.g.,
+      // `transition` on a staircase). Re-attach it from the compiled map by
+      // matching spriteKey — assumes one entity per transition-bearing
+      // spriteKey, which is fine for our current single-staircase rooms.
+      const transitionsBySpriteKey = new Map<string, { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string }>();
+      compiled?.objects.forEach((o: { spriteKey: string; transition?: { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string } }) => {
+        if (o.transition) transitionsBySpriteKey.set(o.spriteKey, o.transition);
+      });
+      const objects = (mapData.objects ?? []).map(o => {
+        const obj = o as { spriteKey?: string; transition?: unknown };
+        if (obj.spriteKey && !obj.transition) {
+          const t = transitionsBySpriteKey.get(obj.spriteKey);
+          if (t) return { ...obj, transition: t };
+        }
+        return obj;
+      });
+
+      registerMap(mapData.id, {
+        id: mapData.id,
+        width: mapData.width,
+        height: mapData.height,
+        tileSize: mapData.tileSize ?? compiled?.tileSize ?? 16,
+        tiles: mapData.tiles,
+        objects,
+        buildings: mapData.buildings ?? [],
+        npcs: compiled?.npcs ?? [],
+        triggers: compiled?.triggers ?? [],
+        spawnPoints: compiled?.spawnPoints ?? [{ id: 'default', x: 0, y: 0, facing: 'down' }],
+      });
+    };
+
+    let unsubscribe: (() => void) | null = null;
+
+    const startGame = () => {
+      if (cancelled || !containerRef.current) return;
+      const pixiApp = new PixiApp({
+        objectMultiplier,
+        musicEnabled: soundOnRef.current,
+        startMapId,
+      });
+      pixiAppRef.current = pixiApp;
+      unsubscribe = pixiApp.bridge.subscribe((event: GameEvent) => {
+        if (cancelled) return;
+        switch (event.type) {
+          case 'dialogueStart':
+          case 'dialogueAdvance':
+            setDialogue(event.dialogue);
+            break;
+          case 'dialogueEnd':
+            setDialogue(null);
+            break;
+          case 'sceneChange':
+            setCurrentMapId(event.mapId);
+            break;
+        }
+      });
+      pixiApp.init(containerRef.current).catch((err) => {
+        if (!cancelled) console.error(err);
+      });
+    };
+
+    // Fetch disk overrides first, then start. If API fails, fall back to compiled maps.
+    fetch('/api/maps')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.maps) {
+          for (const id of Object.keys(data.maps)) applyOverride(data.maps[id]);
+        }
+      })
+      .catch(() => { /* offline or no data dir — use compiled maps */ })
+      .finally(startGame);
 
     return () => {
       cancelled = true;
-      unsubscribe();
-      pixiApp.destroy();
-      pixiAppRef.current = null;
+      if (unsubscribe) unsubscribe();
+      if (pixiAppRef.current) {
+        pixiAppRef.current.destroy();
+        pixiAppRef.current = null;
+      }
     };
   }, [objectMultiplier]);
 

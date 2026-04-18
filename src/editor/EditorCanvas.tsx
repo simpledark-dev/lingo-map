@@ -6,11 +6,68 @@ import { EditorApp } from './EditorApp';
 import { editorReducer, createInitialState, EditorAction, generateObjectId } from './editorState';
 import { OBJECT_DEFAULTS, BUILDING_DEFAULTS } from './objectDefaults';
 import { loadMap } from '../core/MapLoader';
+import { getTexture } from '../renderer/AssetLoader';
 import EditorToolPanel from './EditorToolPanel';
 import EditorTopBar from './EditorTopBar';
 
+const ACTIVE_MAP_KEY = 'editor-active-map';
+
+/**
+ * World-space AABB that a sprite covers, given its anchor and feet position.
+ * Uses the loaded texture size. Falls back to a 1-tile square if the texture
+ * isn't loaded yet (shouldn't happen after initial render, but safe default).
+ */
+function getSpriteBounds(
+  x: number, y: number, spriteKey: string, anchor: { x: number; y: number }, tileSize: number,
+): { left: number; top: number; right: number; bottom: number } {
+  const tex = getTexture(spriteKey);
+  const w = tex?.width ?? tileSize;
+  const h = tex?.height ?? tileSize;
+  const left = x - w * anchor.x;
+  const top = y - h * anchor.y;
+  return { left, top, right: left + w, bottom: top + h };
+}
+
+/**
+ * Compute tile-aligned snap X for a sprite of a given width.
+ * - Odd-tile sprites (1, 3 tiles wide) snap to tile center.
+ * - Even-tile sprites (2, 4 tiles wide) snap to tile edge so the sprite
+ *   straddles whole tiles cleanly.
+ */
+function snapXForSprite(col: number, spriteKey: string, tileSize: number): number {
+  const tex = getTexture(spriteKey);
+  const w = tex?.width ?? tileSize;
+  const tilesWide = Math.max(1, Math.round(w / tileSize));
+  const isOdd = tilesWide % 2 === 1;
+  return isOdd
+    ? col * tileSize + tileSize / 2
+    : col * tileSize;
+}
+
 function initFromGameMap(): ReturnType<typeof createInitialState> {
-  const map = loadMap('pokemon');
+  // 1) Figure out which map to open — last edited, or default to pokemon
+  let mapId = 'pokemon';
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(ACTIVE_MAP_KEY);
+    if (saved) mapId = saved;
+  }
+
+  // 2) Prefer localStorage-edited version over the compiled map
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(`editor-map:${mapId}`);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved?.tiles && saved.width && saved.height) {
+          const base = createInitialState(saved.width, saved.height);
+          return { ...base, tiles: saved.tiles, objects: saved.objects || [], buildings: saved.buildings || [], mapWidth: saved.width, mapHeight: saved.height, mapName: saved.id || mapId, tileSize: saved.tileSize || 16 };
+        }
+      }
+    } catch { /* fall through to compiled map */ }
+  }
+
+  // 3) Fallback: compiled map
+  const map = loadMap(mapId);
   const base = createInitialState(map.width, map.height);
   return { ...base, tiles: map.tiles, objects: map.objects, buildings: map.buildings, mapWidth: map.width, mapHeight: map.height, mapName: map.id, tileSize: map.tileSize };
 }
@@ -33,26 +90,83 @@ export default function EditorCanvas() {
   const panStartRef = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
   const spaceDownRef = useRef(false);
 
-  // ── Auto-save to localStorage so the game page picks up changes ──
+  // Track whether we've loaded from disk yet, so the auto-save doesn't fire
+  // with stale (pre-load) state and overwrite the disk copy.
+  const diskLoadedRef = useRef(false);
+
+  // ── Load persisted map from disk on mount (overrides localStorage/compiled) ──
+  useEffect(() => {
+    let cancelled = false;
+    const mapId = stateRef.current.mapName;
+    if (!mapId) { diskLoadedRef.current = true; return; }
+    fetch(`/api/maps/${encodeURIComponent(mapId)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (cancelled || !data?.tiles || !data.width || !data.height) return;
+        dispatch({ type: 'IMPORT_MAP', tiles: data.tiles, objects: data.objects || [], buildings: data.buildings || [], width: data.width, height: data.height });
+        if (data.id) dispatch({ type: 'SET_MAP_NAME', name: data.id });
+        if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });
+      })
+      .catch(() => { /* no disk copy yet */ })
+      .finally(() => { diskLoadedRef.current = true; });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Auto-save: localStorage (instant) + disk via API (debounced) ──
+  // Preserve triggers/NPCs/spawnPoints from the compiled map since the editor
+  // doesn't yet edit those.
+  const diskSaveTimerRef = useRef<number | null>(null);
   useEffect(() => {
     if (!state.mapName) return;
+    if (!diskLoadedRef.current) return; // don't clobber disk with pre-load state
+
+    let npcs: unknown[] = [];
+    let triggers: unknown[] = [];
+    let spawnPoints: unknown[] = [{ id: 'default', x: Math.floor(state.mapWidth / 2) * state.tileSize, y: Math.floor(state.mapHeight / 2) * state.tileSize, facing: 'down' }];
     try {
-      const key = `editor-map:${state.mapName}`;
-      const data = JSON.stringify({
-        id: state.mapName,
-        width: state.mapWidth,
-        height: state.mapHeight,
-        tileSize: state.tileSize,
-        tiles: state.tiles,
-        objects: state.objects,
-        buildings: state.buildings,
-        npcs: [],
-        triggers: [],
-        spawnPoints: [{ id: 'default', x: Math.floor(state.mapWidth / 2) * state.tileSize, y: Math.floor(state.mapHeight / 2) * state.tileSize, facing: 'down' }],
-      });
-      localStorage.setItem(key, data);
+      const compiled = loadMap(state.mapName);
+      npcs = compiled.npcs;
+      triggers = compiled.triggers;
+      spawnPoints = compiled.spawnPoints;
+    } catch { /* map isn't a compiled game map — use defaults */ }
+
+    const mapData = {
+      id: state.mapName,
+      width: state.mapWidth,
+      height: state.mapHeight,
+      tileSize: state.tileSize,
+      tiles: state.tiles,
+      objects: state.objects,
+      buildings: state.buildings,
+      npcs,
+      triggers,
+      spawnPoints,
+    };
+
+    // Instant localStorage write (working buffer, survives quick refreshes)
+    try {
+      localStorage.setItem(`editor-map:${state.mapName}`, JSON.stringify(mapData));
+      localStorage.setItem(ACTIVE_MAP_KEY, state.mapName);
     } catch { /* storage full */ }
+
+    // Debounced disk write (persistent, survives localStorage clears)
+    if (diskSaveTimerRef.current) window.clearTimeout(diskSaveTimerRef.current);
+    diskSaveTimerRef.current = window.setTimeout(() => {
+      fetch(`/api/maps/${encodeURIComponent(state.mapName)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mapData),
+      }).catch(err => console.error('Failed to persist map to disk:', err));
+    }, 500);
   }, [state.tiles, state.objects, state.buildings, state.mapWidth, state.mapHeight, state.mapName, state.tileSize]);
+
+  // Flush any pending disk save on unmount
+  useEffect(() => {
+    return () => {
+      if (diskSaveTimerRef.current) window.clearTimeout(diskSaveTimerRef.current);
+    };
+  }, []);
 
   // ── Initialize PixiJS ──
   useEffect(() => {
@@ -62,11 +176,19 @@ export default function EditorCanvas() {
     editorAppRef.current = app;
 
     app.init(canvasContainerRef.current).then(() => {
-      app.renderTiles(stateRef.current.tiles, stateRef.current.mapWidth, stateRef.current.mapHeight, stateRef.current.tileSize);
-      app.renderObjects(stateRef.current.objects);
-      app.renderBuildings(stateRef.current.buildings);
-      app.setGridVisible(stateRef.current.showGrid);
-      app.updateCamera(stateRef.current.cameraX, stateRef.current.cameraY, stateRef.current.zoom);
+      const s = stateRef.current;
+      app.renderTiles(s.tiles, s.mapWidth, s.mapHeight, s.tileSize);
+      app.renderObjects(s.objects);
+      app.renderBuildings(s.buildings);
+      app.setGridVisible(s.showGrid);
+
+      // Center camera on the map by default. Camera (top-left in world coords)
+      // is set so the map's center aligns with the viewport center.
+      const screen = app.app.screen;
+      const camX = (s.mapWidth * s.tileSize) / 2 - screen.width / (2 * s.zoom);
+      const camY = (s.mapHeight * s.tileSize) / 2 - screen.height / (2 * s.zoom);
+      dispatchRef.current({ type: 'SET_CAMERA', x: camX, y: camY });
+      app.updateCamera(camX, camY, s.zoom);
     });
 
     return () => {
@@ -136,7 +258,7 @@ export default function EditorCanvas() {
       // We'll batch dispatch on pointer up
     } else if (s.activeTool === 'object' && s.selectedObjectKey) {
       const defaults = OBJECT_DEFAULTS[s.selectedObjectKey] ?? { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } };
-      const snapX = col * s.tileSize + s.tileSize / 2;
+      const snapX = snapXForSprite(col, s.selectedObjectKey, s.tileSize);
       const snapY = (row + 1) * s.tileSize;
       const entity = {
         id: generateObjectId(),
@@ -167,12 +289,11 @@ export default function EditorCanvas() {
         dispatchRef.current({ type: 'PLACE_BUILDING', building });
       }
     } else if (s.activeTool === 'select') {
-      // Hit test buildings first (larger), then objects
+      // Hit test buildings first (larger), then objects — use sprite bounds
       let found = false;
       for (const b of s.buildings) {
-        const dx = x - b.x;
-        const dy = y - b.y;
-        if (Math.abs(dx) < 96 && Math.abs(dy) < 96) {
+        const bb = getSpriteBounds(b.x, b.y, b.baseSpriteKey, b.anchor, s.tileSize);
+        if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
           dispatchRef.current({ type: 'SELECT_OBJECT', id: b.id });
           found = true;
           break;
@@ -181,9 +302,8 @@ export default function EditorCanvas() {
       if (!found) {
         const sorted = [...s.objects].sort((a, b) => b.sortY - a.sortY);
         for (const obj of sorted) {
-          const dx = x - obj.x;
-          const dy = y - obj.y;
-          if (Math.abs(dx) < 32 && Math.abs(dy) < 48) {
+          const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize);
+          if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
             dispatchRef.current({ type: 'SELECT_OBJECT', id: obj.id });
             found = true;
             break;
@@ -192,21 +312,19 @@ export default function EditorCanvas() {
       }
       if (!found) dispatchRef.current({ type: 'SELECT_OBJECT', id: null });
     } else if (s.activeTool === 'eraser') {
-      // Try erasing a building first
+      // Try erasing a building first — sprite-sized hit box
       for (const b of s.buildings) {
-        const dx = x - b.x;
-        const dy = y - b.y;
-        if (Math.abs(dx) < 96 && Math.abs(dy) < 96) {
+        const bb = getSpriteBounds(b.x, b.y, b.baseSpriteKey, b.anchor, s.tileSize);
+        if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
           dispatchRef.current({ type: 'DELETE_BUILDING', id: b.id });
           return;
         }
       }
-      // Then try objects
+      // Then objects
       const sorted = [...s.objects].sort((a, b) => b.sortY - a.sortY);
       for (const obj of sorted) {
-        const dx = x - obj.x;
-        const dy = y - obj.y;
-        if (Math.abs(dx) < 32 && Math.abs(dy) < 48) {
+        const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize);
+        if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
           dispatchRef.current({ type: 'DELETE_OBJECT', id: obj.id });
           return;
         }
@@ -244,7 +362,7 @@ export default function EditorCanvas() {
     } else if (app && s.activeTool === 'object' && s.selectedObjectKey) {
       const defaults = OBJECT_DEFAULTS[s.selectedObjectKey];
       if (defaults) {
-        const snapX = col * s.tileSize + s.tileSize / 2;
+        const snapX = snapXForSprite(col, s.selectedObjectKey, s.tileSize);
         const snapY = (row + 1) * s.tileSize;
         app.showObjectPreview(s.selectedObjectKey, snapX, snapY, defaults.anchor);
       }
@@ -353,6 +471,16 @@ export default function EditorCanvas() {
       }
       if (e.key === 'g') dispatchRef.current({ type: 'TOGGLE_GRID' });
       if (e.code === 'Space') { e.preventDefault(); spaceDownRef.current = true; }
+
+      // Undo / redo — Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z (or Ctrl+Y)
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        dispatchRef.current({ type: e.shiftKey ? 'REDO' : 'UNDO' });
+      } else if (mod && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        dispatchRef.current({ type: 'REDO' });
+      }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') spaceDownRef.current = false;
