@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useRef, useState, useEffect } from 'react';
-import { TileType, Entity } from '../core/types';
-import { EditorAction, EditorState, createInitialState } from './editorState';
-import { getSavedMapNames, loadSavedMap, saveMap, deleteSavedMap, setActiveMapName } from './mapStorage';
+import { EditorAction, EditorState } from './editorState';
+import { loadMap } from '../core/MapLoader';
+
+const GAME_MAPS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f'];
 
 interface Props {
   state: EditorState;
@@ -12,64 +13,21 @@ interface Props {
 
 export default function EditorTopBar({ state, dispatch }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [savedMaps, setSavedMaps] = useState<string[]>([]);
 
-  useEffect(() => {
-    setSavedMaps(getSavedMapNames());
-  }, []);
-
-  const refreshMapList = () => setSavedMaps(getSavedMapNames());
-
-  const handleSave = useCallback(() => {
-    if (!state.mapName.trim()) return;
-    saveMap({
-      mapName: state.mapName,
-      tiles: state.tiles,
-      objects: state.objects,
-      buildings: state.buildings,
-      mapWidth: state.mapWidth,
-      mapHeight: state.mapHeight,
-      savedAt: '',
-    });
-    setActiveMapName(state.mapName);
-    refreshMapList();
-  }, [state]);
-
-  const handleLoadMap = useCallback((name: string) => {
-    const saved = loadSavedMap(name);
-    if (!saved) return;
+  const handleLoadGameMap = useCallback((mapId: string) => {
+    if (!mapId) return;
+    const map = loadMap(mapId);
     dispatch({
       type: 'IMPORT_MAP',
-      tiles: saved.tiles,
-      objects: saved.objects,
-      buildings: saved.buildings,
-      width: saved.mapWidth,
-      height: saved.mapHeight,
+      tiles: map.tiles,
+      objects: map.objects,
+      buildings: map.buildings,
+      width: map.width,
+      height: map.height,
     });
-    dispatch({ type: 'SET_MAP_NAME', name: saved.mapName });
-    setActiveMapName(name);
+    dispatch({ type: 'SET_MAP_NAME', name: map.id });
+    if (map.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: map.tileSize });
   }, [dispatch]);
-
-  const handleNewMap = useCallback(() => {
-    if (!confirm('Create a new map? Unsaved changes will be lost.')) return;
-    const fresh = createInitialState(50, 50);
-    dispatch({
-      type: 'IMPORT_MAP',
-      tiles: fresh.tiles,
-      objects: [],
-      buildings: [],
-      width: fresh.mapWidth,
-      height: fresh.mapHeight,
-    });
-    dispatch({ type: 'SET_MAP_NAME', name: 'untitled-' + Date.now().toString(36).slice(-4) });
-  }, [dispatch]);
-
-  const handleDeleteMap = useCallback(() => {
-    if (!state.mapName.trim()) return;
-    if (!confirm(`Delete saved map "${state.mapName}"?`)) return;
-    deleteSavedMap(state.mapName);
-    refreshMapList();
-  }, [state.mapName]);
 
   const handleExport = useCallback(() => {
     const mapData = {
@@ -93,10 +51,6 @@ export default function EditorTopBar({ state, dispatch }: Props) {
     URL.revokeObjectURL(url);
   }, [state]);
 
-  const handleImport = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -114,6 +68,7 @@ export default function EditorTopBar({ state, dispatch }: Props) {
             height: data.height,
           });
           if (data.id) dispatch({ type: 'SET_MAP_NAME', name: data.id });
+          if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });
         }
       } catch {
         alert('Invalid map JSON file');
@@ -143,32 +98,18 @@ export default function EditorTopBar({ state, dispatch }: Props) {
 
       <span style={{ color: '#555' }}>|</span>
 
-      {/* Map selector dropdown */}
+      {/* Map selector */}
       <select
         value={state.mapName}
-        onChange={e => handleLoadMap(e.target.value)}
-        style={{ ...inputStyle, width: 110 }}
+        onChange={e => handleLoadGameMap(e.target.value)}
+        style={{ ...inputStyle, width: 150 }}
       >
-        <option value={state.mapName}>{state.mapName}</option>
-        {savedMaps.filter(n => n !== state.mapName).map(n => (
-          <option key={n} value={n}>{n}</option>
-        ))}
+        {GAME_MAPS.map(id => <option key={id} value={id}>{id}</option>)}
       </select>
-
-      {/* Map name edit */}
-      <input
-        value={state.mapName}
-        onChange={e => dispatch({ type: 'SET_MAP_NAME', name: e.target.value })}
-        style={{ ...inputStyle, width: 100 }}
-        placeholder="map name"
-      />
-
-      <button style={{ ...btnStyle, background: '#2a4a3a', borderColor: '#4a8a5a' }} onClick={handleSave}>Save</button>
-      <button style={btnStyle} onClick={handleNewMap}>New</button>
 
       <span style={{ color: '#555' }}>|</span>
 
-      {/* Dimensions — apply on Enter or blur */}
+      {/* Dimensions */}
       <DimensionInput
         value={state.mapWidth}
         onApply={v => dispatch({ type: 'RESIZE_MAP', width: v, height: state.mapHeight })}
@@ -191,73 +132,16 @@ export default function EditorTopBar({ state, dispatch }: Props) {
         Grid
       </label>
 
-      <select
-        value={state.tileSize}
-        onChange={e => dispatch({ type: 'SET_TILE_SIZE', tileSize: parseInt(e.target.value) })}
-        style={{ ...inputStyle, width: 58 }}
-        title="Tile size (px)"
-      >
-        <option value={16}>16 px</option>
-        <option value={32}>32 px</option>
-      </select>
-
       <div style={{ flex: 1 }} />
 
-      {savedMaps.includes(state.mapName) && (
-        <button style={{ ...btnStyle, color: '#c44', borderColor: '#844' }} onClick={handleDeleteMap}>Del</button>
-      )}
-      <button style={btnStyle} onClick={handleImport}>Import</button>
+      <button style={btnStyle} onClick={() => fileInputRef.current?.click()}>Import</button>
       <button style={{ ...btnStyle, background: '#2a3a4a', borderColor: '#4a6a8a' }} onClick={handleExport}>Export</button>
-      <button
-        style={{ ...btnStyle, background: '#4a3a6a', borderColor: '#6a5a9a' }}
-        onClick={() => {
-          const mapData = buildPlaytestMapData(state);
-          localStorage.setItem('playtest-map', JSON.stringify(mapData));
-          window.open('/?map=custom', '_blank');
-        }}
-      >Play Test</button>
-      <button
-        style={{ ...btnStyle, background: '#3a4a2a', borderColor: '#6a8a4a' }}
-        title="Make this map load when visiting / (the home page)"
-        onClick={() => {
-          const mapData = buildPlaytestMapData(state);
-          localStorage.setItem('playtest-map', JSON.stringify(mapData));
-          localStorage.setItem('use-custom-as-default', '1');
-          alert('This map will now load when visiting the home page. Use "Clear Default" to revert.');
-        }}
-      >Set as Default</button>
-      {typeof window !== 'undefined' && localStorage.getItem('use-custom-as-default') && (
-        <button
-          style={{ ...btnStyle, color: '#c44', borderColor: '#844' }}
-          onClick={() => {
-            localStorage.removeItem('use-custom-as-default');
-            alert('Reverted — the home page will now load the built-in outdoor map.');
-          }}
-        >Clear Default</button>
-      )}
 
       <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleFileChange} />
     </div>
   );
 }
 
-/** Build the MapData JSON used by both Play Test and Set-as-Default. */
-function buildPlaytestMapData(state: EditorState) {
-  return {
-    id: 'custom',
-    width: state.mapWidth,
-    height: state.mapHeight,
-    tileSize: state.tileSize,
-    tiles: state.tiles,
-    objects: state.objects,
-    buildings: state.buildings,
-    npcs: [],
-    triggers: [],
-    spawnPoints: [{ id: 'default', x: Math.floor(state.mapWidth / 2) * state.tileSize, y: Math.floor(state.mapHeight / 2) * state.tileSize, facing: 'down' }],
-  };
-}
-
-/** Number input that only applies on Enter or blur — no live resize while typing. */
 function DimensionInput({ value, onApply, style }: { value: number; onApply: (v: number) => void; style: React.CSSProperties }) {
   const [draft, setDraft] = useState(String(value));
 

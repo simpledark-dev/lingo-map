@@ -42,7 +42,7 @@ export function createInitialState(width = 50, height = 50): EditorState {
   return {
     mapWidth: width,
     mapHeight: height,
-    tileSize: 32,
+    tileSize: 16,
     tiles,
     objects: [],
     buildings: [],

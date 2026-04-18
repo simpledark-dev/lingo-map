@@ -70,9 +70,13 @@ export enum TileType {
   DIRT = 'dirt',
   PATH = 'path',
   WALL = 'wall',
+  WALL_INTERIOR = 'wall-interior',
+  WALL_INTERIOR_CORNER = 'wall-interior-corner',
   FLOOR = 'floor',
+  FLOOR_WOOD = 'floor-wood',
   WATER = 'water',
   BRIDGE = 'bridge',
+  VOID = 'void',
 }
 
 export interface SpawnPoint {
@@ -157,4 +161,6 @@ export interface GameState {
   activeDialogue: DialogueState | null;
   /** Spawn ID to use when exiting the current interior back to the outdoor map. */
   returnSpawnId: string | null;
+  /** Map ID to return to when exiting the current interior. */
+  returnMapId: string | null;
 }

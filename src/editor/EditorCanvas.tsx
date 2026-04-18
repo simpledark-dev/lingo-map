@@ -5,38 +5,20 @@ import { TileType, Entity } from '../core/types';
 import { EditorApp } from './EditorApp';
 import { editorReducer, createInitialState, EditorAction, generateObjectId } from './editorState';
 import { OBJECT_DEFAULTS, BUILDING_DEFAULTS } from './objectDefaults';
+import { loadMap } from '../core/MapLoader';
 import EditorToolPanel from './EditorToolPanel';
 import EditorTopBar from './EditorTopBar';
+
+function initFromGameMap(): ReturnType<typeof createInitialState> {
+  const map = loadMap('pokemon');
+  const base = createInitialState(map.width, map.height);
+  return { ...base, tiles: map.tiles, objects: map.objects, buildings: map.buildings, mapWidth: map.width, mapHeight: map.height, mapName: map.id, tileSize: map.tileSize };
+}
 
 export default function EditorCanvas() {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const editorAppRef = useRef<EditorApp | null>(null);
-  const [state, dispatch] = useReducer(editorReducer, null, () => {
-    if (typeof window !== 'undefined') {
-      try {
-        // Try loading last active map
-        const { getActiveMapName, loadSavedMap } = require('./mapStorage');
-        const activeName = getActiveMapName();
-        if (activeName) {
-          const saved = loadSavedMap(activeName);
-          if (saved) {
-            const base = createInitialState(saved.mapWidth, saved.mapHeight);
-            return { ...base, tiles: saved.tiles, objects: saved.objects, buildings: saved.buildings, mapWidth: saved.mapWidth, mapHeight: saved.mapHeight, mapName: saved.mapName };
-          }
-        }
-        // Fallback: try old autosave format
-        const autosave = localStorage.getItem('editor-autosave');
-        if (autosave) {
-          const data = JSON.parse(autosave);
-          if (data.tiles && data.mapWidth && data.mapHeight) {
-            const base = createInitialState(data.mapWidth, data.mapHeight);
-            return { ...base, tiles: data.tiles, objects: data.objects || [], buildings: data.buildings || [], mapWidth: data.mapWidth, mapHeight: data.mapHeight, mapName: data.mapName || 'custom-map' };
-          }
-        }
-      } catch { /* ignore */ }
-    }
-    return createInitialState(50, 50);
-  });
+  const [state, dispatch] = useReducer(editorReducer, null, initFromGameMap);
 
   // Track refs for event handlers
   const stateRef = useRef(state);
@@ -51,23 +33,26 @@ export default function EditorCanvas() {
   const panStartRef = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
   const spaceDownRef = useRef(false);
 
-  // ── Auto-save current map ──
+  // ── Auto-save to localStorage so the game page picks up changes ──
   useEffect(() => {
-    if (!state.mapName.trim()) return;
+    if (!state.mapName) return;
     try {
-      const { saveMap, setActiveMapName } = require('./mapStorage');
-      saveMap({
-        mapName: state.mapName,
+      const key = `editor-map:${state.mapName}`;
+      const data = JSON.stringify({
+        id: state.mapName,
+        width: state.mapWidth,
+        height: state.mapHeight,
+        tileSize: state.tileSize,
         tiles: state.tiles,
         objects: state.objects,
         buildings: state.buildings,
-        mapWidth: state.mapWidth,
-        mapHeight: state.mapHeight,
-        savedAt: '',
+        npcs: [],
+        triggers: [],
+        spawnPoints: [{ id: 'default', x: Math.floor(state.mapWidth / 2) * state.tileSize, y: Math.floor(state.mapHeight / 2) * state.tileSize, facing: 'down' }],
       });
-      setActiveMapName(state.mapName);
+      localStorage.setItem(key, data);
     } catch { /* storage full */ }
-  }, [state.tiles, state.objects, state.buildings, state.mapWidth, state.mapHeight, state.mapName]);
+  }, [state.tiles, state.objects, state.buildings, state.mapWidth, state.mapHeight, state.mapName, state.tileSize]);
 
   // ── Initialize PixiJS ──
   useEffect(() => {
@@ -271,7 +256,7 @@ export default function EditorCanvas() {
       const key = `${row},${col}`;
       if (!paintedCellsRef.current.has(key)) {
         paintedCellsRef.current.add(key);
-        const tileType = s.activeTool === 'eraser' ? TileType.GRASS : s.selectedTileType;
+        const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
         editorAppRef.current?.updateSingleTile(row, col, tileType);
       }
     }
@@ -289,7 +274,7 @@ export default function EditorCanvas() {
         const [r, c] = k.split(',').map(Number);
         return { row: r, col: c };
       });
-      const tileType = s.activeTool === 'eraser' ? TileType.GRASS : s.selectedTileType;
+      const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
       dispatchRef.current({ type: 'PAINT_TILES', cells, tileType });
       isPaintingRef.current = false;
       paintedCellsRef.current.clear();

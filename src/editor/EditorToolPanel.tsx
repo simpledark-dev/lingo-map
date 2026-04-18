@@ -41,20 +41,22 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
         </div>
       </Section>
 
-      {/* Buildings */}
-      <Section title="Buildings">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
-          {BUILDING_ITEMS.map(b => (
-            <AssetBtn
-              key={b.key}
-              path={b.path}
-              label={b.label}
-              active={state.activeTool === 'building' && state.selectedBuildingKey === b.key}
-              onClick={() => dispatch({ type: 'SET_SELECTED_BUILDING', buildingKey: b.key })}
-            />
-          ))}
-        </div>
-      </Section>
+      {/* Buildings — hidden when no building types are defined */}
+      {BUILDING_ITEMS.length > 0 && (
+        <Section title="Buildings">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+            {BUILDING_ITEMS.map(b => (
+              <AssetBtn
+                key={b.key}
+                path={b.path}
+                label={b.label}
+                active={state.activeTool === 'building' && state.selectedBuildingKey === b.key}
+                onClick={() => dispatch({ type: 'SET_SELECTED_BUILDING', buildingKey: b.key })}
+              />
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* Objects */}
       {OBJECT_CATEGORIES.map(cat => (

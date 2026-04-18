@@ -9,7 +9,7 @@ export function createPlayer(spawn: SpawnPoint): PlayerState {
     spriteKey: `player-${spawn.facing}`,
     anchor: { x: 0.5, y: 1.0 },
     sortY: spawn.y,
-    collisionBox: { offsetX: -10, offsetY: -12, width: 20, height: 12 },
+    collisionBox: { offsetX: -5, offsetY: -6, width: 10, height: 6 },
     facing: spawn.facing,
     movementMode: { type: 'direct' },
   };

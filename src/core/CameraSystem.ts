@@ -1,5 +1,4 @@
 import { Position } from './types';
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from './constants';
 
 /**
  * Compute camera position (top-left of viewport in world coords).
@@ -12,10 +11,12 @@ export function updateCamera(
   mapPixelWidth: number,
   mapPixelHeight: number,
   zoom: number = 1,
+  canvasWidth: number = 800,
+  canvasHeight: number = 480,
 ): Position {
   // The viewport in world-space pixels shrinks when zoomed in
-  const viewW = VIEWPORT_WIDTH / zoom;
-  const viewH = VIEWPORT_HEIGHT / zoom;
+  const viewW = canvasWidth / zoom;
+  const viewH = canvasHeight / zoom;
 
   let x = playerPos.x - viewW / 2;
   let y = playerPos.y - viewH / 2;

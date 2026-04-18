@@ -1,5 +1,4 @@
 import { Application, Container, Sprite } from 'pixi.js';
-import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from '../core/constants';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { getTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
@@ -253,13 +252,15 @@ export class RenderSystem {
     this.worldContainer.y = -cameraY * zoom;
 
     // Viewport culling — hide sprites outside the visible area
-    this.cullViewport(cameraX, cameraY, zoom);
+    const canvasW = this.app.screen.width;
+    const canvasH = this.app.screen.height;
+    this.cullViewport(cameraX, cameraY, zoom, canvasW, canvasH);
   }
 
-  private cullViewport(camX: number, camY: number, zoom: number): void {
+  private cullViewport(camX: number, camY: number, zoom: number, canvasW: number, canvasH: number): void {
     const margin = 128; // extra margin to avoid pop-in
-    const vw = VIEWPORT_WIDTH / zoom + margin * 2;
-    const vh = VIEWPORT_HEIGHT / zoom + margin * 2;
+    const vw = canvasW / zoom + margin * 2;
+    const vh = canvasH / zoom + margin * 2;
     const left = camX - margin;
     const top = camY - margin;
     const right = left + vw;

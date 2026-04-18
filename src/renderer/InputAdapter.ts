@@ -82,9 +82,8 @@ export class InputAdapter {
     if (this.activeTouches.size >= 2 && this.lastPinchDist !== null) {
       const dist = this.getPinchDist();
       const delta = dist - this.lastPinchDist;
-      // Scale sensitivity: ~150px of pinch movement = 1 zoom step
       if (Math.abs(delta) > 8) {
-        this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM,
+        this.zoom = Math.max(MIN_ZOOM, Math.max(MAX_ZOOM,
           this.zoom + (delta > 0 ? ZOOM_STEP : -ZOOM_STEP)
         ));
         this.lastPinchDist = dist;

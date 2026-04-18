@@ -55,36 +55,23 @@ export default function GameCanvas() {
     if (!containerRef.current || pixiAppRef.current) return;
 
     let cancelled = false;
-    // Check for play-test map from editor
-    let startMapId = 'outdoor';
+    // Determine start map — default to pokemon, allow ?map=<id> override
+    let startMapId = 'pokemon';
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const useCustomAsDefault = localStorage.getItem('use-custom-as-default') === '1';
-      if (params.get('map') === 'custom' || useCustomAsDefault) {
+      const mapParam = params.get('map');
+      if (mapParam) startMapId = mapParam;
+
+      // Load editor-modified maps from localStorage (overrides compiled maps)
+      const { registerMap } = require('../core/MapLoader');
+      const editorKeys = Object.keys(localStorage).filter(k => k.startsWith('editor-map:'));
+      for (const key of editorKeys) {
         try {
-          const raw = localStorage.getItem('playtest-map');
-          if (raw) {
-            const { registerMap } = require('../core/MapLoader');
-            const { outdoorMap } = require('../maps/outdoor');
-            const mapData = JSON.parse(raw);
-            // Ensure it has required spawn point
-            if (!mapData.spawnPoints?.length) {
-              mapData.spawnPoints = [{ id: 'default', x: mapData.width * 16, y: mapData.height * 16, facing: 'down' }];
-            }
-            // Inherit NPCs from outdoor map (editor doesn't have NPC placement
-            // yet). Filter to NPCs whose spawn position is in-bounds for the
-            // custom map so we don't spawn them in walls / outside the world.
-            if (!mapData.npcs?.length && outdoorMap?.npcs) {
-              const maxX = mapData.width * mapData.tileSize;
-              const maxY = mapData.height * mapData.tileSize;
-              mapData.npcs = outdoorMap.npcs.filter((n: { x: number; y: number }) =>
-                n.x >= 0 && n.x < maxX && n.y >= 0 && n.y < maxY
-              );
-            }
-            registerMap('custom', mapData);
-            startMapId = 'custom';
+          const mapData = JSON.parse(localStorage.getItem(key)!);
+          if (mapData?.id && mapData.tiles && mapData.width && mapData.height) {
+            registerMap(mapData.id, mapData);
           }
-        } catch (e) { console.error('Failed to load playtest map:', e); }
+        } catch { /* skip corrupt entries */ }
       }
     }
 
@@ -168,12 +155,10 @@ export default function GameCanvas() {
   return (
     <div
       style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: 1024,
-        maxHeight: '100dvh',
-        aspectRatio: `${VIEWPORT_WIDTH} / ${VIEWPORT_HEIGHT}`,
-        margin: '0 auto',
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100dvh',
       }}
     >
       {/* PixiJS canvas mounts here */}

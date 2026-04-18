@@ -1,15 +1,9 @@
 import { writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { outdoorMap } from '../src/maps/outdoor';
-import { indoorMap } from '../src/maps/indoor';
-import { cafeMap } from '../src/maps/cafe';
-import { restaurantMap } from '../src/maps/restaurant';
-import { bookstoreMap } from '../src/maps/bookstore';
-import { marketMap } from '../src/maps/market';
-import { bakeryMap } from '../src/maps/bakery';
-import { innMap } from '../src/maps/inn';
-import { blacksmithMap } from '../src/maps/blacksmith';
+import { pokemonMap } from '../src/maps/pokemon';
+import { pokemonHouse1fMap } from '../src/maps/pokemon-house-1f';
+import { pokemonHouse2fMap } from '../src/maps/pokemon-house-2f';
 import { MapData } from '../src/core/types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -17,15 +11,9 @@ const OUT = join(__dirname, '..', 'data');
 mkdirSync(OUT, { recursive: true });
 
 const maps: Record<string, MapData> = {
-  outdoor: outdoorMap,
-  indoor: indoorMap,
-  cafe: cafeMap,
-  restaurant: restaurantMap,
-  bookstore: bookstoreMap,
-  market: marketMap,
-  bakery: bakeryMap,
-  inn: innMap,
-  blacksmith: blacksmithMap,
+  pokemon: pokemonMap,
+  'pokemon-house-1f': pokemonHouse1fMap,
+  'pokemon-house-2f': pokemonHouse2fMap,
 };
 
 for (const [name, map] of Object.entries(maps)) {

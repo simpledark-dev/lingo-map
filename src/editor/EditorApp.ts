@@ -25,7 +25,7 @@ export class EditorApp {
 
   private mapWidth = 0;
   private mapHeight = 0;
-  private tileSize = 32;
+  private tileSize = 16;
   private initialized = false;
   private destroyed = false;
 

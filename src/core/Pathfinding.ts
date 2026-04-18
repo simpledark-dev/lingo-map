@@ -54,7 +54,7 @@ function isCellWalkable(
     for (let c = startCol; c <= endCol; c++) {
       if (r < 0 || r >= map.height || c < 0 || c >= map.width) return false;
       const t = map.tiles[r][c];
-      if (t === TileType.WALL || t === TileType.WATER) return false;
+      if (t === TileType.WALL || t === TileType.WALL_INTERIOR || t === TileType.WALL_INTERIOR_CORNER || t === TileType.WATER || t === TileType.VOID) return false;
     }
   }
 

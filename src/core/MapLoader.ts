@@ -1,24 +1,12 @@
 import { MapData, SpawnPoint } from './types';
-import { outdoorMap } from '../maps/outdoor';
-import { indoorMap } from '../maps/indoor';
-import { cafeMap } from '../maps/cafe';
-import { restaurantMap } from '../maps/restaurant';
-import { bookstoreMap } from '../maps/bookstore';
-import { marketMap } from '../maps/market';
-import { bakeryMap } from '../maps/bakery';
-import { innMap } from '../maps/inn';
-import { blacksmithMap } from '../maps/blacksmith';
+import { pokemonMap } from '../maps/pokemon';
+import { pokemonHouse1fMap } from '../maps/pokemon-house-1f';
+import { pokemonHouse2fMap } from '../maps/pokemon-house-2f';
 
 const mapRegistry: Record<string, MapData> = {
-  outdoor: outdoorMap,
-  indoor: indoorMap,
-  cafe: cafeMap,
-  restaurant: restaurantMap,
-  bookstore: bookstoreMap,
-  market: marketMap,
-  bakery: bakeryMap,
-  inn: innMap,
-  blacksmith: blacksmithMap,
+  pokemon: pokemonMap,
+  'pokemon-house-1f': pokemonHouse1fMap,
+  'pokemon-house-2f': pokemonHouse2fMap,
 };
 
 export function loadMap(mapId: string): MapData {
@@ -27,12 +15,12 @@ export function loadMap(mapId: string): MapData {
   return map;
 }
 
+export function registerMap(mapId: string, map: MapData): void {
+  mapRegistry[mapId] = map;
+}
+
 export function getSpawnPoint(map: MapData, spawnId: string): SpawnPoint {
   const spawn = map.spawnPoints.find((s) => s.id === spawnId);
   if (!spawn) throw new Error(`Spawn point "${spawnId}" not found in map "${map.id}"`);
   return spawn;
-}
-
-export function registerMap(mapId: string, map: MapData): void {
-  mapRegistry[mapId] = map;
 }

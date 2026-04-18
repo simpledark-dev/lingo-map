@@ -1,5 +1,5 @@
 import { Application } from 'pixi.js';
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../core/constants';
+import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DEFAULT_ZOOM } from '../core/constants';
 import { GameState, MapData } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
 import { buildStressMap, StressOptions } from '../core/MapStress';
@@ -58,13 +58,15 @@ export class PixiApp {
   async init(container: HTMLDivElement): Promise<void> {
     this.container = container;
 
+    const rect = container.getBoundingClientRect();
     await this.app.init({
-      width: VIEWPORT_WIDTH,
-      height: VIEWPORT_HEIGHT,
-      backgroundColor: 0x1a1a2e,
+      width: rect.width || VIEWPORT_WIDTH,
+      height: rect.height || VIEWPORT_HEIGHT,
+      backgroundColor: 0x000000,
       antialias: false,
       resolution: 1,
       autoDensity: false,
+      resizeTo: container,
     });
 
     // If destroy() was called while we were awaiting, bail out
@@ -72,10 +74,6 @@ export class PixiApp {
 
     const canvas = this.app.canvas as HTMLCanvasElement;
     canvas.style.imageRendering = 'pixelated';
-    // Maintain aspect ratio — fit inside container without stretching
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.objectFit = 'contain';
     canvas.style.position = 'absolute';
     canvas.style.top = '0';
     canvas.style.left = '0';
@@ -129,12 +127,13 @@ export class PixiApp {
     this.gameState = {
       currentMapId: mapId,
       player,
-      camera: updateCamera(player, mapW, mapH, this.inputAdapter.zoom),
+      camera: updateCamera(player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height),
       entities: map.objects,
       buildings: map.buildings,
       npcs: map.npcs,
       activeDialogue: null,
       returnSpawnId: this.gameState?.returnSpawnId ?? null,
+      returnMapId: this.gameState?.returnMapId ?? null,
     };
 
     // Initialize tap feedback (sound + visual indicator)
@@ -194,7 +193,7 @@ export class PixiApp {
         }
       }
       // Update camera and render even during dialogue (player is frozen, but camera should stay)
-      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
       this.renderSystem.updatePlayer(this.gameState.player, delta);
       this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
       this.renderSystem.updateAnimations(performance.now() / 1000);
@@ -209,7 +208,7 @@ export class PixiApp {
       this.gameState.activeDialogue = dialogueEvent;
       this.bridge.emit({ type: 'dialogueStart', dialogue: dialogueEvent });
       // Don't process movement this frame
-      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
       this.renderSystem.updatePlayer(this.gameState.player, delta);
       this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
       return;
@@ -284,34 +283,45 @@ export class PixiApp {
         if (building) {
           const returnId = `exit-${building.id}`;
           // Register a dynamic spawn point on the outdoor map if not already there
-          const outdoorMap = loadMap(this.gameState.currentMapId);
-          if (!outdoorMap.spawnPoints.find(s => s.id === returnId)) {
-            outdoorMap.spawnPoints.push({
+          const currentMap = loadMap(this.gameState.currentMapId);
+          if (!currentMap.spawnPoints.find(s => s.id === returnId)) {
+            currentMap.spawnPoints.push({
               id: returnId,
               x: building.x,
-              y: building.y + 16, // just below the door
+              y: building.y + 40, // far enough below the door trigger
               facing: 'down',
             });
           }
           this.gameState.returnSpawnId = returnId;
+          this.gameState.returnMapId = this.gameState.currentMapId;
         }
       }
 
-      // If this is an indoor exit trigger, use the saved return spawn
+      // If this is an interior exit trigger going back to where we came from,
+      // use the saved return spawn. Only consume it when the trigger's target
+      // matches returnMapId so interior→interior triggers (stairs) are unaffected.
       let spawnId = transition.targetSpawnId;
-      if (!transition.buildingId && this.gameState.returnSpawnId) {
+      let targetMapId = transition.targetMapId;
+      if (
+        !transition.buildingId &&
+        this.gameState.returnSpawnId &&
+        this.gameState.returnMapId &&
+        transition.targetMapId === this.gameState.returnMapId
+      ) {
         spawnId = this.gameState.returnSpawnId;
+        targetMapId = this.gameState.returnMapId;
         this.gameState.returnSpawnId = null;
+        this.gameState.returnMapId = null;
       }
 
-      this.loadScene(transition.targetMapId, spawnId).then(() => {
+      this.loadScene(targetMapId, spawnId).then(() => {
         this.transitioning = false;
       });
       return;
     }
 
     // Update camera
-    this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom);
+    this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
 
     // Update NPC wandering
     if (this.npcWanderStates.length > 0 && this.walkGrid) {

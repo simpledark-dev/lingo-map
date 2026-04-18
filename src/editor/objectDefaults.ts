@@ -6,20 +6,24 @@ interface ObjectDefault {
 }
 
 export const OBJECT_DEFAULTS: Record<string, ObjectDefault> = {
-  'tree':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 } },
-  'tree-test': { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -12, offsetY: -16, width: 24, height: 16 } },
-  'rock':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -12, offsetY: -20, width: 24, height: 20 } },
-  'bush':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -10, offsetY: -12, width: 20, height: 12 } },
-  'flowers':   { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
-  'lamp-post': { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 } },
-  'fence':     { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -8, width: 28, height: 8 } },
-  'well':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -20, width: 28, height: 20 } },
-  'bench':     { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -10, width: 28, height: 10 } },
-  'signpost':  { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -6, offsetY: -8, width: 12, height: 8 } },
-  'log-pile':  { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -12, offsetY: -12, width: 24, height: 12 } },
-  'pot':       { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -8, offsetY: -10, width: 16, height: 10 } },
-  'barrel':    { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -10, offsetY: -12, width: 20, height: 12 } },
-  'crate':     { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -10, offsetY: -10, width: 20, height: 10 } },
+  'wall-window':        { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
+  'wall-window-double': { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
+  'wall-painting':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
+  'wall-clock':         { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
+  'wall-staircase':     { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
+  'computer-desk':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
+  'dresser':            { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
+  'fridge':             { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -7, offsetY: -14, width: 14, height: 14 } },
+  'sink-counter':       { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
+  'drawer-cabinet':     { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -12, width: 28, height: 12 } },
+  'dining-table-small': { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -22, offsetY: -14, width: 44, height: 14 } },
+  'plant-pot':          { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -7, offsetY: -7, width: 14, height: 7 } },
+  'tv':                 { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
+  'rug-large':          { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
+  'doormat':            { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
+  'bed':                { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
+  'chair':              { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -6, offsetY: -6, width: 12, height: 6 } },
+  'bookshelf':          { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -7, offsetY: -14, width: 14, height: 14 } },
 };
 
 export interface BuildingDefault {
@@ -35,27 +39,9 @@ export interface BuildingDefault {
   baseHeight: number;
 }
 
-export const BUILDING_DEFAULTS: Record<string, BuildingDefault> = {
-  'house': { baseSpriteKey: 'house-base', roofSpriteKey: 'house-roof', anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -96, offsetY: -112, width: 192, height: 104 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'indoor', baseWidth: 192, baseHeight: 112 },
-  'cafe': { baseSpriteKey: 'cafe-base', roofSpriteKey: 'cafe-roof', anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -120, offsetY: -124, width: 240, height: 116 }, doorTrigger: { offsetX: -16, offsetY: -8, width: 32, height: 8 }, targetMapId: 'cafe', baseWidth: 240, baseHeight: 124 },
-  'restaurant': { baseSpriteKey: 'restaurant-base', roofSpriteKey: 'restaurant-roof', anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -96, offsetY: -112, width: 192, height: 104 }, doorTrigger: { offsetX: -20, offsetY: -8, width: 40, height: 8 }, targetMapId: 'restaurant', baseWidth: 192, baseHeight: 112 },
-  'bookstore': { baseSpriteKey: 'bookstore-base', roofSpriteKey: 'bookstore-roof', anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -104, offsetY: -151, width: 208, height: 143 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'bookstore', baseWidth: 208, baseHeight: 151 },
-  'market': { baseSpriteKey: 'market-base', roofSpriteKey: 'market-roof', anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -120, offsetY: -141, width: 240, height: 133 }, doorTrigger: { offsetX: -16, offsetY: -8, width: 32, height: 8 }, targetMapId: 'market', baseWidth: 240, baseHeight: 141 },
-  'bakery': { baseSpriteKey: 'bakery-base', roofSpriteKey: 'bakery-roof', anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -104, offsetY: -114, width: 208, height: 106 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'bakery', baseWidth: 208, baseHeight: 114 },
-  'inn': { baseSpriteKey: 'inn-base', roofSpriteKey: 'inn-roof', anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -80, offsetY: -112, width: 160, height: 104 }, doorTrigger: { offsetX: -14, offsetY: -8, width: 28, height: 8 }, targetMapId: 'inn', baseWidth: 160, baseHeight: 112 },
-  'blacksmith': { baseSpriteKey: 'blacksmith-base', roofSpriteKey: 'blacksmith-roof', anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -64, offsetY: -96, width: 128, height: 88 }, doorTrigger: { offsetX: -12, offsetY: -8, width: 24, height: 8 }, targetMapId: 'blacksmith', baseWidth: 128, baseHeight: 96 },
-};
+export const BUILDING_DEFAULTS: Record<string, BuildingDefault> = {};
 
-export const BUILDING_ITEMS = [
-  { key: 'house', label: 'House', path: '/assets/placeholder/house-base.png' },
-  { key: 'cafe', label: 'Cafe', path: '/assets/placeholder/cafe-base.png' },
-  { key: 'restaurant', label: 'Restaurant', path: '/assets/placeholder/restaurant-base.png' },
-  { key: 'bookstore', label: 'Bookstore', path: '/assets/placeholder/bookstore-base.png' },
-  { key: 'market', label: 'Market', path: '/assets/placeholder/market-base.png' },
-  { key: 'bakery', label: 'Bakery', path: '/assets/placeholder/bakery-base.png' },
-  { key: 'inn', label: 'Inn', path: '/assets/placeholder/inn-base.png' },
-  { key: 'blacksmith', label: 'Blacksmith', path: '/assets/placeholder/blacksmith-base.png' },
-];
+export const BUILDING_ITEMS: { key: string; label: string; path: string }[] = [];
 
 export interface TileItem {
   key: string;
@@ -79,37 +65,38 @@ export const TILE_ITEMS: TileItem[] = [
   { key: 'water', label: 'Water', path: TILESET_PATH, frame: { x: 32, y: 16, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
   { key: 'bridge', label: 'Bridge', path: '/assets/placeholder/bridge.png' },
   { key: 'wall', label: 'Wall', path: '/assets/placeholder/wall.png' },
+  { key: 'wall-interior', label: 'Int. Wall', path: '/assets/placeholder/wall-interior.png' },
   { key: 'floor', label: 'Floor', path: '/assets/placeholder/floor.png' },
+  { key: 'floor-wood', label: 'Wood Floor', path: '/assets/placeholder/floor-wood.png' },
 ];
 
 export const OBJECT_CATEGORIES = [
   {
-    label: 'Nature',
+    label: 'Interior',
     items: [
-      { key: 'tree', label: 'Tree', path: '/assets/placeholder/tree.png' },
-      { key: 'tree-test', label: 'Tree 2', path: '/assets/placeholder/tree_test.png' },
-      { key: 'rock', label: 'Rock', path: '/assets/placeholder/rock.png' },
-      { key: 'bush', label: 'Bush', path: '/assets/placeholder/bush.png' },
-      { key: 'flowers', label: 'Flowers', path: '/assets/placeholder/flowers.png' },
+      { key: 'bed', label: 'Bed', path: '/assets/placeholder/bed.png' },
+      { key: 'chair', label: 'Chair', path: '/assets/placeholder/chair.png' },
+      { key: 'bookshelf', label: 'Bookshelf', path: '/assets/placeholder/bookshelf.png' },
+      { key: 'computer-desk', label: 'Comp Desk', path: '/assets/placeholder/computer-desk.png' },
+      { key: 'dresser', label: 'Dresser', path: '/assets/placeholder/dresser.png' },
+      { key: 'fridge', label: 'Fridge', path: '/assets/placeholder/fridge.png' },
+      { key: 'sink-counter', label: 'Sink', path: '/assets/placeholder/sink-counter.png' },
+      { key: 'drawer-cabinet', label: 'Drawer', path: '/assets/placeholder/drawer-cabinet.png' },
+      { key: 'dining-table-small', label: 'Table', path: '/assets/placeholder/dining-table-small.png' },
+      { key: 'tv', label: 'TV', path: '/assets/placeholder/tv.png' },
+      { key: 'plant-pot', label: 'Plant', path: '/assets/placeholder/plant-pot.png' },
     ],
   },
   {
-    label: 'Furniture',
+    label: 'Wall Decor',
     items: [
-      { key: 'bench', label: 'Bench', path: '/assets/placeholder/bench.png' },
-      { key: 'well', label: 'Well', path: '/assets/placeholder/well.png' },
-      { key: 'fence', label: 'Fence', path: '/assets/placeholder/fence.png' },
-      { key: 'lamp-post', label: 'Lamp', path: '/assets/placeholder/lamp-post.png' },
-      { key: 'signpost', label: 'Sign', path: '/assets/placeholder/signpost.png' },
-    ],
-  },
-  {
-    label: 'Storage',
-    items: [
-      { key: 'crate', label: 'Crate', path: '/assets/placeholder/crate.png' },
-      { key: 'barrel', label: 'Barrel', path: '/assets/placeholder/barrel.png' },
-      { key: 'pot', label: 'Pot', path: '/assets/placeholder/pot.png' },
-      { key: 'log-pile', label: 'Logs', path: '/assets/placeholder/log-pile.png' },
+      { key: 'wall-window', label: 'Window', path: '/assets/placeholder/wall-window.png' },
+      { key: 'wall-window-double', label: 'Dbl Window', path: '/assets/placeholder/wall-window-double.png' },
+      { key: 'wall-painting', label: 'Painting', path: '/assets/placeholder/wall-painting.png' },
+      { key: 'wall-clock', label: 'Clock', path: '/assets/placeholder/wall-clock.png' },
+      { key: 'wall-staircase', label: 'Staircase', path: '/assets/placeholder/wall-staircase.png' },
+      { key: 'rug-large', label: 'Rug', path: '/assets/placeholder/rug-large.png' },
+      { key: 'doormat', label: 'Doormat', path: '/assets/placeholder/doormat.png' },
     ],
   },
 ];
