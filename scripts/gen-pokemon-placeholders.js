@@ -233,18 +233,14 @@ function genWallInteriorTopBR() {
 function genWallInteriorRight() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
-  // Wall face takes cols 0-12; right edge gets the gradient
+  // Wall face fills through col 14; right edge gets a 1px border
   ctx.fillStyle = '#F3DCB3';
-  ctx.fillRect(0, 0, 13, 16);
+  ctx.fillRect(0, 0, 15, 16);
   // Subtle texture
   ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(3, 4, 1, 1); ctx.fillRect(8, 7, 1, 1); ctx.fillRect(5, 2, 1, 1);
   ctx.fillRect(2, 12, 1, 1);
-  // Gray gradient on the right edge — darkest at the very edge
-  ctx.fillStyle = '#8a8270';
-  ctx.fillRect(13, 0, 1, 16);
-  ctx.fillStyle = '#6a6358';
-  ctx.fillRect(14, 0, 1, 16);
+  // Thin gray border on the right edge (1px)
   ctx.fillStyle = '#4a4640';
   ctx.fillRect(15, 0, 1, 16);
   save('wall-interior-right.png', c);
@@ -253,52 +249,35 @@ function genWallInteriorRight() {
 function genWallInteriorCornerBottomLeft() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
-  // Wall face fills the inner area — bottom-left corner is shadowed
+  // Wall face fills the inner area; left + bottom get 1px borders
   ctx.fillStyle = '#F3DCB3';
-  ctx.fillRect(3, 0, 13, 13);
+  ctx.fillRect(1, 0, 15, 15);
   // Subtle texture
   ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(7, 4, 1, 1); ctx.fillRect(13, 7, 1, 1); ctx.fillRect(10, 2, 1, 1);
-  // Left gradient (darkest at edge)
+  // Thin left border (1px, full height)
   ctx.fillStyle = '#4a4640';
   ctx.fillRect(0, 0, 1, 16);
-  ctx.fillStyle = '#6a6358';
-  ctx.fillRect(1, 0, 1, 16);
-  ctx.fillStyle = '#8a8270';
-  ctx.fillRect(2, 0, 1, 16);
-  // Bottom gradient (darkest at edge) — overrides corner cells
-  ctx.fillStyle = '#8a8270';
-  ctx.fillRect(3, 13, 13, 1);
-  ctx.fillStyle = '#6a6358';
-  ctx.fillRect(3, 14, 13, 1);
-  ctx.fillStyle = '#4a4640';
-  ctx.fillRect(3, 15, 13, 1);
+  // Thin bottom border (1px, from col 1 to right edge — left border already
+  // covers col 0)
+  ctx.fillRect(1, 15, 15, 1);
   save('wall-interior-corner-bottom-left.png', c);
 }
 
 function genWallInteriorCornerBottomRight() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
-  // Wall face — right + bottom corner is shadowed
+  // Wall face — right + bottom get 1px borders
   ctx.fillStyle = '#F3DCB3';
-  ctx.fillRect(0, 0, 13, 13);
+  ctx.fillRect(0, 0, 15, 15);
   // Subtle texture
   ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(3, 4, 1, 1); ctx.fillRect(8, 7, 1, 1); ctx.fillRect(5, 2, 1, 1);
-  // Right gradient (darkest at edge)
-  ctx.fillStyle = '#8a8270';
-  ctx.fillRect(13, 0, 1, 16);
-  ctx.fillStyle = '#6a6358';
-  ctx.fillRect(14, 0, 1, 16);
+  // Thin right border (1px, full height)
   ctx.fillStyle = '#4a4640';
   ctx.fillRect(15, 0, 1, 16);
-  // Bottom gradient
-  ctx.fillStyle = '#8a8270';
-  ctx.fillRect(0, 13, 13, 1);
-  ctx.fillStyle = '#6a6358';
-  ctx.fillRect(0, 14, 13, 1);
-  ctx.fillStyle = '#4a4640';
-  ctx.fillRect(0, 15, 13, 1);
+  // Thin bottom border (1px, cols 0 to 14 — right border covers col 15)
+  ctx.fillRect(0, 15, 15, 1);
   save('wall-interior-corner-bottom-right.png', c);
 }
 
@@ -318,38 +297,30 @@ function genWallInterior() {
 function genWallInteriorLeft() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
-  // Same wall face as wall-interior
+  // Same wall face as wall-interior, 1px left border
   ctx.fillStyle = '#F3DCB3';
-  ctx.fillRect(3, 0, 13, 16);
+  ctx.fillRect(1, 0, 15, 16);
   // Subtle texture
   ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(7, 4, 1, 1); ctx.fillRect(13, 7, 1, 1); ctx.fillRect(10, 2, 1, 1);
   ctx.fillRect(12, 12, 1, 1);
-  // Gray shadow border on the left (3px gradient — darkest at the very edge)
+  // Thin left border (1px)
   ctx.fillStyle = '#4a4640';
   ctx.fillRect(0, 0, 1, 16);
-  ctx.fillStyle = '#6a6358';
-  ctx.fillRect(1, 0, 1, 16);
-  ctx.fillStyle = '#8a8270';
-  ctx.fillRect(2, 0, 1, 16);
   save('wall-interior-left.png', c);
 }
 
 function genWallInteriorBottom() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
-  // Same wall face as wall-interior
+  // Same wall face as wall-interior, 1px bottom border
   ctx.fillStyle = '#F3DCB3';
-  ctx.fillRect(0, 0, 16, 13);
+  ctx.fillRect(0, 0, 16, 15);
   // Subtle texture
   ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(3, 4, 1, 1); ctx.fillRect(10, 7, 1, 1); ctx.fillRect(7, 2, 1, 1);
   ctx.fillRect(5, 11, 1, 1);
-  // Gray shadow border at the bottom (3px gradient)
-  ctx.fillStyle = '#8a8270';
-  ctx.fillRect(0, 13, 16, 1);
-  ctx.fillStyle = '#6a6358';
-  ctx.fillRect(0, 14, 16, 1);
+  // Thin bottom border (1px)
   ctx.fillStyle = '#4a4640';
   ctx.fillRect(0, 15, 16, 1);
   save('wall-interior-bottom.png', c);
