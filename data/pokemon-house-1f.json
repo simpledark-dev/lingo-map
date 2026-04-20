@@ -540,14 +540,14 @@
     },
     {
       "id": "obj-mo7jerls-g6t07",
-      "x": 68.73567708333334,
-      "y": 60.80989583333333,
+      "x": 70.50625000000002,
+      "y": 57.568749999999994,
       "spriteKey": "wall-window-double",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": -939.1901041666666,
+      "sortY": -942.43125,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,

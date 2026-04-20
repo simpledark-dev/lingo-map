@@ -51,20 +51,15 @@ function genWallInteriorTop() {
   // Top-face tile of a wall — visible from 3/4 perspective.
   // Top half (rows 0-7): transparent (void shows through if there's nothing behind).
   // Bottom half (rows 8-15): cream "top face" + thin gray seam where it meets the wall below.
-  // Gray seam is LIGHTER than the bottom-wall shadow (light comes from above).
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
-  // Cream top face (matches the white ceiling trim from the original wall-interior)
+  // Cream top face covers rows 8-14 (1px seam at row 15)
   ctx.fillStyle = '#e8e0d0';
-  ctx.fillRect(0, 8, 16, 5);
-  // Subtle texture on the top face
+  ctx.fillRect(0, 8, 16, 7);
+  // Subtle texture
   ctx.fillStyle = '#dcd4c4';
   ctx.fillRect(4, 10, 1, 1); ctx.fillRect(11, 9, 1, 1);
-  // Light-gray seam (3px) — top face meeting the wall front face below
-  ctx.fillStyle = '#bcb09c';
-  ctx.fillRect(0, 13, 16, 1);
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(0, 14, 16, 1);
+  // Thin 1px seam at the bottom (lighter than wall-bottom — light from above)
   ctx.fillStyle = '#948a76';
   ctx.fillRect(0, 15, 16, 1);
   save('wall-interior-top.png', c);
@@ -72,22 +67,18 @@ function genWallInteriorTop() {
 
 function genWallInteriorTopLeft() {
   // Top-face tile, vertical orientation. Left half visible, right half transparent.
-  // Gray seam runs vertically along the LEFT edge.
+  // Thin 1px seam runs vertically along the LEFT edge.
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
-  // Cream top face — fills left half except the seam columns
+  // Cream top face — cols 1-7
   ctx.fillStyle = '#e8e0d0';
-  ctx.fillRect(3, 0, 5, 16);
+  ctx.fillRect(1, 0, 7, 16);
   // Subtle texture
   ctx.fillStyle = '#dcd4c4';
-  ctx.fillRect(5, 4, 1, 1); ctx.fillRect(6, 11, 1, 1);
-  // Light-gray seam (3px) on the LEFT edge
+  ctx.fillRect(3, 4, 1, 1); ctx.fillRect(5, 11, 1, 1);
+  // Thin 1px seam on the LEFT edge
   ctx.fillStyle = '#948a76';
   ctx.fillRect(0, 0, 1, 16);
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(1, 0, 1, 16);
-  ctx.fillStyle = '#bcb09c';
-  ctx.fillRect(2, 0, 1, 16);
   save('wall-interior-top-left.png', c);
 }
 
@@ -101,132 +92,70 @@ function genWallInteriorTopCornerInnerTR() {
   // Cream BL quadrant
   ctx.fillStyle = '#e8e0d0';
   ctx.fillRect(0, 8, 8, 8);
-  // Subtle texture inside the BL cream
+  // Subtle texture
   ctx.fillStyle = '#dcd4c4';
   ctx.fillRect(4, 10, 1, 1); ctx.fillRect(6, 12, 1, 1);
-  // 3x3 gray dot at the bottom-left, gradient darkest at the very corner
-  // (matches the gradient direction of wall-top and wall-top-left seams)
-  ctx.fillStyle = '#bcb09c';
-  ctx.fillRect(0, 13, 3, 1); // top row of dot
-  ctx.fillRect(2, 14, 1, 1);
-  ctx.fillRect(2, 15, 1, 1);
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(0, 14, 2, 1);
-  ctx.fillRect(1, 15, 1, 1);
+  // 1px gray dot at the very bottom-left corner where seams terminate
   ctx.fillStyle = '#948a76';
   ctx.fillRect(0, 15, 1, 1);
   save('wall-interior-top-corner-inner-tr.png', c);
 }
 
 function genWallInteriorTopCornerBL() {
-  // Bottom-left corner that connects wall-interior-top (horizontal, seam at bottom)
-  // and wall-interior-top-left (vertical, seam at left).
-  // Layout:
-  //   TR quadrant (cols 8-15 rows 0-7): transparent
-  //   TL quadrant (cols 0-7 rows 0-7): cream + left seam (continues wall-top-left going up)
-  //   BL quadrant (cols 0-7 rows 8-15): cream + left seam + bottom seam (corner overlap)
-  //   BR quadrant (cols 8-15 rows 8-15): cream + bottom seam (continues wall-top going right)
+  // L-shape: TR quadrant transparent, other 3 quadrants cream.
+  // 1px seams on the OUTER edges (left + bottom).
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Cream face for the L shape (TL + BL + BR)
+  // Cream L-shape: TL (cols 1-7 rows 0-14) + BR (cols 8-15 rows 8-14)
   ctx.fillStyle = '#e8e0d0';
-  // TL face (cols 3-7 rows 0-12)
-  ctx.fillRect(3, 0, 5, 13);
-  // BR face (cols 8-15 rows 8-12)
-  ctx.fillRect(8, 8, 8, 5);
+  ctx.fillRect(1, 0, 7, 15);
+  ctx.fillRect(8, 8, 8, 7);
   // Subtle texture
   ctx.fillStyle = '#dcd4c4';
-  ctx.fillRect(5, 4, 1, 1); ctx.fillRect(11, 10, 1, 1);
+  ctx.fillRect(3, 4, 1, 1); ctx.fillRect(11, 10, 1, 1);
 
-  // Vertical left seam (cols 0-2) — applies across rows 0-15 where the L extends down
+  // Thin 1px seams — left edge (full height) + bottom edge of the L (cols 1-15)
   ctx.fillStyle = '#948a76';
   ctx.fillRect(0, 0, 1, 16);
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(1, 0, 1, 16);
-  ctx.fillStyle = '#bcb09c';
-  ctx.fillRect(2, 0, 1, 16);
-
-  // Horizontal bottom seam (rows 13-15) — applies across cols 3-15 (left seam already covers 0-2)
-  ctx.fillStyle = '#bcb09c';
-  ctx.fillRect(3, 13, 13, 1);
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(3, 14, 13, 1);
-  ctx.fillStyle = '#948a76';
-  ctx.fillRect(3, 15, 13, 1);
+  ctx.fillRect(1, 15, 15, 1);
 
   save('wall-interior-top-corner-bl.png', c);
 }
 
 function genWallInteriorTopBL() {
   // Top-face tile with BOTH bottom and left seams (corner end-cap on the left side).
-  // Top half (rows 0-7): transparent.
-  // Bottom half (rows 8-15): cream face + 3px bottom seam + 3px left seam.
+  // 1px borders.
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
-  // Cream face — fills the visible bottom-right area (rows 8-12, cols 3-15)
+  // Cream face — cols 1-15, rows 8-14
   ctx.fillStyle = '#e8e0d0';
-  ctx.fillRect(3, 8, 13, 5);
+  ctx.fillRect(1, 8, 15, 7);
   // Subtle texture
   ctx.fillStyle = '#dcd4c4';
-  ctx.fillRect(7, 10, 1, 1); ctx.fillRect(12, 11, 1, 1);
-  // Bottom seam — cols 3-15 (left-edge cells handled by corner gradient)
-  ctx.fillStyle = '#bcb09c';
-  ctx.fillRect(3, 13, 13, 1);
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(3, 14, 13, 1);
+  ctx.fillRect(5, 10, 1, 1); ctx.fillRect(12, 11, 1, 1);
+  // Thin 1px left + bottom borders
   ctx.fillStyle = '#948a76';
-  ctx.fillRect(3, 15, 13, 1);
-  // Left seam — rows 8-12 (bottom-row cells handled by corner gradient)
-  ctx.fillStyle = '#bcb09c';
-  ctx.fillRect(2, 8, 1, 5);
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(1, 8, 1, 5);
-  ctx.fillStyle = '#948a76';
-  ctx.fillRect(0, 8, 1, 5);
-  // Corner overlap (cols 0-2, rows 13-15) — darken toward the bottom-left
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(0, 13, 3, 3);
-  ctx.fillStyle = '#948a76';
-  ctx.fillRect(0, 14, 2, 2);
-  ctx.fillStyle = '#7a7064';
-  ctx.fillRect(0, 15, 1, 1);
+  ctx.fillRect(0, 8, 1, 8);     // left seam, rows 8-15
+  ctx.fillRect(1, 15, 15, 1);   // bottom seam, cols 1-15 (col 0 covered by left)
   save('wall-interior-top-bl.png', c);
 }
 
 function genWallInteriorTopBR() {
-  // Top-face tile with BOTH bottom and right seams (corner end-cap of a wall-top run).
-  // Top half (rows 0-7): transparent.
-  // Bottom half (rows 8-15): cream face + 3px bottom seam + 3px right seam.
+  // Top-face tile with BOTH bottom and right seams (corner end-cap on the right).
+  // 1px borders.
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
-  // Cream face — fills the visible bottom-left area (rows 8-12, cols 0-12)
+  // Cream face — cols 0-14, rows 8-14
   ctx.fillStyle = '#e8e0d0';
-  ctx.fillRect(0, 8, 13, 5);
+  ctx.fillRect(0, 8, 15, 7);
   // Subtle texture
   ctx.fillStyle = '#dcd4c4';
   ctx.fillRect(4, 10, 1, 1); ctx.fillRect(9, 11, 1, 1);
-  // Bottom seam — cols 0-12 (right-edge cells handled by corner gradient)
-  ctx.fillStyle = '#bcb09c';
-  ctx.fillRect(0, 13, 13, 1);
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(0, 14, 13, 1);
+  // Thin 1px right + bottom borders
   ctx.fillStyle = '#948a76';
-  ctx.fillRect(0, 15, 13, 1);
-  // Right seam — rows 8-12 (bottom-row cells handled by corner gradient)
-  ctx.fillStyle = '#bcb09c';
-  ctx.fillRect(13, 8, 1, 5);
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(14, 8, 1, 5);
-  ctx.fillStyle = '#948a76';
-  ctx.fillRect(15, 8, 1, 5);
-  // Corner overlap (cols 13-15, rows 13-15) — darken toward the bottom-right
-  ctx.fillStyle = '#a89e88';
-  ctx.fillRect(13, 13, 3, 3);
-  ctx.fillStyle = '#948a76';
-  ctx.fillRect(14, 14, 2, 2);
-  ctx.fillStyle = '#7a7064';
-  ctx.fillRect(15, 15, 1, 1);
+  ctx.fillRect(15, 8, 1, 8);    // right seam, rows 8-15
+  ctx.fillRect(0, 15, 15, 1);   // bottom seam, cols 0-14 (col 15 covered by right)
   save('wall-interior-top-br.png', c);
 }
 
