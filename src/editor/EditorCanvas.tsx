@@ -260,12 +260,15 @@ export default function EditorCanvas() {
       const defaults = OBJECT_DEFAULTS[s.selectedObjectKey] ?? { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } };
       const snapX = snapXForSprite(col, s.selectedObjectKey, s.tileSize);
       const snapY = (row + 1) * s.tileSize;
+      // Decor objects (rugs, doormats, wall-mounted items) render BEHIND the
+      // player so we can walk over/in front of them. Big negative offset.
+      const sortY = defaults.isDecor ? snapY - 1000 : snapY;
       const entity = {
         id: generateObjectId(),
         x: snapX, y: snapY,
         spriteKey: s.selectedObjectKey,
         anchor: defaults.anchor,
-        sortY: snapY,
+        sortY,
         collisionBox: defaults.collisionBox,
       };
       dispatchRef.current({ type: 'PLACE_OBJECT', entity });

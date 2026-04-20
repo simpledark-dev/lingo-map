@@ -1,5 +1,5 @@
 import { Application } from 'pixi.js';
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DEFAULT_ZOOM } from '../core/constants';
+import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DEFAULT_ZOOM, DECOR_SPRITE_KEYS } from '../core/constants';
 import { GameState, MapData, TileType } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
 import { buildStressMap, StressOptions } from '../core/MapStress';
@@ -105,7 +105,18 @@ export class PixiApp {
   }
 
   private async loadScene(mapId: string, spawnId: string): Promise<void> {
-    const baseMap = buildStressMap(loadMap(mapId), this.options);
+    const rawMap = buildStressMap(loadMap(mapId), this.options);
+    // Fix sortY for decor sprites that may have been saved with the wrong
+    // value (older editor versions set sortY = feet position instead of
+    // feet - 1000). Without this, the player can walk behind rugs etc.
+    const baseMap = {
+      ...rawMap,
+      objects: rawMap.objects.map(o =>
+        DECOR_SPRITE_KEYS.has(o.spriteKey) && o.sortY > o.y - 100
+          ? { ...o, sortY: o.y - 1000 }
+          : o
+      ),
+    };
     // Auto-generate door triggers from entities with `transition` metadata
     // (e.g., staircases). Trigger zone covers the bottom row of the entity's
     // visual footprint so clicking anywhere on the sprite walks the player

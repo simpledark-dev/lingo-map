@@ -137,8 +137,8 @@
       "wall-interior-right"
     ],
     [
-      "floor-wood-3",
-      "floor-wood-3",
+      "floor-wood",
+      "floor-wood",
       "floor-wood",
       "floor-wood",
       "floor-wood",
@@ -160,7 +160,7 @@
     ],
     [
       "floor-wood",
-      "floor-wood-3",
+      "floor-wood",
       "floor-wood",
       "floor-wood",
       "floor-wood",
@@ -181,8 +181,8 @@
       "floor-wood"
     ],
     [
-      "floor-wood-3",
-      "floor-wood-3",
+      "floor-wood",
+      "floor-wood",
       "floor-wood",
       "floor-wood",
       "floor-wood",
@@ -461,23 +461,6 @@
       }
     },
     {
-      "id": "obj-4",
-      "x": 72,
-      "y": 64,
-      "spriteKey": "wall-window-double",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 64,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      }
-    },
-    {
       "id": "obj-2",
       "x": 192,
       "y": 192,
@@ -499,23 +482,6 @@
       "x": 48,
       "y": 96,
       "spriteKey": "sink-counter",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 96,
-      "collisionBox": {
-        "offsetX": -14,
-        "offsetY": -14,
-        "width": 28,
-        "height": 14
-      }
-    },
-    {
-      "id": "obj-4",
-      "x": 128,
-      "y": 96,
-      "spriteKey": "tv",
       "anchor": {
         "x": 0.5,
         "y": 1
@@ -594,6 +560,23 @@
         "offsetY": 0,
         "width": 0,
         "height": 0
+      }
+    },
+    {
+      "id": "obj-2",
+      "x": 152,
+      "y": 112,
+      "spriteKey": "computer-desk",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 112,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -14,
+        "width": 28,
+        "height": 14
       }
     }
   ],

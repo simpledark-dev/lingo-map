@@ -383,23 +383,6 @@
       }
     },
     {
-      "id": "obj-11",
-      "x": 16,
-      "y": 96,
-      "spriteKey": "computer-desk",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 96,
-      "collisionBox": {
-        "offsetX": -14,
-        "offsetY": -14,
-        "width": 28,
-        "height": 14
-      }
-    },
-    {
       "id": "obj-12",
       "x": 112,
       "y": 96,
@@ -465,6 +448,23 @@
         "offsetY": 0,
         "width": 0,
         "height": 0
+      }
+    },
+    {
+      "id": "obj-1",
+      "x": 40,
+      "y": 112,
+      "spriteKey": "computer-desk",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 112,
+      "collisionBox": {
+        "offsetX": -14,
+        "offsetY": -14,
+        "width": 28,
+        "height": 14
       }
     }
   ],

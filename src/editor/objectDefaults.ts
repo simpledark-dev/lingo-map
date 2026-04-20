@@ -3,14 +3,18 @@ import { Anchor, CollisionBox, Building } from '../core/types';
 interface ObjectDefault {
   anchor: Anchor;
   collisionBox: CollisionBox;
+  /** If true, sprite always renders BEHIND other entities/player. Used for
+   * floor decor (rugs, doormats) and wall decor (windows, paintings) so the
+   * player walks over/in front of them. */
+  isDecor?: boolean;
 }
 
 export const OBJECT_DEFAULTS: Record<string, ObjectDefault> = {
-  'wall-window':        { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
-  'wall-window-double': { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
-  'wall-painting':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
-  'wall-clock':         { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
-  'wall-staircase':     { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
+  'wall-window':        { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
+  'wall-window-double': { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
+  'wall-painting':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
+  'wall-clock':         { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
+  'wall-staircase':     { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
   'computer-desk':      { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
   'dresser':            { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
   'fridge':             { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -7, offsetY: -14, width: 14, height: 14 } },
@@ -19,8 +23,8 @@ export const OBJECT_DEFAULTS: Record<string, ObjectDefault> = {
   'dining-table-small': { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -22, offsetY: -14, width: 44, height: 14 } },
   'plant-pot':          { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -7, offsetY: -7, width: 14, height: 7 } },
   'tv':                 { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
-  'rug-large':          { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
-  'doormat':            { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } },
+  'rug-large':          { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
+  'doormat':            { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
   'bed':                { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
   'chair':              { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -6, offsetY: -6, width: 12, height: 6 } },
   'bookshelf':          { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -7, offsetY: -14, width: 14, height: 14 } },
