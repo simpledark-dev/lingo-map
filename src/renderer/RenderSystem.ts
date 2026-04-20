@@ -121,6 +121,7 @@ export class RenderSystem {
       sprite.x = obj.x;
       sprite.y = obj.y;
       sprite.zIndex = obj.sortY;
+      if (obj.scale && obj.scale !== 1) sprite.scale.set(obj.scale);
       this.entityLayer.addChild(sprite);
       this.objectSprites.set(obj.id, sprite);
 

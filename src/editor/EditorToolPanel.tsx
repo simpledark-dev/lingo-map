@@ -10,6 +10,10 @@ interface Props {
 }
 
 export default function EditorToolPanel({ state, dispatch }: Props) {
+  const selectedObject = state.selectedObjectId
+    ? state.objects.find(o => o.id === state.selectedObjectId)
+    : null;
+
   return (
     <div style={{
       width: 240, minWidth: 240, height: '100%', overflow: 'auto',
@@ -24,6 +28,31 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
           <ToolBtn active={state.activeTool === 'eraser'} onClick={() => dispatch({ type: 'SET_TOOL', tool: 'eraser' })} label="Eraser" />
         </div>
       </Section>
+
+      {/* Selection — only shown when an object is selected via the select tool */}
+      {selectedObject && (
+        <Section title={`Selection: ${selectedObject.spriteKey}`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 11, color: '#aaa' }}>
+              Scale: {Math.round((selectedObject.scale ?? 1) * 100)}%
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <ScaleBtn label="−−" onClick={() => dispatch({ type: 'SET_OBJECT_SCALE', id: selectedObject.id, scale: (selectedObject.scale ?? 1) * 0.5 })} />
+              <ScaleBtn label="−" onClick={() => dispatch({ type: 'SET_OBJECT_SCALE', id: selectedObject.id, scale: (selectedObject.scale ?? 1) * 0.9 })} />
+              <ScaleBtn label="+" onClick={() => dispatch({ type: 'SET_OBJECT_SCALE', id: selectedObject.id, scale: (selectedObject.scale ?? 1) * 1.1 })} />
+              <ScaleBtn label="Reset" onClick={() => dispatch({ type: 'SET_OBJECT_SCALE', id: selectedObject.id, scale: 1 })} />
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={100}
+              value={Math.round((selectedObject.scale ?? 1) * 100)}
+              onChange={e => dispatch({ type: 'SET_OBJECT_SCALE', id: selectedObject.id, scale: parseInt(e.target.value) / 100 })}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </Section>
+      )}
 
       {/* Tiles */}
       <Section title="Tiles">
@@ -84,6 +113,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <div style={{ fontWeight: 'bold', marginBottom: 4, color: '#aaa', textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>{title}</div>
       {children}
     </div>
+  );
+}
+
+function ScaleBtn({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1, padding: '4px 0', border: '1px solid #444',
+        borderRadius: 3, background: '#2a2a3a', color: '#ddd',
+        cursor: 'pointer', fontSize: 10, minWidth: 28,
+      }}
+    >{label}</button>
   );
 }
 

@@ -168,7 +168,11 @@ const spriteManifest: Record<string, string> = {
   'plant-pot': `${ASSET_BASE}plant-pot.png`,
   'tv': `${ASSET_BASE}tv.png`,
   'rug-large': `${ASSET_BASE}rug-large.png`,
+  'rug-medium': `${ASSET_BASE}rug-medium.png`,
   'doormat': `${ASSET_BASE}doormat.png`,
+  'floor-clock': `${ASSET_BASE}floor-clock.png`,
+  'plant-pot-2': `${ASSET_BASE}plant-pot-2.png`,
+  'lamp-table': `${ASSET_BASE}lamp-table.png`,
   // Outdoor decorations
   'flowers': `${ASSET_BASE}flowers.png`,
   'lamp-post': `${ASSET_BASE}lamp-post.png`,

@@ -71,6 +71,8 @@ export type EditorAction =
   | { type: 'PLACE_BUILDING'; building: Building }
   | { type: 'DELETE_BUILDING'; id: string }
   | { type: 'SELECT_OBJECT'; id: string | null }
+  | { type: 'SET_OBJECT_SCALE'; id: string; scale: number }
+  | { type: 'MOVE_OBJECT'; id: string; x: number; y: number }
   | { type: 'SET_TOOL'; tool: EditorState['activeTool'] }
   | { type: 'SET_SELECTED_TILE'; tileType: TileType }
   | { type: 'SET_SELECTED_OBJECT'; spriteKey: string }
@@ -87,9 +89,15 @@ export type EditorAction =
 
 // ── Reducer ──
 
-let nextObjId = 1;
+/**
+ * Generate a unique-enough object ID using a timestamp + random suffix.
+ * Avoids collisions across page refreshes (module-level counters reset on
+ * reload and end up colliding with IDs already persisted to disk).
+ */
 export function generateObjectId(): string {
-  return `obj-${nextObjId++}`;
+  const ts = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 7);
+  return `obj-${ts}-${rand}`;
 }
 
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
@@ -174,6 +182,28 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
     case 'SELECT_OBJECT':
       return { ...state, selectedObjectId: action.id };
+
+    case 'SET_OBJECT_SCALE': {
+      // Scale is capped at 100% since source assets are already bigger than
+      // needed — the only workflow is shrinking. Lower bound 1% for fine
+      // granularity on very small decor.
+      const clamped = Math.max(0.01, Math.min(1, action.scale));
+      return {
+        ...state,
+        objects: state.objects.map(o =>
+          o.id === action.id ? { ...o, scale: clamped } : o
+        ),
+      };
+    }
+
+    case 'MOVE_OBJECT': {
+      return {
+        ...state,
+        objects: state.objects.map(o =>
+          o.id === action.id ? { ...o, x: action.x, y: action.y, sortY: o.sortY === o.y ? action.y : (o.sortY < 0 ? action.y - 1000 : o.sortY) } : o
+        ),
+      };
+    }
 
     case 'SET_TOOL':
       return { ...state, activeTool: action.tool, selectedObjectId: null };

@@ -234,10 +234,10 @@ function genWallInteriorRight() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
   // Wall face takes cols 0-12; right edge gets the gradient
-  ctx.fillStyle = '#d4c8a0';
+  ctx.fillStyle = '#F3DCB3';
   ctx.fillRect(0, 0, 13, 16);
   // Subtle texture
-  ctx.fillStyle = '#ccc098';
+  ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(3, 4, 1, 1); ctx.fillRect(8, 7, 1, 1); ctx.fillRect(5, 2, 1, 1);
   ctx.fillRect(2, 12, 1, 1);
   // Gray gradient on the right edge — darkest at the very edge
@@ -254,10 +254,10 @@ function genWallInteriorCornerBottomLeft() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
   // Wall face fills the inner area — bottom-left corner is shadowed
-  ctx.fillStyle = '#d4c8a0';
+  ctx.fillStyle = '#F3DCB3';
   ctx.fillRect(3, 0, 13, 13);
   // Subtle texture
-  ctx.fillStyle = '#ccc098';
+  ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(7, 4, 1, 1); ctx.fillRect(13, 7, 1, 1); ctx.fillRect(10, 2, 1, 1);
   // Left gradient (darkest at edge)
   ctx.fillStyle = '#4a4640';
@@ -280,10 +280,10 @@ function genWallInteriorCornerBottomRight() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
   // Wall face — right + bottom corner is shadowed
-  ctx.fillStyle = '#d4c8a0';
+  ctx.fillStyle = '#F3DCB3';
   ctx.fillRect(0, 0, 13, 13);
   // Subtle texture
-  ctx.fillStyle = '#ccc098';
+  ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(3, 4, 1, 1); ctx.fillRect(8, 7, 1, 1); ctx.fillRect(5, 2, 1, 1);
   // Right gradient (darkest at edge)
   ctx.fillStyle = '#8a8270';
@@ -306,10 +306,10 @@ function genWallInterior() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
   // Main wall face — fills the full tile so stacked tiles read as one smooth surface
-  ctx.fillStyle = '#d4c8a0';
+  ctx.fillStyle = '#F3DCB3';
   ctx.fillRect(0, 0, 16, 16);
   // Subtle texture dots
-  ctx.fillStyle = '#ccc098';
+  ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(3, 4, 1, 1); ctx.fillRect(10, 7, 1, 1); ctx.fillRect(7, 2, 1, 1);
   ctx.fillRect(12, 12, 1, 1); ctx.fillRect(5, 11, 1, 1);
   save('wall-interior.png', c);
@@ -319,10 +319,10 @@ function genWallInteriorLeft() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
   // Same wall face as wall-interior
-  ctx.fillStyle = '#d4c8a0';
+  ctx.fillStyle = '#F3DCB3';
   ctx.fillRect(3, 0, 13, 16);
   // Subtle texture
-  ctx.fillStyle = '#ccc098';
+  ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(7, 4, 1, 1); ctx.fillRect(13, 7, 1, 1); ctx.fillRect(10, 2, 1, 1);
   ctx.fillRect(12, 12, 1, 1);
   // Gray shadow border on the left (3px gradient — darkest at the very edge)
@@ -339,10 +339,10 @@ function genWallInteriorBottom() {
   const c = createCanvas(16, 16);
   const ctx = c.getContext('2d');
   // Same wall face as wall-interior
-  ctx.fillStyle = '#d4c8a0';
+  ctx.fillStyle = '#F3DCB3';
   ctx.fillRect(0, 0, 16, 13);
   // Subtle texture
-  ctx.fillStyle = '#ccc098';
+  ctx.fillStyle = '#E6CA9B';
   ctx.fillRect(3, 4, 1, 1); ctx.fillRect(10, 7, 1, 1); ctx.fillRect(7, 2, 1, 1);
   ctx.fillRect(5, 11, 1, 1);
   // Gray shadow border at the bottom (3px gradient)

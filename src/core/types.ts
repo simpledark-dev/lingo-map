@@ -30,6 +30,8 @@ export interface Entity {
   anchor: Anchor;
   sortY: number; // explicit depth value — hand-set, not computed from sprite
   collisionBox: CollisionBox;
+  /** Optional uniform scale factor applied to the rendered sprite. Default 1.0. */
+  scale?: number;
   /** Optional door-like transition. When the player walks onto this entity's
    * footprint, the engine fires a scene change. Used for staircases inside
    * interior maps so the trigger follows the visual decor.

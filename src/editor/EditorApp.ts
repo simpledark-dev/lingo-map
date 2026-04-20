@@ -1,4 +1,4 @@
-import { Application, Container, Sprite, Graphics } from 'pixi.js';
+import { Application, Container, Sprite, Graphics, Text } from 'pixi.js';
 import { TileType, Entity, Building } from '../core/types';
 import { getTexture, preloadAllAssets } from '../renderer/AssetLoader';
 import { buildTransitionLayer } from '../renderer/TransitionTiles';
@@ -15,6 +15,7 @@ export class EditorApp {
   private gridOverlay: Container;
   private hoverGraphics: Graphics;
   private selectionGraphics: Graphics;
+  private selectionLabel: Text | null = null;
   private previewContainer: Container;
   private previewSprites: Sprite[] = [];
 
@@ -174,6 +175,7 @@ export class EditorApp {
     s.x = obj.x;
     s.y = obj.y;
     s.zIndex = obj.sortY;
+    if (obj.scale && obj.scale !== 1) s.scale.set(obj.scale);
     this.entityLayer.addChild(s);
     this.objectSprites.set(obj.id, s);
   }
@@ -262,9 +264,43 @@ export class EditorApp {
     this.selectionGraphics.clear();
     const s = this.objectSprites.get(obj.id);
     if (!s) return;
-    const bounds = s.getBounds();
-    this.selectionGraphics.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+    // Compute world-space bounds from the entity's position, anchor, texture,
+    // and scale. Using sprite.getBounds() returns screen-space coords which
+    // don't match the selectionGraphics parent (worldContainer is zoomed).
+    const texW = s.texture.width;
+    const texH = s.texture.height;
+    const scale = obj.scale ?? 1;
+    const w = texW * scale;
+    const h = texH * scale;
+    const left = obj.x - w * obj.anchor.x;
+    const top = obj.y - h * obj.anchor.y;
+    this.selectionGraphics.rect(left, top, w, h);
     this.selectionGraphics.stroke({ width: 2, color: 0x44ff44, alpha: 0.8 });
+
+    // Dimension label — rendered in world coords above the selection rect.
+    // Compensate for world zoom so text stays a readable ~10-12px on screen.
+    const worldZoom = this.worldContainer.scale.x || 1;
+    const displayW = Math.round(w);
+    const displayH = Math.round(h);
+    if (!this.selectionLabel) {
+      this.selectionLabel = new Text({
+        text: '',
+        style: {
+          fontFamily: 'monospace',
+          fontSize: 12,
+          fill: 0x44ff44,
+          stroke: { color: 0x000000, width: 3 },
+          align: 'center',
+        },
+      });
+      this.selectionLabel.anchor.set(0.5, 1);
+      this.worldContainer.addChild(this.selectionLabel);
+    }
+    this.selectionLabel.text = `${displayW} × ${displayH}`;
+    this.selectionLabel.scale.set(1 / worldZoom);
+    this.selectionLabel.x = left + w / 2;
+    this.selectionLabel.y = top - 2 / worldZoom;
+    this.selectionLabel.visible = true;
   }
 
   clearHighlight(): void {
@@ -319,12 +355,17 @@ export class EditorApp {
 
   clearSelection(): void {
     this.selectionGraphics.clear();
+    if (this.selectionLabel) this.selectionLabel.visible = false;
   }
 
   updateCamera(x: number, y: number, zoom: number): void {
     this.worldContainer.scale.set(zoom, zoom);
     this.worldContainer.x = -x * zoom;
     this.worldContainer.y = -y * zoom;
+    // Keep the selection label at a constant on-screen size regardless of zoom
+    if (this.selectionLabel && this.selectionLabel.visible) {
+      this.selectionLabel.scale.set(1 / zoom);
+    }
   }
 
   getCanvas(): HTMLCanvasElement | null {

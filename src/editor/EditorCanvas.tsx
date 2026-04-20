@@ -18,11 +18,11 @@ const ACTIVE_MAP_KEY = 'editor-active-map';
  * isn't loaded yet (shouldn't happen after initial render, but safe default).
  */
 function getSpriteBounds(
-  x: number, y: number, spriteKey: string, anchor: { x: number; y: number }, tileSize: number,
+  x: number, y: number, spriteKey: string, anchor: { x: number; y: number }, tileSize: number, scale: number = 1,
 ): { left: number; top: number; right: number; bottom: number } {
   const tex = getTexture(spriteKey);
-  const w = tex?.width ?? tileSize;
-  const h = tex?.height ?? tileSize;
+  const w = (tex?.width ?? tileSize) * scale;
+  const h = (tex?.height ?? tileSize) * scale;
   const left = x - w * anchor.x;
   const top = y - h * anchor.y;
   return { left, top, right: left + w, bottom: top + h };
@@ -90,6 +90,14 @@ export default function EditorCanvas() {
   const panStartRef = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
   const spaceDownRef = useRef(false);
 
+  // Object drag state — when user grabs a selected object with the select tool
+  const draggingObjectRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
+
+  // Copy/paste: last copied entity (without id) and last known cursor world pos
+  const clipboardRef = useRef<Entity | null>(null);
+  const cursorWorldRef = useRef<{ x: number; y: number } | null>(null);
+  const shiftDownRef = useRef(false);
+
   // Track whether we've loaded from disk yet, so the auto-save doesn't fire
   // with stale (pre-load) state and overwrite the disk copy.
   const diskLoadedRef = useRef(false);
@@ -103,7 +111,15 @@ export default function EditorCanvas() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (cancelled || !data?.tiles || !data.width || !data.height) return;
-        dispatch({ type: 'IMPORT_MAP', tiles: data.tiles, objects: data.objects || [], buildings: data.buildings || [], width: data.width, height: data.height });
+        // Deduplicate object IDs — older saves can contain collisions (a
+        // module-level counter that reset on refresh used to hand out repeat
+        // IDs). Selecting/resizing one object used to affect all duplicates.
+        const seenIds = new Set<string>();
+        const objects = (data.objects || []).map((o: Entity) => {
+          if (!seenIds.has(o.id)) { seenIds.add(o.id); return o; }
+          return { ...o, id: generateObjectId() };
+        });
+        dispatch({ type: 'IMPORT_MAP', tiles: data.tiles, objects, buildings: data.buildings || [], width: data.width, height: data.height });
         if (data.id) dispatch({ type: 'SET_MAP_NAME', name: data.id });
         if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });
       })
@@ -258,14 +274,16 @@ export default function EditorCanvas() {
       // We'll batch dispatch on pointer up
     } else if (s.activeTool === 'object' && s.selectedObjectKey) {
       const defaults = OBJECT_DEFAULTS[s.selectedObjectKey] ?? { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } };
-      const snapX = snapXForSprite(col, s.selectedObjectKey, s.tileSize);
-      const snapY = (row + 1) * s.tileSize;
+      // Hold SHIFT to place freely (no tile snap). Default is snap-to-grid.
+      const freeMode = e.shiftKey;
+      const placeX = freeMode ? x : snapXForSprite(col, s.selectedObjectKey, s.tileSize);
+      const placeY = freeMode ? y : (row + 1) * s.tileSize;
       // Decor objects (rugs, doormats, wall-mounted items) render BEHIND the
       // player so we can walk over/in front of them. Big negative offset.
-      const sortY = defaults.isDecor ? snapY - 1000 : snapY;
+      const sortY = defaults.isDecor ? placeY - 1000 : placeY;
       const entity = {
         id: generateObjectId(),
-        x: snapX, y: snapY,
+        x: placeX, y: placeY,
         spriteKey: s.selectedObjectKey,
         anchor: defaults.anchor,
         sortY,
@@ -305,9 +323,11 @@ export default function EditorCanvas() {
       if (!found) {
         const sorted = [...s.objects].sort((a, b) => b.sortY - a.sortY);
         for (const obj of sorted) {
-          const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize);
+          const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize, obj.scale ?? 1);
           if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
             dispatchRef.current({ type: 'SELECT_OBJECT', id: obj.id });
+            // Start dragging — record offset between cursor and entity anchor
+            draggingObjectRef.current = { id: obj.id, dx: obj.x - x, dy: obj.y - y };
             found = true;
             break;
           }
@@ -326,7 +346,7 @@ export default function EditorCanvas() {
       // Then objects
       const sorted = [...s.objects].sort((a, b) => b.sortY - a.sortY);
       for (const obj of sorted) {
-        const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize);
+        const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize, obj.scale ?? 1);
         if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
           dispatchRef.current({ type: 'DELETE_OBJECT', id: obj.id });
           return;
@@ -350,11 +370,42 @@ export default function EditorCanvas() {
       return;
     }
 
-    const { row, col } = getWorldPos(e);
+    // If dragging a selected object, move it to the cursor (snapped to the
+    // tile grid by default, or freely if SHIFT is held).
+    if (draggingObjectRef.current) {
+      const drag = draggingObjectRef.current;
+      const obj = s.objects.find(o => o.id === drag.id);
+      if (obj) {
+        const world = editorAppRef.current?.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, s.zoom);
+        if (world) {
+          // target position = cursor + initial offset, then optionally snap
+          const tx = world.x + drag.dx;
+          const ty = world.y + drag.dy;
+          let nextX: number, nextY: number;
+          if (e.shiftKey) {
+            nextX = tx;
+            nextY = ty;
+          } else {
+            const targetCol = Math.floor(tx / s.tileSize);
+            const targetRow = Math.floor(ty / s.tileSize);
+            nextX = snapXForSprite(targetCol, obj.spriteKey, s.tileSize);
+            nextY = (targetRow + 1) * s.tileSize;
+          }
+          if (nextX !== obj.x || nextY !== obj.y) {
+            dispatchRef.current({ type: 'MOVE_OBJECT', id: obj.id, x: nextX, y: nextY });
+          }
+        }
+      }
+      return;
+    }
+
+    const { x, y, row, col } = getWorldPos(e);
+    cursorWorldRef.current = { x, y };
     const app = editorAppRef.current;
     app?.highlightCell(row, col);
 
-    // Show placement preview
+    // Show placement preview — SHIFT disables tile snap for free placement.
+    const freeMode = e.shiftKey;
     if (app && s.activeTool === 'building' && s.selectedBuildingKey) {
       const bd = BUILDING_DEFAULTS[s.selectedBuildingKey];
       if (bd) {
@@ -365,9 +416,9 @@ export default function EditorCanvas() {
     } else if (app && s.activeTool === 'object' && s.selectedObjectKey) {
       const defaults = OBJECT_DEFAULTS[s.selectedObjectKey];
       if (defaults) {
-        const snapX = snapXForSprite(col, s.selectedObjectKey, s.tileSize);
-        const snapY = (row + 1) * s.tileSize;
-        app.showObjectPreview(s.selectedObjectKey, snapX, snapY, defaults.anchor);
+        const px = freeMode ? x : snapXForSprite(col, s.selectedObjectKey, s.tileSize);
+        const py = freeMode ? y : (row + 1) * s.tileSize;
+        app.showObjectPreview(s.selectedObjectKey, px, py, defaults.anchor);
       }
     } else {
       app?.clearPreview();
@@ -386,6 +437,11 @@ export default function EditorCanvas() {
   const handlePointerUp = useCallback(() => {
     if (isPanningRef.current) {
       isPanningRef.current = false;
+      return;
+    }
+
+    if (draggingObjectRef.current) {
+      draggingObjectRef.current = null;
       return;
     }
 
@@ -474,6 +530,7 @@ export default function EditorCanvas() {
       }
       if (e.key === 'g') dispatchRef.current({ type: 'TOGGLE_GRID' });
       if (e.code === 'Space') { e.preventDefault(); spaceDownRef.current = true; }
+      if (e.key === 'Shift') shiftDownRef.current = true;
 
       // Undo / redo — Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z (or Ctrl+Y)
       const mod = e.metaKey || e.ctrlKey;
@@ -484,9 +541,49 @@ export default function EditorCanvas() {
         e.preventDefault();
         dispatchRef.current({ type: 'REDO' });
       }
+
+      // Copy / paste
+      if (mod && e.key.toLowerCase() === 'c') {
+        const s = stateRef.current;
+        if (s.selectedObjectId) {
+          const selected = s.objects.find(o => o.id === s.selectedObjectId);
+          if (selected) {
+            e.preventDefault();
+            clipboardRef.current = selected;
+          }
+        }
+      } else if (mod && e.key.toLowerCase() === 'v') {
+        const src = clipboardRef.current;
+        const cursor = cursorWorldRef.current;
+        if (src && cursor) {
+          e.preventDefault();
+          const s = stateRef.current;
+          const freeMode = shiftDownRef.current;
+          let x: number, y: number;
+          if (freeMode) {
+            x = cursor.x;
+            y = cursor.y;
+          } else {
+            const col = Math.floor(cursor.x / s.tileSize);
+            const row = Math.floor(cursor.y / s.tileSize);
+            x = snapXForSprite(col, src.spriteKey, s.tileSize);
+            y = (row + 1) * s.tileSize;
+          }
+          const sortY = src.sortY < 0 ? y - 1000 : y;
+          const entity: Entity = {
+            ...src,
+            id: generateObjectId(),
+            x, y,
+            sortY,
+          };
+          dispatchRef.current({ type: 'PLACE_OBJECT', entity });
+          dispatchRef.current({ type: 'SELECT_OBJECT', id: entity.id });
+        }
+      }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') spaceDownRef.current = false;
+      if (e.key === 'Shift') shiftDownRef.current = false;
     };
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
