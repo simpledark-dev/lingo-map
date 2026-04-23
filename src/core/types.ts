@@ -47,13 +47,21 @@ export interface Building {
   x: number;
   y: number;
   baseSpriteKey: string;
-  roofSpriteKey: string;
+  /** Optional separate roof sprite, always drawn above the base on the Roofs
+   * layer so the player appears to walk behind it. Omit for buildings drawn as
+   * a single combined image. */
+  roofSpriteKey?: string;
   anchor: Anchor;
   sortY: number;
+  /** Relative to unscaled sprite; scaled proportionally at read time when
+   * `scale` is set so the hitbox stays visually aligned. */
   collisionBox: CollisionBox;
+  /** Also scaled proportionally with `scale`. */
   doorTrigger: CollisionBox;
   targetMapId: string;
   targetSpawnId: string;
+  /** Uniform visual scale. Default 1.0. Also scales collision/door trigger. */
+  scale?: number;
 }
 
 export interface NPCData {
@@ -76,6 +84,7 @@ export interface NPCData {
 
 export enum TileType {
   GRASS = 'grass',
+  GRASS_NEW = 'grass-new',
   GRASS_DARK = 'grass_dark',
   DIRT = 'dirt',
   PATH = 'path',
@@ -96,6 +105,10 @@ export enum TileType {
   FLOOR_WOOD = 'floor-wood',
   FLOOR_WOOD_2 = 'floor-wood-2',
   FLOOR_WOOD_3 = 'floor-wood-3',
+  /** A 32×32 motif split into four 16×16 quadrants. Renderer picks
+   * floor-tl/tr/bl/br based on the cell's (row%2, col%2) position so the
+   * pattern auto-aligns when painted across multiple cells. */
+  FLOOR_PATTERN = 'floor-pattern',
   WATER = 'water',
   BRIDGE = 'bridge',
   VOID = 'void',

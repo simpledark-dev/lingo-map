@@ -1,0 +1,18 @@
+TODOs:
+- floor (what if tiles are not exactly 16x16)
+- outdoor scene
+    - grass tiles
+    - building
+    - lighting (idea: opaque shape)
+    - decor tiles (rocks, small grass,...)
+    - dirt path
+    - road path?
+    - trees
+ => minimal scene: bunch of buildings, with grass, roads, trees
+- camera in interior map / extending map to sides/up/down
+- another interior scene (super market)
+- make each building correspond to its own interior map
+
+
+Harder TODOs:
+- door open animation

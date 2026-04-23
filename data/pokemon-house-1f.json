@@ -486,21 +486,21 @@
     },
     {
       "id": "obj-mo7if3c7-jez0j",
-      "x": 127.04356971153848,
-      "y": 106.51021634615384,
+      "x": 127.29628422425037,
+      "y": 105.46996210886566,
       "spriteKey": "computer-desk",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 106.51021634615384,
+      "sortY": 105.46996210886566,
       "collisionBox": {
         "offsetX": -14,
         "offsetY": -14,
         "width": 28,
         "height": 14
       },
-      "scale": 0.16
+      "scale": 1
     },
     {
       "id": "obj-mo7in5s6-99xbf",

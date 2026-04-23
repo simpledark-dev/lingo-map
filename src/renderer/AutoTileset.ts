@@ -81,6 +81,10 @@ const tilesets: LoadedTileset[] = [
     // isAutoTile, so isUpper for them is irrelevant.
     isUpper: (t) => t === TileType.GRASS || t === TileType.GRASS_DARK,
     isAutoTile: (t) => t === TileType.GRASS || t === TileType.GRASS_DARK || t === TileType.WATER,
+    // Only fire near water — we don't want the tileset-1 "all grass" subtile
+    // painting over every pure-grass area. That caused a visible seam wherever
+    // a non-participating tile type (e.g. grass-new) sat next to grass.
+    requiresPresenceOf: (t) => t === TileType.WATER,
     frames: null,
   },
   {

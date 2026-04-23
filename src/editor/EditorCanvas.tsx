@@ -4,13 +4,17 @@ import { useRef, useEffect, useReducer, useCallback } from 'react';
 import { TileType, Entity } from '../core/types';
 import { EditorApp } from './EditorApp';
 import { editorReducer, createInitialState, EditorAction, generateObjectId } from './editorState';
-import { OBJECT_DEFAULTS, BUILDING_DEFAULTS } from './objectDefaults';
+import { OBJECT_DEFAULTS, BUILDING_DEFAULTS, DEFAULT_INTERIOR_MAP_ID } from './objectDefaults';
 import { loadMap } from '../core/MapLoader';
 import { getTexture } from '../renderer/AssetLoader';
 import EditorToolPanel from './EditorToolPanel';
 import EditorTopBar from './EditorTopBar';
 
 const ACTIVE_MAP_KEY = 'editor-active-map';
+
+/** Default scale for newly-placed objects. Source art is typically bigger than
+ * we want on the map, so we start shrunk and let the user slide up if needed. */
+const DEFAULT_OBJECT_SCALE = 0.5;
 
 /**
  * World-space AABB that a sprite covers, given its anchor and feet position.
@@ -92,6 +96,7 @@ export default function EditorCanvas() {
 
   // Object drag state — when user grabs a selected object with the select tool
   const draggingObjectRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const draggingBuildingRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
 
   // Copy/paste: last copied entity (without id) and last known cursor world pos
   const clipboardRef = useRef<Entity | null>(null);
@@ -234,9 +239,11 @@ export default function EditorCanvas() {
     const app = editorAppRef.current;
     if (!app || !state.selectedObjectId) { app?.clearSelection(); return; }
     const obj = state.objects.find((o: Entity) => o.id === state.selectedObjectId);
-    if (obj) app.highlightObject(obj);
-    else app.clearSelection();
-  }, [state.selectedObjectId, state.objects]);
+    if (obj) { app.highlightObject(obj); return; }
+    const bld = state.buildings.find((b) => b.id === state.selectedObjectId);
+    if (bld) { app.highlightBuilding(bld); return; }
+    app.clearSelection();
+  }, [state.selectedObjectId, state.objects, state.buildings]);
 
   // ── Mouse handlers ──
   const getWorldPos = useCallback((e: React.MouseEvent) => {
@@ -288,8 +295,10 @@ export default function EditorCanvas() {
         anchor: defaults.anchor,
         sortY,
         collisionBox: defaults.collisionBox,
+        scale: DEFAULT_OBJECT_SCALE,
       };
       dispatchRef.current({ type: 'PLACE_OBJECT', entity });
+      dispatchRef.current({ type: 'SELECT_OBJECT', id: entity.id });
     } else if (s.activeTool === 'building' && s.selectedBuildingKey) {
       const bd = BUILDING_DEFAULTS[s.selectedBuildingKey];
       if (bd) {
@@ -304,7 +313,7 @@ export default function EditorCanvas() {
           sortY: snapY,
           collisionBox: bd.collisionBox,
           doorTrigger: bd.doorTrigger,
-          targetMapId: bd.targetMapId,
+          targetMapId: bd.targetMapId ?? DEFAULT_INTERIOR_MAP_ID,
           targetSpawnId: 'entrance',
         };
         dispatchRef.current({ type: 'PLACE_BUILDING', building });
@@ -313,9 +322,10 @@ export default function EditorCanvas() {
       // Hit test buildings first (larger), then objects — use sprite bounds
       let found = false;
       for (const b of s.buildings) {
-        const bb = getSpriteBounds(b.x, b.y, b.baseSpriteKey, b.anchor, s.tileSize);
+        const bb = getSpriteBounds(b.x, b.y, b.baseSpriteKey, b.anchor, s.tileSize, b.scale ?? 1);
         if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
           dispatchRef.current({ type: 'SELECT_OBJECT', id: b.id });
+          draggingBuildingRef.current = { id: b.id, dx: b.x - x, dy: b.y - y };
           found = true;
           break;
         }
@@ -372,6 +382,37 @@ export default function EditorCanvas() {
 
     // If dragging a selected object, move it to the cursor (snapped to the
     // tile grid by default, or freely if SHIFT is held).
+    if (draggingBuildingRef.current) {
+      const drag = draggingBuildingRef.current;
+      const b = s.buildings.find(bb => bb.id === drag.id);
+      if (b) {
+        const world = editorAppRef.current?.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, s.zoom);
+        if (world) {
+          const tx = world.x + drag.dx;
+          const ty = world.y + drag.dy;
+          const tex = getTexture(b.baseSpriteKey);
+          const scale = b.scale ?? 1;
+          const baseW = (tex?.width ?? s.tileSize) * scale;
+          const baseH = (tex?.height ?? s.tileSize) * scale;
+          let nextX: number, nextY: number;
+          if (e.shiftKey) {
+            nextX = tx;
+            nextY = ty;
+          } else {
+            // Invert the placement snap formula: snapX = col*tileSize + baseW/2,
+            // snapY = (row+1)*tileSize + baseH - tileSize → row*tileSize + baseH.
+            const targetCol = Math.round((tx - baseW / 2) / s.tileSize);
+            const targetRow = Math.round((ty - baseH) / s.tileSize);
+            nextX = targetCol * s.tileSize + baseW / 2;
+            nextY = targetRow * s.tileSize + baseH;
+          }
+          if (nextX !== b.x || nextY !== b.y) {
+            dispatchRef.current({ type: 'MOVE_BUILDING', id: b.id, x: nextX, y: nextY });
+          }
+        }
+      }
+      return;
+    }
     if (draggingObjectRef.current) {
       const drag = draggingObjectRef.current;
       const obj = s.objects.find(o => o.id === drag.id);
@@ -418,7 +459,7 @@ export default function EditorCanvas() {
       if (defaults) {
         const px = freeMode ? x : snapXForSprite(col, s.selectedObjectKey, s.tileSize);
         const py = freeMode ? y : (row + 1) * s.tileSize;
-        app.showObjectPreview(s.selectedObjectKey, px, py, defaults.anchor);
+        app.showObjectPreview(s.selectedObjectKey, px, py, defaults.anchor, DEFAULT_OBJECT_SCALE);
       }
     } else {
       app?.clearPreview();
@@ -442,6 +483,10 @@ export default function EditorCanvas() {
 
     if (draggingObjectRef.current) {
       draggingObjectRef.current = null;
+      return;
+    }
+    if (draggingBuildingRef.current) {
+      draggingBuildingRef.current = null;
       return;
     }
 

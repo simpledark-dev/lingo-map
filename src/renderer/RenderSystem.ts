@@ -1,6 +1,6 @@
 import { Application, Container, Sprite } from 'pixi.js';
 import { MapData, PlayerState, TileType } from '../core/types';
-import { getTexture } from './AssetLoader';
+import { getTexture, getTileTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
 import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
 
@@ -75,7 +75,7 @@ export class RenderSystem {
     for (let row = 0; row < map.height; row++) {
       for (let col = 0; col < map.width; col++) {
         const tileType = map.tiles[row][col];
-        const texture = getTexture(tileType);
+        const texture = getTileTexture(tileType, row, col);
         if (!texture) continue;
 
         const sprite = new Sprite(texture);
@@ -142,6 +142,7 @@ export class RenderSystem {
 
     // Building bases
     for (const building of map.buildings) {
+      const scale = building.scale ?? 1;
       const baseTexture = getTexture(building.baseSpriteKey);
       if (baseTexture) {
         const sprite = new Sprite(baseTexture);
@@ -149,21 +150,23 @@ export class RenderSystem {
         sprite.x = building.x;
         sprite.y = building.y;
         sprite.zIndex = building.sortY;
+        if (scale !== 1) sprite.scale.set(scale);
         this.entityLayer.addChild(sprite);
         this.buildingBaseSprites.set(building.id, sprite);
       }
 
-      // Roof — managed collection for future per-roof control
-      const roofTexture = getTexture(building.roofSpriteKey);
+      // Roof — managed collection for future per-roof control. Skipped if the
+      // building is drawn as a single sprite (no separate roof).
+      const roofTexture = building.roofSpriteKey ? getTexture(building.roofSpriteKey) : undefined;
       if (roofTexture) {
         const roofSprite = new Sprite(roofTexture);
         roofSprite.anchor.set(building.anchor.x, 1.0);
-        // Position roof so its bottom sits on top of the base sprite
-        // Base anchor is (0.5, 1.0), so base top = building.y - baseTexture.height
-        // Roof bottom should meet base top
+        // Position roof so its bottom sits on top of the base sprite. With
+        // building.scale applied, the visible base height is baseHeight * scale.
         const baseHeight = baseTexture ? baseTexture.height : 96;
         roofSprite.x = building.x;
-        roofSprite.y = building.y - baseHeight;
+        roofSprite.y = building.y - baseHeight * scale;
+        if (scale !== 1) roofSprite.scale.set(scale);
         roofSprite.alpha = 1.0; // fully opaque for vertical slice
         this.roofLayer.addChild(roofSprite);
         this.roofSprites.set(building.id, roofSprite);
@@ -370,7 +373,7 @@ export class RenderSystem {
     for (const obj of map.objects) keys.add(obj.spriteKey);
     for (const b of map.buildings) {
       keys.add(b.baseSpriteKey);
-      keys.add(b.roofSpriteKey);
+      if (b.roofSpriteKey) keys.add(b.roofSpriteKey);
     }
     for (const npc of map.npcs) keys.add(npc.spriteKey);
 

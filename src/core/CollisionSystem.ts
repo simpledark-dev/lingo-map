@@ -7,13 +7,15 @@ export interface WorldBox {
   height: number;
 }
 
-/** Convert a relative CollisionBox to world-space AABB using entity position. */
-export function getWorldCollisionBox(entityX: number, entityY: number, box: CollisionBox): WorldBox {
+/** Convert a relative CollisionBox to world-space AABB using entity position.
+ * An optional uniform `scale` multiplies both offsets and dimensions so scaled
+ * entities (e.g. resized buildings) keep their hitbox aligned with the visual. */
+export function getWorldCollisionBox(entityX: number, entityY: number, box: CollisionBox, scale: number = 1): WorldBox {
   return {
-    x: entityX + box.offsetX,
-    y: entityY + box.offsetY,
-    width: box.width,
-    height: box.height,
+    x: entityX + box.offsetX * scale,
+    y: entityY + box.offsetY * scale,
+    width: box.width * scale,
+    height: box.height * scale,
   };
 }
 
@@ -72,7 +74,7 @@ function collidesWithObjects(
     if (checkAABBOverlap(box, objBox)) return true;
   }
   for (const b of buildings) {
-    const bBox = getWorldCollisionBox(b.x, b.y, b.collisionBox);
+    const bBox = getWorldCollisionBox(b.x, b.y, b.collisionBox, b.scale ?? 1);
     if (checkAABBOverlap(box, bBox)) return true;
   }
   return false;

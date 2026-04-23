@@ -43,7 +43,7 @@ export function checkDoorTriggers(
 
   // Check building door triggers
   for (const building of buildings) {
-    const doorBox = getWorldCollisionBox(building.x, building.y, building.doorTrigger);
+    const doorBox = getWorldCollisionBox(building.x, building.y, building.doorTrigger, building.scale ?? 1);
     if (checkAABBOverlap(playerBox, doorBox)) {
       return {
         targetMapId: building.targetMapId,

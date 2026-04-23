@@ -72,7 +72,9 @@ export type EditorAction =
   | { type: 'DELETE_BUILDING'; id: string }
   | { type: 'SELECT_OBJECT'; id: string | null }
   | { type: 'SET_OBJECT_SCALE'; id: string; scale: number }
+  | { type: 'SET_BUILDING_SCALE'; id: string; scale: number }
   | { type: 'MOVE_OBJECT'; id: string; x: number; y: number }
+  | { type: 'MOVE_BUILDING'; id: string; x: number; y: number }
   | { type: 'SET_TOOL'; tool: EditorState['activeTool'] }
   | { type: 'SET_SELECTED_TILE'; tileType: TileType }
   | { type: 'SET_SELECTED_OBJECT'; spriteKey: string }
@@ -201,6 +203,27 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         objects: state.objects.map(o =>
           o.id === action.id ? { ...o, x: action.x, y: action.y, sortY: o.sortY === o.y ? action.y : (o.sortY < 0 ? action.y - 1000 : o.sortY) } : o
+        ),
+      };
+    }
+
+    case 'MOVE_BUILDING': {
+      return {
+        ...state,
+        buildings: state.buildings.map(b =>
+          b.id === action.id ? { ...b, x: action.x, y: action.y, sortY: action.y } : b
+        ),
+      };
+    }
+
+    case 'SET_BUILDING_SCALE': {
+      // Same clamp as objects — source art is bigger than needed so we mostly
+      // shrink. Upper bound 1 avoids blowing buildings up past native res.
+      const clamped = Math.max(0.05, Math.min(1, action.scale));
+      return {
+        ...state,
+        buildings: state.buildings.map(b =>
+          b.id === action.id ? { ...b, scale: clamped } : b
         ),
       };
     }

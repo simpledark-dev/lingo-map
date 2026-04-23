@@ -2,11 +2,13 @@ import { MapData, SpawnPoint } from './types';
 import { pokemonMap } from '../maps/pokemon';
 import { pokemonHouse1fMap } from '../maps/pokemon-house-1f';
 import { pokemonHouse2fMap } from '../maps/pokemon-house-2f';
+import { grocer1fMap } from '../maps/grocer-1f';
 
 const mapRegistry: Record<string, MapData> = {
   pokemon: pokemonMap,
   'pokemon-house-1f': pokemonHouse1fMap,
   'pokemon-house-2f': pokemonHouse2fMap,
+  'grocer-1f': grocer1fMap,
 };
 
 export function loadMap(mapId: string): MapData {

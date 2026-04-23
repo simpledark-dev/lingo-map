@@ -4,7 +4,7 @@ import { useCallback, useRef, useState, useEffect } from 'react';
 import { EditorAction, EditorState } from './editorState';
 import { loadMap } from '../core/MapLoader';
 
-const GAME_MAPS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f'];
+const GAME_MAPS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f'];
 
 interface Props {
   state: EditorState;

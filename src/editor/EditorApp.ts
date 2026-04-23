@@ -1,6 +1,6 @@
 import { Application, Container, Sprite, Graphics, Text } from 'pixi.js';
 import { TileType, Entity, Building } from '../core/types';
-import { getTexture, preloadAllAssets } from '../renderer/AssetLoader';
+import { getTexture, getTileTexture, preloadAllAssets } from '../renderer/AssetLoader';
 import { buildTransitionLayer } from '../renderer/TransitionTiles';
 import { loadAutoTileset, buildAutoTileLayer, isAutoTilesetReady } from '../renderer/AutoTileset';
 
@@ -107,7 +107,7 @@ export class EditorApp {
     for (let r = 0; r < height; r++) {
       const row: (Sprite | null)[] = [];
       for (let c = 0; c < width; c++) {
-        const tex = getTexture(tiles[r][c]);
+        const tex = getTileTexture(tiles[r][c], r, c);
         if (!tex) { row.push(null); continue; }
         const s = new Sprite(tex);
         s.x = c * tileSize;
@@ -126,7 +126,7 @@ export class EditorApp {
   }
 
   updateSingleTile(row: number, col: number, tileType: TileType): void {
-    const tex = getTexture(tileType);
+    const tex = getTileTexture(tileType, row, col);
     if (!tex) return;
     const existing = this.tileSprites[row]?.[col];
     if (existing) {
@@ -202,6 +202,7 @@ export class EditorApp {
   }
 
   addBuildingSprites(b: Building): void {
+    const scale = b.scale ?? 1;
     const baseTex = getTexture(b.baseSpriteKey);
     if (baseTex) {
       const s = new Sprite(baseTex);
@@ -209,16 +210,18 @@ export class EditorApp {
       s.x = b.x;
       s.y = b.y;
       s.zIndex = b.sortY;
+      if (scale !== 1) s.scale.set(scale);
       this.entityLayer.addChild(s);
       this.buildingBaseSprites.set(b.id, s);
 
-      // Roof
-      const roofTex = getTexture(b.roofSpriteKey);
+      // Roof — skipped if the building is drawn as a single sprite.
+      const roofTex = b.roofSpriteKey ? getTexture(b.roofSpriteKey) : undefined;
       if (roofTex) {
         const rs = new Sprite(roofTex);
         rs.anchor.set(b.anchor.x, 1.0);
         rs.x = b.x;
-        rs.y = b.y - baseTex.height;
+        rs.y = b.y - baseTex.height * scale;
+        if (scale !== 1) rs.scale.set(scale);
         this.roofLayer.addChild(rs);
         this.buildingRoofSprites.set(b.id, rs);
       }
@@ -258,6 +261,43 @@ export class EditorApp {
     this.hoverGraphics.clear();
     this.hoverGraphics.rect(col * this.tileSize, row * this.tileSize, this.tileSize, this.tileSize);
     this.hoverGraphics.fill({ color: 0x4488ff, alpha: 0.25 });
+  }
+
+  highlightBuilding(b: Building): void {
+    this.selectionGraphics.clear();
+    const s = this.buildingBaseSprites.get(b.id);
+    if (!s) return;
+    // Building base sprite covers the whole footprint; reuse the same bbox math.
+    const scale = b.scale ?? 1;
+    const texW = s.texture.width;
+    const texH = s.texture.height;
+    const w = texW * scale;
+    const h = texH * scale;
+    const left = b.x - w * b.anchor.x;
+    const top = b.y - h * b.anchor.y;
+    this.selectionGraphics.rect(left, top, w, h);
+    this.selectionGraphics.stroke({ width: 2, color: 0x44ff44, alpha: 0.8 });
+
+    const worldZoom = this.worldContainer.scale.x || 1;
+    if (!this.selectionLabel) {
+      this.selectionLabel = new Text({
+        text: '',
+        style: {
+          fontFamily: 'monospace',
+          fontSize: 12,
+          fill: 0x44ff44,
+          stroke: { color: 0x000000, width: 3 },
+          align: 'center',
+        },
+      });
+      this.selectionLabel.anchor.set(0.5, 1);
+      this.worldContainer.addChild(this.selectionLabel);
+    }
+    this.selectionLabel.text = `${Math.round(w)} × ${Math.round(h)}`;
+    this.selectionLabel.scale.set(1 / worldZoom);
+    this.selectionLabel.x = left + w / 2;
+    this.selectionLabel.y = top - 2 / worldZoom;
+    this.selectionLabel.visible = true;
   }
 
   highlightObject(obj: Entity): void {
@@ -308,7 +348,7 @@ export class EditorApp {
   }
 
   /** Show a semi-transparent preview of a building at the given position. */
-  showBuildingPreview(baseSpriteKey: string, roofSpriteKey: string, x: number, y: number, anchor: { x: number; y: number }): void {
+  showBuildingPreview(baseSpriteKey: string, roofSpriteKey: string | undefined, x: number, y: number, anchor: { x: number; y: number }, scale: number = 1): void {
     this.clearPreview();
     const baseTex = getTexture(baseSpriteKey);
     if (baseTex) {
@@ -317,16 +357,18 @@ export class EditorApp {
       s.x = x;
       s.y = y;
       s.alpha = 0.5;
+      if (scale !== 1) s.scale.set(scale);
       this.previewContainer.addChild(s);
       this.previewSprites.push(s);
 
-      const roofTex = getTexture(roofSpriteKey);
+      const roofTex = roofSpriteKey ? getTexture(roofSpriteKey) : undefined;
       if (roofTex) {
         const rs = new Sprite(roofTex);
         rs.anchor.set(anchor.x, 1.0);
         rs.x = x;
-        rs.y = y - baseTex.height;
+        rs.y = y - baseTex.height * scale;
         rs.alpha = 0.5;
+        if (scale !== 1) rs.scale.set(scale);
         this.previewContainer.addChild(rs);
         this.previewSprites.push(rs);
       }
@@ -334,7 +376,7 @@ export class EditorApp {
   }
 
   /** Show a semi-transparent preview of an object at the given position. */
-  showObjectPreview(spriteKey: string, x: number, y: number, anchor: { x: number; y: number }): void {
+  showObjectPreview(spriteKey: string, x: number, y: number, anchor: { x: number; y: number }, scale: number = 1): void {
     this.clearPreview();
     const tex = getTexture(spriteKey);
     if (!tex) return;
@@ -343,6 +385,7 @@ export class EditorApp {
     s.x = x;
     s.y = y;
     s.alpha = 0.5;
+    if (scale !== 1) s.scale.set(scale);
     this.previewContainer.addChild(s);
     this.previewSprites.push(s);
   }

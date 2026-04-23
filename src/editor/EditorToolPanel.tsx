@@ -13,6 +13,9 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
   const selectedObject = state.selectedObjectId
     ? state.objects.find(o => o.id === state.selectedObjectId)
     : null;
+  const selectedBuilding = !selectedObject && state.selectedObjectId
+    ? state.buildings.find(b => b.id === state.selectedObjectId)
+    : null;
 
   return (
     <div style={{
@@ -48,6 +51,31 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
               max={100}
               value={Math.round((selectedObject.scale ?? 1) * 100)}
               onChange={e => dispatch({ type: 'SET_OBJECT_SCALE', id: selectedObject.id, scale: parseInt(e.target.value) / 100 })}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </Section>
+      )}
+
+      {/* Building selection — scale shrinks the visual AND the collision/door */}
+      {selectedBuilding && (
+        <Section title={`Building: ${selectedBuilding.baseSpriteKey}`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 11, color: '#aaa' }}>
+              Scale: {Math.round((selectedBuilding.scale ?? 1) * 100)}%
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <ScaleBtn label="−−" onClick={() => dispatch({ type: 'SET_BUILDING_SCALE', id: selectedBuilding.id, scale: (selectedBuilding.scale ?? 1) * 0.5 })} />
+              <ScaleBtn label="−" onClick={() => dispatch({ type: 'SET_BUILDING_SCALE', id: selectedBuilding.id, scale: (selectedBuilding.scale ?? 1) * 0.9 })} />
+              <ScaleBtn label="+" onClick={() => dispatch({ type: 'SET_BUILDING_SCALE', id: selectedBuilding.id, scale: (selectedBuilding.scale ?? 1) * 1.1 })} />
+              <ScaleBtn label="Reset" onClick={() => dispatch({ type: 'SET_BUILDING_SCALE', id: selectedBuilding.id, scale: 1 })} />
+            </div>
+            <input
+              type="range"
+              min={5}
+              max={100}
+              value={Math.round((selectedBuilding.scale ?? 1) * 100)}
+              onChange={e => dispatch({ type: 'SET_BUILDING_SCALE', id: selectedBuilding.id, scale: parseInt(e.target.value) / 100 })}
               style={{ width: '100%' }}
             />
           </div>

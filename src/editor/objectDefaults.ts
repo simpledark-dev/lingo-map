@@ -1,4 +1,9 @@
-import { Anchor, CollisionBox, Building } from '../core/types';
+import { Anchor, CollisionBox } from '../core/types';
+
+/** Interior map a newly-placed building points at when its `BuildingDefault`
+ * doesn't specify one. As new interiors are built, update each `BUILDING_DEFAULTS`
+ * entry's `targetMapId` to send that building type to its own map. */
+export const DEFAULT_INTERIOR_MAP_ID = 'pokemon-house-1f';
 
 interface ObjectDefault {
   anchor: Anchor;
@@ -36,20 +41,104 @@ export const OBJECT_DEFAULTS: Record<string, ObjectDefault> = {
 
 export interface BuildingDefault {
   baseSpriteKey: string;
-  roofSpriteKey: string;
+  /** Omit for buildings drawn as a single combined image (no separate roof). */
+  roofSpriteKey?: string;
   anchor: Anchor;
   collisionBox: CollisionBox;
   doorTrigger: CollisionBox;
-  targetMapId: string;
+  /** Interior map this building opens into. Omit to fall back to
+   * `DEFAULT_INTERIOR_MAP_ID` — useful while an interior is still being built. */
+  targetMapId?: string;
   /** Width of base sprite for centering offset */
   baseWidth: number;
   /** Height of base sprite for Y positioning */
   baseHeight: number;
 }
 
-export const BUILDING_DEFAULTS: Record<string, BuildingDefault> = {};
+// Collision boxes / door triggers mirror the hand-tuned values in
+// `src/maps/pokemon.ts` so buildings placed via the editor behave identically
+// to the ones compiled into the starter outdoor map.
+export const BUILDING_DEFAULTS: Record<string, BuildingDefault> = {
+  house: {
+    baseSpriteKey: 'house-base',
+    roofSpriteKey: 'house-roof',
+    anchor: { x: 0.5, y: 1.0 },
+    collisionBox: { offsetX: -38, offsetY: -52, width: 76, height: 52 },
+    doorTrigger: { offsetX: -6, offsetY: 0, width: 12, height: 8 },
+    baseWidth: 80,
+    baseHeight: 64,
+  },
+  mart: {
+    baseSpriteKey: 'mart-base',
+    roofSpriteKey: 'mart-roof',
+    anchor: { x: 0.5, y: 1.0 },
+    collisionBox: { offsetX: -38, offsetY: -52, width: 76, height: 52 },
+    doorTrigger: { offsetX: -6, offsetY: 0, width: 12, height: 8 },
+    baseWidth: 80,
+    baseHeight: 64,
+  },
+  lab: {
+    baseSpriteKey: 'lab-base',
+    roofSpriteKey: 'lab-roof',
+    anchor: { x: 0.5, y: 1.0 },
+    collisionBox: { offsetX: -46, offsetY: -68, width: 92, height: 68 },
+    doorTrigger: { offsetX: -8, offsetY: 0, width: 16, height: 8 },
+    baseWidth: 96,
+    baseHeight: 80,
+  },
+  // Single-sprite house (no separate roof). Right door is the entrance:
+  // at 256×138 the right door sits ~88px right of center, bottom of sprite.
+  // The left door is ignored — would need a second trigger to support both.
+  'house-new': {
+    baseSpriteKey: 'house-new',
+    anchor: { x: 0.5, y: 1.0 },
+    collisionBox: { offsetX: -112, offsetY: -120, width: 224, height: 120 },
+    doorTrigger: { offsetX: 72, offsetY: 0, width: 32, height: 16 },
+    baseWidth: 256,
+    baseHeight: 138,
+  },
+  // Native-resolution variant — placed at 670×372 for comparison with the
+  // downscaled house-new. Right door is the entrance (~223px right of center).
+  'house-new-2': {
+    baseSpriteKey: 'house-new-2',
+    anchor: { x: 0.5, y: 1.0 },
+    collisionBox: { offsetX: -310, offsetY: -330, width: 620, height: 330 },
+    doorTrigger: { offsetX: 203, offsetY: 0, width: 40, height: 16 },
+    baseWidth: 670,
+    baseHeight: 372,
+  },
+  // Native pixel-art version at 200×110 (~12×7 tiles at 16px tile size).
+  // Right door ~65px right of center.
+  'house-new-3': {
+    baseSpriteKey: 'house-new-3',
+    anchor: { x: 0.5, y: 1.0 },
+    collisionBox: { offsetX: -94, offsetY: -100, width: 188, height: 100 },
+    doorTrigger: { offsetX: 57, offsetY: 0, width: 16, height: 8 },
+    baseWidth: 200,
+    baseHeight: 110,
+  },
+  // "Pixel Grocer" shop at 237×99 (~15×6 tiles). Entrance under the awning
+  // on the LEFT side, ~46px left of sprite center.
+  'house-new-4': {
+    baseSpriteKey: 'house-new-4',
+    anchor: { x: 0.5, y: 1.0 },
+    collisionBox: { offsetX: -114, offsetY: -92, width: 228, height: 92 },
+    doorTrigger: { offsetX: -58, offsetY: 0, width: 24, height: 8 },
+    targetMapId: 'grocer-1f',
+    baseWidth: 237,
+    baseHeight: 99,
+  },
+};
 
-export const BUILDING_ITEMS: { key: string; label: string; path: string }[] = [];
+export const BUILDING_ITEMS: { key: string; label: string; path: string }[] = [
+  { key: 'house',     label: 'House',    path: '/assets/placeholder/house-base.png' },
+  { key: 'mart',      label: 'Mart',     path: '/assets/placeholder/mart-base.png' },
+  { key: 'lab',       label: 'Lab',      path: '/assets/placeholder/lab-base.png' },
+  { key: 'house-new', label: 'House v2', path: '/assets/placeholder/house-new.png' },
+  { key: 'house-new-2', label: 'House v2 full', path: '/assets/placeholder/house-new-2.png' },
+  { key: 'house-new-3', label: 'House v3 px',   path: '/assets/placeholder/house-new-3.png' },
+  { key: 'house-new-4', label: 'Grocer',        path: '/assets/placeholder/house-new-4.png' },
+];
 
 export interface TileItem {
   key: string;
@@ -68,6 +157,7 @@ const SHEET = 64;
 
 export const TILE_ITEMS: TileItem[] = [
   { key: 'grass', label: 'Grass', path: TILESET_PATH, frame: { x: 0, y: 48, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
+  { key: 'grass-new', label: 'Grass New', path: '/assets/placeholder/grass-new.png' },
   { key: 'grass_dark', label: 'Dark Grass', path: '/assets/tileset-2.png', frame: { x: 0, y: 48, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
   { key: 'dirt', label: 'Dirt', path: '/assets/tileset-3.png', frame: { x: 0, y: 48, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
   { key: 'water', label: 'Water', path: TILESET_PATH, frame: { x: 32, y: 16, w: TS, h: TS, sheetW: SHEET, sheetH: SHEET } },
@@ -89,6 +179,8 @@ export const TILE_ITEMS: TileItem[] = [
   { key: 'floor-wood', label: 'Wood Floor', path: '/assets/placeholder/floor-wood.png' },
   { key: 'floor-wood-2', label: 'Wood Floor 2', path: '/assets/placeholder/floor-wood-2.png' },
   { key: 'floor-wood-3', label: 'Wood Floor 3', path: '/assets/placeholder/floor-wood-3.png' },
+  // One brush for the 32×32 motif — renderer picks the right quadrant per cell.
+  { key: 'floor-pattern', label: 'Floor 32×32', path: '/assets/placeholder/floor-tl.png' },
 ];
 
 export const OBJECT_CATEGORIES = [

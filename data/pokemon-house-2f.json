@@ -475,6 +475,24 @@
         "height": 7
       },
       "scale": 0.13
+    },
+    {
+      "id": "obj-moa0za02-d5o3l",
+      "x": 116.78125000000006,
+      "y": 216.871875,
+      "spriteKey": "chair",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 216.871875,
+      "collisionBox": {
+        "offsetX": -6,
+        "offsetY": -6,
+        "width": 12,
+        "height": 6
+      },
+      "scale": 0.14
     }
   ],
   "buildings": [],

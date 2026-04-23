@@ -82,7 +82,7 @@ function isCellWalkable(
     if (checkAABBOverlap(box, ob)) return false;
   }
   for (const b of buildings) {
-    const bb = getWorldCollisionBox(b.x, b.y, b.collisionBox);
+    const bb = getWorldCollisionBox(b.x, b.y, b.collisionBox, b.scale ?? 1);
     if (checkAABBOverlap(box, bb)) return false;
   }
 

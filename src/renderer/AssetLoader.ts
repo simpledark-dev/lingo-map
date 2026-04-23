@@ -78,6 +78,16 @@ const spriteManifest: Record<string, string> = {
   'rock': `${ASSET_BASE}rock.png`,
   'house-base': `${ASSET_BASE}house-base.png`,
   'house-roof': `${ASSET_BASE}house-roof.png`,
+  'house-new': `${ASSET_BASE}house-new.png`,
+  'house-new-2': `${ASSET_BASE}house-new-2.png`,
+  'house-new-3': `${ASSET_BASE}house-new-3.png`,
+  'house-new-4': `${ASSET_BASE}house-new-4.png`,
+  'grass-new': `${ASSET_BASE}grass-new.png`,
+  // 32×32 floor motif sliced into 4 quadrants — see `TileType.FLOOR_PATTERN`.
+  'floor-tl': `${ASSET_BASE}floor-tl.png`,
+  'floor-tr': `${ASSET_BASE}floor-tr.png`,
+  'floor-bl': `${ASSET_BASE}floor-bl.png`,
+  'floor-br': `${ASSET_BASE}floor-br.png`,
   'mart-base': `${ASSET_BASE}mart-base.png`,
   'mart-roof': `${ASSET_BASE}mart-roof.png`,
   'lab-base': `${ASSET_BASE}lab-base.png`,
@@ -222,6 +232,22 @@ export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Text
 
 export function getTexture(key: string): Texture | undefined {
   return textureCache.get(key);
+}
+
+/** Pick the right texture for a ground-tile cell. Delegates to `getTexture`
+ * for ordinary tile types; for pattern tiles (currently just `FLOOR_PATTERN`)
+ * it returns the correct quadrant of a 32×32 motif based on the cell's
+ * (row, col) position so the pattern auto-aligns across the map. */
+export function getTileTexture(tileType: string, row: number, col: number): Texture | undefined {
+  if (tileType === 'floor-pattern') {
+    const top = row % 2 === 0;
+    const left = col % 2 === 0;
+    const key = top
+      ? (left ? 'floor-tl' : 'floor-tr')
+      : (left ? 'floor-bl' : 'floor-br');
+    return textureCache.get(key);
+  }
+  return textureCache.get(tileType);
 }
 
 /** Preload all known assets in the background. Call once after initial scene is ready. */
