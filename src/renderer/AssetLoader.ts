@@ -88,6 +88,12 @@ const spriteManifest: Record<string, string> = {
   'floor-tr': `${ASSET_BASE}floor-tr.png`,
   'floor-bl': `${ASSET_BASE}floor-bl.png`,
   'floor-br': `${ASSET_BASE}floor-br.png`,
+  // Running-bond brick wall quadrants — see `TileType.WALL_BRICK`.
+  'wall-brick-tl': `${ASSET_BASE}wall-brick-tl.png`,
+  'wall-brick-tr': `${ASSET_BASE}wall-brick-tr.png`,
+  'wall-brick-bl': `${ASSET_BASE}wall-brick-bl.png`,
+  'wall-brick-br': `${ASSET_BASE}wall-brick-br.png`,
+  'food-row': `${ASSET_BASE}food-row.png`,
   'mart-base': `${ASSET_BASE}mart-base.png`,
   'mart-roof': `${ASSET_BASE}mart-roof.png`,
   'lab-base': `${ASSET_BASE}lab-base.png`,
@@ -245,6 +251,14 @@ export function getTileTexture(tileType: string, row: number, col: number): Text
     const key = top
       ? (left ? 'floor-tl' : 'floor-tr')
       : (left ? 'floor-bl' : 'floor-br');
+    return textureCache.get(key);
+  }
+  if (tileType === 'wall-brick') {
+    const top = row % 2 === 0;
+    const left = col % 2 === 0;
+    const key = top
+      ? (left ? 'wall-brick-tl' : 'wall-brick-tr')
+      : (left ? 'wall-brick-bl' : 'wall-brick-br');
     return textureCache.get(key);
   }
   return textureCache.get(tileType);

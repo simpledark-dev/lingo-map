@@ -5,7 +5,7 @@ import { loadMap, getSpawnPoint } from '../core/MapLoader';
 import { buildStressMap, StressOptions } from '../core/MapStress';
 import { createPlayer, updatePlayer } from '../core/PlayerSystem';
 import { resolveMovement } from '../core/CollisionSystem';
-import { updateCamera } from '../core/CameraSystem';
+import { updateCamera, getViewportWorldSize } from '../core/CameraSystem';
 import { checkDoorTriggers } from '../core/TriggerSystem';
 import { checkInteraction, advanceDialogue } from '../core/InteractionSystem';
 import { GameBridge } from '../core/GameBridge';
@@ -208,7 +208,7 @@ export class PixiApp {
     this.gameState = {
       currentMapId: mapId,
       player,
-      camera: updateCamera(player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height),
+      camera: updateCamera(player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height)),
       entities: map.objects,
       buildings: map.buildings,
       npcs: map.npcs,
@@ -274,9 +274,10 @@ export class PixiApp {
         }
       }
       // Update camera and render even during dialogue (player is frozen, but camera should stay)
-      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
+      const capDialogue = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capDialogue);
       this.renderSystem.updatePlayer(this.gameState.player, delta);
-      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
+      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom, map.maxViewTiles ? capDialogue : undefined);
       this.renderSystem.updateAnimations(performance.now() / 1000);
       if (this.tapFeedback) this.tapFeedback.update(delta);
       if (this.debugOverlay) this.debugOverlay.update();
@@ -289,9 +290,10 @@ export class PixiApp {
       this.gameState.activeDialogue = dialogueEvent;
       this.bridge.emit({ type: 'dialogueStart', dialogue: dialogueEvent });
       // Don't process movement this frame
-      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
+      const capInteract = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capInteract);
       this.renderSystem.updatePlayer(this.gameState.player, delta);
-      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
+      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom, map.maxViewTiles ? capInteract : undefined);
       return;
     }
 
@@ -403,8 +405,11 @@ export class PixiApp {
       return;
     }
 
-    // Update camera
-    this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
+    // Update camera — if the map caps the view (interior rooms), compute the
+    // capped viewport in world px and pass it through so the camera clamps
+    // inside the visible window and anything outside renders as black.
+    const viewportCap = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
+    this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, viewportCap);
 
     // Update NPC wandering
     if (this.npcWanderStates.length > 0 && this.walkGrid) {
@@ -429,7 +434,7 @@ export class PixiApp {
 
     // Update renderer
     this.renderSystem.updatePlayer(this.gameState.player, delta);
-    this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom);
+    this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom, map.maxViewTiles ? viewportCap : undefined);
     this.renderSystem.updateAnimations(performance.now() / 1000);
     if (this.tapFeedback) this.tapFeedback.update(delta);
 

@@ -54,6 +54,7 @@ function collidesWithTiles(map: MapData, box: WorldBox): boolean {
         tile === TileType.WALL_INTERIOR_RIGHT ||
         tile === TileType.WALL_INTERIOR_CORNER_BOTTOM_LEFT ||
         tile === TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT ||
+        tile === TileType.WALL_BRICK ||
         tile === TileType.WATER ||
         tile === TileType.VOID
       ) return true;

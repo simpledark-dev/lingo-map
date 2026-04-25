@@ -1,4 +1,5 @@
 import { MapData, TileType, Entity } from '../core/types';
+import { INTERIOR_VIEW_TILES } from '../core/constants';
 
 // ══════════════════════════════════════════════════════════════
 // POKEMON HOUSE — GROUND FLOOR (1F)  20×16 tiles @ 16px
@@ -138,6 +139,7 @@ const objects: Entity[] = [
 export const pokemonHouse1fMap: MapData = {
   id: 'pokemon-house-1f',
   width: W, height: H, tileSize: T,
+  maxViewTiles: INTERIOR_VIEW_TILES,
   tiles: makeTiles(),
   objects,
   buildings: [],

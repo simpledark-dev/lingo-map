@@ -102,6 +102,9 @@ export default function GameCanvas() {
         npcs: compiled?.npcs ?? [],
         triggers: compiled?.triggers ?? [],
         spawnPoints: compiled?.spawnPoints ?? [{ id: 'default', x: 0, y: 0, facing: 'down' }],
+        // Engine-only map metadata (not produced by the editor) comes from the
+        // compiled map so interior view caps etc. aren't lost on override.
+        maxViewTiles: compiled?.maxViewTiles,
       });
     };
 

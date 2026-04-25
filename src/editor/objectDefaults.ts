@@ -37,6 +37,10 @@ export const OBJECT_DEFAULTS: Record<string, ObjectDefault> = {
   'bed':                { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -14, offsetY: -14, width: 28, height: 14 } },
   'chair':              { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -6, offsetY: -6, width: 12, height: 6 } },
   'bookshelf':          { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -7, offsetY: -14, width: 14, height: 14 } },
+  // Grocer shelving (129×141 native). Collision sized for the default 0.5×
+  // editor scale — covers the base of the shelf; scale it in the selection
+  // panel and the collision will need a manual bump if you size it up.
+  'food-row':           { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -30, offsetY: -20, width: 60, height: 20 } },
 };
 
 export interface BuildingDefault {
@@ -181,6 +185,7 @@ export const TILE_ITEMS: TileItem[] = [
   { key: 'floor-wood-3', label: 'Wood Floor 3', path: '/assets/placeholder/floor-wood-3.png' },
   // One brush for the 32×32 motif — renderer picks the right quadrant per cell.
   { key: 'floor-pattern', label: 'Floor 32×32', path: '/assets/placeholder/floor-tl.png' },
+  { key: 'wall-brick', label: 'Brick Wall', path: '/assets/placeholder/wall-brick-tl.png' },
 ];
 
 export const OBJECT_CATEGORIES = [
@@ -201,6 +206,12 @@ export const OBJECT_CATEGORIES = [
       { key: 'plant-pot-2', label: 'Plant 2', path: '/assets/placeholder/plant-pot-2.png' },
       { key: 'floor-clock', label: 'Flr Clock', path: '/assets/placeholder/floor-clock.png' },
       { key: 'lamp-table', label: 'Lamp', path: '/assets/placeholder/lamp-table.png' },
+    ],
+  },
+  {
+    label: 'Shop',
+    items: [
+      { key: 'food-row', label: 'Food Shelf', path: '/assets/placeholder/food-row.png' },
     ],
   },
   {

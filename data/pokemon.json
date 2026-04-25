@@ -4902,13 +4902,13 @@
     {
       "id": "obj-mobi1kl8-dlocw",
       "x": 593.5,
-      "y": 317,
+      "y": 349,
       "baseSpriteKey": "house-new-3",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 317,
+      "sortY": 349,
       "collisionBox": {
         "offsetX": -94,
         "offsetY": -100,
@@ -4928,13 +4928,13 @@
     {
       "id": "obj-mobn81ef-fs5t2",
       "x": 326.5,
-      "y": 291,
+      "y": 227,
       "baseSpriteKey": "house-new-4",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 291,
+      "sortY": 227,
       "collisionBox": {
         "offsetX": -114,
         "offsetY": -92,

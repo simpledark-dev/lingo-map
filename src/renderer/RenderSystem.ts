@@ -1,4 +1,4 @@
-import { Application, Container, Sprite } from 'pixi.js';
+import { Application, Container, Graphics, Sprite } from 'pixi.js';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { getTexture, getTileTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
@@ -250,14 +250,51 @@ export class RenderSystem {
     this.playerSprite.zIndex = player.sortY;
   }
 
-  updateCamera(cameraX: number, cameraY: number, zoom: number = 1): void {
-    this.worldContainer.scale.set(zoom, zoom);
-    this.worldContainer.x = -cameraX * zoom;
-    this.worldContainer.y = -cameraY * zoom;
+  /** Mask rectangle that clips `worldContainer` to a centered sub-region of
+   * the canvas when the current map imposes a viewport cap. Left unassigned
+   * (no mask) when there is no cap, so the whole canvas shows the world. */
+  private viewportMask: Graphics | null = null;
 
-    // Viewport culling — hide sprites outside the visible area
+  updateCamera(
+    cameraX: number,
+    cameraY: number,
+    zoom: number = 1,
+    viewportCap?: { viewW: number; viewH: number },
+  ): void {
     const canvasW = this.app.screen.width;
     const canvasH = this.app.screen.height;
+
+    // If a cap is set, the visible window in screen pixels is the capped
+    // world size scaled by zoom, centered on the canvas. Otherwise the world
+    // fills the whole canvas (no mask, no centering offset).
+    const cappedScreenW = viewportCap ? viewportCap.viewW * zoom : canvasW;
+    const cappedScreenH = viewportCap ? viewportCap.viewH * zoom : canvasH;
+    const offsetX = viewportCap ? (canvasW - cappedScreenW) / 2 : 0;
+    const offsetY = viewportCap ? (canvasH - cappedScreenH) / 2 : 0;
+
+    this.worldContainer.scale.set(zoom, zoom);
+    this.worldContainer.x = offsetX - cameraX * zoom;
+    this.worldContainer.y = offsetY - cameraY * zoom;
+
+    // Install / update / remove the viewport mask so anything outside the
+    // visible window renders black (the stage background).
+    if (viewportCap) {
+      if (!this.viewportMask) {
+        this.viewportMask = new Graphics();
+        this.app.stage.addChild(this.viewportMask);
+        this.worldContainer.mask = this.viewportMask;
+      }
+      this.viewportMask.clear();
+      this.viewportMask.rect(offsetX, offsetY, cappedScreenW, cappedScreenH).fill(0xffffff);
+    } else if (this.viewportMask) {
+      this.worldContainer.mask = null;
+      this.viewportMask.destroy();
+      this.app.stage.removeChild(this.viewportMask);
+      this.viewportMask = null;
+    }
+
+    // Viewport culling — still based on canvas so we don't accidentally cull
+    // sprites that fall inside the clip region of the mask.
     this.cullViewport(cameraX, cameraY, zoom, canvasW, canvasH);
   }
 

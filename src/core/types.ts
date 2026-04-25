@@ -101,6 +101,9 @@ export enum TileType {
   WALL_INTERIOR_RIGHT = 'wall-interior-right',
   WALL_INTERIOR_CORNER_BOTTOM_LEFT = 'wall-interior-corner-bottom-left',
   WALL_INTERIOR_CORNER_BOTTOM_RIGHT = 'wall-interior-corner-bottom-right',
+  /** Running-bond brick wall. Renderer picks wall-brick-tl/tr/bl/br per cell
+   * (row%2, col%2) so the offset pattern aligns automatically. Blocking. */
+  WALL_BRICK = 'wall-brick',
   FLOOR = 'floor',
   FLOOR_WOOD = 'floor-wood',
   FLOOR_WOOD_2 = 'floor-wood-2',
@@ -143,6 +146,11 @@ export interface MapData {
   npcs: NPCData[];
   triggers: Trigger[];
   spawnPoints: SpawnPoint[];
+  /** Cap how much of the map is visible at once, in tiles. When set, the
+   * render zoom is raised (if needed) so the canvas shows at most
+   * `width × height` tiles of world. Used on interior maps so the full
+   * room doesn't fit the screen and the camera has to scroll. */
+  maxViewTiles?: { width: number; height: number };
 }
 
 // ── Input (normalized — core never touches DOM) ──
