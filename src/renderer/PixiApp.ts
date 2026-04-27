@@ -126,7 +126,7 @@ export class PixiApp {
     // Trigger zone: covers walkable tiles on the entity's feet row, up to 2
     // tiles wide. Skips wall cells so the trigger only spans tiles the player
     // can physically reach (otherwise half the zone might sit over a wall).
-    const isWalkableTile = (tile: TileType): boolean => {
+    const isWalkableTile = (tile: string): boolean => {
       return tile !== TileType.WALL
         && tile !== TileType.WALL_INTERIOR
         && tile !== TileType.WALL_INTERIOR_BOTTOM
@@ -191,8 +191,16 @@ export class PixiApp {
     const spawn = getSpawnPoint(map, spawnId);
     const player = createPlayer(spawn);
 
+    // Build the asset set for this map. Pack-tile refs (`me:<theme>/<file>`)
+    // are passed straight through — `loadAssets` knows how to fetch them.
     const requiredAssets = RenderSystem.getRequiredAssets(map);
-    await loadAssets(requiredAssets);
+    const packTiles = new Set<string>();
+    for (const row of map.tiles) {
+      for (const t of row) {
+        if (t.startsWith('me:')) packTiles.add(t);
+      }
+    }
+    await loadAssets([...requiredAssets, ...packTiles]);
 
     if (this.renderSystem) {
       this.renderSystem.destroy();

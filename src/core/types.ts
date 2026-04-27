@@ -32,6 +32,11 @@ export interface Entity {
   collisionBox: CollisionBox;
   /** Optional uniform scale factor applied to the rendered sprite. Default 1.0. */
   scale?: number;
+  /** Layer ID this entity belongs to (matches an entry in `MapData.layers`).
+   * Falls back to 'props' if missing or referencing a layer that no longer
+   * exists. Within a layer, entities Y-sort by `sortY`; the layer itself
+   * decides the gross render order (e.g. 'floor' renders below 'props'). */
+  layer?: string;
   /** Optional door-like transition. When the player walks onto this entity's
    * footprint, the engine fires a scene change. Used for staircases inside
    * interior maps so the trigger follows the visual decor.
@@ -135,12 +140,27 @@ export interface Trigger {
   targetSpawnId?: string;
 }
 
+export interface MapLayer {
+  id: string;          // stable ID, referenced by `Entity.layer`
+  name: string;        // user-facing label
+  // Editor-only display state — runtime ignores these.
+  visible?: boolean;   // default true
+  locked?: boolean;    // default false
+}
+
 export interface MapData {
   id: string;
   width: number;  // in tiles
   height: number; // in tiles
   tileSize: number;
-  tiles: TileType[][];       // [row][col]
+  /** Ordered list of named entity layers. Index 0 renders first (bottom),
+   * last index renders on top. Entities reference a layer by `Entity.layer`.
+   * Optional — if omitted, the default 4-layer set is used. */
+  layers?: MapLayer[];
+  /** Tile grid. Values are typically `TileType` enum strings, but pack tiles
+   * carry virtual refs of the form `me:<theme>:<col>,<row>` resolved at render
+   * time by `getTileTexture`. The widened `string` type captures both. */
+  tiles: string[][];       // [row][col]
   objects: Entity[];
   buildings: Building[];
   npcs: NPCData[];

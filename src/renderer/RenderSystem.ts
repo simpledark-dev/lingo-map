@@ -1,5 +1,7 @@
 import { Application, Container, Graphics, Sprite } from 'pixi.js';
 import { MapData, PlayerState, TileType } from '../core/types';
+import { PLAYER_LAYER_ID } from '../core/constants';
+import { getEffectiveZIndex, getLayers } from '../core/Layers';
 import { getTexture, getTileTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
 import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
@@ -111,6 +113,8 @@ export class RenderSystem {
     this.treeAnims.clear();
     this.npcAnims.clear();
 
+    const layers = getLayers(map);
+
     // Objects (trees, rocks)
     let seed = 1;
     for (const obj of map.objects) {
@@ -120,7 +124,7 @@ export class RenderSystem {
       sprite.anchor.set(obj.anchor.x, obj.anchor.y);
       sprite.x = obj.x;
       sprite.y = obj.y;
-      sprite.zIndex = obj.sortY;
+      sprite.zIndex = getEffectiveZIndex(layers, obj.layer, obj.sortY);
       if (obj.scale && obj.scale !== 1) sprite.scale.set(obj.scale);
       this.entityLayer.addChild(sprite);
       this.objectSprites.set(obj.id, sprite);
@@ -149,7 +153,9 @@ export class RenderSystem {
         sprite.anchor.set(building.anchor.x, building.anchor.y);
         sprite.x = building.x;
         sprite.y = building.y;
-        sprite.zIndex = building.sortY;
+        // Buildings always render on the props layer alongside the player so
+        // Y-sort lets you walk visually behind them.
+        sprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, building.sortY);
         if (scale !== 1) sprite.scale.set(scale);
         this.entityLayer.addChild(sprite);
         this.buildingBaseSprites.set(building.id, sprite);
@@ -173,7 +179,7 @@ export class RenderSystem {
       }
     }
 
-    // NPCs
+    // NPCs — always on the props layer alongside the player.
     for (const npc of map.npcs) {
       const texture = getTexture(npc.spriteKey);
       if (!texture) continue;
@@ -181,7 +187,7 @@ export class RenderSystem {
       sprite.anchor.set(npc.anchor.x, npc.anchor.y);
       sprite.x = npc.x;
       sprite.y = npc.y;
-      sprite.zIndex = npc.sortY;
+      sprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, npc.sortY);
       this.entityLayer.addChild(sprite);
       this.npcSprites.set(npc.id, sprite);
 
@@ -206,7 +212,8 @@ export class RenderSystem {
     this.playerSprite.anchor.set(player.anchor.x, player.anchor.y);
     this.playerSprite.x = player.x;
     this.playerSprite.y = player.y;
-    this.playerSprite.zIndex = player.sortY;
+    const layers = this.currentMap ? getLayers(this.currentMap) : [];
+    this.playerSprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, player.sortY);
     this.entityLayer.addChild(this.playerSprite);
   }
 
@@ -247,7 +254,8 @@ export class RenderSystem {
     }
     this.playerSprite.x = player.x;
     this.playerSprite.y = player.y;
-    this.playerSprite.zIndex = player.sortY;
+    const layers = this.currentMap ? getLayers(this.currentMap) : [];
+    this.playerSprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, player.sortY);
   }
 
   /** Mask rectangle that clips `worldContainer` to a centered sub-region of
@@ -350,7 +358,8 @@ export class RenderSystem {
     if (!sprite) return;
     sprite.x = x;
     sprite.y = y;
-    sprite.zIndex = y;
+    const layers = this.currentMap ? getLayers(this.currentMap) : [];
+    sprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, y);
     // Update animation base position so idle bob is relative to new position
     const anim = this.npcAnims.get(npcId);
     if (anim) {
@@ -401,7 +410,9 @@ export class RenderSystem {
   static getRequiredAssets(map: MapData): string[] {
     const keys = new Set<string>();
 
-    const tileTypes = new Set<TileType>();
+    // Tile types may be enum strings or pack refs (`me:...`). Both go through
+    // the same `loadAssets` path (it routes `me:` keys to the pack loader).
+    const tileTypes = new Set<string>();
     for (const row of map.tiles) {
       for (const t of row) tileTypes.add(t);
     }

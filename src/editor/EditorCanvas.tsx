@@ -6,7 +6,7 @@ import { EditorApp } from './EditorApp';
 import { editorReducer, createInitialState, EditorAction, generateObjectId } from './editorState';
 import { OBJECT_DEFAULTS, BUILDING_DEFAULTS, DEFAULT_INTERIOR_MAP_ID } from './objectDefaults';
 import { loadMap } from '../core/MapLoader';
-import { getTexture } from '../renderer/AssetLoader';
+import { getPackTileCellDims, getTexture } from '../renderer/AssetLoader';
 import EditorToolPanel from './EditorToolPanel';
 import EditorTopBar from './EditorTopBar';
 
@@ -14,7 +14,7 @@ const ACTIVE_MAP_KEY = 'editor-active-map';
 
 /** Default scale for newly-placed objects. Source art is typically bigger than
  * we want on the map, so we start shrunk and let the user slide up if needed. */
-const DEFAULT_OBJECT_SCALE = 0.5;
+const DEFAULT_OBJECT_SCALE = 1.0;
 
 /**
  * World-space AABB that a sprite covers, given its anchor and feet position.
@@ -46,6 +46,62 @@ function snapXForSprite(col: number, spriteKey: string, tileSize: number): numbe
   return isOdd
     ? col * tileSize + tileSize / 2
     : col * tileSize;
+}
+
+/** For tile painting: expand a single (row, col) click into the full set of
+ * cells that belong to its `(N×M)` cycle when the tile asset is a multi-tile
+ * pack source (e.g. a 32×32 floor patch → 2×2 cycle). The cycle is anchored
+ * to the world grid (cell `(c, r)` belongs to cycle `(c % N, r % M)`), so
+ * adjacent cycles align cleanly when the user drags across them.
+ *
+ * Returns a single-cell set for non-pack tiles or any source already at
+ * `TILE_SIZE × TILE_SIZE`. */
+/** True when a Tile-mode-picked pack asset is bigger than one cell. Such
+ * assets are routed to object placement on the Floor layer instead of into
+ * `tiles[][]`, which gives them free placement (any grid cell) and renders
+ * them as a single sprite at native size — identical to Object mode. */
+function isMultiTilePackTile(tileType: string): boolean {
+  if (!tileType.startsWith('me:')) return false;
+  const { cols, rows } = getPackTileCellDims(tileType);
+  return cols > 1 || rows > 1;
+}
+
+/** Place a multi-tile pack source as an Object on the Floor layer at the
+ * click cell. The patch's top-left aligns to the click cell; with sprite
+ * anchor (0.5, 1.0) the entity position is bottom-center: x = colTL +
+ * (N×TS)/2, y = (rowTL + M) × TS.
+ *
+ * Tile mode means "this is ground" — so we always target the Floor layer
+ * (or whichever bottom-most layer exists if Floor was deleted) rather than
+ * the user's active layer. Otherwise patches end up on Props with the
+ * player and Y-sort badly when the player walks across them. */
+function stampMultiTileAsObject(
+  tileType: string,
+  row: number,
+  col: number,
+  tileSize: number,
+  layers: { id: string }[],
+  dispatch: React.Dispatch<EditorAction>,
+): boolean {
+  if (!tileType.startsWith('me:')) return false;
+  const { cols: N, rows: M } = getPackTileCellDims(tileType);
+  if (N <= 1 && M <= 1) return false;
+  const targetLayer = layers.find(l => l.id === 'floor')?.id ?? layers[0]?.id ?? 'floor';
+  const px = col * tileSize + (N * tileSize) / 2;
+  const py = (row + M) * tileSize;
+  dispatch({
+    type: 'PLACE_OBJECT',
+    entity: {
+      id: generateObjectId(),
+      x: px, y: py,
+      spriteKey: tileType,
+      anchor: { x: 0.5, y: 1.0 },
+      sortY: py,
+      collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 },
+      layer: targetLayer,
+    },
+  });
+  return true;
 }
 
 function initFromGameMap(): ReturnType<typeof createInitialState> {
@@ -97,6 +153,7 @@ export default function EditorCanvas() {
   // Object drag state — when user grabs a selected object with the select tool
   const draggingObjectRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
   const draggingBuildingRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const areaEraseRef = useRef<{ start: { row: number; col: number }; end: { row: number; col: number } } | null>(null);
 
   // Copy/paste: last copied entity (without id) and last known cursor world pos
   const clipboardRef = useRef<Entity | null>(null);
@@ -124,7 +181,7 @@ export default function EditorCanvas() {
           if (!seenIds.has(o.id)) { seenIds.add(o.id); return o; }
           return { ...o, id: generateObjectId() };
         });
-        dispatch({ type: 'IMPORT_MAP', tiles: data.tiles, objects, buildings: data.buildings || [], width: data.width, height: data.height });
+        dispatch({ type: 'IMPORT_MAP', tiles: data.tiles, objects, buildings: data.buildings || [], width: data.width, height: data.height, layers: data.layers });
         if (data.id) dispatch({ type: 'SET_MAP_NAME', name: data.id });
         if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });
       })
@@ -163,6 +220,10 @@ export default function EditorCanvas() {
       npcs,
       triggers,
       spawnPoints,
+      // Persist user-managed layers (id/name/visible/locked) so reopening
+      // the editor restores the same layer setup. Game runtime ignores the
+      // editor-only `visible`/`locked` flags.
+      layers: state.layers,
     };
 
     // Instant localStorage write (working buffer, survives quick refreshes)
@@ -180,7 +241,7 @@ export default function EditorCanvas() {
         body: JSON.stringify(mapData),
       }).catch(err => console.error('Failed to persist map to disk:', err));
     }, 500);
-  }, [state.tiles, state.objects, state.buildings, state.mapWidth, state.mapHeight, state.mapName, state.tileSize]);
+  }, [state.tiles, state.objects, state.buildings, state.layers, state.mapWidth, state.mapHeight, state.mapName, state.tileSize]);
 
   // Flush any pending disk save on unmount
   useEffect(() => {
@@ -196,8 +257,13 @@ export default function EditorCanvas() {
     const app = new EditorApp();
     editorAppRef.current = app;
 
-    app.init(canvasContainerRef.current).then(() => {
+    app.init(canvasContainerRef.current).then(async () => {
       const s = stateRef.current;
+      // Load any pack assets the saved map already references before the
+      // first render, otherwise pack tiles/objects come up blank until the
+      // user touches the map.
+      await app.ensurePackAssets({ tiles: s.tiles, objects: s.objects, buildings: s.buildings });
+      app.setLayers(s.layers);
       app.renderTiles(s.tiles, s.mapWidth, s.mapHeight, s.tileSize);
       app.renderObjects(s.objects);
       app.renderBuildings(s.buildings);
@@ -222,10 +288,21 @@ export default function EditorCanvas() {
   useEffect(() => {
     const app = editorAppRef.current;
     if (!app) return;
-    app.renderTiles(state.tiles, state.mapWidth, state.mapHeight, state.tileSize);
-    app.renderObjects(state.objects);
-    app.renderBuildings(state.buildings);
-  }, [state.tiles, state.objects, state.buildings, state.mapWidth, state.mapHeight, state.tileSize]);
+    let cancelled = false;
+    // Push the current layer list before rendering so z-sort and visibility
+    // honor the user-managed layer state.
+    app.setLayers(state.layers);
+    // Lazy-load any newly-introduced pack assets before rendering. Cached
+    // ones resolve immediately; first-time pack picks add a small async hop
+    // but only on the first paint of that asset.
+    app.ensurePackAssets({ tiles: state.tiles, objects: state.objects, buildings: state.buildings }).then(() => {
+      if (cancelled) return;
+      app.renderTiles(state.tiles, state.mapWidth, state.mapHeight, state.tileSize);
+      app.renderObjects(state.objects);
+      app.renderBuildings(state.buildings);
+    });
+    return () => { cancelled = true; };
+  }, [state.tiles, state.objects, state.buildings, state.layers, state.mapWidth, state.mapHeight, state.tileSize]);
 
   useEffect(() => {
     editorAppRef.current?.setGridVisible(state.showGrid);
@@ -272,12 +349,28 @@ export default function EditorCanvas() {
 
     const { x, y, row, col } = getWorldPos(e);
 
+    if (s.activeTool === 'area-erase') {
+      // Drag-to-clear: record the start AND end cells (both equal at first).
+      // pointerMove updates `end` and the preview; pointerUp reads `end` to
+      // dispatch CLEAR_AREA — independent of cursorWorldRef which doesn't get
+      // updated while we early-return out of pointerMove.
+      areaEraseRef.current = { start: { row, col }, end: { row, col } };
+      editorAppRef.current?.showAreaRect(row, col, row, col);
+      return;
+    }
+
     if (s.activeTool === 'tile') {
       isPaintingRef.current = true;
       paintedCellsRef.current = new Set();
-      const key = `${row},${col}`;
-      paintedCellsRef.current.add(key);
-      editorAppRef.current?.updateSingleTile(row, col, s.selectedTileType);
+      paintedCellsRef.current.add(`${row},${col}`);
+      // Multi-tile pack sources can't fit one cell — route them through
+      // object placement on the active layer so they render at native size
+      // at the click position (free placement, no cycle alignment).
+      if (isMultiTilePackTile(s.selectedTileType)) {
+        stampMultiTileAsObject(s.selectedTileType, row, col, s.tileSize, s.layers, dispatchRef.current);
+      } else {
+        editorAppRef.current?.updateSingleTile(row, col, s.selectedTileType);
+      }
       // We'll batch dispatch on pointer up
     } else if (s.activeTool === 'object' && s.selectedObjectKey) {
       const defaults = OBJECT_DEFAULTS[s.selectedObjectKey] ?? { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } };
@@ -296,6 +389,7 @@ export default function EditorCanvas() {
         sortY,
         collisionBox: defaults.collisionBox,
         scale: DEFAULT_OBJECT_SCALE,
+        layer: s.activeLayerId,
       };
       dispatchRef.current({ type: 'PLACE_OBJECT', entity });
       dispatchRef.current({ type: 'SELECT_OBJECT', id: entity.id });
@@ -319,7 +413,9 @@ export default function EditorCanvas() {
         dispatchRef.current({ type: 'PLACE_BUILDING', building });
       }
     } else if (s.activeTool === 'select') {
-      // Hit test buildings first (larger), then objects — use sprite bounds
+      // Lock-aware hit-test: skip entities on layers the user has locked.
+      // Buildings have no layer concept yet, so they're never lock-skipped.
+      const lockedLayers = new Set(s.layers.filter(l => l.locked).map(l => l.id));
       let found = false;
       for (const b of s.buildings) {
         const bb = getSpriteBounds(b.x, b.y, b.baseSpriteKey, b.anchor, s.tileSize, b.scale ?? 1);
@@ -331,7 +427,9 @@ export default function EditorCanvas() {
         }
       }
       if (!found) {
-        const sorted = [...s.objects].sort((a, b) => b.sortY - a.sortY);
+        const sorted = [...s.objects]
+          .filter(o => !lockedLayers.has(o.layer ?? ''))
+          .sort((a, b) => b.sortY - a.sortY);
         for (const obj of sorted) {
           const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize, obj.scale ?? 1);
           if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
@@ -345,6 +443,7 @@ export default function EditorCanvas() {
       }
       if (!found) dispatchRef.current({ type: 'SELECT_OBJECT', id: null });
     } else if (s.activeTool === 'eraser') {
+      const lockedLayers = new Set(s.layers.filter(l => l.locked).map(l => l.id));
       // Try erasing a building first — sprite-sized hit box
       for (const b of s.buildings) {
         const bb = getSpriteBounds(b.x, b.y, b.baseSpriteKey, b.anchor, s.tileSize);
@@ -353,8 +452,10 @@ export default function EditorCanvas() {
           return;
         }
       }
-      // Then objects
-      const sorted = [...s.objects].sort((a, b) => b.sortY - a.sortY);
+      // Then objects (skip locked-layer objects)
+      const sorted = [...s.objects]
+        .filter(o => !lockedLayers.has(o.layer ?? ''))
+        .sort((a, b) => b.sortY - a.sortY);
       for (const obj of sorted) {
         const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize, obj.scale ?? 1);
         if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
@@ -377,6 +478,16 @@ export default function EditorCanvas() {
       const dx = (e.clientX - panStartRef.current.x) / s.zoom;
       const dy = (e.clientY - panStartRef.current.y) / s.zoom;
       dispatchRef.current({ type: 'SET_CAMERA', x: panStartRef.current.camX - dx, y: panStartRef.current.camY - dy });
+      return;
+    }
+
+    // Area-erase drag: stretch the preview rectangle from the start cell to
+    // wherever the cursor currently is. CLEAR_AREA fires on pointerUp.
+    if (areaEraseRef.current) {
+      const ref = areaEraseRef.current;
+      const { row, col } = getWorldPos(e);
+      ref.end = { row, col };
+      editorAppRef.current?.showAreaRect(ref.start.row, ref.start.col, row, col);
       return;
     }
 
@@ -466,11 +577,18 @@ export default function EditorCanvas() {
     }
 
     if (isPaintingRef.current) {
+      const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
       const key = `${row},${col}`;
       if (!paintedCellsRef.current.has(key)) {
         paintedCellsRef.current.add(key);
-        const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
-        editorAppRef.current?.updateSingleTile(row, col, tileType);
+        // Multi-tile pack tiles drag-stamp as additional objects on the
+        // active layer (free placement); single-tile sources continue with
+        // normal cell-paint visual feedback.
+        if (s.activeTool === 'tile' && isMultiTilePackTile(tileType)) {
+          stampMultiTileAsObject(tileType, row, col, s.tileSize, s.layers, dispatchRef.current);
+        } else {
+          editorAppRef.current?.updateSingleTile(row, col, tileType);
+        }
       }
     }
   }, [getWorldPos]);
@@ -490,14 +608,28 @@ export default function EditorCanvas() {
       return;
     }
 
+    if (areaEraseRef.current) {
+      const { start, end } = areaEraseRef.current;
+      areaEraseRef.current = null;
+      // `end` is updated continuously in pointerMove; the reducer clamps to
+      // the map bounds, so we dispatch raw cell indices.
+      dispatchRef.current({ type: 'CLEAR_AREA', row1: start.row, col1: start.col, row2: end.row, col2: end.col });
+      editorAppRef.current?.clearAreaRect();
+      return;
+    }
+
     if (isPaintingRef.current && paintedCellsRef.current.size > 0) {
       const s = stateRef.current;
-      const cells = Array.from(paintedCellsRef.current).map(k => {
-        const [r, c] = k.split(',').map(Number);
-        return { row: r, col: c };
-      });
       const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
-      dispatchRef.current({ type: 'PAINT_TILES', cells, tileType });
+      // Multi-tile pack tiles already placed individual objects per cell
+      // during drag — nothing to batch into PAINT_TILES.
+      if (!(s.activeTool === 'tile' && isMultiTilePackTile(tileType))) {
+        const cells = Array.from(paintedCellsRef.current).map(k => {
+          const [r, c] = k.split(',').map(Number);
+          return { row: r, col: c };
+        });
+        dispatchRef.current({ type: 'PAINT_TILES', cells, tileType });
+      }
       isPaintingRef.current = false;
       paintedCellsRef.current.clear();
     }
@@ -517,11 +649,12 @@ export default function EditorCanvas() {
       if (!app) return;
 
       if (e.ctrlKey) {
-        // Ctrl+scroll or trackpad pinch = zoom
+        // Ctrl+scroll or trackpad pinch = zoom. Multiplicative step feels
+        // consistent at every zoom level — same wheel tick covers 0.5→0.6 and
+        // 2.0→2.4 in proportional terms instead of a fixed +0.05.
         const oldZoom = s.zoom;
-        const step = 0.05;
-        const delta = e.deltaY > 0 ? -step : step;
-        const newZoom = Math.max(0.25, Math.min(3, oldZoom + delta));
+        const factor = e.deltaY > 0 ? 1 / 1.2 : 1.2;
+        const newZoom = Math.max(0.25, Math.min(3, oldZoom * factor));
         if (newZoom === oldZoom) return;
 
         const world = app.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, oldZoom);

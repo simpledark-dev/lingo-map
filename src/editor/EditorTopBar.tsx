@@ -14,7 +14,7 @@ interface Props {
 export default function EditorTopBar({ state, dispatch }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const applyMapData = useCallback((data: { id?: string; tiles: unknown; objects?: unknown[]; buildings?: unknown[]; width: number; height: number; tileSize?: number }, fallbackId: string) => {
+  const applyMapData = useCallback((data: { id?: string; tiles: unknown; objects?: unknown[]; buildings?: unknown[]; width: number; height: number; tileSize?: number; layers?: unknown[] }, fallbackId: string) => {
     dispatch({
       type: 'IMPORT_MAP',
       tiles: data.tiles as never,
@@ -22,6 +22,7 @@ export default function EditorTopBar({ state, dispatch }: Props) {
       buildings: (data.buildings as never[]) || [],
       width: data.width,
       height: data.height,
+      layers: (data.layers as never[]) || undefined,
     });
     dispatch({ type: 'SET_MAP_NAME', name: data.id || fallbackId });
     if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });

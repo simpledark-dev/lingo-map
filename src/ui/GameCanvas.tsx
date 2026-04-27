@@ -69,7 +69,7 @@ export default function GameCanvas() {
     // We only take the edited parts (tiles/objects/buildings/dimensions) — triggers,
     // spawnPoints and NPCs always come from the compiled map so gameplay logic
     // isn't broken by a stale version.
-    const applyOverride = (mapData: { id?: string; width?: number; height?: number; tileSize?: number; tiles?: unknown; objects?: unknown[]; buildings?: unknown[] }) => {
+    const applyOverride = (mapData: { id?: string; width?: number; height?: number; tileSize?: number; tiles?: unknown; objects?: unknown[]; buildings?: unknown[]; layers?: unknown[] }) => {
       if (!mapData?.id || !Array.isArray(mapData.tiles) || typeof mapData.width !== 'number' || typeof mapData.height !== 'number') return;
       let compiled: ReturnType<typeof loadMap> | null = null;
       try { compiled = loadMap(mapData.id); } catch { /* map not in registry */ }
@@ -105,6 +105,9 @@ export default function GameCanvas() {
         // Engine-only map metadata (not produced by the editor) comes from the
         // compiled map so interior view caps etc. aren't lost on override.
         maxViewTiles: compiled?.maxViewTiles,
+        // Editor-managed layer list — fall back to compiled layers, then to
+        // implicit defaults via `getLayers()` when neither is set.
+        layers: (mapData.layers as never[] | undefined) ?? compiled?.layers,
       });
     };
 

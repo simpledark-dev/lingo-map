@@ -53,20 +53,20 @@ const MASK_TO_INDEX: number[] = [
 interface TilesetConfig {
   path: string;
   /** True if this tile is the *upper* terrain in this tileset's binary split. */
-  isUpper: (t: TileType) => boolean;
+  isUpper: (t: string) => boolean;
   /**
    * True if this tile is one of the two terrains the tileset depicts. ALL four
    * surrounding cells of a render slot must satisfy this for the slot to draw —
    * otherwise the wrong terrain would bleed over unrelated tile types.
    */
-  isAutoTile: (t: TileType) => boolean;
+  isAutoTile: (t: string) => boolean;
   /**
    * Optional: at least one of the four surrounding cells must satisfy this
    * for the slot to draw. Use this to ensure a tileset only fires near its
    * "feature" terrain (e.g. dark grass, dirt) and doesn't paint a flat layer
    * of its lower terrain over the whole map.
    */
-  requiresPresenceOf?: (t: TileType) => boolean;
+  requiresPresenceOf?: (t: string) => boolean;
 }
 
 interface LoadedTileset extends TilesetConfig {
@@ -127,7 +127,7 @@ export async function loadAutoTileset(): Promise<void> {
   }
 }
 
-function clamped(tiles: TileType[][], width: number, height: number, row: number, col: number): TileType {
+function clamped(tiles: string[][], width: number, height: number, row: number, col: number): string {
   // Edge clamp — extend the nearest in-bounds cell so the map border looks
   // natural rather than trying to render an out-of-world transition.
   if (row < 0) row = 0;
@@ -144,7 +144,7 @@ function clamped(tiles: TileType[][], width: number, height: number, row: number
  * (e.g. dark grass over the grass/water shoreline).
  */
 export function buildAutoTileLayer(
-  tiles: TileType[][],
+  tiles: string[][],
   width: number,
   height: number,
   tileSize: number,

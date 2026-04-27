@@ -1,7 +1,46 @@
 import { Assets, Texture } from 'pixi.js';
 import { TileType } from '../core/types';
+import { TILE_SIZE } from '../core/constants';
 
 const ASSET_BASE = '/assets/placeholder/';
+
+// ── Pack assets (Modern Exteriors Singles) ────────────────────────────────
+// Sprite keys of the form `me:<themeFolder>/<fileStem>` resolve to PNGs under
+// `/assets/me/<themeFolder>/<fileStem>.png`. Each Single is a discrete asset
+// at its native size — could be 16×16 (paintable as a tile) or 256×240 (a
+// whole building used as an object). The renderer treats the texture as-is.
+
+const PACK_BASE = '/assets/me/';
+
+const packPromises = new Map<string, Promise<Texture | null>>();
+
+/** Resolve a pack key to its public URL. Returns null if not a pack key. */
+function packKeyToUrl(key: string): string | null {
+  if (!key.startsWith('me:')) return null;
+  return `${PACK_BASE}${key.slice(3)}.png`;
+}
+
+/** Lazy-load a pack single by its key. Idempotent. Texture is cached in
+ * `textureCache` once resolved so subsequent `getTexture` calls hit. */
+export function loadPackSingle(key: string): Promise<Texture | null> {
+  if (textureCache.has(key)) return Promise.resolve(textureCache.get(key)!);
+  const inflight = packPromises.get(key);
+  if (inflight) return inflight;
+  const url = packKeyToUrl(key);
+  if (!url) return Promise.resolve(null);
+  const p = Assets.load<Texture>(url).then((tex) => {
+    tex.source.scaleMode = 'nearest';
+    textureCache.set(key, tex);
+    packPromises.delete(key);
+    return tex;
+  }).catch((err) => {
+    console.warn(`Failed to load pack single "${key}":`, err);
+    packPromises.delete(key);
+    return null;
+  });
+  packPromises.set(key, p);
+  return p;
+}
 
 /** Maps sprite keys to file paths. */
 const spriteManifest: Record<string, string> = {
@@ -205,9 +244,14 @@ const textureCache = new Map<string, Texture>();
 
 export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Texture>> {
   const toLoad: { key: string; path: string }[] = [];
+  const packKeys: string[] = [];
 
   for (const key of spriteKeys) {
     if (textureCache.has(key)) continue;
+    if (key.startsWith('me:')) {
+      packKeys.push(key);
+      continue;
+    }
     const path = spriteManifest[key];
     if (!path) {
       console.warn(`No asset path for sprite key: ${key}`);
@@ -216,7 +260,7 @@ export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Text
     toLoad.push({ key, path });
   }
 
-  // Load all missing textures in parallel
+  // Load registered placeholder assets in parallel.
   if (toLoad.length > 0) {
     const textures = await Promise.all(
       toLoad.map(({ path }) => Assets.load<Texture>(path))
@@ -225,6 +269,13 @@ export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Text
       textures[i].source.scaleMode = 'nearest';
       textureCache.set(toLoad[i].key, textures[i]);
     }
+  }
+
+  // Pack singles take a different path: they're loaded by URL derived from the
+  // key, and the result is cached in the same `textureCache` so subsequent
+  // `getTexture` lookups are uniform.
+  if (packKeys.length > 0) {
+    await Promise.all(packKeys.map(loadPackSingle));
   }
 
   // Return the subset requested
@@ -240,11 +291,35 @@ export function getTexture(key: string): Texture | undefined {
   return textureCache.get(key);
 }
 
+/** Number of `TILE_SIZE × TILE_SIZE` cells a pack tile spans, derived from
+ * its source PNG dimensions. Used by the editor's stamp-on-click logic to
+ * paint the entire `N × M` cycle in one operation so cells stay aligned.
+ * Returns `{1, 1}` for single-tile or unloaded textures (safe fallback). */
+export function getPackTileCellDims(key: string): { cols: number; rows: number } {
+  const tex = textureCache.get(key);
+  if (!tex) return { cols: 1, rows: 1 };
+  const N = Math.max(1, Math.floor(tex.frame.width / TILE_SIZE));
+  const M = Math.max(1, Math.floor(tex.frame.height / TILE_SIZE));
+  return { cols: N, rows: M };
+}
+
 /** Pick the right texture for a ground-tile cell. Delegates to `getTexture`
- * for ordinary tile types; for pattern tiles (currently just `FLOOR_PATTERN`)
- * it returns the correct quadrant of a 32×32 motif based on the cell's
- * (row, col) position so the pattern auto-aligns across the map. */
+ * for ordinary tile types; for pattern tiles it returns the correct quadrant
+ * of a 32×32 motif based on the cell's (row, col) position so the pattern
+ * auto-aligns. Pack singles (`me:<theme>/<file>`) resolve to a full PNG under
+ * `/assets/me/`, lazy-loaded on first request. */
 export function getTileTexture(tileType: string, row: number, col: number): Texture | undefined {
+  if (tileType.startsWith('me:')) {
+    const cached = textureCache.get(tileType);
+    if (!cached) {
+      void loadPackSingle(tileType); // kick off load, render will retry next frame
+      return undefined;
+    }
+    // Single-tile pack source — return as-is. Multi-tile pack sources are
+    // never stored in `tiles[][]`; the editor routes them to `objects[]` on
+    // place, so we don't need to handle multi-tile here.
+    return cached;
+  }
   if (tileType === 'floor-pattern') {
     const top = row % 2 === 0;
     const left = col % 2 === 0;

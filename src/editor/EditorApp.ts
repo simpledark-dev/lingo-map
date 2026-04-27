@@ -1,6 +1,8 @@
 import { Application, Container, Sprite, Graphics, Text } from 'pixi.js';
-import { TileType, Entity, Building } from '../core/types';
-import { getTexture, getTileTexture, preloadAllAssets } from '../renderer/AssetLoader';
+import { TileType, Entity, Building, MapLayer } from '../core/types';
+import { PLAYER_LAYER_ID } from '../core/constants';
+import { getEffectiveZIndex } from '../core/Layers';
+import { getTexture, getTileTexture, loadPackSingle, preloadAllAssets } from '../renderer/AssetLoader';
 import { buildTransitionLayer } from '../renderer/TransitionTiles';
 import { loadAutoTileset, buildAutoTileLayer, isAutoTilesetReady } from '../renderer/AutoTileset';
 
@@ -15,11 +17,17 @@ export class EditorApp {
   private gridOverlay: Container;
   private hoverGraphics: Graphics;
   private selectionGraphics: Graphics;
+  private areaRectGraphics: Graphics;
   private selectionLabel: Text | null = null;
   private previewContainer: Container;
   private previewSprites: Sprite[] = [];
 
   private tileSprites: (Sprite | null)[][] = [];
+
+  /** Snapshot of the editor's current layer list. EditorCanvas calls
+   * `setLayers` before rendering so z-sort and visibility honor the
+   * user-managed layer order, visibility, and lock state. */
+  private currentLayers: MapLayer[] = [];
   private objectSprites = new Map<string, Sprite>();
   private buildingBaseSprites = new Map<string, Sprite>();
   private buildingRoofSprites = new Map<string, Sprite>();
@@ -31,7 +39,7 @@ export class EditorApp {
   private destroyed = false;
 
   // Current tiles for transition rebuilds
-  private currentTiles: TileType[][] = [];
+  private currentTiles: string[][] = [];
 
   constructor() {
     this.app = new Application();
@@ -44,6 +52,7 @@ export class EditorApp {
     this.gridOverlay = new Container();
     this.hoverGraphics = new Graphics();
     this.selectionGraphics = new Graphics();
+    this.areaRectGraphics = new Graphics();
     this.previewContainer = new Container();
     this.entityLayer.sortableChildren = true;
   }
@@ -73,6 +82,7 @@ export class EditorApp {
     this.worldContainer.addChild(this.gridOverlay);
     this.worldContainer.addChild(this.hoverGraphics);
     this.worldContainer.addChild(this.selectionGraphics);
+    this.worldContainer.addChild(this.areaRectGraphics);
     this.worldContainer.addChild(this.previewContainer);
     this.app.stage.addChild(this.worldContainer);
 
@@ -94,7 +104,7 @@ export class EditorApp {
     this.initialized = true;
   }
 
-  renderTiles(tiles: TileType[][], width: number, height: number, tileSize: number): void {
+  renderTiles(tiles: string[][], width: number, height: number, tileSize: number): void {
     this.mapWidth = width;
     this.mapHeight = height;
     this.tileSize = tileSize;
@@ -125,7 +135,7 @@ export class EditorApp {
     this.rebuildGrid();
   }
 
-  updateSingleTile(row: number, col: number, tileType: TileType): void {
+  updateSingleTile(row: number, col: number, tileType: string): void {
     const tex = getTileTexture(tileType, row, col);
     if (!tex) return;
     const existing = this.tileSprites[row]?.[col];
@@ -145,7 +155,7 @@ export class EditorApp {
     this.autoTileLayer.addChild(layer);
   }
 
-  rebuildTransitions(tiles?: TileType[][], width?: number, height?: number, tileSize?: number): void {
+  rebuildTransitions(tiles?: string[][], width?: number, height?: number, tileSize?: number): void {
     const t = tiles ?? this.currentTiles;
     const w = width ?? this.mapWidth;
     const h = height ?? this.mapHeight;
@@ -159,10 +169,43 @@ export class EditorApp {
     this.transitionLayer.addChild(layer);
   }
 
+  /** Find every Modern Exteriors pack key referenced by the current editor
+   * state and ensure each one is loaded into PixiJS. Called before rendering
+   * so saved pack tiles/objects show up the first time the editor opens (the
+   * placeholder preload doesn't know about pack singles, and `getTexture`
+   * misses don't re-trigger loads). Idempotent — cached singles short-circuit
+   * inside `loadPackSingle`. */
+  async ensurePackAssets(state: { tiles: string[][]; objects: Entity[]; buildings: Building[] }): Promise<void> {
+    const keys = new Set<string>();
+    for (const row of state.tiles) {
+      for (const t of row) if (t.startsWith('me:')) keys.add(t);
+    }
+    for (const o of state.objects) {
+      if (o.spriteKey.startsWith('me:')) keys.add(o.spriteKey);
+    }
+    for (const b of state.buildings) {
+      if (b.baseSpriteKey.startsWith('me:')) keys.add(b.baseSpriteKey);
+      if (b.roofSpriteKey?.startsWith('me:')) keys.add(b.roofSpriteKey);
+    }
+    if (keys.size === 0) return;
+    await Promise.all([...keys].map(k => loadPackSingle(k)));
+  }
+
+  /** Update the layer list used for z-sort and visibility/lock filtering.
+   * Called by EditorCanvas before each `renderObjects`/`renderBuildings` so
+   * the editor reflects the user-managed layer state. */
+  setLayers(layers: MapLayer[]): void {
+    this.currentLayers = layers;
+  }
+
   renderObjects(objects: Entity[]): void {
     this.entityLayer.removeChildren();
     this.objectSprites.clear();
     for (const obj of objects) {
+      // Skip entities whose layer is hidden in the editor. Game runtime
+      // ignores the visible flag — that's editor-only display state.
+      const layer = this.currentLayers.find(l => l.id === obj.layer);
+      if (layer && layer.visible === false) continue;
       this.addObjectSprite(obj);
     }
   }
@@ -174,7 +217,7 @@ export class EditorApp {
     s.anchor.set(obj.anchor.x, obj.anchor.y);
     s.x = obj.x;
     s.y = obj.y;
-    s.zIndex = obj.sortY;
+    s.zIndex = getEffectiveZIndex(this.currentLayers, obj.layer, obj.sortY);
     if (obj.scale && obj.scale !== 1) s.scale.set(obj.scale);
     this.entityLayer.addChild(s);
     this.objectSprites.set(obj.id, s);
@@ -209,7 +252,8 @@ export class EditorApp {
       s.anchor.set(b.anchor.x, b.anchor.y);
       s.x = b.x;
       s.y = b.y;
-      s.zIndex = b.sortY;
+      // Buildings always render on the props layer alongside the player.
+      s.zIndex = getEffectiveZIndex(this.currentLayers, PLAYER_LAYER_ID, b.sortY);
       if (scale !== 1) s.scale.set(scale);
       this.entityLayer.addChild(s);
       this.buildingBaseSprites.set(b.id, s);
@@ -261,6 +305,28 @@ export class EditorApp {
     this.hoverGraphics.clear();
     this.hoverGraphics.rect(col * this.tileSize, row * this.tileSize, this.tileSize, this.tileSize);
     this.hoverGraphics.fill({ color: 0x4488ff, alpha: 0.25 });
+  }
+
+  /** Show / update the area-erase drag rectangle. Coords are tile-cell
+   * indices; negative width/height handled by drawing the normalized rect. */
+  showAreaRect(row1: number, col1: number, row2: number, col2: number): void {
+    const r0 = Math.min(row1, row2);
+    const r1 = Math.max(row1, row2);
+    const c0 = Math.min(col1, col2);
+    const c1 = Math.max(col1, col2);
+    this.areaRectGraphics.clear();
+    this.areaRectGraphics.rect(
+      c0 * this.tileSize,
+      r0 * this.tileSize,
+      (c1 - c0 + 1) * this.tileSize,
+      (r1 - r0 + 1) * this.tileSize,
+    );
+    this.areaRectGraphics.fill({ color: 0xff4444, alpha: 0.18 });
+    this.areaRectGraphics.stroke({ color: 0xff4444, alpha: 0.9, width: 2 });
+  }
+
+  clearAreaRect(): void {
+    this.areaRectGraphics.clear();
   }
 
   highlightBuilding(b: Building): void {
