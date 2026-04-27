@@ -1,7 +1,7 @@
 import { Application, Container, Sprite, Graphics, Text } from 'pixi.js';
-import { TileType, Entity, Building, MapLayer } from '../core/types';
+import { TileType, Entity, Building, Layer, MapLayer } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
-import { getEffectiveZIndex } from '../core/Layers';
+import { getEffectiveZIndex, isObjectLayer, isTileLayer } from '../core/Layers';
 import { getTexture, getTileTexture, loadPackSingle, preloadAllAssets } from '../renderer/AssetLoader';
 import { buildTransitionLayer } from '../renderer/TransitionTiles';
 import { loadAutoTileset, buildAutoTileLayer, isAutoTilesetReady } from '../renderer/AutoTileset';
@@ -23,6 +23,11 @@ export class EditorApp {
   private areaSelectGraphics: Graphics;
   private areaSelectGhostGraphics: Graphics;
   private selectionLabel: Text | null = null;
+  /** Floating layer-name tag drawn near the cursor during placement-style
+   * tools so the user can see which layer their next click will write to.
+   * Color-coded to match the layer-kind badges in the layers panel. */
+  private cursorLayerLabel: Text | null = null;
+  private cursorLayerLabelBg: Graphics | null = null;
   private previewContainer: Container;
   private previewSprites: Sprite[] = [];
 
@@ -32,6 +37,10 @@ export class EditorApp {
    * `setLayers` before rendering so z-sort and visibility honor the
    * user-managed layer order, visibility, and lock state. */
   private currentLayers: MapLayer[] = [];
+  /** ID of the tile layer the live `tileSprites` cache currently tracks.
+   * `updateSingleTile` patches sprites + currentTiles for THIS layer.
+   * Set by `renderLayers` based on the active layer the user picked. */
+  private activeTileLayerId: string | undefined;
   private objectSprites = new Map<string, Sprite>();
   private buildingBaseSprites = new Map<string, Sprite>();
   private buildingRoofSprites = new Map<string, Sprite>();
@@ -112,35 +121,124 @@ export class EditorApp {
     this.initialized = true;
   }
 
-  renderTiles(tiles: string[][], width: number, height: number, tileSize: number): void {
+  /** Re-render every tile layer (in stack order, skipping invisible ones)
+   * AND every object layer in one pass. The tile-only `tileSprites` cache
+   * tracks the ACTIVE tile layer (or the first visible tile layer if the
+   * caller didn't specify) so `updateSingleTile` can fast-path single-cell
+   * paint strokes into the layer the user is currently editing.
+   *
+   * Transitions / auto-tile anchor on the FIRST visible tile layer (the
+   * "ground" semantically) regardless of which layer the user is painting
+   * — those effects don't make sense applied to top-stacked tile layers
+   * like a Walls layer.
+   *
+   * `renderObjects` is called from inside this method using the
+   * per-object-layer `objects` arrays so we don't double-render objects
+   * the way the legacy code did when callers passed them separately. */
+  renderLayers(layers: Layer[], width: number, height: number, tileSize: number, activeLayerId?: string): void {
     this.mapWidth = width;
     this.mapHeight = height;
     this.tileSize = tileSize;
-    // Clone — `updateSingleTile` mutates this during paint drags before the
-    // React state has been dispatched, and we mustn't mutate the React array.
-    this.currentTiles = tiles.map(row => [...row]);
     this.groundLayer.removeChildren();
     this.tileSprites = [];
 
+    // Pick the cache target: the active layer if it's a visible tile layer,
+    // otherwise the first visible tile layer. The cache target's sprites
+    // populate `tileSprites` so `updateSingleTile` can patch one cell.
+    const activeTile = activeLayerId
+      ? layers.find(l => l.id === activeLayerId && isTileLayer(l) && l.visible !== false)
+      : undefined;
+    const firstVisibleTile = layers.find(l => isTileLayer(l) && l.visible !== false);
+    const cacheTile = (activeTile ?? firstVisibleTile) as Layer | undefined;
+    const cacheTiles = cacheTile && isTileLayer(cacheTile) ? cacheTile.tiles : null;
+    // Transitions / auto-tile always anchor on the first visible tile layer.
+    const groundTiles = firstVisibleTile && isTileLayer(firstVisibleTile) ? firstVisibleTile.tiles : null;
+    this.activeTileLayerId = cacheTile?.id;
+
+    // Track sprites for the cache layer in `tileSprites` (indexed [r][c])
+    // so single-cell updates can swap textures in place. The cache layer
+    // sprites are added to `groundLayer` in correct stack order: lower
+    // layers (rendered before cache) go in first, then the cache layer,
+    // then higher layers.
+    const visibleTileLayers = layers.filter(l => isTileLayer(l) && l.visible !== false);
+    // Lower layers (below the cache layer) render first.
+    for (const layer of visibleTileLayers) {
+      if (!isTileLayer(layer)) continue;
+      if (layer === cacheTile) break; // stop when we hit the cache layer
+      this.drawTileLayer(layer.tiles, width, height, tileSize);
+    }
+    // Cache layer with sprite tracking.
+    if (cacheTiles) {
+      this.currentTiles = cacheTiles.map(row => [...row]);
+      for (let r = 0; r < height; r++) {
+        const row: (Sprite | null)[] = [];
+        for (let c = 0; c < width; c++) {
+          const cell = cacheTiles[r]?.[c];
+          if (!cell) { row.push(null); continue; }
+          const tex = getTileTexture(cell, r, c);
+          if (!tex) { row.push(null); continue; }
+          const s = new Sprite(tex);
+          s.x = c * tileSize;
+          s.y = r * tileSize;
+          s.width = tileSize;
+          s.height = tileSize;
+          this.groundLayer.addChild(s);
+          row.push(s);
+        }
+        this.tileSprites.push(row);
+      }
+    } else {
+      this.currentTiles = [];
+    }
+    // Higher layers (above the cache layer) render last.
+    let pastCache = false;
+    for (const layer of visibleTileLayers) {
+      if (!isTileLayer(layer)) continue;
+      if (layer === cacheTile) { pastCache = true; continue; }
+      if (!pastCache) continue;
+      this.drawTileLayer(layer.tiles, width, height, tileSize);
+    }
+
+    if (groundTiles) {
+      this.rebuildTransitions(groundTiles, width, height, tileSize);
+      this.rebuildAutoTiles();
+    } else {
+      this.transitionLayer.removeChildren();
+      this.autoTileLayer.removeChildren();
+    }
+    this.rebuildGrid();
+
+    // Render objects from each visible object layer. Hidden layers are
+    // skipped entirely (the legacy renderObjects already filtered by
+    // `currentLayers[].visible`; doing the filtering here too keeps the
+    // contract single-source while we phase out the old API).
+    const flatObjects: Entity[] = [];
+    for (const layer of layers) {
+      if (!isObjectLayer(layer)) continue;
+      if (layer.visible === false) continue;
+      for (const o of layer.objects) flatObjects.push(o.layer === layer.id ? o : { ...o, layer: layer.id });
+    }
+    this.renderObjects(flatObjects);
+  }
+
+  /** Draw every non-empty cell of a tile layer's grid into `groundLayer`.
+   * No sprite cache — these layers can't be live-painted via
+   * `updateSingleTile` (only the active tile layer can). */
+  private drawTileLayer(tiles: string[][], width: number, height: number, tileSize: number): void {
     for (let r = 0; r < height; r++) {
-      const row: (Sprite | null)[] = [];
       for (let c = 0; c < width; c++) {
-        const tex = getTileTexture(tiles[r][c], r, c);
-        if (!tex) { row.push(null); continue; }
+        const cell = tiles[r]?.[c];
+        if (!cell) continue;
+        const tex = getTileTexture(cell, r, c);
+        if (!tex) continue;
         const s = new Sprite(tex);
         s.x = c * tileSize;
         s.y = r * tileSize;
         s.width = tileSize;
         s.height = tileSize;
         this.groundLayer.addChild(s);
-        row.push(s);
       }
-      this.tileSprites.push(row);
     }
-
-    this.rebuildTransitions(tiles, width, height, tileSize);
-    this.rebuildAutoTiles();
-    this.rebuildGrid();
   }
 
   updateSingleTile(row: number, col: number, tileType: string): void {
@@ -460,6 +558,26 @@ export class EditorApp {
     this.selectionLabel.visible = true;
   }
 
+  /** Highlight every object in the list with the same selection rect style
+   * used by `highlightObject`, but skip the dimension label (it doesn't
+   * make sense for a group selection — they typically span very different
+   * sizes). Used for shift-click multi-select. */
+  highlightObjects(objs: Entity[]): void {
+    this.selectionGraphics.clear();
+    if (this.selectionLabel) this.selectionLabel.visible = false;
+    for (const obj of objs) {
+      const sprite = this.objectSprites.get(obj.id);
+      if (!sprite) continue;
+      const scale = obj.scale ?? 1;
+      const w = sprite.texture.width * scale;
+      const h = sprite.texture.height * scale;
+      const left = obj.x - w * obj.anchor.x;
+      const top = obj.y - h * obj.anchor.y;
+      this.selectionGraphics.rect(left, top, w, h);
+      this.selectionGraphics.stroke({ width: 2, color: 0x44ff44, alpha: 0.8 });
+    }
+  }
+
   clearHighlight(): void {
     this.hoverGraphics.clear();
   }
@@ -513,6 +631,60 @@ export class EditorApp {
     this.previewContainer.removeChildren();
   }
 
+  /** Show a small layer-name tag positioned just below-and-right of `(x, y)`
+   * world coords. Color-coded to match the layer-kind badges in the layers
+   * panel (blue for tile layers, purple for objects). The text is scaled by
+   * `1 / zoom` so it stays a constant on-screen size regardless of zoom.
+   * `kind` controls the color so the caller doesn't need to look the layer
+   * up themselves. */
+  showCursorLayerLabel(text: string, kind: 'tile' | 'object', x: number, y: number, zoom: number): void {
+    const fg = kind === 'tile' ? 0x88bbff : 0xcc99ff;
+    if (!this.cursorLayerLabel) {
+      this.cursorLayerLabelBg = new Graphics();
+      this.cursorLayerLabel = new Text({
+        text: '',
+        style: {
+          fontFamily: 'monospace',
+          fontSize: 11,
+          fill: fg,
+          stroke: { color: 0x000000, width: 3 },
+        },
+      });
+      this.cursorLayerLabel.anchor.set(0, 0);
+      this.worldContainer.addChild(this.cursorLayerLabelBg);
+      this.worldContainer.addChild(this.cursorLayerLabel);
+    }
+    const label = this.cursorLayerLabel;
+    const bg = this.cursorLayerLabelBg!;
+    label.style.fill = fg;
+    label.text = text;
+    // Counter the world container's zoom so the label stays the same size
+    // on screen at any zoom level. Bump width/height by the inverse so the
+    // padding-rect we draw matches the rendered text dimensions.
+    const inv = 1 / zoom;
+    label.scale.set(inv);
+    // Offset from the cursor: ~2 cells right, ~1 cell down at base scale,
+    // shrunk with zoom so it visually hugs the cursor.
+    const pad = 4 * inv;
+    const offsetX = 12 * inv;
+    const offsetY = 12 * inv;
+    label.x = x + offsetX;
+    label.y = y + offsetY;
+    const w = label.width + pad * 2;
+    const h = label.height + pad * 2;
+    bg.clear();
+    bg.rect(label.x - pad, label.y - pad, w, h)
+      .fill({ color: 0x000000, alpha: 0.7 })
+      .stroke({ color: fg, alpha: 0.6, width: 1 * inv });
+    label.visible = true;
+    bg.visible = true;
+  }
+
+  clearCursorLayerLabel(): void {
+    if (this.cursorLayerLabel) this.cursorLayerLabel.visible = false;
+    if (this.cursorLayerLabelBg) this.cursorLayerLabelBg.visible = false;
+  }
+
   clearSelection(): void {
     this.selectionGraphics.clear();
     if (this.selectionLabel) this.selectionLabel.visible = false;
@@ -526,6 +698,8 @@ export class EditorApp {
     if (this.selectionLabel && this.selectionLabel.visible) {
       this.selectionLabel.scale.set(1 / zoom);
     }
+    // Cursor layer label is repositioned by showCursorLayerLabel on every
+    // pointermove with the current zoom, so we don't need to fix it here.
   }
 
   getCanvas(): HTMLCanvasElement | null {

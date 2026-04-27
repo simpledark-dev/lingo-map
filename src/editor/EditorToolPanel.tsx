@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { TileType } from '../core/types';
-import { EditorAction, EditorState } from './editorState';
+import { EditorAction, EditorState, getAllObjects } from './editorState';
 import { TILE_ITEMS, OBJECT_CATEGORIES, BUILDING_ITEMS } from './objectDefaults';
 import PackPicker from './PackPicker';
 
@@ -14,13 +14,18 @@ interface Props {
 type PaletteTab = 'placeholder' | 'pack';
 
 export default function EditorToolPanel({ state, dispatch }: Props) {
-  const [paletteTab, setPaletteTab] = useState<PaletteTab>('placeholder');
-  const selectedObject = state.selectedObjectId
-    ? state.objects.find(o => o.id === state.selectedObjectId)
+  const [paletteTab, setPaletteTab] = useState<PaletteTab>('pack');
+  const allObjects = getAllObjects(state);
+  // Single-select: show the scale-slider UI for that one object/building.
+  // Multi-select (length > 1): show a count chip; scale slider hidden since
+  // bulk-resize across heterogeneous sprites isn't supported (and the bulk
+  // workflow is delete/move, not resize).
+  const onlyId = state.selectedObjectIds.length === 1 ? state.selectedObjectIds[0] : null;
+  const selectedObject = onlyId ? allObjects.find(o => o.id === onlyId) : null;
+  const selectedBuilding = !selectedObject && onlyId
+    ? state.buildings.find(b => b.id === onlyId)
     : null;
-  const selectedBuilding = !selectedObject && state.selectedObjectId
-    ? state.buildings.find(b => b.id === state.selectedObjectId)
-    : null;
+  const multiSelectCount = state.selectedObjectIds.length > 1 ? state.selectedObjectIds.length : 0;
 
   return (
     <div style={{
@@ -47,6 +52,7 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
           {[...state.layers].reverse().map(layer => {
             const isActive = layer.id === state.activeLayerId;
             const isVisible = layer.visible !== false;
+            const isTile = layer.kind === 'tile';
             return (
               <div
                 key={layer.id}
@@ -72,6 +78,21 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
                 >
                   {layer.locked ? '🔒' : '🔓'}
                 </button>
+                {/* Kind badge — T (tile) vs O (object). Color-coded so the
+                    user can scan the stack at a glance and tell what each
+                    layer holds. */}
+                <span
+                  title={isTile ? 'Tile layer' : 'Object layer'}
+                  style={{
+                    width: 16, height: 16, fontSize: 9, fontWeight: 'bold',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isTile ? '#3a4a6a' : '#4a3a5a',
+                    color: isTile ? '#88bbff' : '#cc99ff',
+                    borderRadius: 2, flexShrink: 0,
+                  }}
+                >
+                  {isTile ? 'T' : 'O'}
+                </span>
                 <button
                   onClick={() => dispatch({ type: 'SET_ACTIVE_LAYER', id: layer.id })}
                   onDoubleClick={() => {
@@ -100,8 +121,20 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
                 <button
                   onClick={() => {
                     if (state.layers.length <= 1) return;
-                    const objCount = state.objects.filter(o => o.layer === layer.id).length;
-                    if (objCount > 0 && !window.confirm(`Layer "${layer.name}" has ${objCount} objects. They'll move to another layer. Continue?`)) return;
+                    // Object layers warn about objects; tile layers warn
+                    // about non-empty cells. Tile layer cells are LOST on
+                    // delete (no fallback, since cells aren't owned by
+                    // entities).
+                    const target = state.layers.find(l => l.id === layer.id);
+                    let warning: string | null = null;
+                    if (target && target.kind === 'object' && target.objects.length > 0) {
+                      warning = `Layer "${layer.name}" has ${target.objects.length} objects. They'll move to another layer. Continue?`;
+                    } else if (target && target.kind === 'tile') {
+                      let cellCount = 0;
+                      for (const row of target.tiles) for (const c of row) if (c) cellCount++;
+                      if (cellCount > 0) warning = `Layer "${layer.name}" has ${cellCount} painted cells. They will be deleted. Continue?`;
+                    }
+                    if (warning && !window.confirm(warning)) return;
                     dispatch({ type: 'REMOVE_LAYER', id: layer.id });
                   }}
                   disabled={state.layers.length <= 1}
@@ -111,18 +144,36 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
               </div>
             );
           })}
-          <button
-            onClick={() => dispatch({ type: 'ADD_LAYER' })}
-            style={{
-              marginTop: 4, padding: '4px 0',
-              background: '#2a3a2a', border: '1px solid #444', borderRadius: 3,
-              color: '#9c9', cursor: 'pointer', fontSize: 11,
-            }}
-          >+ Add Layer</button>
+          <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+            <button
+              onClick={() => dispatch({ type: 'ADD_LAYER', kind: 'tile' })}
+              title="Add a new tile layer (paintable grid). Stacks above existing layers."
+              style={addLayerBtnStyle('#88bbff')}
+            >+ Tile</button>
+            <button
+              onClick={() => dispatch({ type: 'ADD_LAYER', kind: 'object' })}
+              title="Add a new object layer (free-positioned entities). Stacks above existing layers."
+              style={addLayerBtnStyle('#cc99ff')}
+            >+ Object</button>
+          </div>
         </div>
       </Section>
 
-      {/* Selection — only shown when an object is selected via the select tool */}
+      {/* Multi-selection summary — replaces the per-object scale slider when
+          more than one object is selected. Shows count + a hint that
+          delete/group-drag work; scale is intentionally not exposed for
+          bulk because it'd produce unpredictable results across mixed sprite
+          sizes. */}
+      {multiSelectCount > 0 && (
+        <Section title={`${multiSelectCount} objects selected`}>
+          <div style={{ fontSize: 11, color: '#aaa', lineHeight: 1.4 }}>
+            Drag any selected object to move them all together. Press Delete to remove. Shift-click to add or remove items.
+          </div>
+        </Section>
+      )}
+
+      {/* Selection — only shown when exactly one object is selected via the
+          select tool (multi-selection takes the panel above instead). */}
       {selectedObject && (
         <Section title={`Selection: ${selectedObject.spriteKey}`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -237,6 +288,7 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
           <PackPicker
             selectedTileType={state.selectedTileType}
             selectedObjectKey={state.selectedObjectKey}
+            activeLayerKind={state.layers.find(l => l.id === state.activeLayerId)?.kind ?? 'object'}
             dispatch={dispatch}
           />
         )}
@@ -252,6 +304,14 @@ function iconBtnStyle(color: string): React.CSSProperties {
     color, cursor: 'pointer', fontSize: 11,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
+  };
+}
+
+function addLayerBtnStyle(color: string): React.CSSProperties {
+  return {
+    flex: 1, padding: '4px 0',
+    background: '#2a3a2a', border: '1px solid #444', borderRadius: 3,
+    color, cursor: 'pointer', fontSize: 11,
   };
 }
 

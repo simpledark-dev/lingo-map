@@ -10,23 +10,22 @@ interface Props {
   selectedTileType: string;
   /** Current selected object key — used to highlight pack-object selections. */
   selectedObjectKey: string | null;
+  /** Kind of the user's currently-active layer — `'tile'` means a thumbnail
+   * pick dispatches as a tile (paintable into the active tile grid), `'object'`
+   * means it dispatches as an object (placed at click position on the layer). */
+  activeLayerKind: 'tile' | 'object';
   dispatch: React.Dispatch<EditorAction>;
 }
 
 interface ThumbDims { w: number; h: number }
-type PickMode = 'tile' | 'object';
 
-export default function PackPicker({ selectedTileType, selectedObjectKey, dispatch }: Props) {
+export default function PackPicker({ selectedTileType, selectedObjectKey, activeLayerKind, dispatch }: Props) {
   const [themes, setThemes] = useState<string[]>([]);
   const [theme, setTheme] = useState<string | null>(null);
   // Tag the file list with the theme it came from so the render can ignore
   // stale lists when the user switches themes mid-fetch.
   const [filesFor, setFilesFor] = useState<{ theme: string; files: string[] } | null>(null);
   const [loadingFiles, setLoadingFiles] = useState(false);
-  // Default to Object — most pack content is entities (props, vehicles, etc.).
-  // Switch to Tile for ground/terrain/wall sprites that should replace the
-  // tile beneath them.
-  const [mode, setMode] = useState<PickMode>('object');
   const dimsRef = useRef<Map<string, ThumbDims>>(new Map());
 
   // Fetch the list of theme folders once.
@@ -69,13 +68,14 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, dispat
   // filenames (→ 404s) until the new fetch resolves.
   const files = filesFor && filesFor.theme === theme ? filesFor.files : null;
 
-  // Local memory of the most recently picked pack key — used so toggling
-  // Tile/Object after a pick re-applies the same asset in the new mode
-  // (otherwise the user would have to click the thumbnail twice).
+  // Local memory of the most recently picked pack key — used so switching
+  // the active layer's KIND (tile vs object) after a pick re-applies the same
+  // asset in the new kind, otherwise paintings would keep coming out as the
+  // previous kind until the user clicks the thumbnail again.
   const [pickedKey, setPickedKey] = useState<string | null>(null);
 
-  const dispatchPick = useCallback((key: string, m: PickMode) => {
-    if (m === 'tile') dispatch({ type: 'SET_SELECTED_TILE', tileType: key });
+  const dispatchPick = useCallback((key: string, kind: 'tile' | 'object') => {
+    if (kind === 'tile') dispatch({ type: 'SET_SELECTED_TILE', tileType: key });
     else dispatch({ type: 'SET_SELECTED_OBJECT', spriteKey: key });
   }, [dispatch]);
 
@@ -85,16 +85,21 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, dispat
     // Pre-load into PixiJS so painting / placing works on the next frame.
     void loadPackSingle(key);
     setPickedKey(key);
-    dispatchPick(key, mode);
-  }, [theme, mode, dispatchPick]);
+    dispatchPick(key, activeLayerKind);
+  }, [theme, activeLayerKind, dispatchPick]);
 
-  /** Toggling mode after a pick should re-dispatch the same key in the new
-   * mode — otherwise paintings keep coming out as the previous mode until the
-   * user clicks the thumbnail again. */
-  const handleModeChange = useCallback((newMode: PickMode) => {
-    setMode(newMode);
-    if (pickedKey) dispatchPick(pickedKey, newMode);
-  }, [pickedKey, dispatchPick]);
+  // Re-dispatch the previously-picked key when the user activates a layer of
+  // a different kind. Without this the editor would still be in the prior
+  // mode (e.g. user picks sidewalk on a tile layer → SET_SELECTED_TILE; user
+  // switches to Props → next click would still try to paint a tile). Skipped
+  // when there's nothing to re-emit.
+  useEffect(() => {
+    if (pickedKey) dispatchPick(pickedKey, activeLayerKind);
+    // Intentionally only depending on activeLayerKind: we want this to fire
+    // when the kind changes, not on every pickedKey change (handlePick already
+    // dispatches there).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLayerKind]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: '100%', minHeight: 0 }}>
@@ -119,14 +124,6 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, dispat
         ))}
       </select>
 
-      {/* Mode toggle — explicit choice between tile (replaces ground) and
-          object (placed on entity layer). Toggling after a pick automatically
-          re-applies the same asset in the new mode. */}
-      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-        <ModeBtn active={mode === 'tile'}   onClick={() => handleModeChange('tile')}   label="Tile" />
-        <ModeBtn active={mode === 'object'} onClick={() => handleModeChange('object')} label="Object" />
-      </div>
-
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0f0f1a', padding: 4 }}>
         {loadingFiles && <div style={{ color: '#888', fontSize: 11 }}>Loading…</div>}
         {!loadingFiles && files && files.length === 0 && (
@@ -136,10 +133,11 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, dispat
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 4 }}>
             {files.map(f => {
               const key = theme ? `me:${theme}/${f}` : '';
-              // Highlight only the asset that matches the CURRENT mode's
-              // selection — otherwise a previous pick lingers as a second
-              // highlight when the user toggles between Tile and Object.
-              const externallySelected = mode === 'tile' ? selectedTileType : selectedObjectKey;
+              // Highlight whichever selection matches the active layer's
+              // kind — picking a tile while a tile layer is active fills
+              // selectedTileType; picking on an object layer fills
+              // selectedObjectKey. Only one is ever current.
+              const externallySelected = activeLayerKind === 'tile' ? selectedTileType : selectedObjectKey;
               const active = externallySelected === key;
               return (
                 <button
@@ -184,27 +182,6 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, dispat
         )}
       </div>
     </div>
-  );
-}
-
-function ModeBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: 1,
-        padding: '4px 0',
-        fontSize: 11,
-        background: active ? '#2a3a5a' : '#2a2a3a',
-        border: active ? '2px solid #4488ff' : '1px solid #444',
-        borderRadius: 4,
-        color: '#ddd',
-        cursor: 'pointer',
-        fontWeight: active ? 'bold' : 'normal',
-      }}
-    >
-      {label}
-    </button>
   );
 }
 

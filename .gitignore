@@ -44,3 +44,4 @@ Modern_Exteriors_RPG_Maker_MV
 modernexteriors-win
 # Symlink to the licensed pack folder above; do not commit.
 public/assets/me
+.playwright-cli

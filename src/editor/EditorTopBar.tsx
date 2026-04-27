@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState, useEffect } from 'react';
-import { EditorAction, EditorState } from './editorState';
+import { EditorAction, EditorState, getPrimaryTiles, getAllObjects } from './editorState';
 import { loadMap } from '../core/MapLoader';
 
 const GAME_MAPS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f'];
@@ -49,17 +49,21 @@ export default function EditorTopBar({ state, dispatch }: Props) {
   }, [applyMapData]);
 
   const handleExport = useCallback(() => {
+    // Mirror the layered structure into legacy `tiles`/`objects` so the
+    // exported file stays readable by older tooling and by the game's
+    // legacy normalize fallback.
     const mapData = {
       id: state.mapName,
       width: state.mapWidth,
       height: state.mapHeight,
       tileSize: state.tileSize,
-      tiles: state.tiles,
-      objects: state.objects,
+      tiles: getPrimaryTiles(state),
+      objects: getAllObjects(state),
       buildings: state.buildings,
       npcs: [],
       triggers: [],
       spawnPoints: [{ id: 'default', x: state.mapWidth * state.tileSize / 2, y: state.mapHeight * state.tileSize / 2, facing: 'down' }],
+      layers: state.layers,
     };
     const blob = new Blob([JSON.stringify(mapData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

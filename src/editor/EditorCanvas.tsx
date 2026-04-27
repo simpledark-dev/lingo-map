@@ -3,7 +3,7 @@
 import { useRef, useEffect, useReducer, useCallback } from 'react';
 import { TileType, Entity } from '../core/types';
 import { EditorApp } from './EditorApp';
-import { editorReducer, createInitialState, EditorAction, generateObjectId } from './editorState';
+import { editorReducer, createInitialState, EditorAction, generateObjectId, buildImportedLayers, getPrimaryTiles, getAllObjects } from './editorState';
 import { OBJECT_DEFAULTS, BUILDING_DEFAULTS, DEFAULT_INTERIOR_MAP_ID } from './objectDefaults';
 import { loadMap } from '../core/MapLoader';
 import { getPackTileCellDims, getTexture } from '../renderer/AssetLoader';
@@ -66,6 +66,52 @@ function isMultiTilePackTile(tileType: string): boolean {
   return cols > 1 || rows > 1;
 }
 
+/** Resolve the layer (id, name, kind) that a click would actually write
+ * to right now, given the active tool, active layer, and currently-picked
+ * palette item. Returns null for tools where "destination layer" doesn't
+ * meaningfully apply (select / area-select / area-erase) so the cursor
+ * label suppresses itself instead of lying.
+ *
+ * Mirrors the routing in `handlePointerDown`:
+ * - 'tile' tool with a multi-tile pack source → routes to `floor` (or first
+ *   layer if floor is missing) via `stampMultiTileAsObject`.
+ * - 'tile' tool with a single-cell source → active tile layer (Ground if
+ *   active is an object layer).
+ * - 'object' / 'building' tool → active object layer (Props if active is
+ *   a tile layer, via `resolveObjectLayerId` in the reducer).
+ * - 'eraser' → not shown; the destination depends on what's under the
+ *   cursor (building, object, or tile-paint), which we can't predict here. */
+function resolveCursorPlacementLayer(state: ReturnType<typeof createInitialState>):
+  { name: string; kind: 'tile' | 'object' } | null
+{
+  switch (state.activeTool) {
+    case 'tile': {
+      // Multi-tile pack tile → object layer (floor by convention).
+      if (isMultiTilePackTile(state.selectedTileType)) {
+        const target = state.layers.find(l => l.id === 'floor') ?? state.layers[0];
+        if (!target) return null;
+        return { name: target.name, kind: target.kind };
+      }
+      // Single-cell tile → active tile layer or first tile layer.
+      const active = state.layers.find(l => l.id === state.activeLayerId);
+      if (active && active.kind === 'tile') return { name: active.name, kind: 'tile' };
+      const firstTile = state.layers.find(l => l.kind === 'tile');
+      return firstTile ? { name: firstTile.name, kind: 'tile' } : null;
+    }
+    case 'object':
+    case 'building': {
+      // Active layer if it's an object layer, else first object layer
+      // (mirrors `resolveObjectLayerId` in the reducer).
+      const active = state.layers.find(l => l.id === state.activeLayerId);
+      if (active && active.kind === 'object') return { name: active.name, kind: 'object' };
+      const firstObj = state.layers.find(l => l.kind === 'object');
+      return firstObj ? { name: firstObj.name, kind: 'object' } : null;
+    }
+    default:
+      return null;
+  }
+}
+
 /** Place a multi-tile pack source as an Object on the Floor layer at the
  * click cell. The patch's top-left aligns to the click cell; with sprite
  * anchor (0.5, 1.0) the entity position is bottom-center: x = colTL +
@@ -120,7 +166,15 @@ function initFromGameMap(): ReturnType<typeof createInitialState> {
         const saved = JSON.parse(raw);
         if (saved?.tiles && saved.width && saved.height) {
           const base = createInitialState(saved.width, saved.height);
-          return { ...base, tiles: saved.tiles, objects: saved.objects || [], buildings: saved.buildings || [], mapWidth: saved.width, mapHeight: saved.height, mapName: saved.id || mapId, tileSize: saved.tileSize || 16 };
+          return {
+            ...base,
+            layers: buildImportedLayers(saved.layers, saved.tiles, saved.objects || [], saved.width, saved.height),
+            buildings: saved.buildings || [],
+            mapWidth: saved.width,
+            mapHeight: saved.height,
+            mapName: saved.id || mapId,
+            tileSize: saved.tileSize || 16,
+          };
         }
       }
     } catch { /* fall through to compiled map */ }
@@ -129,7 +183,15 @@ function initFromGameMap(): ReturnType<typeof createInitialState> {
   // 3) Fallback: compiled map
   const map = loadMap(mapId);
   const base = createInitialState(map.width, map.height);
-  return { ...base, tiles: map.tiles, objects: map.objects, buildings: map.buildings, mapWidth: map.width, mapHeight: map.height, mapName: map.id, tileSize: map.tileSize };
+  return {
+    ...base,
+    layers: buildImportedLayers(map.layers, map.tiles, map.objects, map.width, map.height),
+    buildings: map.buildings,
+    mapWidth: map.width,
+    mapHeight: map.height,
+    mapName: map.id,
+    tileSize: map.tileSize,
+  };
 }
 
 export default function EditorCanvas() {
@@ -150,8 +212,23 @@ export default function EditorCanvas() {
   const panStartRef = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
   const spaceDownRef = useRef(false);
 
-  // Object drag state — when user grabs a selected object with the select tool
+  // Object drag state — when user grabs a selected object with the select tool.
+  // Single-object drag still uses `draggingObjectRef` for the simple path
+  // (compatible with the legacy dx/dy offset model). Multi-select group drags
+  // use `draggingMultiRef`, which records the original positions of every
+  // selected object plus the cursor anchor so each pointermove computes the
+  // delta once and applies it to every object as a single MOVE_OBJECTS
+  // dispatch (one undo entry per drag, regardless of count).
   const draggingObjectRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const draggingMultiRef = useRef<{
+    ids: string[];
+    originals: Map<string, { x: number; y: number; sortY: number }>;
+    anchorWorld: { x: number; y: number };
+    dragId: string;
+    /** Sprite key of the object the user grabbed — used as the snap reference
+     * so all objects move by the same snapped delta. */
+    anchorObjectId: string;
+  } | null>(null);
   const draggingBuildingRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
   const areaEraseRef = useRef<{ start: { row: number; col: number }; end: { row: number; col: number } } | null>(null);
   // Area Select: drawing a new selection rectangle.
@@ -213,20 +290,20 @@ export default function EditorCanvas() {
       spawnPoints = compiled.spawnPoints;
     } catch { /* map isn't a compiled game map — use defaults */ }
 
+    // Mirror the layered structure into the legacy `tiles` / `objects` fields
+    // so the game runtime (which still reads those when normalizing) sees a
+    // consistent view. The new `layers` field is the authoritative store.
     const mapData = {
       id: state.mapName,
       width: state.mapWidth,
       height: state.mapHeight,
       tileSize: state.tileSize,
-      tiles: state.tiles,
-      objects: state.objects,
+      tiles: getPrimaryTiles(state),
+      objects: getAllObjects(state),
       buildings: state.buildings,
       npcs,
       triggers,
       spawnPoints,
-      // Persist user-managed layers (id/name/visible/locked) so reopening
-      // the editor restores the same layer setup. Game runtime ignores the
-      // editor-only `visible`/`locked` flags.
       layers: state.layers,
     };
 
@@ -245,7 +322,7 @@ export default function EditorCanvas() {
         body: JSON.stringify(mapData),
       }).catch(err => console.error('Failed to persist map to disk:', err));
     }, 500);
-  }, [state.tiles, state.objects, state.buildings, state.layers, state.mapWidth, state.mapHeight, state.mapName, state.tileSize]);
+  }, [state.layers, state.buildings, state.mapWidth, state.mapHeight, state.mapName, state.tileSize]);
 
   // Flush any pending disk save on unmount
   useEffect(() => {
@@ -266,10 +343,10 @@ export default function EditorCanvas() {
       // Load any pack assets the saved map already references before the
       // first render, otherwise pack tiles/objects come up blank until the
       // user touches the map.
-      await app.ensurePackAssets({ tiles: s.tiles, objects: s.objects, buildings: s.buildings });
+      const sObjects = getAllObjects(s);
+      await app.ensurePackAssets({ tiles: getPrimaryTiles(s), objects: sObjects, buildings: s.buildings });
       app.setLayers(s.layers);
-      app.renderTiles(s.tiles, s.mapWidth, s.mapHeight, s.tileSize);
-      app.renderObjects(s.objects);
+      app.renderLayers(s.layers, s.mapWidth, s.mapHeight, s.tileSize, s.activeLayerId);
       app.renderBuildings(s.buildings);
       app.setGridVisible(s.showGrid);
 
@@ -299,14 +376,15 @@ export default function EditorCanvas() {
     // Lazy-load any newly-introduced pack assets before rendering. Cached
     // ones resolve immediately; first-time pack picks add a small async hop
     // but only on the first paint of that asset.
-    app.ensurePackAssets({ tiles: state.tiles, objects: state.objects, buildings: state.buildings }).then(() => {
+    const flatTiles = getPrimaryTiles(state);
+    const flatObjects = getAllObjects(state);
+    app.ensurePackAssets({ tiles: flatTiles, objects: flatObjects, buildings: state.buildings }).then(() => {
       if (cancelled) return;
-      app.renderTiles(state.tiles, state.mapWidth, state.mapHeight, state.tileSize);
-      app.renderObjects(state.objects);
+      app.renderLayers(state.layers, state.mapWidth, state.mapHeight, state.tileSize, state.activeLayerId);
       app.renderBuildings(state.buildings);
     });
     return () => { cancelled = true; };
-  }, [state.tiles, state.objects, state.buildings, state.layers, state.mapWidth, state.mapHeight, state.tileSize]);
+  }, [state.layers, state.buildings, state.mapWidth, state.mapHeight, state.tileSize, state.activeLayerId]);
 
   useEffect(() => {
     editorAppRef.current?.setGridVisible(state.showGrid);
@@ -318,13 +396,27 @@ export default function EditorCanvas() {
 
   useEffect(() => {
     const app = editorAppRef.current;
-    if (!app || !state.selectedObjectId) { app?.clearSelection(); return; }
-    const obj = state.objects.find((o: Entity) => o.id === state.selectedObjectId);
+    if (!app) return;
+    if (state.selectedObjectIds.length === 0) { app.clearSelection(); return; }
+    const allObjects = getAllObjects(state);
+    // Multi-selection: highlight every selected object as a group; the
+    // dimension-label affordance from `highlightObject` wouldn't make sense
+    // for a group, so the multi path skips it. Buildings still highlight via
+    // their own path when exactly one is selected.
+    if (state.selectedObjectIds.length > 1) {
+      const objs = state.selectedObjectIds
+        .map(id => allObjects.find(o => o.id === id))
+        .filter((o): o is Entity => !!o);
+      app.highlightObjects(objs);
+      return;
+    }
+    const onlyId = state.selectedObjectIds[0];
+    const obj = allObjects.find((o: Entity) => o.id === onlyId);
     if (obj) { app.highlightObject(obj); return; }
-    const bld = state.buildings.find((b) => b.id === state.selectedObjectId);
+    const bld = state.buildings.find((b) => b.id === onlyId);
     if (bld) { app.highlightBuilding(bld); return; }
     app.clearSelection();
-  }, [state.selectedObjectId, state.objects, state.buildings]);
+  }, [state.selectedObjectIds, state.layers, state.buildings]);
 
   // Sync the persistent selection rectangle to the editor's drawing state.
   useEffect(() => {
@@ -458,10 +550,14 @@ export default function EditorCanvas() {
       // Lock-aware hit-test: skip entities on layers the user has locked.
       // Buildings have no layer concept yet, so they're never lock-skipped.
       const lockedLayers = new Set(s.layers.filter(l => l.locked).map(l => l.id));
+      const shift = e.shiftKey;
       let found = false;
       for (const b of s.buildings) {
         const bb = getSpriteBounds(b.x, b.y, b.baseSpriteKey, b.anchor, s.tileSize, b.scale ?? 1);
         if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
+          // Buildings always replace selection — they don't participate in
+          // multi-select group drag. Shift+click on a building still works
+          // as a plain click (replaces selection with just that building).
           dispatchRef.current({ type: 'SELECT_OBJECT', id: b.id });
           draggingBuildingRef.current = { id: b.id, dx: b.x - x, dy: b.y - y };
           found = true;
@@ -469,21 +565,46 @@ export default function EditorCanvas() {
         }
       }
       if (!found) {
-        const sorted = [...s.objects]
+        const sorted = getAllObjects(s)
           .filter(o => !lockedLayers.has(o.layer ?? ''))
           .sort((a, b) => b.sortY - a.sortY);
         for (const obj of sorted) {
           const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize, obj.scale ?? 1);
           if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
-            dispatchRef.current({ type: 'SELECT_OBJECT', id: obj.id });
-            // Start dragging — record offset between cursor and entity anchor
-            draggingObjectRef.current = { id: obj.id, dx: obj.x - x, dy: obj.y - y };
+            if (shift) {
+              // Shift-click: toggle this id in/out of the multi-selection;
+              // never start a drag — user is building up the selection.
+              dispatchRef.current({ type: 'TOGGLE_SELECT_OBJECT', id: obj.id });
+            } else if (s.selectedObjectIds.includes(obj.id) && s.selectedObjectIds.length > 1) {
+              // Plain click on an already-multi-selected object: keep the
+              // group as-is and start a group drag.
+              const allObjs = getAllObjects(s);
+              const originals = new Map<string, { x: number; y: number; sortY: number }>();
+              for (const id of s.selectedObjectIds) {
+                const o = allObjs.find(oo => oo.id === id);
+                if (o) originals.set(id, { x: o.x, y: o.y, sortY: o.sortY });
+              }
+              draggingMultiRef.current = {
+                ids: [...s.selectedObjectIds],
+                originals,
+                anchorWorld: { x, y },
+                dragId: `drag-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+                anchorObjectId: obj.id,
+              };
+            } else {
+              // Plain click on a fresh object: replace selection, start
+              // single-object drag (the legacy path).
+              dispatchRef.current({ type: 'SELECT_OBJECT', id: obj.id });
+              draggingObjectRef.current = { id: obj.id, dx: obj.x - x, dy: obj.y - y };
+            }
             found = true;
             break;
           }
         }
       }
-      if (!found) dispatchRef.current({ type: 'SELECT_OBJECT', id: null });
+      // Click on empty space: shift held → keep selection; no shift → clear.
+      // Lets the user re-anchor the cursor without losing a partial group.
+      if (!found && !e.shiftKey) dispatchRef.current({ type: 'SELECT_OBJECT', id: null });
     } else if (s.activeTool === 'eraser') {
       const lockedLayers = new Set(s.layers.filter(l => l.locked).map(l => l.id));
       // Try erasing a building first — sprite-sized hit box
@@ -495,7 +616,7 @@ export default function EditorCanvas() {
         }
       }
       // Then objects (skip locked-layer objects)
-      const sorted = [...s.objects]
+      const sorted = getAllObjects(s)
         .filter(o => !lockedLayers.has(o.layer ?? ''))
         .sort((a, b) => b.sortY - a.sortY);
       for (const obj of sorted) {
@@ -592,9 +713,51 @@ export default function EditorCanvas() {
       }
       return;
     }
+    if (draggingMultiRef.current) {
+      // Group drag: compute the snapped delta from the anchor object's
+      // pre-drag position, then apply that same delta to every selected
+      // object. Snapping the delta (not each object independently) keeps
+      // the group's relative spacing intact.
+      const drag = draggingMultiRef.current;
+      const world = editorAppRef.current?.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, s.zoom);
+      if (world) {
+        const anchor = drag.originals.get(drag.anchorObjectId);
+        if (anchor) {
+          // Cursor delta from where the user grabbed.
+          const dxRaw = world.x - drag.anchorWorld.x;
+          const dyRaw = world.y - drag.anchorWorld.y;
+          // Compute target position for the anchor object, then snap that.
+          const anchorObj = getAllObjects(s).find(o => o.id === drag.anchorObjectId);
+          let dx: number;
+          let dy: number;
+          if (e.shiftKey || !anchorObj) {
+            // Free placement — apply raw delta unchanged.
+            dx = dxRaw;
+            dy = dyRaw;
+          } else {
+            const targetX = anchor.x + dxRaw;
+            const targetY = anchor.y + dyRaw;
+            const targetCol = Math.floor(targetX / s.tileSize);
+            const targetRow = Math.floor(targetY / s.tileSize);
+            const snappedAnchorX = snapXForSprite(targetCol, anchorObj.spriteKey, s.tileSize);
+            const snappedAnchorY = (targetRow + 1) * s.tileSize;
+            dx = snappedAnchorX - anchor.x;
+            dy = snappedAnchorY - anchor.y;
+          }
+          const positions: Array<{ id: string; x: number; y: number }> = [];
+          for (const id of drag.ids) {
+            const orig = drag.originals.get(id);
+            if (!orig) continue;
+            positions.push({ id, x: orig.x + dx, y: orig.y + dy });
+          }
+          dispatchRef.current({ type: 'MOVE_OBJECTS', positions, dragId: drag.dragId });
+        }
+      }
+      return;
+    }
     if (draggingObjectRef.current) {
       const drag = draggingObjectRef.current;
-      const obj = s.objects.find(o => o.id === drag.id);
+      const obj = getAllObjects(s).find(o => o.id === drag.id);
       if (obj) {
         const world = editorAppRef.current?.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, s.zoom);
         if (world) {
@@ -644,6 +807,20 @@ export default function EditorCanvas() {
       app?.clearPreview();
     }
 
+    // Cursor-anchored layer label — tells the user which layer their next
+    // click will write to. Only shown for placement-style tools (where the
+    // destination is meaningful) and resolves the real destination layer for
+    // multi-tile pack tiles, which auto-route to the floor object layer
+    // even when a tile layer is active.
+    if (app) {
+      const dest = resolveCursorPlacementLayer(s);
+      if (dest) {
+        app.showCursorLayerLabel(dest.name, dest.kind, x, y, s.zoom);
+      } else {
+        app.clearCursorLayerLabel();
+      }
+    }
+
     if (isPaintingRef.current) {
       const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
       const key = `${row},${col}`;
@@ -661,12 +838,28 @@ export default function EditorCanvas() {
     }
   }, [getWorldPos]);
 
+  // Cursor exits the canvas → drop the floating layer label so it doesn't
+  // linger after the user moves to the side panel. Also collapse any
+  // placement preview sprite for the same reason. Pointer up is also routed
+  // through here (legacy) so we delegate to it after cleanup.
+  const handlePointerLeave = useCallback(() => {
+    const app = editorAppRef.current;
+    app?.clearCursorLayerLabel();
+    app?.clearPreview();
+  }, []);
+
   const handlePointerUp = useCallback(() => {
     if (isPanningRef.current) {
       isPanningRef.current = false;
       return;
     }
 
+    if (draggingMultiRef.current) {
+      // End of group drag — clearing the ref also closes the dragId
+      // transaction so the next drag opens a fresh undo entry.
+      draggingMultiRef.current = null;
+      return;
+    }
     if (draggingObjectRef.current) {
       draggingObjectRef.current = null;
       return;
@@ -777,22 +970,41 @@ export default function EditorCanvas() {
   // ── Keyboard shortcuts ──
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'z') {
+      // Single source of truth for the modifier — covers both Cmd (Mac) and
+      // Ctrl (PC). Prior code had two separate Ctrl+Z branches that fired
+      // back-to-back on PC, undoing two steps per keypress.
+      const mod = e.metaKey || e.ctrlKey;
+
+      // Undo / redo — Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y. Done first so the
+      // Escape / Delete branches below don't accidentally fire on the same
+      // keypress (e.g. pressing 'z' standalone shouldn't trigger anything).
+      if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        dispatchRef.current(e.shiftKey ? { type: 'REDO' } : { type: 'UNDO' });
+        dispatchRef.current({ type: e.shiftKey ? 'REDO' : 'UNDO' });
+        return;
       }
+      if (mod && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        dispatchRef.current({ type: 'REDO' });
+        return;
+      }
+
       if (e.key === 'Escape') {
         dispatchRef.current({ type: 'SET_TOOL', tool: 'select' });
         editorAppRef.current?.clearPreview();
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const s = stateRef.current;
-        if (s.selectedObjectId) {
-          // Check if it's a building or object
-          if (s.buildings.some((b: { id: string }) => b.id === s.selectedObjectId)) {
-            dispatchRef.current({ type: 'DELETE_BUILDING', id: s.selectedObjectId });
+        // Multi-delete: dispatch one DELETE per id. Each dispatch pushes its
+        // own undo entry today; if that ever feels noisy we can introduce
+        // DELETE_OBJECTS (batch). Buildings + objects mixed in the same
+        // selection both get their right action via the `buildings.some`
+        // discriminator.
+        for (const id of s.selectedObjectIds) {
+          if (s.buildings.some(b => b.id === id)) {
+            dispatchRef.current({ type: 'DELETE_BUILDING', id });
           } else {
-            dispatchRef.current({ type: 'DELETE_OBJECT', id: s.selectedObjectId });
+            dispatchRef.current({ type: 'DELETE_OBJECT', id });
           }
         }
       }
@@ -800,21 +1012,14 @@ export default function EditorCanvas() {
       if (e.code === 'Space') { e.preventDefault(); spaceDownRef.current = true; }
       if (e.key === 'Shift') shiftDownRef.current = true;
 
-      // Undo / redo — Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z (or Ctrl+Y)
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === 'z') {
-        e.preventDefault();
-        dispatchRef.current({ type: e.shiftKey ? 'REDO' : 'UNDO' });
-      } else if (mod && e.key.toLowerCase() === 'y') {
-        e.preventDefault();
-        dispatchRef.current({ type: 'REDO' });
-      }
-
-      // Copy / paste
+      // Copy / paste — copy uses the FIRST currently-selected object; paste
+      // drops one new copy at the cursor. Multi-clipboard could be added
+      // later but the common case is "duplicate this thing I just placed."
       if (mod && e.key.toLowerCase() === 'c') {
         const s = stateRef.current;
-        if (s.selectedObjectId) {
-          const selected = s.objects.find(o => o.id === s.selectedObjectId);
+        const firstId = s.selectedObjectIds[0];
+        if (firstId) {
+          const selected = getAllObjects(s).find(o => o.id === firstId);
           if (selected) {
             e.preventDefault();
             clipboardRef.current = selected;
@@ -869,7 +1074,7 @@ export default function EditorCanvas() {
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
+          onPointerLeave={() => { handlePointerUp(); handlePointerLeave(); }}
           onContextMenu={handleContextMenu}
         />
       </div>
