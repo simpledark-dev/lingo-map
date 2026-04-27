@@ -625,6 +625,27 @@ export class EditorApp {
     this.previewSprites.push(s);
   }
 
+  /** Show a semi-transparent preview of a tile at the cursor cell. Goes
+   * through `getTileTexture` so per-cell pattern tiles (`floor-pattern`,
+   * `wall-brick`) get their correct quadrant — `getTexture` doesn't know
+   * about those synthetic mappings. Sprite is forced to `tileSize × tileSize`
+   * to match how the engine renders cells, regardless of the source PNG's
+   * native size. */
+  showTilePreview(tileType: string, row: number, col: number, tileSize: number): void {
+    this.clearPreview();
+    const tex = getTileTexture(tileType, row, col);
+    if (!tex) return;
+    const s = new Sprite(tex);
+    s.anchor.set(0, 0);
+    s.x = col * tileSize;
+    s.y = row * tileSize;
+    s.width = tileSize;
+    s.height = tileSize;
+    s.alpha = 0.5;
+    this.previewContainer.addChild(s);
+    this.previewSprites.push(s);
+  }
+
   clearPreview(): void {
     for (const s of this.previewSprites) { s.destroy(); }
     this.previewSprites = [];

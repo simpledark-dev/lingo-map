@@ -12365,6 +12365,25 @@
       "layer": "decor-low"
     },
     {
+      "id": "obj-moh6raru-7vfmu",
+      "x": 616,
+      "y": 144,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_6",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 144,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "decor-low"
+    },
+    {
       "id": "obj-moh6aiy5-pmmhh",
       "x": 287.82552083333337,
       "y": 415.9205729166667,
@@ -12669,25 +12688,6 @@
       "layer": "props"
     },
     {
-      "id": "obj-moh6raru-7vfmu",
-      "x": 616,
-      "y": 144,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_6",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 144,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
       "id": "obj-moh6rfnd-l74tr",
       "x": 696,
       "y": 112,
@@ -12792,25 +12792,6 @@
         "y": 1
       },
       "sortY": 80,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moh6tiut-ernoo",
-      "x": 336,
-      "y": 352,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 352,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -12982,6 +12963,44 @@
         "y": 1
       },
       "sortY": 521.6481249999999,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moh6tiut-ernoo",
+      "x": 336,
+      "y": 352,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 352,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohffrek-32bi2",
+      "x": 152,
+      "y": 208,
+      "spriteKey": "me:1_Terrains_and_Fences_Singles_16x16/ME_Singles_Terrains_and_Fences_16x16_Deep_Water_1_16",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 208,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -25451,6 +25470,25 @@
           },
           "scale": 1,
           "layer": "decor-low"
+        },
+        {
+          "id": "obj-moh6raru-7vfmu",
+          "x": 616,
+          "y": 144,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_6",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 144,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "decor-low"
         }
       ]
     },
@@ -25766,25 +25804,6 @@
           "layer": "props"
         },
         {
-          "id": "obj-moh6raru-7vfmu",
-          "x": 616,
-          "y": 144,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_6",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 144,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-moh6rfnd-l74tr",
           "x": 696,
           "y": 112,
@@ -25889,25 +25908,6 @@
             "y": 1
           },
           "sortY": 80,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moh6tiut-ernoo",
-          "x": 336,
-          "y": 352,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 352,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -26079,6 +26079,44 @@
             "y": 1
           },
           "sortY": 521.6481249999999,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moh6tiut-ernoo",
+          "x": 336,
+          "y": 352,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 352,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohffrek-32bi2",
+          "x": 152,
+          "y": 208,
+          "spriteKey": "me:1_Terrains_and_Fences_Singles_16x16/ME_Singles_Terrains_and_Fences_16x16_Deep_Water_1_16",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 208,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,

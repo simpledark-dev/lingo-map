@@ -1,5 +1,5 @@
 TODOs:
-- floor (what if tiles are not exactly 16x16)
+[x] floor (what if tiles are not exactly 16x16)
 - outdoor scene
     - grass tiles
     - building

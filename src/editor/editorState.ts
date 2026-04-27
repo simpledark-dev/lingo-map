@@ -171,6 +171,7 @@ export type EditorAction =
   | { type: 'DELETE_BUILDING'; id: string }
   | { type: 'SELECT_OBJECT'; id: string | null }
   | { type: 'TOGGLE_SELECT_OBJECT'; id: string }
+  | { type: 'SET_OBJECTS_LAYER'; ids: string[]; layerId: string }
   | { type: 'SET_OBJECT_SCALE'; id: string; scale: number }
   | { type: 'SET_BUILDING_SCALE'; id: string; scale: number }
   | { type: 'MOVE_OBJECT'; id: string; x: number; y: number }
@@ -577,6 +578,59 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ? state.selectedObjectIds.filter(i => i !== action.id)
         : [...state.selectedObjectIds, action.id];
       return { ...state, selectedObjectIds: next };
+    }
+
+    case 'SET_OBJECTS_LAYER': {
+      // Reassign the owning layer of one or more objects. Used by the
+      // right-click context menu and the [ / ] keyboard shortcuts to
+      // re-stack already-placed entities. Tile layers are silently rejected
+      // as targets (entities only live on object layers). Undo restores
+      // every layer's `objects[]` via the unified LAYERS_SNAPSHOT path
+      // because reversing per-id moves would need a separate inverse map.
+      const target = state.layers.find(l => l.id === action.layerId);
+      if (!target || target.kind !== 'object') return state;
+
+      // Filter to ids that actually need to move (skip objects already on
+      // the target layer, and missing ids).
+      const allObjects = getAllObjects(state);
+      const idsToMove = action.ids.filter(id => {
+        const obj = allObjects.find(o => o.id === id);
+        return obj && (obj.layer ?? PLAYER_LAYER_ID) !== action.layerId;
+      });
+      if (idsToMove.length === 0) return state;
+
+      const moveSet = new Set(idsToMove);
+      // Pull the moving entities out of every object layer they currently
+      // sit in. Track them by id so we can re-insert under the new layer
+      // with the same property set (`...o, layer: <new>`).
+      const movedById = new Map<string, Entity>();
+      let newLayers = state.layers.map(l => {
+        if (l.kind !== 'object') return l;
+        const filtered: Entity[] = [];
+        for (const o of l.objects) {
+          if (moveSet.has(o.id)) movedById.set(o.id, o);
+          else filtered.push(o);
+        }
+        return filtered.length === l.objects.length ? l : { ...l, objects: filtered };
+      });
+      // Append moved entities to the target layer in the action's id order
+      // so adjacent moved entities keep a stable relative order.
+      newLayers = newLayers.map(l => {
+        if (l.id !== action.layerId || l.kind !== 'object') return l;
+        const additions: Entity[] = [];
+        for (const id of idsToMove) {
+          const o = movedById.get(id);
+          if (o) additions.push({ ...o, layer: action.layerId });
+        }
+        return { ...l, objects: [...l.objects, ...additions] };
+      });
+
+      return {
+        ...state,
+        layers: newLayers,
+        undoStack: [...state.undoStack, { type: 'LAYERS_SNAPSHOT', data: captureLayersSnapshot(state) }],
+        redoStack: [],
+      };
     }
 
     case 'SET_OBJECT_SCALE': {

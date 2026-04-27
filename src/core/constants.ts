@@ -1,5 +1,5 @@
 export const TILE_SIZE = 16;
-export const PLAYER_SPEED = 250; // pixels per second
+export const PLAYER_SPEED = 90; // pixels per second
 export const INTERACTION_RANGE = 32; // pixels
 export const VIEWPORT_WIDTH = 800;
 export const VIEWPORT_HEIGHT = 480;

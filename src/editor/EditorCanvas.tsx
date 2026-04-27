@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useReducer, useCallback } from 'react';
+import { useRef, useEffect, useReducer, useCallback, useState } from 'react';
 import { TileType, Entity } from '../core/types';
 import { EditorApp } from './EditorApp';
 import { editorReducer, createInitialState, EditorAction, generateObjectId, buildImportedLayers, getPrimaryTiles, getAllObjects } from './editorState';
@@ -245,6 +245,12 @@ export default function EditorCanvas() {
   // with stale (pre-load) state and overwrite the disk copy.
   const diskLoadedRef = useRef(false);
 
+  // Context-menu state for right-click "move to layer" affordance. `ids` is
+  // captured at open time so the menu acts on the entities the user
+  // right-clicked even if the selection mutates while it's open. Coords are
+  // in client (page) pixels — the menu renders position:fixed at (x, y).
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; ids: string[] } | null>(null);
+
   // ── Load persisted map from disk on mount (overrides localStorage/compiled) ──
   useEffect(() => {
     let cancelled = false;
@@ -448,11 +454,60 @@ export default function EditorCanvas() {
       return;
     }
 
-    // Right click — deselect
+    // Right click on an object → open the layer-reassign context menu.
+    // Right click on empty space → deselect (legacy behavior preserved).
+    // The menu renders at the page-coords of the click and operates on
+    // whichever ids are selected at open time. If the user right-clicks an
+    // unselected object, we replace the selection with just that id first
+    // so the menu acts on what the user expects.
     if (e.button === 2) {
+      const wp = getWorldPos(e);
+      const allObjects = getAllObjects(s);
+      // Priority pass: if the user already has a selection and the click
+      // falls inside any selected object's bounding box, treat THAT as the
+      // hit. Sprites can be much wider than their visual silhouette (a 487×
+      // 512 bed PNG has a huge invisible halo), so a topmost-by-sortY
+      // search across all objects will frequently hit the wrong overlapping
+      // entity. Trusting the current selection on right-click gives the
+      // user a reliable disambiguation: left-click to pick the exact one,
+      // then right-click anywhere on it.
+      let hitId: string | null = null;
+      for (const id of s.selectedObjectIds) {
+        const o = allObjects.find(oo => oo.id === id);
+        if (!o) continue;
+        const bb = getSpriteBounds(o.x, o.y, o.spriteKey, o.anchor, s.tileSize, o.scale ?? 1);
+        if (wp.x >= bb.left && wp.x < bb.right && wp.y >= bb.top && wp.y < bb.bottom) {
+          hitId = id;
+          break;
+        }
+      }
+      if (!hitId) {
+        const lockedLayers = new Set(s.layers.filter(l => l.locked).map(l => l.id));
+        const sorted = allObjects
+          .filter(o => !lockedLayers.has(o.layer ?? ''))
+          .sort((a, b) => b.sortY - a.sortY);
+        const hit = sorted.find(o => {
+          const bb = getSpriteBounds(o.x, o.y, o.spriteKey, o.anchor, s.tileSize, o.scale ?? 1);
+          return wp.x >= bb.left && wp.x < bb.right && wp.y >= bb.top && wp.y < bb.bottom;
+        });
+        if (hit) hitId = hit.id;
+      }
+      if (hitId) {
+        const ids = s.selectedObjectIds.includes(hitId) ? s.selectedObjectIds : [hitId];
+        if (!s.selectedObjectIds.includes(hitId)) {
+          dispatchRef.current({ type: 'SELECT_OBJECT', id: hitId });
+        }
+        setContextMenu({ x: e.clientX, y: e.clientY, ids });
+        return;
+      }
+      // Empty space → close any open menu and deselect.
+      setContextMenu(null);
       dispatchRef.current({ type: 'SELECT_OBJECT', id: null });
       return;
     }
+
+    // Any non-right-click closes the context menu.
+    if (contextMenu) setContextMenu(null);
 
     const { x, y, row, col } = getWorldPos(e);
 
@@ -632,7 +687,7 @@ export default function EditorCanvas() {
       paintedCellsRef.current.add(`${row},${col}`);
       editorAppRef.current?.updateSingleTile(row, col, TileType.GRASS);
     }
-  }, [getWorldPos]);
+  }, [getWorldPos, contextMenu]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     const s = stateRef.current;
@@ -788,20 +843,45 @@ export default function EditorCanvas() {
     app?.highlightCell(row, col);
 
     // Show placement preview — SHIFT disables tile snap for free placement.
+    // Three branches:
+    //   - building: full base + roof preview at the snapped door position.
+    //   - object: pack singles fall back to the default anchor (0.5, 1.0)
+    //     since they aren't in OBJECT_DEFAULTS.
+    //   - tile: shows the tile texture at the cursor cell with reduced alpha.
+    //     Multi-tile pack tiles preview as a 32×32+ ghost positioned where
+    //     `stampMultiTileAsObject` would actually drop them, since those auto-
+    //     route to the floor layer instead of into the tile grid.
     const freeMode = e.shiftKey;
+    const DEFAULT_ANCHOR = { x: 0.5, y: 1.0 };
     if (app && s.activeTool === 'building' && s.selectedBuildingKey) {
       const bd = BUILDING_DEFAULTS[s.selectedBuildingKey];
       if (bd) {
         const snapX = col * s.tileSize + bd.baseWidth / 2;
         const snapY = (row + 1) * s.tileSize + bd.baseHeight - s.tileSize;
         app.showBuildingPreview(bd.baseSpriteKey, bd.roofSpriteKey, snapX, snapY, bd.anchor);
+      } else {
+        app.clearPreview();
       }
     } else if (app && s.activeTool === 'object' && s.selectedObjectKey) {
       const defaults = OBJECT_DEFAULTS[s.selectedObjectKey];
-      if (defaults) {
-        const px = freeMode ? x : snapXForSprite(col, s.selectedObjectKey, s.tileSize);
-        const py = freeMode ? y : (row + 1) * s.tileSize;
-        app.showObjectPreview(s.selectedObjectKey, px, py, defaults.anchor, DEFAULT_OBJECT_SCALE);
+      const anchor = defaults?.anchor ?? DEFAULT_ANCHOR;
+      const px = freeMode ? x : snapXForSprite(col, s.selectedObjectKey, s.tileSize);
+      const py = freeMode ? y : (row + 1) * s.tileSize;
+      app.showObjectPreview(s.selectedObjectKey, px, py, anchor, DEFAULT_OBJECT_SCALE);
+    } else if (app && s.activeTool === 'tile' && s.selectedTileType) {
+      const tileType = s.selectedTileType;
+      if (isMultiTilePackTile(tileType)) {
+        // Mirror `stampMultiTileAsObject`'s placement math so the preview lands
+        // exactly where the click would drop the asset.
+        const { cols: N, rows: M } = getPackTileCellDims(tileType);
+        const px = col * s.tileSize + (N * s.tileSize) / 2;
+        const py = (row + M) * s.tileSize;
+        app.showObjectPreview(tileType, px, py, DEFAULT_ANCHOR, 1);
+      } else {
+        // Single-cell tile preview — uses `getTileTexture` internally so per-
+        // cell pattern tiles (wall-brick, floor-pattern) preview the right
+        // quadrant for the hovered cell.
+        app.showTilePreview(tileType, row, col, s.tileSize);
       }
     } else {
       app?.clearPreview();
@@ -931,8 +1011,8 @@ export default function EditorCanvas() {
       const app = editorAppRef.current;
       if (!app) return;
 
-      if (e.ctrlKey) {
-        // Ctrl+scroll or trackpad pinch = zoom. Multiplicative step feels
+      if (e.metaKey) {
+        // Cmd+scroll = zoom. Multiplicative step feels
         // consistent at every zoom level — same wheel tick covers 0.5→0.6 and
         // 2.0→2.4 in proportional terms instead of a fixed +0.05.
         const oldZoom = s.zoom;
@@ -1012,6 +1092,35 @@ export default function EditorCanvas() {
       if (e.code === 'Space') { e.preventDefault(); spaceDownRef.current = true; }
       if (e.key === 'Shift') shiftDownRef.current = true;
 
+      // Bracket keys — restack the selected objects up/down by one OBJECT
+      // layer in the visible stack. ']' = bring forward (toward Above), '['
+      // = send back (toward Floor). Tile layers are skipped since entities
+      // can't live on them. For mixed-layer multi-selection, target is
+      // computed from the FIRST selected object's layer so all selected
+      // collapse to the same destination — predictable, even if the user's
+      // group spanned several layers before.
+      if ((e.key === ']' || e.key === '[') && !mod) {
+        const s = stateRef.current;
+        if (s.selectedObjectIds.length === 0) return;
+        const firstId = s.selectedObjectIds[0];
+        const firstObj = getAllObjects(s).find(o => o.id === firstId);
+        if (!firstObj) return;
+        const currentLayerId = firstObj.layer ?? 'props';
+        // Object-layer-only stack — tile layers don't accept entities and
+        // would break the bring-forward intent.
+        const objectLayers = s.layers.filter(l => l.kind === 'object');
+        const idx = objectLayers.findIndex(l => l.id === currentLayerId);
+        if (idx < 0) return;
+        const targetIdx = e.key === ']' ? idx + 1 : idx - 1;
+        if (targetIdx < 0 || targetIdx >= objectLayers.length) return; // no-op at the rim
+        e.preventDefault();
+        dispatchRef.current({
+          type: 'SET_OBJECTS_LAYER',
+          ids: s.selectedObjectIds,
+          layerId: objectLayers[targetIdx].id,
+        });
+      }
+
       // Copy / paste — copy uses the FIRST currently-selected object; paste
       // drops one new copy at the cursor. Multi-clipboard could be added
       // later but the common case is "duplicate this thing I just placed."
@@ -1078,6 +1187,125 @@ export default function EditorCanvas() {
           onContextMenu={handleContextMenu}
         />
       </div>
+      {contextMenu && (
+        <LayerContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          layers={state.layers}
+          onSelect={(layerId) => {
+            dispatch({ type: 'SET_OBJECTS_LAYER', ids: contextMenu.ids, layerId });
+            setContextMenu(null);
+          }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Floating "Move to layer" menu shown on right-click. Lists every object
+ * layer (tile layers are excluded — entities can't live there) and dispatches
+ * SET_OBJECTS_LAYER on click. Auto-closes on Escape, on click outside, or
+ * after a layer is picked. Position is page-fixed at the right-click coords. */
+function LayerContextMenu({
+  x, y, layers, onSelect, onClose,
+}: {
+  x: number;
+  y: number;
+  layers: ReturnType<typeof createInitialState>['layers'];
+  onSelect: (layerId: string) => void;
+  onClose: () => void;
+}) {
+  // Ref to the outer div so the document mousedown listener can ask
+  // "did the click originate inside our menu?" — synthetic-event
+  // stopPropagation on the inner onMouseDown isn't enough because React
+  // processes its delegated listener before native bubbling continues to
+  // the document listener I attach below.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    // Close on Escape and on any click outside the menu.
+    //
+    // The mousedown listener is attached on the NEXT tick rather than
+    // immediately. Without the delay, the same `mousedown` that came in
+    // alongside the opening right-click `pointerdown` (React commits the
+    // state, runs this effect, then the original native mousedown
+    // continues bubbling to document) would synchronously close the menu
+    // ~8 ms after it opened.
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onClick = (e: MouseEvent) => {
+      // Click on a menu item should fall through to React's onClick — only
+      // close when the target is outside the menu surface.
+      if (rootRef.current && e.target instanceof Node && rootRef.current.contains(e.target)) return;
+      onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', onClick);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onClick);
+    };
+  }, [onClose]);
+
+  // Show object layers in user-visible order: top of stack first (matches
+  // the layers panel which renders the array reversed). Tile layers are
+  // skipped — moving an entity onto one is rejected by the reducer.
+  const objectLayers = [...layers].filter(l => l.kind === 'object').reverse();
+
+  return (
+    <div
+      ref={rootRef}
+      style={{
+        position: 'fixed',
+        left: x,
+        top: y,
+        background: '#1a1a2e',
+        border: '1px solid #444',
+        borderRadius: 4,
+        padding: 4,
+        minWidth: 140,
+        zIndex: 1000,
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)',
+        fontSize: 11,
+        color: '#ddd',
+      }}
+    >
+      <div style={{ fontSize: 10, color: '#888', padding: '2px 6px 4px', borderBottom: '1px solid #333', marginBottom: 4 }}>
+        Move to layer
+      </div>
+      {objectLayers.map(l => (
+        <button
+          key={l.id}
+          onClick={() => onSelect(l.id)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            width: '100%',
+            padding: '4px 6px',
+            background: 'transparent',
+            border: 'none',
+            color: '#ddd',
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontSize: 11,
+            borderRadius: 2,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#2a3a5a')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <span
+            style={{
+              width: 14, height: 14, fontSize: 9, fontWeight: 'bold',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: '#4a3a5a', color: '#cc99ff',
+              borderRadius: 2, flexShrink: 0,
+            }}
+          >O</span>
+          {l.name}
+        </button>
+      ))}
     </div>
   );
 }
