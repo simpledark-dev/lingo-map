@@ -35,6 +35,7 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
           <ToolBtn active={state.activeTool === 'select'} onClick={() => dispatch({ type: 'SET_TOOL', tool: 'select' })} label="Select" />
           <ToolBtn active={state.activeTool === 'eraser'} onClick={() => dispatch({ type: 'SET_TOOL', tool: 'eraser' })} label="Eraser" />
           <ToolBtn active={state.activeTool === 'area-erase'} onClick={() => dispatch({ type: 'SET_TOOL', tool: 'area-erase' })} label="Area" />
+          <ToolBtn active={state.activeTool === 'area-select'} onClick={() => dispatch({ type: 'SET_TOOL', tool: 'area-select' })} label="Area Sel" />
         </div>
       </Section>
 

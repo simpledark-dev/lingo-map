@@ -18,6 +18,10 @@ export class EditorApp {
   private hoverGraphics: Graphics;
   private selectionGraphics: Graphics;
   private areaRectGraphics: Graphics;
+  // Area Select tool's persistent selection rectangle and a ghost preview
+  // shown while the user is dragging the selection to a new location.
+  private areaSelectGraphics: Graphics;
+  private areaSelectGhostGraphics: Graphics;
   private selectionLabel: Text | null = null;
   private previewContainer: Container;
   private previewSprites: Sprite[] = [];
@@ -53,6 +57,8 @@ export class EditorApp {
     this.hoverGraphics = new Graphics();
     this.selectionGraphics = new Graphics();
     this.areaRectGraphics = new Graphics();
+    this.areaSelectGraphics = new Graphics();
+    this.areaSelectGhostGraphics = new Graphics();
     this.previewContainer = new Container();
     this.entityLayer.sortableChildren = true;
   }
@@ -83,6 +89,8 @@ export class EditorApp {
     this.worldContainer.addChild(this.hoverGraphics);
     this.worldContainer.addChild(this.selectionGraphics);
     this.worldContainer.addChild(this.areaRectGraphics);
+    this.worldContainer.addChild(this.areaSelectGraphics);
+    this.worldContainer.addChild(this.areaSelectGhostGraphics);
     this.worldContainer.addChild(this.previewContainer);
     this.app.stage.addChild(this.worldContainer);
 
@@ -327,6 +335,49 @@ export class EditorApp {
 
   clearAreaRect(): void {
     this.areaRectGraphics.clear();
+  }
+
+  /** Persistent selection rectangle for the Area Select tool. Different
+   * color from area-erase so the user can tell them apart at a glance. */
+  showSelectionArea(row1: number, col1: number, row2: number, col2: number): void {
+    const r0 = Math.min(row1, row2);
+    const r1 = Math.max(row1, row2);
+    const c0 = Math.min(col1, col2);
+    const c1 = Math.max(col1, col2);
+    this.areaSelectGraphics.clear();
+    this.areaSelectGraphics.rect(
+      c0 * this.tileSize,
+      r0 * this.tileSize,
+      (c1 - c0 + 1) * this.tileSize,
+      (r1 - r0 + 1) * this.tileSize,
+    );
+    this.areaSelectGraphics.fill({ color: 0x44aaff, alpha: 0.15 });
+    this.areaSelectGraphics.stroke({ color: 0x44aaff, alpha: 0.9, width: 2 });
+  }
+
+  clearSelectionArea(): void {
+    this.areaSelectGraphics.clear();
+  }
+
+  /** Ghost rectangle drawn at the proposed destination while the user is
+   * dragging the selection to move it. Cleared on pointerup. */
+  showSelectionGhost(row1: number, col1: number, row2: number, col2: number): void {
+    const r0 = Math.min(row1, row2);
+    const r1 = Math.max(row1, row2);
+    const c0 = Math.min(col1, col2);
+    const c1 = Math.max(col1, col2);
+    this.areaSelectGhostGraphics.clear();
+    this.areaSelectGhostGraphics.rect(
+      c0 * this.tileSize,
+      r0 * this.tileSize,
+      (c1 - c0 + 1) * this.tileSize,
+      (r1 - r0 + 1) * this.tileSize,
+    );
+    this.areaSelectGhostGraphics.stroke({ color: 0x44ff88, alpha: 0.9, width: 2 });
+  }
+
+  clearSelectionGhost(): void {
+    this.areaSelectGhostGraphics.clear();
   }
 
   highlightBuilding(b: Building): void {

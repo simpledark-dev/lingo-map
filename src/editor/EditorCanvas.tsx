@@ -154,6 +154,10 @@ export default function EditorCanvas() {
   const draggingObjectRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
   const draggingBuildingRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
   const areaEraseRef = useRef<{ start: { row: number; col: number }; end: { row: number; col: number } } | null>(null);
+  // Area Select: drawing a new selection rectangle.
+  const areaSelectRef = useRef<{ start: { row: number; col: number }; end: { row: number; col: number } } | null>(null);
+  // Area Select: dragging an EXISTING selection to a new location.
+  const areaMoveRef = useRef<{ source: { row1: number; col1: number; row2: number; col2: number }; startCol: number; startRow: number; dRow: number; dCol: number } | null>(null);
 
   // Copy/paste: last copied entity (without id) and last known cursor world pos
   const clipboardRef = useRef<Entity | null>(null);
@@ -322,6 +326,17 @@ export default function EditorCanvas() {
     app.clearSelection();
   }, [state.selectedObjectId, state.objects, state.buildings]);
 
+  // Sync the persistent selection rectangle to the editor's drawing state.
+  useEffect(() => {
+    const app = editorAppRef.current;
+    if (!app) return;
+    if (state.selectionArea) {
+      app.showSelectionArea(state.selectionArea.row1, state.selectionArea.col1, state.selectionArea.row2, state.selectionArea.col2);
+    } else {
+      app.clearSelectionArea();
+    }
+  }, [state.selectionArea]);
+
   // ── Mouse handlers ──
   const getWorldPos = useCallback((e: React.MouseEvent) => {
     const app = editorAppRef.current;
@@ -356,6 +371,33 @@ export default function EditorCanvas() {
       // updated while we early-return out of pointerMove.
       areaEraseRef.current = { start: { row, col }, end: { row, col } };
       editorAppRef.current?.showAreaRect(row, col, row, col);
+      return;
+    }
+
+    if (s.activeTool === 'area-select') {
+      const sel = s.selectionArea;
+      // Click INSIDE an existing selection → start a move-drag. Click outside
+      // → start a new selection-rect drag (clears the old selection on first
+      // pointerMove via the ghost preview).
+      if (sel) {
+        const r0 = Math.min(sel.row1, sel.row2);
+        const r1 = Math.max(sel.row1, sel.row2);
+        const c0 = Math.min(sel.col1, sel.col2);
+        const c1 = Math.max(sel.col1, sel.col2);
+        if (row >= r0 && row <= r1 && col >= c0 && col <= c1) {
+          areaMoveRef.current = {
+            source: { row1: r0, col1: c0, row2: r1, col2: c1 },
+            startRow: row,
+            startCol: col,
+            dRow: 0,
+            dCol: 0,
+          };
+          return;
+        }
+      }
+      // New selection: anchor at click cell, end follows cursor.
+      areaSelectRef.current = { start: { row, col }, end: { row, col } };
+      editorAppRef.current?.showSelectionArea(row, col, row, col);
       return;
     }
 
@@ -491,6 +533,32 @@ export default function EditorCanvas() {
       return;
     }
 
+    // Area Select: drawing a new selection rectangle.
+    if (areaSelectRef.current) {
+      const ref = areaSelectRef.current;
+      const { row, col } = getWorldPos(e);
+      ref.end = { row, col };
+      editorAppRef.current?.showSelectionArea(ref.start.row, ref.start.col, row, col);
+      return;
+    }
+
+    // Area Select: dragging an existing selection. Show ghost preview at
+    // the proposed destination; the real move dispatches on pointerUp.
+    if (areaMoveRef.current) {
+      const ref = areaMoveRef.current;
+      const { row, col } = getWorldPos(e);
+      ref.dRow = row - ref.startRow;
+      ref.dCol = col - ref.startCol;
+      const src = ref.source;
+      editorAppRef.current?.showSelectionGhost(
+        src.row1 + ref.dRow,
+        src.col1 + ref.dCol,
+        src.row2 + ref.dRow,
+        src.col2 + ref.dCol,
+      );
+      return;
+    }
+
     // If dragging a selected object, move it to the cursor (snapped to the
     // tile grid by default, or freely if SHIFT is held).
     if (draggingBuildingRef.current) {
@@ -615,6 +683,28 @@ export default function EditorCanvas() {
       // the map bounds, so we dispatch raw cell indices.
       dispatchRef.current({ type: 'CLEAR_AREA', row1: start.row, col1: start.col, row2: end.row, col2: end.col });
       editorAppRef.current?.clearAreaRect();
+      return;
+    }
+
+    if (areaSelectRef.current) {
+      const { start, end } = areaSelectRef.current;
+      areaSelectRef.current = null;
+      // Commit the new selection rectangle. The persistent rectangle
+      // graphic is driven by the state useEffect, so we don't redraw here.
+      dispatchRef.current({
+        type: 'SET_SELECTION_AREA',
+        area: { row1: start.row, col1: start.col, row2: end.row, col2: end.col },
+      });
+      return;
+    }
+
+    if (areaMoveRef.current) {
+      const { source, dRow, dCol } = areaMoveRef.current;
+      areaMoveRef.current = null;
+      editorAppRef.current?.clearSelectionGhost();
+      // No-op move: just keep the existing selection where it is.
+      if (dRow === 0 && dCol === 0) return;
+      dispatchRef.current({ type: 'MOVE_AREA', sourceArea: source, dRow, dCol });
       return;
     }
 

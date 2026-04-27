@@ -11,7 +11,7 @@ export interface EditorState {
   objects: Entity[];
   buildings: Building[];
 
-  activeTool: 'tile' | 'object' | 'building' | 'select' | 'eraser' | 'area-erase';
+  activeTool: 'tile' | 'object' | 'building' | 'select' | 'eraser' | 'area-erase' | 'area-select';
   selectedTileType: string;
   selectedObjectKey: string | null;
   selectedBuildingKey: string | null;
@@ -32,6 +32,11 @@ export interface EditorState {
   layers: MapLayer[];
   /** ID of the currently-active layer; new entities are stamped with this. */
   activeLayerId: string;
+
+  /** Currently-selected rectangle (in tile cells) for the Area Select tool.
+   * Null when no selection is active. Persists across other tool uses so the
+   * user can drag-move it from inside, then keep editing elsewhere. */
+  selectionArea: { row1: number; col1: number; row2: number; col2: number } | null;
 }
 
 interface UndoEntry {
@@ -67,6 +72,7 @@ export function createInitialState(width = 50, height = 50): EditorState {
     mapName: 'custom-map',
     layers: DEFAULT_LAYERS.map(l => ({ id: l.id, name: l.name, visible: true, locked: false })),
     activeLayerId: PLAYER_LAYER_ID,
+    selectionArea: null,
   };
 }
 
@@ -76,6 +82,8 @@ export type EditorAction =
   | { type: 'SET_TILE'; row: number; col: number; tileType: string }
   | { type: 'PAINT_TILES'; cells: { row: number; col: number }[]; tileType: string }
   | { type: 'CLEAR_AREA'; row1: number; col1: number; row2: number; col2: number }
+  | { type: 'SET_SELECTION_AREA'; area: { row1: number; col1: number; row2: number; col2: number } | null }
+  | { type: 'MOVE_AREA'; sourceArea: { row1: number; col1: number; row2: number; col2: number }; dRow: number; dCol: number }
   | { type: 'PLACE_OBJECT'; entity: Entity }
   | { type: 'DELETE_OBJECT'; id: string }
   | { type: 'PLACE_BUILDING'; building: Building }
@@ -201,6 +209,106 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           ? null
           : state.selectedObjectId,
         undoStack: [...state.undoStack, { type: 'CLEAR_AREA', data: { oldCells, removedObjects, removedBuildings } }],
+        redoStack: [],
+      };
+    }
+
+    case 'SET_SELECTION_AREA': {
+      return { ...state, selectionArea: action.area };
+    }
+
+    case 'MOVE_AREA': {
+      // Translate every tile in `sourceArea` by `(dRow, dCol)` and shift any
+      // object/building whose anchor sits inside the source rect by the same
+      // amount. The source area is cleared to GRASS afterwards. One atomic
+      // action so undo restores the entire move in a single step.
+      const { sourceArea, dRow, dCol } = action;
+      if (dRow === 0 && dCol === 0) return state;
+
+      const r0 = Math.max(0, Math.min(sourceArea.row1, sourceArea.row2));
+      const r1 = Math.min(state.mapHeight - 1, Math.max(sourceArea.row1, sourceArea.row2));
+      const c0 = Math.max(0, Math.min(sourceArea.col1, sourceArea.col2));
+      const c1 = Math.min(state.mapWidth - 1, Math.max(sourceArea.col1, sourceArea.col2));
+
+      // Snapshot every cell the move could touch — both source (will be
+      // overwritten with grass) and destination (will be overwritten with
+      // moved tiles). Saved in undo for full restoration.
+      const cellSnapshot: { row: number; col: number; oldType: string }[] = [];
+      const seen = new Set<string>();
+      const snap = (r: number, c: number) => {
+        if (r < 0 || r >= state.mapHeight || c < 0 || c >= state.mapWidth) return;
+        const k = `${r},${c}`;
+        if (seen.has(k)) return;
+        seen.add(k);
+        cellSnapshot.push({ row: r, col: c, oldType: state.tiles[r][c] });
+      };
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          snap(r, c);
+          snap(r + dRow, c + dCol);
+        }
+      }
+
+      // Two-phase write so source/dest overlap doesn't lose data: first copy
+      // source tiles into a temp buffer, then clear source to grass, then
+      // paint temp into destination.
+      const newTiles = state.tiles.map(r => [...r]);
+      const sourceTiles: string[][] = [];
+      for (let r = r0; r <= r1; r++) {
+        const row: string[] = [];
+        for (let c = c0; c <= c1; c++) row.push(state.tiles[r][c]);
+        sourceTiles.push(row);
+      }
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) newTiles[r][c] = TileType.GRASS;
+      }
+      for (let dr = 0; dr <= r1 - r0; dr++) {
+        for (let dc = 0; dc <= c1 - c0; dc++) {
+          const tr = r0 + dr + dRow;
+          const tc = c0 + dc + dCol;
+          if (tr < 0 || tr >= state.mapHeight || tc < 0 || tc >= state.mapWidth) continue;
+          newTiles[tr][tc] = sourceTiles[dr][dc];
+        }
+      }
+
+      const T = state.tileSize;
+      const xMin = c0 * T;
+      const xMax = (c1 + 1) * T;
+      const yMin = r0 * T;
+      const yMax = (r1 + 1) * T;
+      const inSource = (x: number, y: number) => x >= xMin && x < xMax && y >= yMin && y < yMax;
+      const dx = dCol * T;
+      const dy = dRow * T;
+
+      // Move objects whose anchor is inside the source rect. Preserve the
+      // existing decor sortY trick (`sortY === y - 1000`) by rebuilding sortY
+      // from the new y.
+      const movedObjectIds: string[] = [];
+      const newObjects = state.objects.map(o => {
+        if (!inSource(o.x, o.y)) return o;
+        movedObjectIds.push(o.id);
+        const newY = o.y + dy;
+        const newSortY = o.sortY === o.y
+          ? newY
+          : (o.sortY < 0 ? newY - 1000 : o.sortY + dy);
+        return { ...o, x: o.x + dx, y: newY, sortY: newSortY };
+      });
+
+      const movedBuildingIds: string[] = [];
+      const newBuildings = state.buildings.map(b => {
+        if (!inSource(b.x, b.y)) return b;
+        movedBuildingIds.push(b.id);
+        return { ...b, x: b.x + dx, y: b.y + dy, sortY: b.y + dy };
+      });
+
+      return {
+        ...state,
+        tiles: newTiles,
+        objects: newObjects,
+        buildings: newBuildings,
+        // Selection follows the move so the user can keep dragging it.
+        selectionArea: { row1: r0 + dRow, col1: c0 + dCol, row2: r1 + dRow, col2: c1 + dCol },
+        undoStack: [...state.undoStack, { type: 'MOVE_AREA', data: { cellSnapshot, movedObjectIds, movedBuildingIds, dRow, dCol, prevSelection: { row1: r0, col1: c0, row2: r1, col2: c1 } } }],
         redoStack: [],
       };
     }
@@ -481,6 +589,44 @@ function applyUndo(state: EditorState, entry: UndoEntry, newUndo: UndoEntry[]): 
         redoStack: [...state.redoStack, { type: 'CLEAR_AREA_REDO', data: { oldCells, removedObjects, removedBuildings } }],
       };
     }
+    case 'MOVE_AREA': {
+      const { cellSnapshot, movedObjectIds, movedBuildingIds, dRow, dCol, prevSelection } = data as {
+        cellSnapshot: { row: number; col: number; oldType: string }[];
+        movedObjectIds: string[];
+        movedBuildingIds: string[];
+        dRow: number;
+        dCol: number;
+        prevSelection: { row1: number; col1: number; row2: number; col2: number };
+      };
+      const T = state.tileSize;
+      const dx = dCol * T;
+      const dy = dRow * T;
+      const objIds = new Set(movedObjectIds);
+      const bldIds = new Set(movedBuildingIds);
+      const newTiles = state.tiles.map(r => [...r]);
+      for (const { row, col, oldType } of cellSnapshot) newTiles[row][col] = oldType;
+      const newObjects = state.objects.map(o => {
+        if (!objIds.has(o.id)) return o;
+        const newY = o.y - dy;
+        const newSortY = o.sortY === o.y
+          ? newY
+          : (o.sortY < 0 ? newY - 1000 : o.sortY - dy);
+        return { ...o, x: o.x - dx, y: newY, sortY: newSortY };
+      });
+      const newBuildings = state.buildings.map(b => {
+        if (!bldIds.has(b.id)) return b;
+        return { ...b, x: b.x - dx, y: b.y - dy, sortY: b.y - dy };
+      });
+      return {
+        ...state,
+        tiles: newTiles,
+        objects: newObjects,
+        buildings: newBuildings,
+        selectionArea: prevSelection,
+        undoStack: newUndo,
+        redoStack: [...state.redoStack, { type: 'MOVE_AREA_REDO', data }],
+      };
+    }
     case 'PLACE_OBJECT': {
       const { id } = data as { id: string };
       const obj = state.objects.find(o => o.id === id);
@@ -541,6 +687,63 @@ function applyRedo(state: EditorState, entry: UndoEntry, newRedo: UndoEntry[]): 
         buildings: state.buildings.filter(b => !removedBuildingIds.has(b.id)),
         redoStack: newRedo,
         undoStack: [...state.undoStack, { type: 'CLEAR_AREA', data: { oldCells, removedObjects, removedBuildings } }],
+      };
+    }
+    case 'MOVE_AREA_REDO': {
+      // Re-apply: same logic as the original MOVE_AREA reducer, using the
+      // saved snapshot to know which cells & entities to translate.
+      const { cellSnapshot, movedObjectIds, movedBuildingIds, dRow, dCol, prevSelection } = data as {
+        cellSnapshot: { row: number; col: number; oldType: string }[];
+        movedObjectIds: string[];
+        movedBuildingIds: string[];
+        dRow: number;
+        dCol: number;
+        prevSelection: { row1: number; col1: number; row2: number; col2: number };
+      };
+      const T = state.tileSize;
+      const dx = dCol * T;
+      const dy = dRow * T;
+      const r0 = prevSelection.row1, r1 = prevSelection.row2, c0 = prevSelection.col1, c1 = prevSelection.col2;
+      const newTiles = state.tiles.map(r => [...r]);
+      const sourceTiles: string[][] = [];
+      for (let r = r0; r <= r1; r++) {
+        const row: string[] = [];
+        for (let c = c0; c <= c1; c++) row.push(state.tiles[r][c]);
+        sourceTiles.push(row);
+      }
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) newTiles[r][c] = TileType.GRASS;
+      }
+      for (let dr = 0; dr <= r1 - r0; dr++) {
+        for (let dc = 0; dc <= c1 - c0; dc++) {
+          const tr = r0 + dr + dRow;
+          const tc = c0 + dc + dCol;
+          if (tr < 0 || tr >= state.mapHeight || tc < 0 || tc >= state.mapWidth) continue;
+          newTiles[tr][tc] = sourceTiles[dr][dc];
+        }
+      }
+      const objIds = new Set(movedObjectIds);
+      const bldIds = new Set(movedBuildingIds);
+      const newObjects = state.objects.map(o => {
+        if (!objIds.has(o.id)) return o;
+        const newY = o.y + dy;
+        const newSortY = o.sortY === o.y
+          ? newY
+          : (o.sortY < 0 ? newY - 1000 : o.sortY + dy);
+        return { ...o, x: o.x + dx, y: newY, sortY: newSortY };
+      });
+      const newBuildings = state.buildings.map(b => {
+        if (!bldIds.has(b.id)) return b;
+        return { ...b, x: b.x + dx, y: b.y + dy, sortY: b.y + dy };
+      });
+      return {
+        ...state,
+        tiles: newTiles,
+        objects: newObjects,
+        buildings: newBuildings,
+        selectionArea: { row1: r0 + dRow, col1: c0 + dCol, row2: r1 + dRow, col2: c1 + dCol },
+        redoStack: newRedo,
+        undoStack: [...state.undoStack, { type: 'MOVE_AREA', data: { cellSnapshot, movedObjectIds, movedBuildingIds, dRow, dCol, prevSelection } }],
       };
     }
     case 'DELETE_OBJECT_REDO': {
