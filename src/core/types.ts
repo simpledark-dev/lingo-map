@@ -140,27 +140,56 @@ export interface Trigger {
   targetSpawnId?: string;
 }
 
-export interface MapLayer {
-  id: string;          // stable ID, referenced by `Entity.layer`
+// ── Layered map content (Tiled-style) ─────────────────────────────────────
+// A map's visual content lives in an ordered list of layers. Each layer is
+// either a TileLayer (a 2D grid of cell strings) or an ObjectLayer (a list of
+// free-positioned Entities). Render order is array order — index 0 first,
+// last index on top. Each layer carries editor-only `visible` and `locked`
+// flags that the runtime ignores.
+
+interface BaseLayer {
+  id: string;          // stable ID, referenced by Entity.layer for objects
   name: string;        // user-facing label
-  // Editor-only display state — runtime ignores these.
-  visible?: boolean;   // default true
-  locked?: boolean;    // default false
+  visible?: boolean;   // default true; editor-only display state
+  locked?: boolean;    // default false; editor-only edit state
 }
+
+export interface TileLayer extends BaseLayer {
+  kind: 'tile';
+  /** [row][col] cell strings — TileType enum values for engine tiles, or
+   * `me:<theme>/<file>` pack refs. Empty string means "no tile here, let
+   * lower layers show through". */
+  tiles: string[][];
+}
+
+export interface ObjectLayer extends BaseLayer {
+  kind: 'object';
+  /** Free-positioned entities. Y-sorted within the layer at render time. */
+  objects: Entity[];
+}
+
+export type Layer = TileLayer | ObjectLayer;
+
+/** Backwards-compat alias for code paths that only need the editor-only flags
+ * (visible/locked/id/name). All Layer instances satisfy this shape. */
+export type MapLayer = BaseLayer;
 
 export interface MapData {
   id: string;
   width: number;  // in tiles
   height: number; // in tiles
   tileSize: number;
-  /** Ordered list of named entity layers. Index 0 renders first (bottom),
-   * last index renders on top. Entities reference a layer by `Entity.layer`.
-   * Optional — if omitted, the default 4-layer set is used. */
-  layers?: MapLayer[];
-  /** Tile grid. Values are typically `TileType` enum strings, but pack tiles
-   * carry virtual refs of the form `me:<theme>:<col>,<row>` resolved at render
-   * time by `getTileTexture`. The widened `string` type captures both. */
-  tiles: string[][];       // [row][col]
+  /** Ordered list of layers (Tiled-style). Bottom (index 0) renders first.
+   * The canonical content store post-refactor — both tile grids and object
+   * lists live inside layer entries. */
+  layers?: Layer[];
+  /** @deprecated — legacy single tile grid for the unmigrated path. Filled
+   * by `normalizeMapData` from `layers` when only the new format is present,
+   * so downstream readers see consistent data either way. New writers
+   * should target `layers` directly. */
+  tiles: string[][];
+  /** @deprecated — legacy flat object list. See `tiles` note. Same
+   * normalization rule applies. */
   objects: Entity[];
   buildings: Building[];
   npcs: NPCData[];

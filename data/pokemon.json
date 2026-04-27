@@ -4000,7 +4000,7 @@
       "grass",
       "grass",
       "grass",
-      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_16",
+      "grass",
       "grass",
       "grass",
       "grass",
@@ -5220,7 +5220,7 @@
       "grass",
       "grass",
       "grass",
-      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Asphalt_1_Variation_16",
+      "grass",
       "grass",
       "grass",
       "grass",
@@ -5524,7 +5524,7 @@
       "grass",
       "grass",
       "grass",
-      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Asphalt_1_Variation_16",
+      "grass",
       "grass",
       "grass",
       "grass",
@@ -6426,7 +6426,7 @@
       "grass",
       "grass",
       "grass",
-      "me:1_Terrains_and_Fences_Singles_16x16/ME_Singles_Terrains_and_Fences_16x16_Deep_Water_1_20",
+      "grass",
       "grass",
       "grass",
       "grass",
@@ -10441,24 +10441,6 @@
       "layer": "floor"
     },
     {
-      "id": "obj-mogral8d-9js50",
-      "x": 688,
-      "y": 608,
-      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_32",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 608,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "layer": "floor"
-    },
-    {
       "id": "obj-mograzua-yzq1l",
       "x": 976,
       "y": 624,
@@ -10900,24 +10882,6 @@
         "y": 1
       },
       "sortY": 544,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "layer": "floor"
-    },
-    {
-      "id": "obj-mogrupg2-uafjc",
-      "x": 720,
-      "y": 496,
-      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 496,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,

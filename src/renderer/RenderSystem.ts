@@ -1,7 +1,7 @@
 import { Application, Container, Graphics, Sprite } from 'pixi.js';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
-import { getEffectiveZIndex, getLayers } from '../core/Layers';
+import { getEffectiveZIndex, getLayers, getObjectLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
 import { getTexture, getTileTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
 import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
@@ -74,30 +74,35 @@ export class RenderSystem {
     this.transitionLayer.removeChildren();
     this.autoTileLayer.removeChildren();
 
-    for (let row = 0; row < map.height; row++) {
-      for (let col = 0; col < map.width; col++) {
-        const tileType = map.tiles[row][col];
-        const texture = getTileTexture(tileType, row, col);
-        if (!texture) continue;
-
-        const sprite = new Sprite(texture);
-        sprite.x = col * map.tileSize;
-        sprite.y = row * map.tileSize;
-        sprite.width = map.tileSize;
-        sprite.height = map.tileSize;
-        this.groundLayer.addChild(sprite);
+    // Iterate every tile layer in render order, drawing each non-empty cell
+    // into the shared ground container. Empty cells let lower layers show
+    // through. Game runtime ignores the editor-only `visible` flag.
+    const tileLayers = getTileLayers(map);
+    for (const layer of tileLayers) {
+      for (let row = 0; row < map.height; row++) {
+        for (let col = 0; col < map.width; col++) {
+          const tileType = layer.tiles[row]?.[col];
+          if (!tileType) continue;
+          const texture = getTileTexture(tileType, row, col);
+          if (!texture) continue;
+          const sprite = new Sprite(texture);
+          sprite.x = col * map.tileSize;
+          sprite.y = row * map.tileSize;
+          sprite.width = map.tileSize;
+          sprite.height = map.tileSize;
+          this.groundLayer.addChild(sprite);
+        }
       }
     }
 
-    // Build transition overlays (grass ↔ dirt dithered edges).
-    // Skip water — `AutoTileset` below handles grass↔water with the dual-grid blob set.
-    const transitions = buildTransitionLayer(map, false);
+    // Transitions + autotile anchor on the PRIMARY (first) tile layer —
+    // typically "Ground". Higher tile layers (e.g. Walls) don't participate.
+    const primary = getPrimaryTileLayer(map);
+    const primaryGrid = primary?.tiles ?? map.tiles;
+    const transitions = buildTransitionLayer({ ...map, tiles: primaryGrid }, false);
     this.transitionLayer.addChild(transitions);
-
-    // Dual-grid auto-tile layer for grass/water. Will be empty until
-    // `loadAutoTileset()` has resolved; PixiApp awaits that before loadScene().
     if (isAutoTilesetReady()) {
-      const autoTiles = buildAutoTileLayer(map.tiles, map.width, map.height, map.tileSize);
+      const autoTiles = buildAutoTileLayer(primaryGrid, map.width, map.height, map.tileSize);
       this.autoTileLayer.addChild(autoTiles);
     }
   }
