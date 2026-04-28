@@ -12660,10 +12660,10 @@
       },
       "sortY": 576,
       "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
+        "offsetX": -31,
+        "offsetY": -30,
+        "width": 66,
+        "height": 27
       },
       "scale": 1,
       "layer": "decor-low"
@@ -12755,10 +12755,10 @@
       },
       "sortY": 559.9205729166667,
       "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
+        "offsetX": -19,
+        "offsetY": -27,
+        "width": 40,
+        "height": 25
       },
       "scale": 1,
       "layer": "props"
@@ -12887,25 +12887,6 @@
         "y": 1
       },
       "sortY": 665.6481249999999,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-mohycxsa-2dbxa",
-      "x": 832,
-      "y": 496,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_5_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 496,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -13268,10 +13249,10 @@
       },
       "sortY": 512,
       "collisionBox": {
-        "offsetX": -8,
-        "offsetY": -8,
-        "width": 16,
-        "height": 8
+        "offsetX": -13,
+        "offsetY": -30,
+        "width": 22,
+        "height": 16
       },
       "scale": 1,
       "layer": "props"
@@ -13293,7 +13274,17 @@
         "height": 95
       },
       "scale": 1,
-      "layer": "props"
+      "layer": "props",
+      "transition": {
+        "targetMapId": "pokemon-house-1f",
+        "targetSpawnId": "entrance",
+        "triggerBox": {
+          "offsetX": -35,
+          "offsetY": -13,
+          "width": 24,
+          "height": 16
+        }
+      }
     },
     {
       "id": "obj-moi4o9f5-io5mn",
@@ -13405,6 +13396,25 @@
         "offsetY": -144,
         "width": 112,
         "height": 144
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moi4zddx-45qjo",
+      "x": 824,
+      "y": 496,
+      "spriteKey": "me:9_Shopping_Center_and_Markets_Singles_16x16/ME_Singles_Shopping_Center_and_Markets_16x16_Market_Medium_2",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 496,
+      "collisionBox": {
+        "offsetX": -56,
+        "offsetY": -72,
+        "width": 112,
+        "height": 72
       },
       "scale": 1,
       "layer": "props"
@@ -26166,10 +26176,10 @@
           },
           "sortY": 576,
           "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
+            "offsetX": -31,
+            "offsetY": -30,
+            "width": 66,
+            "height": 27
           },
           "scale": 1,
           "layer": "decor-low"
@@ -26270,10 +26280,10 @@
           },
           "sortY": 559.9205729166667,
           "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
+            "offsetX": -19,
+            "offsetY": -27,
+            "width": 40,
+            "height": 25
           },
           "scale": 1,
           "layer": "props"
@@ -26402,25 +26412,6 @@
             "y": 1
           },
           "sortY": 665.6481249999999,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-mohycxsa-2dbxa",
-          "x": 832,
-          "y": 496,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_5_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 496,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -26783,10 +26774,10 @@
           },
           "sortY": 512,
           "collisionBox": {
-            "offsetX": -8,
-            "offsetY": -8,
-            "width": 16,
-            "height": 8
+            "offsetX": -13,
+            "offsetY": -30,
+            "width": 22,
+            "height": 16
           },
           "scale": 1,
           "layer": "props"
@@ -26808,7 +26799,17 @@
             "height": 95
           },
           "scale": 1,
-          "layer": "props"
+          "layer": "props",
+          "transition": {
+            "targetMapId": "pokemon-house-1f",
+            "targetSpawnId": "entrance",
+            "triggerBox": {
+              "offsetX": -35,
+              "offsetY": -13,
+              "width": 24,
+              "height": 16
+            }
+          }
         },
         {
           "id": "obj-moi4o9f5-io5mn",
@@ -26920,6 +26921,25 @@
             "offsetY": -144,
             "width": 112,
             "height": 144
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moi4zddx-45qjo",
+          "x": 824,
+          "y": 496,
+          "spriteKey": "me:9_Shopping_Center_and_Markets_Singles_16x16/ME_Singles_Shopping_Center_and_Markets_16x16_Market_Medium_2",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 496,
+          "collisionBox": {
+            "offsetX": -56,
+            "offsetY": -72,
+            "width": 112,
+            "height": 72
           },
           "scale": 1,
           "layer": "props"

@@ -174,6 +174,7 @@ export type EditorAction =
   | { type: 'SET_OBJECTS_LAYER'; ids: string[]; layerId: string }
   | { type: 'SET_OBJECT_SCALE'; id: string; scale: number }
   | { type: 'SET_OBJECT_COLLISION'; id: string; box: CollisionBox }
+  | { type: 'SET_OBJECT_TRANSITION'; id: string; transition: NonNullable<Entity['transition']> | null }
   | { type: 'SET_BUILDING_SCALE'; id: string; scale: number }
   | { type: 'MOVE_OBJECT'; id: string; x: number; y: number }
   | { type: 'MOVE_OBJECTS'; positions: Array<{ id: string; x: number; y: number }>; dragId: string }
@@ -293,13 +294,6 @@ function isLayerLocked(state: EditorState, layerId: string | undefined | null): 
   if (!layerId) return false;
   const layer = state.layers.find(l => l.id === layerId);
   return !!layer?.locked;
-}
-
-/** True when the editor's primary tile layer (used by tile-paint and
- * area-erase / area-move operations) is locked. */
-function isPrimaryTileLayerLocked(state: EditorState): boolean {
-  const primary = getPrimaryTileLayer(state);
-  return !!primary?.locked;
 }
 
 /** True when the layer that tile-paint is currently targeting (active if
@@ -731,6 +725,56 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...withAllObjectLayers(state, objects =>
           objects.map(o => o.id === action.id ? { ...o, collisionBox: nb } : o),
+        ),
+        undoStack,
+        redoStack: [],
+      };
+    }
+
+    case 'SET_OBJECT_TRANSITION': {
+      // Set or clear the entity's `transition` metadata. PixiApp converts
+      // any object with a transition into a runtime door trigger at boot
+      // (see `transitionEntities` in PixiApp.ts) — width = the player-
+      // walkable cells under the entity's feet row, height = 1 tile.
+      const obj = findObject(state, action.id);
+      if (!obj) return state;
+      if (isLayerLocked(state, obj.layer)) return state;
+      const oldT = obj.transition;
+      const newT = action.transition;
+      // No-op when both undefined/null or every field matches. Earlier
+      // versions of this check ignored `triggerBox`, which made
+      // width/height/offset edits silently get dropped — the field is
+      // shape-comparing now.
+      const sameBox = (!oldT?.triggerBox && !newT?.triggerBox)
+        || (!!oldT?.triggerBox && !!newT?.triggerBox
+          && oldT.triggerBox.offsetX === newT.triggerBox.offsetX
+          && oldT.triggerBox.offsetY === newT.triggerBox.offsetY
+          && oldT.triggerBox.width === newT.triggerBox.width
+          && oldT.triggerBox.height === newT.triggerBox.height);
+      const same = (!oldT && !newT)
+        || (!!oldT && !!newT
+          && oldT.targetMapId === newT.targetMapId
+          && oldT.targetSpawnId === newT.targetSpawnId
+          && oldT.incomingSpawnId === newT.incomingSpawnId
+          && sameBox);
+      if (same) return state;
+      const coalesce = shouldCoalesceUndo(state.undoStack, 'SET_OBJECT_TRANSITION', action.id);
+      const undoStack = coalesce
+        ? state.undoStack
+        : [...state.undoStack, { type: 'SET_OBJECT_TRANSITION', data: { id: action.id, oldTransition: oldT } }];
+      return {
+        ...withAllObjectLayers(state, objects =>
+          objects.map(o => {
+            if (o.id !== action.id) return o;
+            if (newT === null) {
+              // Strip the transition field entirely so save format stays
+              // clean (rather than persisting `transition: undefined`).
+              const { transition: _t, ...rest } = o;
+              void _t;
+              return rest as Entity;
+            }
+            return { ...o, transition: newT };
+          }),
         ),
         undoStack,
         redoStack: [],
@@ -1337,6 +1381,26 @@ function applyUndo(state: EditorState, entry: UndoEntry, newUndo: UndoEntry[]): 
         redoStack: [...state.redoStack, { type: 'SET_OBJECT_COLLISION', data: redoData }],
       };
     }
+    case 'SET_OBJECT_TRANSITION': {
+      const { id, oldTransition } = data as { id: string; oldTransition: NonNullable<Entity['transition']> | undefined };
+      const cur = findObject(state, id);
+      const redoData = { id, oldTransition: cur?.transition };
+      return {
+        ...withAllObjectLayers(state, objects =>
+          objects.map(o => {
+            if (o.id !== id) return o;
+            if (!oldTransition) {
+              const { transition: _t, ...rest } = o;
+              void _t;
+              return rest as Entity;
+            }
+            return { ...o, transition: oldTransition };
+          }),
+        ),
+        undoStack: newUndo,
+        redoStack: [...state.redoStack, { type: 'SET_OBJECT_TRANSITION', data: redoData }],
+      };
+    }
     case 'SET_BUILDING_SCALE': {
       const { id, oldScale } = data as { id: string; oldScale: number };
       const cur = state.buildings.find(b => b.id === id);
@@ -1588,6 +1652,26 @@ function applyRedo(state: EditorState, entry: UndoEntry, newRedo: UndoEntry[]): 
         ),
         redoStack: newRedo,
         undoStack: [...state.undoStack, { type: 'SET_OBJECT_COLLISION', data: undoData }],
+      };
+    }
+    case 'SET_OBJECT_TRANSITION': {
+      const { id, oldTransition } = data as { id: string; oldTransition: NonNullable<Entity['transition']> | undefined };
+      const cur = findObject(state, id);
+      const undoData = { id, oldTransition: cur?.transition };
+      return {
+        ...withAllObjectLayers(state, objects =>
+          objects.map(o => {
+            if (o.id !== id) return o;
+            if (!oldTransition) {
+              const { transition: _t, ...rest } = o;
+              void _t;
+              return rest as Entity;
+            }
+            return { ...o, transition: oldTransition };
+          }),
+        ),
+        redoStack: newRedo,
+        undoStack: [...state.undoStack, { type: 'SET_OBJECT_TRANSITION', data: undoData }],
       };
     }
     case 'SET_BUILDING_SCALE': {

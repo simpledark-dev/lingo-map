@@ -144,6 +144,24 @@ export class PixiApp {
         && tile !== TileType.VOID;
     };
     const dynamicTriggers = transitionEntities.flatMap((o, i) => {
+      // Explicit trigger rectangle (set by the editor's Door section)
+      // takes precedence over the legacy auto-derivation. Offsets are
+      // relative to the entity's x/y, same convention as collisionBox.
+      const tb = o.transition!.triggerBox;
+      if (tb && tb.width > 0 && tb.height > 0) {
+        return [{
+          id: `auto-${o.id}-${i}`,
+          x: o.x + tb.offsetX,
+          y: o.y + tb.offsetY,
+          width: tb.width,
+          height: tb.height,
+          type: 'door' as const,
+          targetMapId: o.transition!.targetMapId,
+          targetSpawnId: o.transition!.targetSpawnId,
+        }];
+      }
+      // Legacy auto-shape for entities without an explicit triggerBox
+      // (predates the editor exposing the field — used by staircases).
       const feetRow = Math.floor((o.y - 1) / T);
       const candidateCols = [
         Math.floor((o.x - T) / T),

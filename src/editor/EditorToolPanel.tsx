@@ -197,6 +197,7 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
             />
           </div>
           <CollisionEditor entity={selectedObject} dispatch={dispatch} />
+          <DoorEditor entity={selectedObject} dispatch={dispatch} tileSize={state.tileSize} />
         </Section>
       )}
 
@@ -498,6 +499,148 @@ function NumberRow({
         style={inputStyle}
       />
     </label>
+  );
+}
+
+/** Static list of compiled-registry map IDs available as door targets.
+ * Mirrors `GAME_MAPS` in EditorTopBar; kept inline rather than fetching
+ * `/api/maps` so the dropdown is synchronous and the user can wire up a
+ * door even before the disk-load round-trip resolves. New maps in the
+ * registry need to be added here too. */
+const TARGET_MAP_IDS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f'] as const;
+
+/** Door / Transition editor sub-section. When toggled on, sets
+ * `entity.transition` so the runtime PixiApp auto-generates a door
+ * trigger at the entity's feet row (see PixiApp's `transitionEntities`
+ * conversion). Disabling strips the field entirely. */
+function DoorEditor({
+  entity,
+  dispatch,
+  tileSize,
+}: {
+  entity: import('../core/types').Entity;
+  dispatch: React.Dispatch<EditorAction>;
+  tileSize: number;
+}) {
+  const t = entity.transition;
+  const enabled = !!t;
+  const setT = (next: NonNullable<import('../core/types').Entity['transition']> | null) =>
+    dispatch({ type: 'SET_OBJECT_TRANSITION', id: entity.id, transition: next });
+
+  // Default trigger zone when the user first toggles the door on:
+  // 2 tiles wide × 1 tile tall at the entity's feet, mirroring the legacy
+  // auto-shape. They can then drag the entity OR resize/offset the box
+  // independently. In offset form (relative to entity at anchor 0.5, 1.0):
+  //   offsetX = -T (left edge one tile left of entity x)
+  //   offsetY = -T (top edge one tile above entity y, since y is the feet)
+  //   width  = 2T
+  //   height = T
+  const T = tileSize;
+  const DEFAULT_TRIGGER = { offsetX: -T, offsetY: -T, width: 2 * T, height: T };
+  const tb = t?.triggerBox;
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box',
+    padding: '3px 6px', fontSize: 11,
+    background: '#2a2a3a', color: '#ddd',
+    border: '1px solid #444', borderRadius: 3,
+  };
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #333', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1 }}>Door / Transition</div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={e => {
+            if (e.target.checked) {
+              // Set transition with an explicit triggerBox so the user can
+              // immediately see and resize the green rect. Default target
+              // is the first registry map; user changes via dropdown.
+              setT({
+                targetMapId: TARGET_MAP_IDS[0],
+                targetSpawnId: 'entrance',
+                triggerBox: DEFAULT_TRIGGER,
+              });
+            } else {
+              setT(null);
+            }
+          }}
+        />
+        Acts as a door
+      </label>
+      {enabled && t && (
+        <>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 10, color: '#888' }}>
+            Target map
+            <select
+              value={t.targetMapId}
+              onChange={e => setT({ ...t, targetMapId: e.target.value })}
+              style={inputStyle}
+            >
+              {/* Include the saved value even if it's not in the static
+                  registry list, so editing a door pointing at a custom
+                  map name doesn't silently lose its target. */}
+              {!TARGET_MAP_IDS.includes(t.targetMapId as typeof TARGET_MAP_IDS[number]) && (
+                <option value={t.targetMapId}>{t.targetMapId}</option>
+              )}
+              {TARGET_MAP_IDS.map(id => <option key={id} value={id}>{id}</option>)}
+            </select>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 10, color: '#888' }}>
+            Target spawn id
+            <input
+              type="text"
+              value={t.targetSpawnId}
+              onChange={e => setT({ ...t, targetSpawnId: e.target.value })}
+              placeholder="entrance"
+              style={inputStyle}
+            />
+          </label>
+          <div style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>Trigger zone</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+            <NumberRow
+              label="Width"
+              value={tb?.width ?? DEFAULT_TRIGGER.width}
+              onChange={v => setT({ ...t, triggerBox: { ...(tb ?? DEFAULT_TRIGGER), width: v } })}
+              inputStyle={inputStyle}
+            />
+            <NumberRow
+              label="Height"
+              value={tb?.height ?? DEFAULT_TRIGGER.height}
+              onChange={v => setT({ ...t, triggerBox: { ...(tb ?? DEFAULT_TRIGGER), height: v } })}
+              inputStyle={inputStyle}
+            />
+            <NumberRow
+              label="Offset X"
+              value={tb?.offsetX ?? DEFAULT_TRIGGER.offsetX}
+              onChange={v => setT({ ...t, triggerBox: { ...(tb ?? DEFAULT_TRIGGER), offsetX: v } })}
+              inputStyle={inputStyle}
+            />
+            <NumberRow
+              label="Offset Y"
+              value={tb?.offsetY ?? DEFAULT_TRIGGER.offsetY}
+              onChange={v => setT({ ...t, triggerBox: { ...(tb ?? DEFAULT_TRIGGER), offsetY: v } })}
+              inputStyle={inputStyle}
+            />
+          </div>
+          <button
+            onClick={() => setT({ ...t, triggerBox: DEFAULT_TRIGGER })}
+            style={{
+              padding: '4px 6px', fontSize: 10,
+              background: '#2a3a2a', border: '1px solid #444', borderRadius: 3,
+              color: '#9c9', cursor: 'pointer',
+            }}
+          >Reset trigger ({DEFAULT_TRIGGER.width}×{DEFAULT_TRIGGER.height})</button>
+          <div style={{ fontSize: 10, color: '#666', lineHeight: 1.4 }}>
+            Walk into the green rectangle to enter <code>{t.targetMapId}</code> at spawn{' '}
+            <code>{t.targetSpawnId || 'entrance'}</code>. Offsets are
+            relative to this entity, so dragging the entity moves the trigger with it.
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

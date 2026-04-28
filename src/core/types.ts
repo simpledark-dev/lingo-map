@@ -38,13 +38,24 @@ export interface Entity {
    * decides the gross render order (e.g. 'floor' renders below 'props'). */
   layer?: string;
   /** Optional door-like transition. When the player walks onto this entity's
-   * footprint, the engine fires a scene change. Used for staircases inside
-   * interior maps so the trigger follows the visual decor.
+   * trigger zone, the engine fires a scene change. Used for staircases
+   * inside interior maps so the trigger follows the visual decor.
    * - targetMapId/targetSpawnId: where this entity sends the player.
    * - incomingSpawnId: the spawn ID someone uses when arriving AT this entity
    *   from the other map. The engine auto-registers this spawn just below the
-   *   entity's feet so spawn position always matches the visual position. */
-  transition?: { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string };
+   *   entity's feet so spawn position always matches the visual position.
+   * - triggerBox: explicit trigger rectangle (offsets relative to entity x/y,
+   *   same convention as collisionBox). When omitted the runtime derives a
+   *   2-tile-wide × 1-tile-tall trigger at the entity's feet row, restricted
+   *   to walkable cells — that's the legacy behaviour for staircases. The
+   *   editor sets this field whenever the user enables the Door section so
+   *   they can resize/move the trigger independently of the entity. */
+  transition?: {
+    targetMapId: string;
+    targetSpawnId: string;
+    incomingSpawnId?: string;
+    triggerBox?: CollisionBox;
+  };
 }
 
 export interface Building {

@@ -429,7 +429,12 @@ export default function EditorCanvas() {
   useEffect(() => {
     const app = editorAppRef.current;
     if (!app) return;
-    if (state.selectedObjectIds.length === 0) { app.clearSelection(); app.clearCollisionPreview(); return; }
+    if (state.selectedObjectIds.length === 0) {
+      app.clearSelection();
+      app.clearCollisionPreview();
+      app.clearDoorPreview();
+      return;
+    }
     const allObjects = getAllObjects(state);
     // Multi-selection: highlight every selected object as a group; the
     // dimension-label affordance from `highlightObject` wouldn't make sense
@@ -440,9 +445,10 @@ export default function EditorCanvas() {
         .map(id => allObjects.find(o => o.id === id))
         .filter((o): o is Entity => !!o);
       app.highlightObjects(objs);
-      // Collision preview is single-entity only — would be visual clutter
-      // across a multi-selection.
+      // Collision/door previews are single-entity only — would be visual
+      // clutter across a multi-selection.
       app.clearCollisionPreview();
+      app.clearDoorPreview();
       return;
     }
     const onlyId = state.selectedObjectIds[0];
@@ -450,13 +456,20 @@ export default function EditorCanvas() {
     if (obj) {
       app.highlightObject(obj);
       app.showCollisionPreview(obj);
+      app.showDoorPreview(obj, state.tileSize);
       return;
     }
     const bld = state.buildings.find((b) => b.id === onlyId);
-    if (bld) { app.highlightBuilding(bld); app.clearCollisionPreview(); return; }
+    if (bld) {
+      app.highlightBuilding(bld);
+      app.clearCollisionPreview();
+      app.clearDoorPreview();
+      return;
+    }
     app.clearSelection();
     app.clearCollisionPreview();
-  }, [state.selectedObjectIds, state.layers, state.buildings]);
+    app.clearDoorPreview();
+  }, [state.selectedObjectIds, state.layers, state.buildings, state.tileSize]);
 
   // Sync the persistent selection rectangle to the editor's drawing state.
   useEffect(() => {

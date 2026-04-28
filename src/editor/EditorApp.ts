@@ -33,6 +33,12 @@ export class EditorApp {
    * entity has a non-empty collisionBox; lets the user see exactly what
    * region of the sprite blocks the player. */
   private collisionPreview: Graphics;
+  /** Translucent green overlay drawn on the currently-selected entity's
+   * door trigger zone (when its `transition` field is set). Mirrors the
+   * runtime's auto-generated trigger geometry — 2 tiles wide × 1 tile
+   * tall at the entity's feet row — so the editor view matches the
+   * runtime behaviour. */
+  private doorPreview: Graphics;
   private selectionLabel: Text | null = null;
   /** Floating layer-name tag drawn near the cursor during placement-style
    * tools so the user can see which layer their next click will write to.
@@ -81,6 +87,7 @@ export class EditorApp {
     this.areaSelectGhostGraphics = new Graphics();
     this.marqueeGraphics = new Graphics();
     this.collisionPreview = new Graphics();
+    this.doorPreview = new Graphics();
     this.previewContainer = new Container();
     this.entityLayer.sortableChildren = true;
   }
@@ -115,6 +122,7 @@ export class EditorApp {
     this.worldContainer.addChild(this.areaSelectGhostGraphics);
     this.worldContainer.addChild(this.marqueeGraphics);
     this.worldContainer.addChild(this.collisionPreview);
+    this.worldContainer.addChild(this.doorPreview);
     this.worldContainer.addChild(this.previewContainer);
     this.app.stage.addChild(this.worldContainer);
 
@@ -530,6 +538,39 @@ export class EditorApp {
 
   clearCollisionPreview(): void {
     this.collisionPreview.clear();
+  }
+
+  /** Draw the door trigger zone for an entity in WORLD coords. Mirrors the
+   * exact geometry the runtime uses: explicit `transition.triggerBox`
+   * (offsets relative to entity x/y) when set, otherwise PixiApp's auto-
+   * derived 2-tile-wide × 1-tile-tall shape at the entity's feet row.
+   * Only renders when `entity.transition` is set. */
+  showDoorPreview(entity: Entity, tileSize: number): void {
+    this.doorPreview.clear();
+    if (!entity.transition) return;
+    const tb = entity.transition.triggerBox;
+    let left: number, top: number, w: number, h: number;
+    if (tb && tb.width > 0 && tb.height > 0) {
+      left = entity.x + tb.offsetX;
+      top = entity.y + tb.offsetY;
+      w = tb.width;
+      h = tb.height;
+    } else {
+      const T = tileSize;
+      const feetRow = Math.floor((entity.y - 1) / T);
+      left = Math.floor((entity.x - T) / T) * T;
+      const right = (Math.floor(entity.x / T) + 1) * T;
+      top = feetRow * T;
+      w = right - left;
+      h = T;
+    }
+    this.doorPreview.rect(left, top, w, h);
+    this.doorPreview.fill({ color: 0x44ff88, alpha: 0.25 });
+    this.doorPreview.stroke({ color: 0x44ff88, alpha: 0.9, width: 1 });
+  }
+
+  clearDoorPreview(): void {
+    this.doorPreview.clear();
   }
 
   highlightBuilding(b: Building): void {
