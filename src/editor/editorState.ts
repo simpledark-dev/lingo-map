@@ -1,4 +1,4 @@
-import { TileType, Entity, Building, Layer, MapLayer, TileLayer } from '../core/types';
+import { TileType, Entity, Building, CollisionBox, Layer, MapLayer, TileLayer } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
 import { isObjectLayer, isTileLayer } from '../core/Layers';
 
@@ -173,6 +173,7 @@ export type EditorAction =
   | { type: 'TOGGLE_SELECT_OBJECT'; id: string }
   | { type: 'SET_OBJECTS_LAYER'; ids: string[]; layerId: string }
   | { type: 'SET_OBJECT_SCALE'; id: string; scale: number }
+  | { type: 'SET_OBJECT_COLLISION'; id: string; box: CollisionBox }
   | { type: 'SET_BUILDING_SCALE'; id: string; scale: number }
   | { type: 'MOVE_OBJECT'; id: string; x: number; y: number }
   | { type: 'MOVE_OBJECTS'; positions: Array<{ id: string; x: number; y: number }>; dragId: string }
@@ -705,6 +706,31 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...withAllObjectLayers(state, objects =>
           objects.map(o => o.id === action.id ? { ...o, scale: clamped } : o),
+        ),
+        undoStack,
+        redoStack: [],
+      };
+    }
+
+    case 'SET_OBJECT_COLLISION': {
+      // Update the entity's collisionBox. CollisionSystem treats
+      // `width <= 0 || height <= 0` as "no collision", so the panel's
+      // disable checkbox just dispatches a zero-size box.
+      const obj = findObject(state, action.id);
+      if (!obj) return state;
+      if (isLayerLocked(state, obj.layer)) return state;
+      const oldBox = obj.collisionBox;
+      const nb = action.box;
+      // Skip no-op updates so slider drags don't churn the undo stack.
+      if (oldBox.offsetX === nb.offsetX && oldBox.offsetY === nb.offsetY
+          && oldBox.width === nb.width && oldBox.height === nb.height) return state;
+      const coalesce = shouldCoalesceUndo(state.undoStack, 'SET_OBJECT_COLLISION', action.id);
+      const undoStack = coalesce
+        ? state.undoStack
+        : [...state.undoStack, { type: 'SET_OBJECT_COLLISION', data: { id: action.id, oldBox } }];
+      return {
+        ...withAllObjectLayers(state, objects =>
+          objects.map(o => o.id === action.id ? { ...o, collisionBox: nb } : o),
         ),
         undoStack,
         redoStack: [],
@@ -1299,6 +1325,18 @@ function applyUndo(state: EditorState, entry: UndoEntry, newUndo: UndoEntry[]): 
         redoStack: [...state.redoStack, { type: 'SET_OBJECT_SCALE', data: redoData }],
       };
     }
+    case 'SET_OBJECT_COLLISION': {
+      const { id, oldBox } = data as { id: string; oldBox: CollisionBox };
+      const cur = findObject(state, id);
+      const redoData = cur ? { id, oldBox: cur.collisionBox } : { id, oldBox };
+      return {
+        ...withAllObjectLayers(state, objects =>
+          objects.map(o => o.id === id ? { ...o, collisionBox: oldBox } : o),
+        ),
+        undoStack: newUndo,
+        redoStack: [...state.redoStack, { type: 'SET_OBJECT_COLLISION', data: redoData }],
+      };
+    }
     case 'SET_BUILDING_SCALE': {
       const { id, oldScale } = data as { id: string; oldScale: number };
       const cur = state.buildings.find(b => b.id === id);
@@ -1538,6 +1576,18 @@ function applyRedo(state: EditorState, entry: UndoEntry, newRedo: UndoEntry[]): 
         ),
         redoStack: newRedo,
         undoStack: [...state.undoStack, { type: 'SET_OBJECT_SCALE', data: undoData }],
+      };
+    }
+    case 'SET_OBJECT_COLLISION': {
+      const { id, oldBox } = data as { id: string; oldBox: CollisionBox };
+      const cur = findObject(state, id);
+      const undoData = cur ? { id, oldBox: cur.collisionBox } : { id, oldBox };
+      return {
+        ...withAllObjectLayers(state, objects =>
+          objects.map(o => o.id === id ? { ...o, collisionBox: oldBox } : o),
+        ),
+        redoStack: newRedo,
+        undoStack: [...state.undoStack, { type: 'SET_OBJECT_COLLISION', data: undoData }],
       };
     }
     case 'SET_BUILDING_SCALE': {

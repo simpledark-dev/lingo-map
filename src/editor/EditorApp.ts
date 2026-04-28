@@ -28,6 +28,11 @@ export class EditorApp {
    * free positions. Distinct from `areaSelectGraphics`, which is the
    * tile-aligned rect for the Area Sel tool. */
   private marqueeGraphics: Graphics;
+  /** Translucent red overlay drawn on the currently-selected entity's
+   * collision box. Only visible while one entity is selected and that
+   * entity has a non-empty collisionBox; lets the user see exactly what
+   * region of the sprite blocks the player. */
+  private collisionPreview: Graphics;
   private selectionLabel: Text | null = null;
   /** Floating layer-name tag drawn near the cursor during placement-style
    * tools so the user can see which layer their next click will write to.
@@ -75,6 +80,7 @@ export class EditorApp {
     this.areaSelectGraphics = new Graphics();
     this.areaSelectGhostGraphics = new Graphics();
     this.marqueeGraphics = new Graphics();
+    this.collisionPreview = new Graphics();
     this.previewContainer = new Container();
     this.entityLayer.sortableChildren = true;
   }
@@ -108,6 +114,7 @@ export class EditorApp {
     this.worldContainer.addChild(this.areaSelectGraphics);
     this.worldContainer.addChild(this.areaSelectGhostGraphics);
     this.worldContainer.addChild(this.marqueeGraphics);
+    this.worldContainer.addChild(this.collisionPreview);
     this.worldContainer.addChild(this.previewContainer);
     this.app.stage.addChild(this.worldContainer);
 
@@ -503,6 +510,26 @@ export class EditorApp {
 
   clearMarquee(): void {
     this.marqueeGraphics.clear();
+  }
+
+  /** Draw the entity's collision box in WORLD coords. Bbox math matches
+   * what the runtime CollisionSystem applies: `entity.x + offsetX`, etc.
+   * Auto-clears for zero-size boxes (the "no collision" sentinel). Should
+   * be called whenever the panel's collision toggle/inputs change OR when
+   * the user picks a different selected entity. */
+  showCollisionPreview(entity: Entity): void {
+    this.collisionPreview.clear();
+    const cb = entity.collisionBox;
+    if (cb.width <= 0 || cb.height <= 0) return;
+    const left = entity.x + cb.offsetX;
+    const top = entity.y + cb.offsetY;
+    this.collisionPreview.rect(left, top, cb.width, cb.height);
+    this.collisionPreview.fill({ color: 0xff4444, alpha: 0.25 });
+    this.collisionPreview.stroke({ color: 0xff4444, alpha: 0.9, width: 1 });
+  }
+
+  clearCollisionPreview(): void {
+    this.collisionPreview.clear();
   }
 
   highlightBuilding(b: Building): void {

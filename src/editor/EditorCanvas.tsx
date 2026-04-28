@@ -429,7 +429,7 @@ export default function EditorCanvas() {
   useEffect(() => {
     const app = editorAppRef.current;
     if (!app) return;
-    if (state.selectedObjectIds.length === 0) { app.clearSelection(); return; }
+    if (state.selectedObjectIds.length === 0) { app.clearSelection(); app.clearCollisionPreview(); return; }
     const allObjects = getAllObjects(state);
     // Multi-selection: highlight every selected object as a group; the
     // dimension-label affordance from `highlightObject` wouldn't make sense
@@ -440,14 +440,22 @@ export default function EditorCanvas() {
         .map(id => allObjects.find(o => o.id === id))
         .filter((o): o is Entity => !!o);
       app.highlightObjects(objs);
+      // Collision preview is single-entity only — would be visual clutter
+      // across a multi-selection.
+      app.clearCollisionPreview();
       return;
     }
     const onlyId = state.selectedObjectIds[0];
     const obj = allObjects.find((o: Entity) => o.id === onlyId);
-    if (obj) { app.highlightObject(obj); return; }
+    if (obj) {
+      app.highlightObject(obj);
+      app.showCollisionPreview(obj);
+      return;
+    }
     const bld = state.buildings.find((b) => b.id === onlyId);
-    if (bld) { app.highlightBuilding(bld); return; }
+    if (bld) { app.highlightBuilding(bld); app.clearCollisionPreview(); return; }
     app.clearSelection();
+    app.clearCollisionPreview();
   }, [state.selectedObjectIds, state.layers, state.buildings]);
 
   // Sync the persistent selection rectangle to the editor's drawing state.
@@ -588,7 +596,19 @@ export default function EditorCanvas() {
       }
       // We'll batch dispatch on pointer up
     } else if (s.activeTool === 'object' && s.selectedObjectKey) {
-      const defaults = OBJECT_DEFAULTS[s.selectedObjectKey] ?? { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 } };
+      // Default for unknown sprite keys (e.g. pack singles not in
+      // OBJECT_DEFAULTS): a collision box matching the sprite's *visible*
+      // footprint — full width, lower half of the height — so newly-placed
+      // pack objects block the player at their actual base. Heuristic:
+      // upper half of a top-down sprite is decorative (canopy / roof /
+      // lamp head); lower half is what the player physically bumps into.
+      // Floor decor that shouldn't block (rugs, sidewalks, multi-tile
+      // pack stamps) keeps zero-size collision and stays walkable.
+      const tex = getTexture(s.selectedObjectKey);
+      const visW = Math.round((tex?.width ?? s.tileSize) * DEFAULT_OBJECT_SCALE);
+      const visH = Math.round((tex?.height ?? s.tileSize) * DEFAULT_OBJECT_SCALE);
+      const fallbackBox = { offsetX: -Math.round(visW / 2), offsetY: -Math.round(visH / 2), width: visW, height: Math.round(visH / 2) };
+      const defaults = OBJECT_DEFAULTS[s.selectedObjectKey] ?? { anchor: { x: 0.5, y: 1.0 }, collisionBox: fallbackBox };
       // Hold SHIFT to place freely (no tile snap). Default is snap-to-grid.
       const freeMode = e.shiftKey;
       const placeX = freeMode ? x : snapXForSprite(col, s.selectedObjectKey, s.tileSize);
@@ -1191,6 +1211,19 @@ export default function EditorCanvas() {
       if (mod && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         dispatchRef.current({ type: 'REDO' });
+        return;
+      }
+
+      const target = e.target;
+      const isTyping =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable);
+      if (!mod && !isTyping && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        dispatchRef.current({ type: 'SET_TOOL', tool: 'select' });
+        editorAppRef.current?.clearPreview();
         return;
       }
 

@@ -5,6 +5,7 @@ import { TileType } from '../core/types';
 import { EditorAction, EditorState, getAllObjects } from './editorState';
 import { TILE_ITEMS, OBJECT_CATEGORIES, BUILDING_ITEMS } from './objectDefaults';
 import PackPicker from './PackPicker';
+import { getTexture } from '../renderer/AssetLoader';
 
 interface Props {
   state: EditorState;
@@ -195,6 +196,7 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
               style={{ width: '100%' }}
             />
           </div>
+          <CollisionEditor entity={selectedObject} dispatch={dispatch} />
         </Section>
       )}
 
@@ -401,6 +403,101 @@ function ScaleBtn({ label, onClick }: { label: string; onClick: () => void }) {
         cursor: 'pointer', fontSize: 10, minWidth: 28,
       }}
     >{label}</button>
+  );
+}
+
+/** Collision editor sub-section shown inside the entity selection panel.
+ * Displays the entity's collisionBox as four numeric inputs (offsetX,
+ * offsetY, width, height) plus a "Block player" toggle and an "Auto-fit at
+ * feet" preset (16×8 box centered on the anchor — sensible for trees,
+ * lamps, posts). The runtime CollisionSystem treats `width <= 0 ||
+ * height <= 0` as "no collision", so disabling just dispatches a zero box. */
+function CollisionEditor({
+  entity,
+  dispatch,
+}: {
+  entity: import('../core/types').Entity;
+  dispatch: React.Dispatch<EditorAction>;
+}) {
+  const cb = entity.collisionBox;
+  const enabled = cb.width > 0 && cb.height > 0;
+  const setBox = (next: typeof cb) => dispatch({ type: 'SET_OBJECT_COLLISION', id: entity.id, box: next });
+  // Default = the lower half of the sprite's visible footprint at its
+  // current scale. Top half is usually decorative (canopy / roof / lamp
+  // head); the player physically bumps into the bottom. Falls back to a
+  // 16×8 box when the texture isn't loaded yet.
+  const tex = getTexture(entity.spriteKey);
+  const scale = entity.scale ?? 1;
+  const visW = Math.round((tex?.width ?? 16) * scale);
+  const visH = Math.round((tex?.height ?? 16) * scale);
+  const FEET_DEFAULT = {
+    offsetX: -Math.round(visW / 2),
+    offsetY: -Math.round(visH / 2),
+    width: visW,
+    height: Math.round(visH / 2),
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box',
+    padding: '3px 6px', fontSize: 11,
+    background: '#2a2a3a', color: '#ddd',
+    border: '1px solid #444', borderRadius: 3,
+  };
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #333', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1 }}>Collision</div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={e => setBox(e.target.checked ? FEET_DEFAULT : { offsetX: 0, offsetY: 0, width: 0, height: 0 })}
+        />
+        Block player movement
+      </label>
+      {enabled && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+            <NumberRow label="Width" value={cb.width} onChange={v => setBox({ ...cb, width: v })} inputStyle={inputStyle} />
+            <NumberRow label="Height" value={cb.height} onChange={v => setBox({ ...cb, height: v })} inputStyle={inputStyle} />
+            <NumberRow label="Offset X" value={cb.offsetX} onChange={v => setBox({ ...cb, offsetX: v })} inputStyle={inputStyle} />
+            <NumberRow label="Offset Y" value={cb.offsetY} onChange={v => setBox({ ...cb, offsetY: v })} inputStyle={inputStyle} />
+          </div>
+          <button
+            onClick={() => setBox(FEET_DEFAULT)}
+            style={{
+              padding: '4px 6px', fontSize: 10,
+              background: '#2a3a2a', border: '1px solid #444', borderRadius: 3,
+              color: '#9c9', cursor: 'pointer',
+            }}
+          >Auto-fit ({visW}×{Math.round(visH / 2)})</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function NumberRow({
+  label, value, onChange, inputStyle,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  inputStyle: React.CSSProperties;
+}) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 10, color: '#888' }}>
+      {label}
+      <input
+        type="number"
+        value={value}
+        onChange={e => {
+          const n = parseFloat(e.target.value);
+          if (!Number.isNaN(n)) onChange(n);
+        }}
+        style={inputStyle}
+      />
+    </label>
   );
 }
 

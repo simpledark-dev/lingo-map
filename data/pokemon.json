@@ -12859,44 +12859,6 @@
       "layer": "props"
     },
     {
-      "id": "obj-moh6tl95-c2n2x",
-      "x": 504,
-      "y": 496,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_4",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 496,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moh6uloh-i82m0",
-      "x": 480,
-      "y": 496,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 496,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
       "id": "obj-moh7egud-q6uhi",
       "x": 889.0350000000001,
       "y": 666.40125,
@@ -12925,25 +12887,6 @@
         "y": 1
       },
       "sortY": 665.6481249999999,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moh6tiut-ernoo",
-      "x": 448,
-      "y": 496,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 496,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -13315,46 +13258,27 @@
       "layer": "props"
     },
     {
-      "id": "obj-mohzngst-qx46u",
-      "x": 560,
-      "y": 496,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_3_45",
+      "id": "obj-moi3p9k4-6u15c",
+      "x": 352,
+      "y": 512,
+      "spriteKey": "me:6_Garage_Sales_Singles_16x16/ME_Singles_Garage_Sales_16x16_Air_Conditioner_Unit_3",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 496,
+      "sortY": 512,
       "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
+        "offsetX": -8,
+        "offsetY": -8,
+        "width": 16,
+        "height": 8
       },
       "scale": 1,
       "layer": "props"
     },
     {
-      "id": "obj-moi14y9u-cn9o6",
-      "x": 408,
-      "y": 496,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_2",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 496,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moi1ivnq-u3sx2",
-      "x": 336,
+      "id": "obj-moi4mr4s-6hfad",
+      "x": 320,
       "y": 496,
       "spriteKey": "me:4_Generic_Building_Singles_16x16/prebuilt_generic_building.",
       "anchor": {
@@ -13363,10 +13287,124 @@
       },
       "sortY": 496,
       "collisionBox": {
+        "offsetX": -48,
+        "offsetY": -95,
+        "width": 95,
+        "height": 95
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moi4o9f5-io5mn",
+      "x": 392,
+      "y": 496,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 496,
+      "collisionBox": {
+        "offsetX": -24,
+        "offsetY": -96,
+        "width": 48,
+        "height": 96
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moi4oj71-e5d8y",
+      "x": 432,
+      "y": 496,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 496,
+      "collisionBox": {
+        "offsetX": -16,
+        "offsetY": -96,
+        "width": 32,
+        "height": 96
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moi4omrc-j7y7d",
+      "x": 464,
+      "y": 496,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 496,
+      "collisionBox": {
+        "offsetX": -16,
+        "offsetY": -96,
+        "width": 32,
+        "height": 96
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moi4pglq-n7pwp",
+      "x": 488,
+      "y": 496,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_4",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 496,
+      "collisionBox": {
+        "offsetX": -8,
+        "offsetY": -96,
+        "width": 16,
+        "height": 96
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moi4q4dp-2pvzh",
+      "x": 440,
+      "y": 496,
+      "spriteKey": "me:6_Garage_Sales_Singles_16x16/ME_Singles_Garage_Sales_16x16_Shutter_6",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 496,
+      "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
         "width": 0,
         "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moi4r4g6-ta3pa",
+      "x": 552,
+      "y": 496,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_3_46",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 496,
+      "collisionBox": {
+        "offsetX": -56,
+        "offsetY": -144,
+        "width": 112,
+        "height": 144
       },
       "scale": 1,
       "layer": "props"
@@ -26336,44 +26374,6 @@
           "layer": "props"
         },
         {
-          "id": "obj-moh6tl95-c2n2x",
-          "x": 504,
-          "y": 496,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_4",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 496,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moh6uloh-i82m0",
-          "x": 480,
-          "y": 496,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 496,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-moh7egud-q6uhi",
           "x": 889.0350000000001,
           "y": 666.40125,
@@ -26402,25 +26402,6 @@
             "y": 1
           },
           "sortY": 665.6481249999999,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moh6tiut-ernoo",
-          "x": 448,
-          "y": 496,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 496,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -26792,46 +26773,27 @@
           "layer": "props"
         },
         {
-          "id": "obj-mohzngst-qx46u",
-          "x": 560,
-          "y": 496,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_3_45",
+          "id": "obj-moi3p9k4-6u15c",
+          "x": 352,
+          "y": 512,
+          "spriteKey": "me:6_Garage_Sales_Singles_16x16/ME_Singles_Garage_Sales_16x16_Air_Conditioner_Unit_3",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 496,
+          "sortY": 512,
           "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
+            "offsetX": -8,
+            "offsetY": -8,
+            "width": 16,
+            "height": 8
           },
           "scale": 1,
           "layer": "props"
         },
         {
-          "id": "obj-moi14y9u-cn9o6",
-          "x": 408,
-          "y": 496,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_2",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 496,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moi1ivnq-u3sx2",
-          "x": 336,
+          "id": "obj-moi4mr4s-6hfad",
+          "x": 320,
           "y": 496,
           "spriteKey": "me:4_Generic_Building_Singles_16x16/prebuilt_generic_building.",
           "anchor": {
@@ -26840,10 +26802,124 @@
           },
           "sortY": 496,
           "collisionBox": {
+            "offsetX": -48,
+            "offsetY": -95,
+            "width": 95,
+            "height": 95
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moi4o9f5-io5mn",
+          "x": 392,
+          "y": 496,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 496,
+          "collisionBox": {
+            "offsetX": -24,
+            "offsetY": -96,
+            "width": 48,
+            "height": 96
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moi4oj71-e5d8y",
+          "x": 432,
+          "y": 496,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 496,
+          "collisionBox": {
+            "offsetX": -16,
+            "offsetY": -96,
+            "width": 32,
+            "height": 96
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moi4omrc-j7y7d",
+          "x": 464,
+          "y": 496,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 496,
+          "collisionBox": {
+            "offsetX": -16,
+            "offsetY": -96,
+            "width": 32,
+            "height": 96
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moi4pglq-n7pwp",
+          "x": 488,
+          "y": 496,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_4",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 496,
+          "collisionBox": {
+            "offsetX": -8,
+            "offsetY": -96,
+            "width": 16,
+            "height": 96
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moi4q4dp-2pvzh",
+          "x": 440,
+          "y": 496,
+          "spriteKey": "me:6_Garage_Sales_Singles_16x16/ME_Singles_Garage_Sales_16x16_Shutter_6",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 496,
+          "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
             "width": 0,
             "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moi4r4g6-ta3pa",
+          "x": 552,
+          "y": 496,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_3_46",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 496,
+          "collisionBox": {
+            "offsetX": -56,
+            "offsetY": -144,
+            "width": 112,
+            "height": 144
           },
           "scale": 1,
           "layer": "props"
