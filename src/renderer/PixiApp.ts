@@ -500,6 +500,8 @@ export class PixiApp {
     this.renderSystem.updatePlayer(this.gameState.player, delta);
     this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom, map.maxViewTiles ? viewportCap : undefined);
     this.renderSystem.updateAnimations(performance.now() / 1000);
+    // X-ray occluding sprites so the player stays visible behind tall objects.
+    this.renderSystem.applyOcclusionFade();
     if (this.tapFeedback) this.tapFeedback.update(delta);
 
     // Debug overlay

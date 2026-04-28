@@ -357,6 +357,81 @@ export class RenderSystem {
     }
   }
 
+  /** Fade sprites that are visually in front of the player so the user can
+   * see where the character is when walking behind tall objects (buildings,
+   * trees, lampposts, roofs).
+   *
+   * Two conditions for a fade:
+   *  - the sprite's screen-space bbox overlaps a small box around the player's
+   *    feet (we use feet-up-by-sprite-height so an entire tall building counts
+   *    as "covering" the player while they stand at its base),
+   *  - the sprite renders ABOVE the player in z-order (zIndex > player's), so
+   *    things drawn behind don't pointlessly fade.
+   *
+   * Roofs always render above the entity layer regardless of zIndex (separate
+   * container), so we apply the bbox check unconditionally for them.
+   *
+   * Alpha is lerped toward the target each frame (0.4 occluded, 1.0 clear)
+   * so the fade in/out is smooth as the player walks past, instead of
+   * popping. */
+  applyOcclusionFade(): void {
+    if (!this.playerSprite) return;
+    const px = this.playerSprite.x;
+    const py = this.playerSprite.y;
+    const playerZ = this.playerSprite.zIndex;
+    // Player's hit zone — feet at (px, py), extend a player-height upward
+    // and a small horizontal pad. Fade only triggers when the player's box
+    // is FULLY inside the sprite's box (every edge contained), so partial
+    // overlaps as the player walks past don't flicker the sprite.
+    const PAD_X = 6;
+    const PAD_TOP = 28;
+    const playerLeft = px - PAD_X;
+    const playerRight = px + PAD_X;
+    const playerTop = py - PAD_TOP;
+    const playerBottom = py;
+
+    const TARGET_FADED = 0.35;
+    const TARGET_CLEAR = 1.0;
+    const LERP = 0.2;
+
+    const lerp = (sprite: Sprite, target: number) => {
+      const next = sprite.alpha + (target - sprite.alpha) * LERP;
+      sprite.alpha = Math.abs(next - target) < 0.01 ? target : next;
+    };
+
+    /** True iff the player's box is fully contained in the sprite's box —
+     * the whole character is behind the sprite, not just clipping an edge. */
+    const occludes = (sprite: Sprite): boolean => {
+      const w = sprite.width;
+      const h = sprite.height;
+      const left = sprite.x - sprite.anchor.x * w;
+      const top = sprite.y - sprite.anchor.y * h;
+      const right = left + w;
+      const bottom = top + h;
+      return playerLeft >= left && playerRight <= right
+          && playerTop >= top && playerBottom <= bottom;
+    };
+
+    const checkEntitySprite = (sprite: Sprite) => {
+      if (sprite === this.playerSprite) return;
+      // Behind-or-equal in z order → never an occluder.
+      if (sprite.zIndex <= playerZ) {
+        lerp(sprite, TARGET_CLEAR);
+        return;
+      }
+      lerp(sprite, occludes(sprite) ? TARGET_FADED : TARGET_CLEAR);
+    };
+
+    for (const sprite of this.objectSprites.values()) checkEntitySprite(sprite);
+    for (const sprite of this.buildingBaseSprites.values()) checkEntitySprite(sprite);
+
+    // Roofs — separate container always above entityLayer, so skip the
+    // zIndex test and only do the area-ratio check.
+    for (const sprite of this.roofSprites.values()) {
+      lerp(sprite, occludes(sprite) ? TARGET_FADED : TARGET_CLEAR);
+    }
+  }
+
   /** Update an NPC sprite's position (for wandering). */
   updateNPC(npcId: string, x: number, y: number): void {
     const sprite = this.npcSprites.get(npcId);
