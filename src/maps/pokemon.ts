@@ -168,7 +168,7 @@ export const pokemonMap: MapData = {
   npcs,
   triggers: [],
   spawnPoints: [
-    { id: 'default', x: tx(4), y: ty(35), facing: 'down' },
+    { id: 'default', x: tx(4), y: ty(42), facing: 'down' },
     { id: 'from-house', x: tx(14), y: ty(14), facing: 'down' },
     { id: 'from-mart', x: tx(38), y: ty(14), facing: 'down' },
     { id: 'from-lab', x: tx(14), y: ty(34), facing: 'up' },

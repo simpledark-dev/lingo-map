@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from '../core/constants';
-import { normalizeObjectMultiplier, STRESS_OBJECT_OPTIONS } from '../core/MapStress';
+import { normalizeObjectMultiplier } from '../core/MapStress';
 import { PixiApp } from '../renderer/PixiApp';
 import { DialogueState, MapData, GameState } from '../core/types';
 import { GameEvent } from '../core/GameBridge';
@@ -22,7 +22,7 @@ export default function GameCanvas() {
   const [dialogue, setDialogue] = useState<DialogueState | null>(null);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
-  const [objectMultiplier, setObjectMultiplier] = useState(readInitialObjectMultiplier);
+  const [objectMultiplier] = useState(readInitialObjectMultiplier);
   const [soundOn, setSoundOn] = useState(true);
 
   useEffect(() => {
@@ -182,13 +182,6 @@ export default function GameCanvas() {
     setMinimapData(null);
   }, []);
 
-  const handleObjectMultiplierChange = useCallback((value: number) => {
-    setDialogue(null);
-    setMinimapData(null);
-    setCurrentMapId('outdoor');
-    setObjectMultiplier(value);
-  }, []);
-
   const btnStyle: React.CSSProperties = {
     pointerEvents: 'auto',
     position: 'relative',
@@ -229,38 +222,6 @@ export default function GameCanvas() {
             gap: 6,
           }}
         >
-          {process.env.NODE_ENV === 'development' && (
-            <label
-              style={{
-                ...btnStyle,
-                width: 'auto',
-                padding: '0 10px',
-                gap: 8,
-                fontSize: 12,
-              }}
-            >
-              <span>Objs</span>
-              <select
-                value={objectMultiplier}
-                onChange={(event) => handleObjectMultiplierChange(normalizeObjectMultiplier(Number(event.target.value)))}
-                style={{
-                  background: 'transparent',
-                  color: 'white',
-                  border: 'none',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
-                aria-label="Stress test object multiplier"
-              >
-                {STRESS_OBJECT_OPTIONS.map((option) => (
-                  <option key={option} value={option} style={{ color: 'black' }}>
-                    {option}x
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
           {/* Sound toggle — always visible */}
           <button
             onClick={handleToggleSound}
