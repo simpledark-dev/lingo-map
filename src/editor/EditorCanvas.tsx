@@ -1292,36 +1292,42 @@ function LayerContextMenu({
       <div style={{ fontSize: 10, color: '#888', padding: '2px 6px 4px', borderBottom: '1px solid #333', marginBottom: 4 }}>
         Move to layer
       </div>
-      {objectLayers.map(l => (
-        <button
-          key={l.id}
-          onClick={() => onSelect(l.id)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            width: '100%',
-            padding: '4px 6px',
-            background: 'transparent',
-            border: 'none',
-            color: '#ddd',
-            cursor: 'pointer',
-            textAlign: 'left',
-            fontSize: 11,
-            borderRadius: 2,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#2a3a5a')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        >
-          <span
+      {objectLayers.map(l => {
+        const locked = !!l.locked;
+        return (
+          <button
+            key={l.id}
+            onClick={() => { if (!locked) onSelect(l.id); }}
+            disabled={locked}
+            title={locked ? 'Layer is locked — unlock it in the layers panel to move objects here' : undefined}
             style={{
-              width: 14, height: 14, fontSize: 9, fontWeight: 'bold',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: '#4a3a5a', color: '#cc99ff',
-              borderRadius: 2, flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 6,
+              width: '100%',
+              padding: '4px 6px',
+              background: 'transparent',
+              border: 'none',
+              color: locked ? '#666' : '#ddd',
+              cursor: locked ? 'not-allowed' : 'pointer',
+              textAlign: 'left',
+              fontSize: 11,
+              borderRadius: 2,
             }}
-          >O</span>
-          {l.name}
-        </button>
-      ))}
+            onMouseEnter={e => { if (!locked) e.currentTarget.style.background = '#2a3a5a'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <span
+              style={{
+                width: 14, height: 14, fontSize: 9, fontWeight: 'bold',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: '#4a3a5a', color: locked ? '#666' : '#cc99ff',
+                borderRadius: 2, flexShrink: 0,
+              }}
+            >O</span>
+            {l.name}
+            {locked && <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.7 }}>🔒</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }

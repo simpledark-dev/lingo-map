@@ -12899,13 +12899,13 @@
     {
       "id": "obj-moh6oqxb-jrbvx",
       "x": 104,
-      "y": 96,
+      "y": 112,
       "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_1",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 96,
+      "sortY": 112,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -12974,33 +12974,14 @@
     },
     {
       "id": "obj-moh6q6ui-nqism",
-      "x": 536,
-      "y": 176,
+      "x": 840,
+      "y": 160,
       "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_2",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 176,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moh6qazf-d9med",
-      "x": 536,
-      "y": 64,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_5",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 64,
+      "sortY": 160,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -13013,13 +12994,13 @@
     {
       "id": "obj-moh6qcwh-8i4gj",
       "x": 568,
-      "y": 80,
+      "y": 128,
       "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_4",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 80,
+      "sortY": 128,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -13039,25 +13020,6 @@
         "y": 1
       },
       "sortY": 80,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moh6qmjt-bqq4l",
-      "x": 424,
-      "y": 176,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_2",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 176,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -13106,25 +13068,6 @@
       "layer": "props"
     },
     {
-      "id": "obj-moh6rhhq-1nri3",
-      "x": 720,
-      "y": 112,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_3",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 112,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
       "id": "obj-moh6rkbk-fdwp2",
       "x": 760,
       "y": 112,
@@ -13145,14 +13088,14 @@
     },
     {
       "id": "obj-moh6tbb4-nmgvt",
-      "x": 216,
-      "y": 368,
+      "x": 408,
+      "y": 160,
       "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_1",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 368,
+      "sortY": 160,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -13391,67 +13334,10 @@
       "layer": "props"
     },
     {
-      "id": "obj-mohffrek-32bi2",
-      "x": 136,
-      "y": 224,
-      "spriteKey": "me:1_Terrains_and_Fences_Singles_16x16/ME_Singles_Terrains_and_Fences_16x16_Deep_Water_1_16",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 224,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
       "id": "obj-mohycxsa-2dbxa",
       "x": 720,
       "y": 368,
       "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_5_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 368,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-mohydro3-r4r71",
-      "x": 144,
-      "y": 368,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_3_44",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 368,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-mohyehtr-1k0x9",
-      "x": 424,
-      "y": 368,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_6",
       "anchor": {
         "x": 0.5,
         "y": 1
@@ -13636,6 +13522,234 @@
       },
       "scale": 1,
       "layer": "props"
+    },
+    {
+      "id": "obj-mohzbbny-modqr",
+      "x": 168,
+      "y": 432,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 432,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohzbesb-qrm7g",
+      "x": 488,
+      "y": 432,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 432,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohzbfdw-xfi0x",
+      "x": 552,
+      "y": 432,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 432,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohzbhbd-3mgj9",
+      "x": 552,
+      "y": 368,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 368,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohzbi2e-oy1ql",
+      "x": 552,
+      "y": 304,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 304,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohzbjrz-ckgnb",
+      "x": 648,
+      "y": 432,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 432,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohzbkwn-s32m1",
+      "x": 776,
+      "y": 432,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 432,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohzbpin-us2x6",
+      "x": 424,
+      "y": 528,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 528,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohzbxhs-qq81y",
+      "x": 168,
+      "y": 528,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 528,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mohzngst-qx46u",
+      "x": 368,
+      "y": 368,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_3_45",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 368,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moi14y9u-cn9o6",
+      "x": 216,
+      "y": 368,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_2",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 368,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moi1ivnq-u3sx2",
+      "x": 144,
+      "y": 368,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/prebuilt_generic_building.",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 368,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
     }
   ],
   "buildings": [],
@@ -13720,7 +13834,7 @@
       "name": "Ground",
       "kind": "tile",
       "visible": true,
-      "locked": false,
+      "locked": true,
       "tiles": [
         [
           "grass",
@@ -23029,7 +23143,7 @@
       "name": "Floor",
       "kind": "object",
       "visible": true,
-      "locked": false,
+      "locked": true,
       "objects": [
         {
           "id": "obj-mogr1vyi-tihug",
@@ -26324,7 +26438,7 @@
       "name": "Decor",
       "kind": "object",
       "visible": true,
-      "locked": false,
+      "locked": true,
       "objects": [
         {
           "id": "obj-moh684e8-xg2fh",
@@ -26642,13 +26756,13 @@
         {
           "id": "obj-moh6oqxb-jrbvx",
           "x": 104,
-          "y": 96,
+          "y": 112,
           "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_1",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 96,
+          "sortY": 112,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -26717,33 +26831,14 @@
         },
         {
           "id": "obj-moh6q6ui-nqism",
-          "x": 536,
-          "y": 176,
+          "x": 840,
+          "y": 160,
           "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_2",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 176,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moh6qazf-d9med",
-          "x": 536,
-          "y": 64,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_5",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 64,
+          "sortY": 160,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -26756,13 +26851,13 @@
         {
           "id": "obj-moh6qcwh-8i4gj",
           "x": 568,
-          "y": 80,
+          "y": 128,
           "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_4",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 80,
+          "sortY": 128,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -26782,25 +26877,6 @@
             "y": 1
           },
           "sortY": 80,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moh6qmjt-bqq4l",
-          "x": 424,
-          "y": 176,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_2",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 176,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -26849,25 +26925,6 @@
           "layer": "props"
         },
         {
-          "id": "obj-moh6rhhq-1nri3",
-          "x": 720,
-          "y": 112,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_2_3",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 112,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-moh6rkbk-fdwp2",
           "x": 760,
           "y": 112,
@@ -26888,14 +26945,14 @@
         },
         {
           "id": "obj-moh6tbb4-nmgvt",
-          "x": 216,
-          "y": 368,
+          "x": 408,
+          "y": 160,
           "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_1",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 368,
+          "sortY": 160,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -27134,67 +27191,10 @@
           "layer": "props"
         },
         {
-          "id": "obj-mohffrek-32bi2",
-          "x": 136,
-          "y": 224,
-          "spriteKey": "me:1_Terrains_and_Fences_Singles_16x16/ME_Singles_Terrains_and_Fences_16x16_Deep_Water_1_16",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 224,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-mohycxsa-2dbxa",
           "x": 720,
           "y": 368,
           "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_5_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 368,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-mohydro3-r4r71",
-          "x": 144,
-          "y": 368,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_3_44",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 368,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-mohyehtr-1k0x9",
-          "x": 424,
-          "y": 368,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_6",
           "anchor": {
             "x": 0.5,
             "y": 1
@@ -27371,6 +27371,234 @@
             "y": 1
           },
           "sortY": 534.980625,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzbbny-modqr",
+          "x": 168,
+          "y": 432,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 432,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzbesb-qrm7g",
+          "x": 488,
+          "y": 432,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 432,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzbfdw-xfi0x",
+          "x": 552,
+          "y": 432,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 432,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzbhbd-3mgj9",
+          "x": 552,
+          "y": 368,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 368,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzbi2e-oy1ql",
+          "x": 552,
+          "y": 304,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 304,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzbjrz-ckgnb",
+          "x": 648,
+          "y": 432,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 432,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzbkwn-s32m1",
+          "x": 776,
+          "y": 432,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 432,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzbpin-us2x6",
+          "x": 424,
+          "y": 528,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 528,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzbxhs-qq81y",
+          "x": 168,
+          "y": 528,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Pole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 528,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mohzngst-qx46u",
+          "x": 368,
+          "y": 368,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_3_45",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 368,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moi14y9u-cn9o6",
+          "x": 216,
+          "y": 368,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_2",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 368,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moi1ivnq-u3sx2",
+          "x": 144,
+          "y": 368,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/prebuilt_generic_building.",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 368,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,

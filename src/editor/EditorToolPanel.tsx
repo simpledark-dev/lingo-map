@@ -234,54 +234,7 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
           internally so the Tools/Selection sections above stay pinned. */}
       <div style={{ flex: 1, minHeight: 0, overflow: paletteTab === 'placeholder' ? 'auto' : 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {paletteTab === 'placeholder' && (
-          <>
-            <Section title="Tiles">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
-                {TILE_ITEMS.map(t => (
-                  <AssetBtn
-                    key={t.key}
-                    path={t.path}
-                    label={t.label}
-                    frame={t.frame}
-                    active={state.activeTool === 'tile' && state.selectedTileType === t.key}
-                    onClick={() => dispatch({ type: 'SET_SELECTED_TILE', tileType: t.key as TileType })}
-                  />
-                ))}
-              </div>
-            </Section>
-
-            {BUILDING_ITEMS.length > 0 && (
-              <Section title="Buildings">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
-                  {BUILDING_ITEMS.map(b => (
-                    <AssetBtn
-                      key={b.key}
-                      path={b.path}
-                      label={b.label}
-                      active={state.activeTool === 'building' && state.selectedBuildingKey === b.key}
-                      onClick={() => dispatch({ type: 'SET_SELECTED_BUILDING', buildingKey: b.key })}
-                    />
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {OBJECT_CATEGORIES.map(cat => (
-              <Section key={cat.label} title={cat.label}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
-                  {cat.items.map(o => (
-                    <AssetBtn
-                      key={o.key}
-                      path={o.path}
-                      label={o.label}
-                      active={state.activeTool === 'object' && state.selectedObjectKey === o.key}
-                      onClick={() => dispatch({ type: 'SET_SELECTED_OBJECT', spriteKey: o.key })}
-                    />
-                  ))}
-                </div>
-              </Section>
-            ))}
-          </>
+          <PlaceholderPalette state={state} dispatch={dispatch} />
         )}
 
         {paletteTab === 'pack' && (
@@ -294,6 +247,99 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
         )}
       </div>
     </div>
+  );
+}
+
+/** Categorised placeholder palette: tile palette + (optional) building
+ * palette + per-category object palettes, with a top-level substring search
+ * that filters across all sections. Each section hides itself when the
+ * search has no matches inside it, so the user only sees populated groups. */
+function PlaceholderPalette({ state, dispatch }: Props) {
+  const [search, setSearch] = useState('');
+  const q = search.trim().toLowerCase();
+  const matches = (item: { key: string; label: string }) =>
+    q === '' || item.key.toLowerCase().includes(q) || item.label.toLowerCase().includes(q);
+
+  const visibleTiles = TILE_ITEMS.filter(matches);
+  const visibleBuildings = BUILDING_ITEMS.filter(matches);
+  const visibleObjectCategories = OBJECT_CATEGORIES
+    .map(cat => ({ ...cat, items: cat.items.filter(matches) }))
+    .filter(cat => cat.items.length > 0);
+  const totalVisible = visibleTiles.length + visibleBuildings.length
+    + visibleObjectCategories.reduce((s, c) => s + c.items.length, 0);
+
+  return (
+    <>
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search assets…"
+        style={{
+          padding: '6px 8px',
+          fontSize: 11,
+          background: '#2a2a3a',
+          color: '#ddd',
+          border: '1px solid #444',
+          borderRadius: 4,
+          flexShrink: 0,
+          marginBottom: -4,
+        }}
+      />
+
+      {q !== '' && totalVisible === 0 && (
+        <div style={{ color: '#888', fontSize: 11, padding: '8px 4px' }}>No matching assets.</div>
+      )}
+
+      {visibleTiles.length > 0 && (
+        <Section title="Tiles">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+            {visibleTiles.map(t => (
+              <AssetBtn
+                key={t.key}
+                path={t.path}
+                label={t.label}
+                frame={t.frame}
+                active={state.activeTool === 'tile' && state.selectedTileType === t.key}
+                onClick={() => dispatch({ type: 'SET_SELECTED_TILE', tileType: t.key as TileType })}
+              />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {visibleBuildings.length > 0 && (
+        <Section title="Buildings">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+            {visibleBuildings.map(b => (
+              <AssetBtn
+                key={b.key}
+                path={b.path}
+                label={b.label}
+                active={state.activeTool === 'building' && state.selectedBuildingKey === b.key}
+                onClick={() => dispatch({ type: 'SET_SELECTED_BUILDING', buildingKey: b.key })}
+              />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {visibleObjectCategories.map(cat => (
+        <Section key={cat.label} title={cat.label}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+            {cat.items.map(o => (
+              <AssetBtn
+                key={o.key}
+                path={o.path}
+                label={o.label}
+                active={state.activeTool === 'object' && state.selectedObjectKey === o.key}
+                onClick={() => dispatch({ type: 'SET_SELECTED_OBJECT', spriteKey: o.key })}
+              />
+            ))}
+          </div>
+        </Section>
+      ))}
+    </>
   );
 }
 

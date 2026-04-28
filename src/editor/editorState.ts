@@ -283,6 +283,33 @@ function findObject(state: EditorState, id: string): Entity | undefined {
   return undefined;
 }
 
+/** True if the named layer exists and has `locked: true`. Used by every
+ * mutating reducer to short-circuit when the user has locked a layer in
+ * the panel — Figma-style: the layer's content is read-only until
+ * unlocked. Unknown layer ids return false (treat as "no constraint").
+ */
+function isLayerLocked(state: EditorState, layerId: string | undefined | null): boolean {
+  if (!layerId) return false;
+  const layer = state.layers.find(l => l.id === layerId);
+  return !!layer?.locked;
+}
+
+/** True when the editor's primary tile layer (used by tile-paint and
+ * area-erase / area-move operations) is locked. */
+function isPrimaryTileLayerLocked(state: EditorState): boolean {
+  const primary = getPrimaryTileLayer(state);
+  return !!primary?.locked;
+}
+
+/** True when the layer that tile-paint is currently targeting (active if
+ * tile-kind, else primary) is locked. Distinct from
+ * `isPrimaryTileLayerLocked` because area ops anchor on the primary while
+ * paint ops follow the user's active selection. */
+function isActiveTileLayerLocked(state: EditorState): boolean {
+  const target = getActiveTileLayer(state);
+  return !!target?.locked;
+}
+
 /** Snapshot the parts of state that layer-management actions can mutate.
  * Stored on the undo stack as the data for a `LAYERS_SNAPSHOT` entry — on
  * undo the snapshot replaces current state, and the previously-current
@@ -321,6 +348,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'SET_TILE': {
       const { row, col, tileType } = action;
       if (row < 0 || row >= state.mapHeight || col < 0 || col >= state.mapWidth) return state;
+      if (isActiveTileLayerLocked(state)) return state;
       const primary = getActiveTileLayer(state);
       if (!primary) return state;
       const oldType = primary.tiles[row][col];
@@ -338,6 +366,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
     case 'PAINT_TILES': {
       const { cells, tileType } = action;
+      if (isActiveTileLayerLocked(state)) return state;
       const primary = getActiveTileLayer(state);
       if (!primary) return state;
       const oldCells: { row: number; col: number; oldType: string }[] = [];
@@ -392,6 +421,13 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const removedObjects = allObjects.filter(o => inside(o.x, o.y));
       const removedBuildings = state.buildings.filter(b => inside(b.x, b.y));
 
+      // Reject the whole op if it would touch any locked content. A partial
+      // clear (some tiles + some objects but skipping locked ones) feels
+      // surprising — the user would still see their drag rectangle leave
+      // unexpected residue. Better to no-op and force the user to unlock.
+      if (isActiveTileLayerLocked(state) && oldCells.length > 0) return state;
+      if (removedObjects.some(o => isLayerLocked(state, o.layer))) return state;
+
       if (oldCells.length === 0 && removedObjects.length === 0 && removedBuildings.length === 0) return state;
 
       const removedObjectIds = new Set(removedObjects.map(o => o.id));
@@ -429,6 +465,16 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const r1 = Math.min(state.mapHeight - 1, Math.max(sourceArea.row1, sourceArea.row2));
       const c0 = Math.max(0, Math.min(sourceArea.col1, sourceArea.col2));
       const c1 = Math.min(state.mapWidth - 1, Math.max(sourceArea.col1, sourceArea.col2));
+
+      // Reject if the primary tile layer (the one being moved) is locked OR
+      // if any entity inside the source rect lives on a locked layer. The
+      // user must unlock first; partial moves would leave the rect in an
+      // unexpected state.
+      const T0 = state.tileSize;
+      const inSourceCheck = (x: number, y: number) => x >= c0 * T0 && x < (c1 + 1) * T0 && y >= r0 * T0 && y < (r1 + 1) * T0;
+      if (isActiveTileLayerLocked(state)) return state;
+      const objectsInRect = getAllObjects(state).filter(o => inSourceCheck(o.x, o.y));
+      if (objectsInRect.some(o => isLayerLocked(state, o.layer))) return state;
 
       const primary = getActiveTileLayer(state);
       // Snapshot every cell the move could touch — both source (will be
@@ -519,6 +565,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
     case 'PLACE_OBJECT': {
       const targetLayerId = resolveObjectLayerId(state, action.entity);
+      if (isLayerLocked(state, targetLayerId)) return state;
       const stamped: Entity = action.entity.layer === targetLayerId
         ? action.entity
         : { ...action.entity, layer: targetLayerId };
@@ -532,6 +579,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'DELETE_OBJECT': {
       const obj = findObject(state, action.id);
       if (!obj) return state;
+      if (isLayerLocked(state, obj.layer)) return state;
       return {
         ...withAllObjectLayers(state, objects => {
           const next = objects.filter(o => o.id !== action.id);
@@ -589,6 +637,15 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       // because reversing per-id moves would need a separate inverse map.
       const target = state.layers.find(l => l.id === action.layerId);
       if (!target || target.kind !== 'object') return state;
+      // Reject if the target layer is locked, OR if any of the source
+      // entities currently live on a locked layer (their existing position
+      // is read-only, so we can't move them out of it).
+      if (target.locked) return state;
+      const allObjectsForLockCheck = getAllObjects(state);
+      for (const id of action.ids) {
+        const o = allObjectsForLockCheck.find(oo => oo.id === id);
+        if (o && isLayerLocked(state, o.layer)) return state;
+      }
 
       // Filter to ids that actually need to move (skip objects already on
       // the target layer, and missing ids).
@@ -640,6 +697,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const clamped = Math.max(0.01, Math.min(1, action.scale));
       const obj = findObject(state, action.id);
       if (!obj || obj.scale === clamped) return state;
+      if (isLayerLocked(state, obj.layer)) return state;
       const coalesce = shouldCoalesceUndo(state.undoStack, 'SET_OBJECT_SCALE', action.id);
       const undoStack = coalesce
         ? state.undoStack
@@ -656,6 +714,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'MOVE_OBJECT': {
       const obj = findObject(state, action.id);
       if (!obj || (obj.x === action.x && obj.y === action.y)) return state;
+      if (isLayerLocked(state, obj.layer)) return state;
       const coalesce = shouldCoalesceUndo(state.undoStack, 'MOVE_OBJECT', action.id);
       const undoStack = coalesce
         ? state.undoStack
@@ -681,6 +740,13 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       // merged successive drags of the same object).
       const newPos = new Map(action.positions.map(p => [p.id, { x: p.x, y: p.y }]));
       if (newPos.size === 0) return state;
+      // Reject the whole group drag if any participating entity is on a
+      // locked layer. Partial drags would silently leave some of the user's
+      // selection behind, which is more confusing than a no-op.
+      for (const id of newPos.keys()) {
+        const obj = findObject(state, id);
+        if (obj && isLayerLocked(state, obj.layer)) return state;
+      }
       const last = state.undoStack[state.undoStack.length - 1];
       const coalesce = last?.type === 'MOVE_OBJECTS' && (last.data as { dragId: string }).dragId === action.dragId;
       let undoStack = state.undoStack;
@@ -858,6 +924,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       if (state.layers.length <= 1) return state;
       const removed = state.layers.find(l => l.id === action.id);
       if (!removed) return state;
+      // Locked layers can't be removed — user must unlock first.
+      if (removed.locked) return state;
       const remaining = state.layers.filter(l => l.id !== action.id);
       const fallbackObjectLayer = remaining.find(l => l.id === PLAYER_LAYER_ID && isObjectLayer(l))
         ?? remaining.find(isObjectLayer);

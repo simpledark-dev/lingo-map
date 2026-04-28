@@ -101,6 +101,16 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, active
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLayerKind]);
 
+  // Substring filter applied to the file list. Case-insensitive match
+  // against the file basename (e.g. typing "cone" matches every
+  // `..._Cone_*` file). Empty string = no filter, show everything.
+  const [search, setSearch] = useState('');
+  const visibleFiles = files
+    ? (search.trim() === ''
+        ? files
+        : files.filter(f => f.toLowerCase().includes(search.trim().toLowerCase())))
+    : null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: '100%', minHeight: 0 }}>
       {/* Theme picker — single-select dropdown is more compact than 24 tabs. */}
@@ -124,14 +134,36 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, active
         ))}
       </select>
 
+      {/* Search — filters within the currently-selected theme by substring.
+          Switching themes preserves the query so a user looking for "cone"
+          across themes can flip the dropdown without retyping. */}
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search assets…"
+        style={{
+          padding: '6px 8px',
+          fontSize: 11,
+          background: '#2a2a3a',
+          color: '#ddd',
+          border: '1px solid #444',
+          borderRadius: 4,
+          flexShrink: 0,
+        }}
+      />
+
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0f0f1a', padding: 4 }}>
         {loadingFiles && <div style={{ color: '#888', fontSize: 11 }}>Loading…</div>}
         {!loadingFiles && files && files.length === 0 && (
           <div style={{ color: '#888', fontSize: 11 }}>No files in this theme.</div>
         )}
-        {!loadingFiles && files && (
+        {!loadingFiles && visibleFiles && visibleFiles.length === 0 && files && files.length > 0 && (
+          <div style={{ color: '#888', fontSize: 11 }}>No matches in this theme. Try another.</div>
+        )}
+        {!loadingFiles && visibleFiles && visibleFiles.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 4 }}>
-            {files.map(f => {
+            {visibleFiles.map(f => {
               const key = theme ? `me:${theme}/${f}` : '';
               // Highlight whichever selection matches the active layer's
               // kind — picking a tile while a tile layer is active fills
