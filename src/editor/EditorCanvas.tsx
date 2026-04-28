@@ -277,6 +277,65 @@ export default function EditorCanvas() {
   // in client (page) pixels — the menu renders position:fixed at (x, y).
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; ids: string[] } | null>(null);
 
+  // Aseprite-style interactive resize. While `resizeMode` is set, the four
+  // edges (in TILE coords — can go negative for expanding) define the
+  // proposed new map bounds; blue lines render via EditorApp's overlay
+  // graphics, and the user drags any edge to crop or extend that side.
+  // Apply commits via a single RESIZE_MAP dispatch (one undo step).
+  const [resizeMode, setResizeMode] = useState<{
+    left: number; top: number; right: number; bottom: number;
+  } | null>(null);
+  const resizeDragRef = useRef<'left' | 'right' | 'top' | 'bottom' | null>(null);
+  // Which edge the cursor is currently hovering over (in resize mode, not
+  // currently dragging). Drives the wrapper div's `cursor` CSS so the user
+  // gets ew-/ns-resize affordance before they grab.
+  const [resizeHoverEdge, setResizeHoverEdge] = useState<'left' | 'right' | 'top' | 'bottom' | null>(null);
+  const beginResize = useCallback(() => {
+    setResizeMode({ left: 0, top: 0, right: state.mapWidth, bottom: state.mapHeight });
+  }, [state.mapWidth, state.mapHeight]);
+  const cancelResize = useCallback(() => {
+    setResizeMode(null);
+    resizeDragRef.current = null;
+  }, []);
+  const applyResize = useCallback(() => {
+    setResizeMode(prev => {
+      if (!prev) return null;
+      const newWidth = prev.right - prev.left;
+      const newHeight = prev.bottom - prev.top;
+      // No-op if dimensions match and no shift — exit cleanly.
+      if (newWidth !== stateRef.current.mapWidth || newHeight !== stateRef.current.mapHeight || prev.left !== 0 || prev.top !== 0) {
+        // dRow/dCol = -top/-left because the new origin moves to (left, top)
+        // in old-grid coords, which means each old cell shifts by that much
+        // in the new grid (negated).
+        dispatchRef.current({
+          type: 'RESIZE_MAP',
+          width: newWidth,
+          height: newHeight,
+          anchor: { dRow: -prev.top, dCol: -prev.left },
+        });
+        // Shift the camera by the same delta so the user's viewport stays
+        // pinned to the same content. Without this, cropping the left edge
+        // shifts every object by `-left*T` in world coords while the
+        // camera stays put — visually all the content "slides off-screen
+        // left" from the user's perspective even though their actual
+        // edits weren't lost.
+        const T = stateRef.current.tileSize;
+        const dx = -prev.left * T;
+        const dy = -prev.top * T;
+        if (dx !== 0 || dy !== 0) {
+          dispatchRef.current({
+            type: 'SET_CAMERA',
+            x: stateRef.current.cameraX + dx,
+            y: stateRef.current.cameraY + dy,
+          });
+        }
+      }
+      return null;
+    });
+    resizeDragRef.current = null;
+    setResizeHoverEdge(null);
+  }, []);
+
   // ── Load persisted map from disk on mount (overrides localStorage/compiled) ──
   useEffect(() => {
     let cancelled = false;
@@ -482,6 +541,18 @@ export default function EditorCanvas() {
     }
   }, [state.selectionArea]);
 
+  // Sync the resize-mode overlay (4 blue draggable lines + kept-region
+  // fill). Re-renders any time the user drags an edge.
+  useEffect(() => {
+    const app = editorAppRef.current;
+    if (!app) return;
+    if (resizeMode) {
+      app.showResizeOverlay(resizeMode.left, resizeMode.top, resizeMode.right, resizeMode.bottom, state.tileSize);
+    } else {
+      app.clearResizeOverlay();
+    }
+  }, [resizeMode, state.tileSize]);
+
   // ── Mouse handlers ──
   const getWorldPos = useCallback((e: React.MouseEvent) => {
     const app = editorAppRef.current;
@@ -498,6 +569,39 @@ export default function EditorCanvas() {
     if (e.button === 1 || spaceDownRef.current) {
       isPanningRef.current = true;
       panStartRef.current = { x: e.clientX, y: e.clientY, camX: s.cameraX, camY: s.cameraY };
+      return;
+    }
+
+    // Resize mode owns ALL canvas input while active. Detect which edge
+    // the cursor is closest to (within a one-tile tolerance, scaled down
+    // by world zoom so the hit zone stays usable at any zoom level), and
+    // start a drag on that edge. Click anywhere else inside the rect:
+    // ignored. Click outside the rect: ignored too — the only ways out
+    // are the floating Apply/Cancel buttons or Escape.
+    if (resizeMode && e.button === 0) {
+      const app = editorAppRef.current;
+      if (app) {
+        const wp = app.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, s.zoom);
+        const T = s.tileSize;
+        // Pick the nearest of the four edges in world pixels. Tolerance
+        // is one full tile so dragging is forgiving.
+        const tol = T;
+        const lx = resizeMode.left * T;
+        const rx = resizeMode.right * T;
+        const ty = resizeMode.top * T;
+        const by = resizeMode.bottom * T;
+        const dLeft = Math.abs(wp.x - lx);
+        const dRight = Math.abs(wp.x - rx);
+        const dTop = Math.abs(wp.y - ty);
+        const dBottom = Math.abs(wp.y - by);
+        const m = Math.min(dLeft, dRight, dTop, dBottom);
+        if (m <= tol) {
+          if (m === dLeft) resizeDragRef.current = 'left';
+          else if (m === dRight) resizeDragRef.current = 'right';
+          else if (m === dTop) resizeDragRef.current = 'top';
+          else resizeDragRef.current = 'bottom';
+        }
+      }
       return;
     }
 
@@ -629,13 +733,24 @@ export default function EditorCanvas() {
       // Decor objects (rugs, doormats, wall-mounted items) render BEHIND the
       // player so we can walk over/in front of them. Big negative offset.
       const sortY = defaults.isDecor ? placeY - 1000 : placeY;
+      // Walkable-by-default for the bottommost layers. `ground` is a tile
+      // layer (no objects normally land here, but if the user activates it
+      // the reducer falls back to the first object layer which IS floor),
+      // and `floor` is where sidewalks / rugs / multi-tile pack stamps go —
+      // none of those should block the player. Anywhere else (decor-low /
+      // props / above) keeps the sprite-derived collision so trees and
+      // buildings collide by default.
+      const noCollideLayers = new Set(['ground', 'floor']);
+      const collisionBox = noCollideLayers.has(s.activeLayerId)
+        ? { offsetX: 0, offsetY: 0, width: 0, height: 0 }
+        : defaults.collisionBox;
       const entity = {
         id: generateObjectId(),
         x: placeX, y: placeY,
         spriteKey: s.selectedObjectKey,
         anchor: defaults.anchor,
         sortY,
-        collisionBox: defaults.collisionBox,
+        collisionBox,
         scale: DEFAULT_OBJECT_SCALE,
         layer: s.activeLayerId,
       };
@@ -756,7 +871,7 @@ export default function EditorCanvas() {
       paintedCellsRef.current.add(`${row},${col}`);
       editorAppRef.current?.updateSingleTile(row, col, TileType.GRASS);
     }
-  }, [getWorldPos, contextMenu]);
+  }, [getWorldPos, contextMenu, resizeMode]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     const s = stateRef.current;
@@ -765,6 +880,67 @@ export default function EditorCanvas() {
       const dx = (e.clientX - panStartRef.current.x) / s.zoom;
       const dy = (e.clientY - panStartRef.current.y) / s.zoom;
       dispatchRef.current({ type: 'SET_CAMERA', x: panStartRef.current.camX - dx, y: panStartRef.current.camY - dy });
+      return;
+    }
+
+    // Resize-mode edge drag: snap the active edge to the nearest tile
+    // boundary. Constraint: the rect must keep at least 1 tile of size,
+    // so left < right and top < bottom enforced via clamping.
+    if (resizeMode && resizeDragRef.current) {
+      const app = editorAppRef.current;
+      if (!app) return;
+      const wp = app.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, s.zoom);
+      const T = s.tileSize;
+      const cellCol = Math.round(wp.x / T);
+      const cellRow = Math.round(wp.y / T);
+      const edge = resizeDragRef.current;
+      setResizeMode(prev => {
+        if (!prev) return prev;
+        if (edge === 'left') {
+          const left = Math.min(cellCol, prev.right - 1);
+          return left === prev.left ? prev : { ...prev, left };
+        }
+        if (edge === 'right') {
+          const right = Math.max(cellCol, prev.left + 1);
+          return right === prev.right ? prev : { ...prev, right };
+        }
+        if (edge === 'top') {
+          const top = Math.min(cellRow, prev.bottom - 1);
+          return top === prev.top ? prev : { ...prev, top };
+        }
+        // bottom
+        const bottom = Math.max(cellRow, prev.top + 1);
+        return bottom === prev.bottom ? prev : { ...prev, bottom };
+      });
+      return;
+    }
+
+    // Resize-mode hover (not dragging): set the wrapper's cursor to
+    // ew-resize / ns-resize / default based on which edge the cursor is
+    // closest to within a 1-tile tolerance. Gives the user the same
+    // "I can grab this" affordance native window resize handles do.
+    if (resizeMode && !resizeDragRef.current) {
+      const app = editorAppRef.current;
+      if (app) {
+        const wp = app.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, s.zoom);
+        const T = s.tileSize;
+        const tol = T;
+        const dLeft = Math.abs(wp.x - resizeMode.left * T);
+        const dRight = Math.abs(wp.x - resizeMode.right * T);
+        const dTop = Math.abs(wp.y - resizeMode.top * T);
+        const dBottom = Math.abs(wp.y - resizeMode.bottom * T);
+        const m = Math.min(dLeft, dRight, dTop, dBottom);
+        let next: typeof resizeHoverEdge = null;
+        if (m <= tol) {
+          if (m === dLeft) next = 'left';
+          else if (m === dRight) next = 'right';
+          else if (m === dTop) next = 'top';
+          else next = 'bottom';
+        }
+        if (next !== resizeHoverEdge) setResizeHoverEdge(next);
+      }
+      // Don't fall through to the placement-preview / cursor-label code —
+      // those don't make sense in resize mode.
       return;
     }
 
@@ -1003,7 +1179,7 @@ export default function EditorCanvas() {
         }
       }
     }
-  }, [getWorldPos]);
+  }, [getWorldPos, resizeMode]);
 
   // Cursor exits the canvas → drop the floating layer label so it doesn't
   // linger after the user moves to the side panel. Also collapse any
@@ -1026,6 +1202,12 @@ export default function EditorCanvas() {
   const handlePointerUp = useCallback(() => {
     if (isPanningRef.current) {
       isPanningRef.current = false;
+      return;
+    }
+
+    // End of a resize-mode edge drag.
+    if (resizeDragRef.current) {
+      resizeDragRef.current = null;
       return;
     }
 
@@ -1208,28 +1390,16 @@ export default function EditorCanvas() {
   // ── Keyboard shortcuts ──
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip every editor shortcut while focus is on a form control. Without
-      // this, typing into the panel's numeric inputs / spawn-id text field
-      // accidentally fires Backspace→DELETE_OBJECT, '[' / ']' →
-      // SET_OBJECTS_LAYER, 'g' → TOGGLE_GRID, etc. The browser-native
-      // text-edit behaviour (cursor movement, character delete, undo within
-      // the field) is what the user actually wants while typing.
-      const focusEl = e.target as (HTMLElement | null);
-      if (focusEl) {
-        const tag = focusEl.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || focusEl.isContentEditable) {
-          return;
-        }
-      }
-
       // Single source of truth for the modifier — covers both Cmd (Mac) and
       // Ctrl (PC). Prior code had two separate Ctrl+Z branches that fired
       // back-to-back on PC, undoing two steps per keypress.
       const mod = e.metaKey || e.ctrlKey;
 
-      // Undo / redo — Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y. Done first so the
-      // Escape / Delete branches below don't accidentally fire on the same
-      // keypress (e.g. pressing 'z' standalone shouldn't trigger anything).
+      // Undo / redo — Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y. Handled BEFORE
+      // the form-field bail so the user can always step back from a
+      // destructive op (e.g. shrinking the map and wiping tiles) without
+      // first having to click off the input. Matches Figma / most graphics
+      // editors where Cmd+Z is canvas-level no matter where focus is.
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         dispatchRef.current({ type: e.shiftKey ? 'REDO' : 'UNDO' });
@@ -1239,6 +1409,21 @@ export default function EditorCanvas() {
         e.preventDefault();
         dispatchRef.current({ type: 'REDO' });
         return;
+      }
+
+      // Skip remaining editor shortcuts while focus is on a form control.
+      // Without this, typing into the panel's numeric inputs / spawn-id
+      // text field accidentally fires Backspace→DELETE_OBJECT, '[' / ']' →
+      // SET_OBJECTS_LAYER, 'g' → TOGGLE_GRID, etc. The browser-native
+      // text-edit behaviour (cursor movement, character delete) is what
+      // the user actually wants while typing. Cmd/Ctrl+Z/Y already
+      // handled above — those win over native input undo by design.
+      const focusEl = e.target as (HTMLElement | null);
+      if (focusEl) {
+        const tag = focusEl.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || focusEl.isContentEditable) {
+          return;
+        }
       }
 
       const target = e.target;
@@ -1255,8 +1440,20 @@ export default function EditorCanvas() {
       }
 
       if (e.key === 'Escape') {
+        // Resize mode swallows Escape (= cancel) before the tool reset.
+        if (resizeMode) {
+          setResizeMode(null);
+          resizeDragRef.current = null;
+          return;
+        }
         dispatchRef.current({ type: 'SET_TOOL', tool: 'select' });
         editorAppRef.current?.clearPreview();
+      }
+      if (e.key === 'Enter' && resizeMode) {
+        // Apply via Enter while in resize mode.
+        applyResize();
+        e.preventDefault();
+        return;
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const s = stateRef.current;
@@ -1355,16 +1552,31 @@ export default function EditorCanvas() {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
-  }, []);
+    // resizeMode + applyResize are read inside the handler — without them in
+    // deps the captured snapshot is the original null/initial values, and
+    // Escape / Enter shortcuts inside resize mode are dead.
+  }, [resizeMode, applyResize]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100dvh', overflow: 'hidden' }}>
-      <EditorTopBar state={state} dispatch={dispatch} />
+      <EditorTopBar state={state} dispatch={dispatch} onBeginResize={beginResize} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <EditorToolPanel state={state} dispatch={dispatch} />
         <div
           ref={canvasContainerRef}
-          style={{ flex: 1, position: 'relative', cursor: state.activeTool === 'tile' || state.activeTool === 'eraser' ? 'crosshair' : 'default' }}
+          style={{
+            flex: 1, position: 'relative',
+            // Resize-mode cursor wins over the regular tool cursor: ew-resize
+            // for left/right edges, ns-resize for top/bottom. Falls back to
+            // crosshair (paint tools) or default.
+            cursor: resizeMode
+              ? (resizeDragRef.current === 'left' || resizeDragRef.current === 'right' || resizeHoverEdge === 'left' || resizeHoverEdge === 'right'
+                  ? 'ew-resize'
+                  : (resizeDragRef.current === 'top' || resizeDragRef.current === 'bottom' || resizeHoverEdge === 'top' || resizeHoverEdge === 'bottom'
+                      ? 'ns-resize'
+                      : 'default'))
+              : (state.activeTool === 'tile' || state.activeTool === 'eraser' ? 'crosshair' : 'default'),
+          }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -1372,6 +1584,40 @@ export default function EditorCanvas() {
           onContextMenu={handleContextMenu}
         />
       </div>
+      {resizeMode && (
+        <div
+          style={{
+            position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)',
+            display: 'flex', alignItems: 'center', gap: 12,
+            background: '#1a1a2e', border: '1px solid #4488ff', borderRadius: 6,
+            padding: '8px 12px', zIndex: 1000,
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)',
+            color: '#ddd', fontSize: 12,
+          }}
+        >
+          <span>
+            <strong style={{ color: '#88bbff' }}>Resize:</strong>{' '}
+            {resizeMode.right - resizeMode.left} × {resizeMode.bottom - resizeMode.top}
+            <span style={{ color: '#666' }}> (was {state.mapWidth} × {state.mapHeight})</span>
+          </span>
+          <button
+            onClick={cancelResize}
+            style={{
+              padding: '4px 10px', fontSize: 11,
+              background: '#2a2a3a', border: '1px solid #444', borderRadius: 4,
+              color: '#ddd', cursor: 'pointer',
+            }}
+          >Cancel (Esc)</button>
+          <button
+            onClick={applyResize}
+            style={{
+              padding: '4px 10px', fontSize: 11,
+              background: '#2a4a3a', border: '1px solid #4a8a6a', borderRadius: 4,
+              color: '#cfc', cursor: 'pointer', fontWeight: 'bold',
+            }}
+          >Apply (Enter)</button>
+        </div>
+      )}
       {contextMenu && (
         <LayerContextMenu
           x={contextMenu.x}

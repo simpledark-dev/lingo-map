@@ -39,6 +39,11 @@ export class EditorApp {
    * tall at the entity's feet row — so the editor view matches the
    * runtime behaviour. */
   private doorPreview: Graphics;
+  /** Aseprite-style resize overlay: four blue draggable lines marking
+   * the proposed new map bounds, plus a translucent fill on the region
+   * that will be kept. Visible only while `resizeMode` is active in
+   * EditorCanvas; the user drags any line to crop or extend that edge. */
+  private resizeOverlay: Graphics;
   private selectionLabel: Text | null = null;
   /** Floating layer-name tag drawn near the cursor during placement-style
    * tools so the user can see which layer their next click will write to.
@@ -88,6 +93,7 @@ export class EditorApp {
     this.marqueeGraphics = new Graphics();
     this.collisionPreview = new Graphics();
     this.doorPreview = new Graphics();
+    this.resizeOverlay = new Graphics();
     this.previewContainer = new Container();
     this.entityLayer.sortableChildren = true;
   }
@@ -123,6 +129,7 @@ export class EditorApp {
     this.worldContainer.addChild(this.marqueeGraphics);
     this.worldContainer.addChild(this.collisionPreview);
     this.worldContainer.addChild(this.doorPreview);
+    this.worldContainer.addChild(this.resizeOverlay);
     this.worldContainer.addChild(this.previewContainer);
     this.app.stage.addChild(this.worldContainer);
 
@@ -573,6 +580,48 @@ export class EditorApp {
     this.doorPreview.clear();
   }
 
+  /** Draw the resize-mode overlay in world coords. The four edge values
+   * are TILE positions (rows / cols), allowing negative values when the
+   * user drags an edge OUTSIDE the original map (= expand).
+   *   - left/right are columns (0..mapWidth originally)
+   *   - top/bottom are rows (0..mapHeight originally)
+   * The blue rectangle outlines the proposed new bounds; the translucent
+   * fill highlights the region that survives. Cropped-away regions of
+   * the original map sit *outside* the rectangle and remain visible
+   * underneath, so the user can see what they're discarding. */
+  showResizeOverlay(left: number, top: number, right: number, bottom: number, tileSize: number): void {
+    this.resizeOverlay.clear();
+    const T = tileSize;
+    const x = left * T;
+    const y = top * T;
+    const w = (right - left) * T;
+    const h = (bottom - top) * T;
+    if (w <= 0 || h <= 0) return;
+    // Translucent fill on the kept region.
+    this.resizeOverlay.rect(x, y, w, h);
+    this.resizeOverlay.fill({ color: 0x44aaff, alpha: 0.12 });
+    // Blue outline (the four draggable edges). Drawn at world scale; pointer
+    // hit-testing uses a tile-sized tolerance so it stays grabbable at all
+    // zoom levels even though the visual line is thin.
+    this.resizeOverlay.stroke({ color: 0x44aaff, alpha: 1, width: 2 });
+    // Corner ticks make the four "handles" more visible.
+    const tickLen = T;
+    const tickStroke = { color: 0x88ccff, alpha: 1, width: 2 } as const;
+    const corners: Array<[number, number, number, number]> = [
+      [x, y, x + tickLen, y], [x, y, x, y + tickLen],
+      [x + w - tickLen, y, x + w, y], [x + w, y, x + w, y + tickLen],
+      [x, y + h - tickLen, x, y + h], [x, y + h, x + tickLen, y + h],
+      [x + w - tickLen, y + h, x + w, y + h], [x + w, y + h - tickLen, x + w, y + h],
+    ];
+    for (const [x1, y1, x2, y2] of corners) {
+      this.resizeOverlay.moveTo(x1, y1).lineTo(x2, y2).stroke(tickStroke);
+    }
+  }
+
+  clearResizeOverlay(): void {
+    this.resizeOverlay.clear();
+  }
+
   highlightBuilding(b: Building): void {
     this.selectionGraphics.clear();
     const s = this.buildingBaseSprites.get(b.id);
@@ -794,6 +843,18 @@ export class EditorApp {
       .stroke({ color: fg, alpha: 0.6, width: 1 * inv });
     label.visible = true;
     bg.visible = true;
+
+    // Promote bg + text to the end of worldContainer's children so they
+    // render on top regardless of what other lazy-added overlays
+    // (selectionLabel, future additions) ended up in the list. Without
+    // this, the relative add-order between cursorLayerLabel and
+    // selectionLabel was determined by which one the user triggered first
+    // (selecting an object vs. hovering), so the cursor label would
+    // sometimes get occluded — especially over the map area where extra
+    // overlays accumulate.
+    const children = this.worldContainer.children;
+    this.worldContainer.setChildIndex(bg, children.length - 1);
+    this.worldContainer.setChildIndex(label, children.length - 1);
   }
 
   clearCursorLayerLabel(): void {

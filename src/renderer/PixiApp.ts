@@ -31,6 +31,11 @@ export class PixiApp {
   private inputAdapter: InputAdapter;
   private gameState: GameState | null = null;
   private currentMap: MapData | null = null;
+  /** Last cell coordinates we printed to the console, so we only log on
+   * tile-cell crossings rather than every pixel-level move. Reset when
+   * the active map changes so cell `(0,0)` of map B logs even if we just
+   * left cell `(0,0)` of map A. */
+  private lastLoggedCell: { mapId: string; col: number; row: number } | null = null;
   private transitioning = false;
   private initialized = false;
   private destroyed = false;
@@ -392,6 +397,21 @@ export class PixiApp {
     this.gameState.player.x = Math.max(0, Math.min(mapW, this.gameState.player.x));
     this.gameState.player.y = Math.max(0, Math.min(mapH, this.gameState.player.y));
     this.gameState.player.sortY = this.gameState.player.y;
+
+    // Cell-position log (game runtime only, never the editor). Throttled to
+    // tile-cell crossings — every pixel of motion would flood the console.
+    // Resets when the active map changes so the first cell of a new map
+    // also gets logged.
+    {
+      const T = map.tileSize;
+      const col = Math.floor(this.gameState.player.x / T);
+      const row = Math.floor(this.gameState.player.y / T);
+      const last = this.lastLoggedCell;
+      if (!last || last.mapId !== map.id || last.col !== col || last.row !== row) {
+        console.log(`[player] cell (${col}, ${row}) on ${map.id}`);
+        this.lastLoggedCell = { mapId: map.id, col, row };
+      }
+    }
 
     // Check door triggers
     const transition = checkDoorTriggers(

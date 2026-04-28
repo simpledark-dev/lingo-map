@@ -19,6 +19,12 @@ interface Props {
 
 interface ThumbDims { w: number; h: number }
 
+/** localStorage key for the last-selected pack theme. Persisting it
+ * means reloading the editor returns the user to whichever theme they
+ * were working in (e.g. "5_City_Props_Singles_16x16") rather than always
+ * snapping back to the first registered theme. */
+const PACK_THEME_KEY = 'editor:pack-theme';
+
 export default function PackPicker({ selectedTileType, selectedObjectKey, activeLayerKind, dispatch }: Props) {
   const [themes, setThemes] = useState<string[]>([]);
   const [theme, setTheme] = useState<string | null>(null);
@@ -28,7 +34,9 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, active
   const [loadingFiles, setLoadingFiles] = useState(false);
   const dimsRef = useRef<Map<string, ThumbDims>>(new Map());
 
-  // Fetch the list of theme folders once.
+  // Fetch the list of theme folders once. Restore the user's last-selected
+  // theme from localStorage if it's still in the list (handles the case
+  // where the pack folder layout changed since their last session).
   useEffect(() => {
     let cancelled = false;
     fetch('/api/me/themes')
@@ -37,11 +45,20 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, active
         if (cancelled) return;
         const list = data.themes ?? [];
         setThemes(list);
-        if (list.length > 0) setTheme(list[0]);
+        if (list.length === 0) return;
+        const saved = typeof window !== 'undefined' ? localStorage.getItem(PACK_THEME_KEY) : null;
+        setTheme(saved && list.includes(saved) ? saved : list[0]);
       })
       .catch(err => console.warn('Failed to load themes:', err));
     return () => { cancelled = true; };
   }, []);
+
+  // Persist theme selection so the next page load restores it.
+  useEffect(() => {
+    if (!theme) return;
+    if (typeof window === 'undefined') return;
+    try { localStorage.setItem(PACK_THEME_KEY, theme); } catch { /* quota / disabled */ }
+  }, [theme]);
 
   // Fetch the file list for the selected theme.
   useEffect(() => {

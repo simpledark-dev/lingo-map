@@ -9,9 +9,10 @@ const GAME_MAPS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f
 interface Props {
   state: EditorState;
   dispatch: React.Dispatch<EditorAction>;
+  onBeginResize: () => void;
 }
 
-export default function EditorTopBar({ state, dispatch }: Props) {
+export default function EditorTopBar({ state, dispatch, onBeginResize }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const applyMapData = useCallback((data: { id?: string; tiles: unknown; objects?: unknown[]; buildings?: unknown[]; width: number; height: number; tileSize?: number; layers?: unknown[] }, fallbackId: string) => {
@@ -132,18 +133,17 @@ export default function EditorTopBar({ state, dispatch }: Props) {
 
       <span style={{ color: '#555' }}>|</span>
 
-      {/* Dimensions */}
-      <DimensionInput
-        value={state.mapWidth}
-        onApply={v => dispatch({ type: 'RESIZE_MAP', width: v, height: state.mapHeight })}
-        style={{ ...inputStyle, width: 52, textAlign: 'center' }}
-      />
-      <span style={{ color: '#777', fontSize: 10 }}>x</span>
-      <DimensionInput
-        value={state.mapHeight}
-        onApply={v => dispatch({ type: 'RESIZE_MAP', width: state.mapWidth, height: v })}
-        style={{ ...inputStyle, width: 52, textAlign: 'center' }}
-      />
+      {/* Dimension display + Resize entry point. Clicking enters the
+          on-canvas drag-edges resize mode (Aseprite-style); the actual
+          dimension change happens once the user clicks Apply on the
+          floating panel that appears over the canvas. */}
+      <button
+        style={btnStyle}
+        onClick={onBeginResize}
+        title="Resize map (drag the blue edges on the canvas)"
+      >
+        {state.mapWidth} × {state.mapHeight}
+      </button>
 
       <span style={{ color: '#555' }}>|</span>
 
@@ -162,30 +162,5 @@ export default function EditorTopBar({ state, dispatch }: Props) {
 
       <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleFileChange} />
     </div>
-  );
-}
-
-function DimensionInput({ value, onApply, style }: { value: number; onApply: (v: number) => void; style: React.CSSProperties }) {
-  const [draft, setDraft] = useState(String(value));
-
-  useEffect(() => {
-    setDraft(String(value));
-  }, [value]);
-
-  const apply = () => {
-    const v = Math.max(10, Math.min(200, parseInt(draft) || value));
-    if (v !== value) onApply(v);
-    setDraft(String(v));
-  };
-
-  return (
-    <input
-      type="number"
-      value={draft}
-      onChange={e => setDraft(e.target.value)}
-      onBlur={apply}
-      onKeyDown={e => { if (e.key === 'Enter') apply(); }}
-      style={style}
-    />
   );
 }

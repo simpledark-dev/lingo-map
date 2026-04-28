@@ -188,7 +188,7 @@ export type EditorAction =
   | { type: 'TOGGLE_GRID' }
   | { type: 'SET_TILE_SIZE'; tileSize: number }
   | { type: 'SET_MAP_NAME'; name: string }
-  | { type: 'RESIZE_MAP'; width: number; height: number }
+  | { type: 'RESIZE_MAP'; width: number; height: number; anchor?: { dRow: number; dCol: number } }
   | { type: 'IMPORT_MAP'; tiles: string[][]; objects: Entity[]; buildings: Building[]; width: number; height: number; layers?: MapLayer[] | Layer[] }
   | { type: 'SET_ACTIVE_LAYER'; id: string }
   | { type: 'ADD_LAYER'; name?: string; kind?: 'tile' | 'object' }
@@ -319,10 +319,22 @@ function captureLayersSnapshot(state: EditorState): LayersSnapshot {
 
 /** Snapshot the parts of state that RESIZE_MAP can mutate. Stored as undo
  * data for RESIZE_MAP so users can revert a destructive shrink without
- * losing the tile content the new dimensions trimmed off. */
-interface ResizeSnapshot { layers: Layer[]; mapWidth: number; mapHeight: number }
+ * losing the tile content the new dimensions trimmed off. Includes
+ * `buildings` because anchor-aware resize shifts buildings alongside
+ * objects, and the user expects undo to put them back. */
+interface ResizeSnapshot {
+  layers: Layer[];
+  mapWidth: number;
+  mapHeight: number;
+  buildings: Building[];
+}
 function captureResizeSnapshot(state: EditorState): ResizeSnapshot {
-  return { layers: state.layers, mapWidth: state.mapWidth, mapHeight: state.mapHeight };
+  return {
+    layers: state.layers,
+    mapWidth: state.mapWidth,
+    mapHeight: state.mapHeight,
+    buildings: state.buildings,
+  };
 }
 
 /** Decide whether to push a new MOVE_OBJECT / MOVE_BUILDING / SET_*_SCALE
@@ -915,28 +927,80 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
     case 'RESIZE_MAP': {
       const { width, height } = action;
-      if (width === state.mapWidth && height === state.mapHeight) return state;
-      // Resize every tile layer's grid to the new dimensions, padding new
-      // cells with GRASS. Object layers are unchanged — entities keep their
-      // pixel coordinates even if the map shrinks, but anything outside the
-      // new bounds will simply not be hit-testable until moved.
+      // Anchor-aware resize: `dRow` / `dCol` are how many cells the OLD
+      // content shifts inside the NEW canvas (positive = right/down).
+      // Aseprite's 3×3 anchor grid maps to these values:
+      //   - Top-left      → dRow=0, dCol=0                   (default)
+      //   - Top-right     → dRow=0, dCol=newW-oldW
+      //   - Bottom-left   → dRow=newH-oldH, dCol=0
+      //   - Center        → both halved
+      //   - … etc
+      // The dialog computes them; the reducer just applies.
+      const dR = action.anchor?.dRow ?? 0;
+      const dC = action.anchor?.dCol ?? 0;
+      if (width === state.mapWidth && height === state.mapHeight && dR === 0 && dC === 0) return state;
+
+      // Resize tile grids: NEW[nr][nc] = OLD[nr - dR][nc - dC] when in bounds,
+      // else GRASS. This implements the anchor by translating "where does
+      // the old origin land in the new grid?" into a per-cell lookup.
       const newLayers = state.layers.map(l => {
         if (!isTileLayer(l)) return l;
         const next: string[][] = [];
         for (let r = 0; r < height; r++) {
           const row: string[] = [];
           for (let c = 0; c < width; c++) {
-            row.push(r < state.mapHeight && c < state.mapWidth ? l.tiles[r][c] : TileType.GRASS);
+            const or = r - dR;
+            const oc = c - dC;
+            if (or >= 0 && or < state.mapHeight && oc >= 0 && oc < state.mapWidth) {
+              row.push(l.tiles[or][oc]);
+            } else {
+              row.push(TileType.GRASS);
+            }
           }
           next.push(row);
         }
         return { ...l, tiles: next };
       });
+
+      // Shift entities + buildings by (dC*T, dR*T) so they stay glued to
+      // the same content tile in the new canvas. Pure top-left anchor
+      // (dR=dC=0) is a no-op for these arrays.
+      const T = state.tileSize;
+      const dx = dC * T;
+      const dy = dR * T;
+      const layersWithShiftedObjects = (dx === 0 && dy === 0)
+        ? newLayers
+        : newLayers.map(l => {
+            if (!isObjectLayer(l)) return l;
+            return {
+              ...l,
+              objects: l.objects.map(o => {
+                const newY = o.y + dy;
+                // Preserve the sortY-vs-y relationship: ordinary entities
+                // keep sortY === y; decor with sortY < 0 keeps the offset
+                // pattern; explicit sortY values shift by dy too.
+                const newSortY = o.sortY === o.y
+                  ? newY
+                  : (o.sortY < 0 ? newY - 1000 : o.sortY + dy);
+                return { ...o, x: o.x + dx, y: newY, sortY: newSortY };
+              }),
+            };
+          });
+      const newBuildings = (dx === 0 && dy === 0)
+        ? state.buildings
+        : state.buildings.map(b => ({
+            ...b,
+            x: b.x + dx,
+            y: b.y + dy,
+            sortY: b.sortY + dy,
+          }));
+
       return {
         ...state,
         mapWidth: width,
         mapHeight: height,
-        layers: newLayers,
+        layers: layersWithShiftedObjects,
+        buildings: newBuildings,
         undoStack: [...state.undoStack, { type: 'RESIZE_MAP', data: captureResizeSnapshot(state) }],
         redoStack: [],
       };
@@ -1431,6 +1495,7 @@ function applyUndo(state: EditorState, entry: UndoEntry, newUndo: UndoEntry[]): 
         layers: snap.layers,
         mapWidth: snap.mapWidth,
         mapHeight: snap.mapHeight,
+        buildings: snap.buildings,
         undoStack: newUndo,
         redoStack: [...state.redoStack, { type: 'RESIZE_MAP', data: captureResizeSnapshot(state) }],
       };
@@ -1702,6 +1767,7 @@ function applyRedo(state: EditorState, entry: UndoEntry, newRedo: UndoEntry[]): 
         layers: snap.layers,
         mapWidth: snap.mapWidth,
         mapHeight: snap.mapHeight,
+        buildings: snap.buildings,
         redoStack: newRedo,
         undoStack: [...state.undoStack, { type: 'RESIZE_MAP', data: captureResizeSnapshot(state) }],
       };
