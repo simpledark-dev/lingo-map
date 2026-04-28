@@ -693,25 +693,25 @@
     [
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-      "void",
-      "void",
-      "void",
-      "void",
-      "void",
-      "void",
-      "void",
-      "void",
-      "void",
-      "void",
-      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-      "void",
-      "void",
-      "void",
-      "void",
-      "void",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
@@ -730,11 +730,11 @@
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_6",
-      "void",
-      "void",
-      "void",
-      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+      "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
       "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10"
@@ -6296,25 +6296,6 @@
       "layer": "floor"
     },
     {
-      "id": "obj-moidt0i1-rompo",
-      "x": 400,
-      "y": 320,
-      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_30",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 320,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "floor"
-    },
-    {
       "id": "obj-moidt0yq-lvx42",
       "x": 400,
       "y": 304,
@@ -6419,25 +6400,6 @@
         "y": 1
       },
       "sortY": 256,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "floor"
-    },
-    {
-      "id": "obj-moie7i9y-5ggwt",
-      "x": 512,
-      "y": 320,
-      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_30",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 320,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
@@ -9393,6 +9355,44 @@
       "layer": "floor"
     },
     {
+      "id": "obj-moig2inb-7v8os",
+      "x": 400,
+      "y": 320,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_32",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 320,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-moig2jem-7hjcg",
+      "x": 512,
+      "y": 320,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_32",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 320,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
       "id": "obj-moh684e8-xg2fh",
       "x": 72,
       "y": 704,
@@ -10840,25 +10840,6 @@
       "layer": "props"
     },
     {
-      "id": "obj-moifj8tz-gj2dx",
-      "x": 507.39175,
-      "y": 371.41425,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Street_Lamp_5",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 371.41425,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
       "id": "obj-moifoyhs-0a7ul",
       "x": 552,
       "y": 608,
@@ -10930,6 +10911,44 @@
         "offsetY": -8,
         "width": 16,
         "height": 8
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moifj8tz-gj2dx",
+      "x": 507.39175,
+      "y": 371.41425,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Street_Lamp_5",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 371.41425,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moig7lpg-an21z",
+      "x": 528,
+      "y": 560,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Kiosk_Mushroom_Props_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 560,
+      "collisionBox": {
+        "offsetX": -16,
+        "offsetY": -16,
+        "width": 32,
+        "height": 16
       },
       "scale": 1,
       "layer": "props"
@@ -11017,7 +11036,7 @@
       "name": "Ground",
       "kind": "tile",
       "visible": true,
-      "locked": false,
+      "locked": true,
       "tiles": [
         [
           "grass",
@@ -11708,25 +11727,25 @@
         [
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-          "void",
-          "void",
-          "void",
-          "void",
-          "void",
-          "void",
-          "void",
-          "void",
-          "void",
-          "void",
-          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-          "void",
-          "void",
-          "void",
-          "void",
-          "void",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
@@ -11745,11 +11764,11 @@
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
-          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_6",
-          "void",
-          "void",
-          "void",
-          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
+          "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_10",
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10",
           "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_10"
@@ -13231,7 +13250,7 @@
       "name": "Floor",
       "kind": "object",
       "visible": true,
-      "locked": false,
+      "locked": true,
       "objects": [
         {
           "id": "obj-mogr1vyi-tihug",
@@ -17318,25 +17337,6 @@
           "layer": "floor"
         },
         {
-          "id": "obj-moidt0i1-rompo",
-          "x": 400,
-          "y": 320,
-          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_30",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 320,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "floor"
-        },
-        {
           "id": "obj-moidt0yq-lvx42",
           "x": 400,
           "y": 304,
@@ -17441,25 +17441,6 @@
             "y": 1
           },
           "sortY": 256,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "floor"
-        },
-        {
-          "id": "obj-moie7i9y-5ggwt",
-          "x": 512,
-          "y": 320,
-          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_1_30",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 320,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -20413,6 +20394,44 @@
           },
           "scale": 1,
           "layer": "floor"
+        },
+        {
+          "id": "obj-moig2inb-7v8os",
+          "x": 400,
+          "y": 320,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_32",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 320,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-moig2jem-7hjcg",
+          "x": 512,
+          "y": 320,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_32",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 320,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
         }
       ]
     },
@@ -21880,25 +21899,6 @@
           "layer": "props"
         },
         {
-          "id": "obj-moifj8tz-gj2dx",
-          "x": 507.39175,
-          "y": 371.41425,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Street_Lamp_5",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 371.41425,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-moifoyhs-0a7ul",
           "x": 552,
           "y": 608,
@@ -21970,6 +21970,44 @@
             "offsetY": -8,
             "width": 16,
             "height": 8
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moifj8tz-gj2dx",
+          "x": 507.39175,
+          "y": 371.41425,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Street_Lamp_5",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 371.41425,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moig7lpg-an21z",
+          "x": 528,
+          "y": 560,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Kiosk_Mushroom_Props_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 560,
+          "collisionBox": {
+            "offsetX": -16,
+            "offsetY": -16,
+            "width": 32,
+            "height": 16
           },
           "scale": 1,
           "layer": "props"

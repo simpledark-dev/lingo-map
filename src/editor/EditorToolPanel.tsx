@@ -70,14 +70,14 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
                   title={isVisible ? 'Hide layer' : 'Show layer'}
                   style={iconBtnStyle(isVisible ? '#ddd' : '#555')}
                 >
-                  {isVisible ? '●' : '○'}
+                  {isVisible ? <EyeIcon /> : <EyeOffIcon />}
                 </button>
                 <button
                   onClick={() => dispatch({ type: 'TOGGLE_LAYER_LOCKED', id: layer.id })}
                   title={layer.locked ? 'Unlock layer' : 'Lock layer'}
-                  style={iconBtnStyle(layer.locked ? '#ff8844' : '#555')}
+                  style={iconBtnStyle(layer.locked ? '#ff8844' : '#888')}
                 >
-                  {layer.locked ? '🔒' : '🔓'}
+                  {layer.locked ? <LockedIcon /> : <UnlockedIcon />}
                 </button>
                 {/* Kind badge — T (tile) vs O (object). Color-coded so the
                     user can scan the stack at a glance and tell what each
@@ -357,6 +357,55 @@ function iconBtnStyle(color: string): React.CSSProperties {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   };
+}
+
+/** Eye / eye-off icons for the per-layer visibility toggle. Stroke-based
+ * SVGs (currentColor) so the parent button's `color` controls them and the
+ * dim/bright contrast between hidden/visible states stays obvious. */
+function EyeIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6.5 0-10-7-10-7a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c6.5 0 10 7 10 7a18.46 18.46 0 0 1-2.16 3.19" />
+      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+  );
+}
+
+/** Lock / unlock icons. The locked variant has the shackle CLOSED into the
+ * body; the unlocked variant lifts the shackle and rotates it open so the
+ * two states are obviously different at a glance — emoji 🔒/🔓 looked
+ * nearly identical at small sizes. */
+function LockedIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
+}
+
+function UnlockedIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 7.9-1" />
+    </svg>
+  );
 }
 
 function addLayerBtnStyle(color: string): React.CSSProperties {
