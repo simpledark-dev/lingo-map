@@ -84,7 +84,7 @@ export function createInitialState(width = 50, height = 50): EditorState {
     selectedObjectKey: null,
     selectedBuildingKey: null,
     selectedObjectIds: [],
-    showGrid: true,
+    showGrid: false,
     zoom: 2,
     cameraX: 0,
     cameraY: 0,

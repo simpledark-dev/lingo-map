@@ -12707,25 +12707,6 @@
       "layer": "decor-low"
     },
     {
-      "id": "obj-moh7ac4o-93o4d",
-      "x": 824,
-      "y": 768,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Electric_Pole_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 768,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "decor-low"
-    },
-    {
       "id": "obj-moh7ct4v-01lpa",
       "x": 632,
       "y": 560,
@@ -26077,7 +26058,7 @@
       "name": "Decor",
       "kind": "object",
       "visible": true,
-      "locked": true,
+      "locked": false,
       "objects": [
         {
           "id": "obj-moh684e8-xg2fh",
@@ -26184,25 +26165,6 @@
             "y": 1
           },
           "sortY": 512,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "decor-low"
-        },
-        {
-          "id": "obj-moh7ac4o-93o4d",
-          "x": 824,
-          "y": 768,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Electric_Pole_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 768,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
