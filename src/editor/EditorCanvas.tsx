@@ -3,7 +3,7 @@
 import { useRef, useEffect, useReducer, useCallback, useState } from 'react';
 import { TileType, Entity } from '../core/types';
 import { EditorApp } from './EditorApp';
-import { editorReducer, createInitialState, EditorAction, generateObjectId, buildImportedLayers, getPrimaryTiles, getAllObjects } from './editorState';
+import { editorReducer, createInitialState, EditorAction, generateObjectId, buildImportedLayers, getPrimaryTiles, getAllObjects, getActiveTileLayer } from './editorState';
 import { OBJECT_DEFAULTS, BUILDING_DEFAULTS, DEFAULT_INTERIOR_MAP_ID } from './objectDefaults';
 import { loadMap } from '../core/MapLoader';
 import { getPackTileCellDims, getTexture } from '../renderer/AssetLoader';
@@ -263,7 +263,11 @@ export default function EditorCanvas() {
   } | null>(null);
 
   // Copy/paste: last copied entity (without id) and last known cursor world pos
-  const clipboardRef = useRef<Entity | null>(null);
+  // Clipboard for Cmd/Ctrl+C / V. Holds an array so a group selection
+  // (shift-click or marquee) can be duplicated as a unit; relative
+  // positions between clipboard entities are preserved on paste so the
+  // group keeps its shape.
+  const clipboardRef = useRef<Entity[]>([]);
   const cursorWorldRef = useRef<{ x: number; y: number } | null>(null);
   const shiftDownRef = useRef(false);
 
@@ -700,6 +704,14 @@ export default function EditorCanvas() {
     }
 
     if (s.activeTool === 'tile') {
+      // Bail when the tile layer the paint would actually land on is
+      // locked. The reducer also rejects PAINT_TILES on pointer-up, but
+      // without this guard the optimistic updateSingleTile call paints the
+      // canvas visually before the rejected dispatch — leaving phantom
+      // tiles that disappear on the next layer re-render. Match the
+      // reducer's resolution exactly via getActiveTileLayer (active if
+      // tile-kind, else first tile layer).
+      if (getActiveTileLayer(s)?.locked) return;
       isPaintingRef.current = true;
       paintedCellsRef.current = new Set();
       paintedCellsRef.current.add(`${row},${col}`);
@@ -865,7 +877,11 @@ export default function EditorCanvas() {
           return;
         }
       }
-      // Otherwise erase tile to grass
+      // Otherwise erase tile to grass — but only if the tile layer the
+      // erase would land on is unlocked. Otherwise the optimistic
+      // updateSingleTile would paint a phantom grass cell that the
+      // reducer's PAINT_TILES guard later refuses to commit.
+      if (getActiveTileLayer(s)?.locked) return;
       isPaintingRef.current = true;
       paintedCellsRef.current = new Set();
       paintedCellsRef.current.add(`${row},${col}`);
@@ -1503,45 +1519,74 @@ export default function EditorCanvas() {
         });
       }
 
-      // Copy / paste — copy uses the FIRST currently-selected object; paste
-      // drops one new copy at the cursor. Multi-clipboard could be added
-      // later but the common case is "duplicate this thing I just placed."
+      // Copy / paste — captures EVERY currently-selected object so a group
+      // selection (shift-click or marquee) can be duplicated as a unit.
+      // Paste preserves the relative offsets between clipboard entities by
+      // anchoring on the first one: snap the first entity's new position
+      // to the cursor cell, compute the delta, apply that same delta to
+      // every clipboard entity. End result: the pasted group keeps its
+      // original shape, just translated to wherever the cursor is.
       if (mod && e.key.toLowerCase() === 'c') {
         const s = stateRef.current;
-        const firstId = s.selectedObjectIds[0];
-        if (firstId) {
-          const selected = getAllObjects(s).find(o => o.id === firstId);
-          if (selected) {
+        if (s.selectedObjectIds.length > 0) {
+          const all = getAllObjects(s);
+          const copied = s.selectedObjectIds
+            .map(id => all.find(o => o.id === id))
+            .filter((o): o is Entity => !!o);
+          if (copied.length > 0) {
             e.preventDefault();
-            clipboardRef.current = selected;
+            clipboardRef.current = copied;
           }
         }
       } else if (mod && e.key.toLowerCase() === 'v') {
-        const src = clipboardRef.current;
+        const clip = clipboardRef.current;
         const cursor = cursorWorldRef.current;
-        if (src && cursor) {
+        if (clip.length > 0 && cursor) {
           e.preventDefault();
           const s = stateRef.current;
           const freeMode = shiftDownRef.current;
-          let x: number, y: number;
+          // Anchor: first clipboard entity. Compute its NEW position via the
+          // same snap rule single-paste used (tile-cell aligned by default,
+          // free with Shift). Delta = newPos - originalPos. Apply to all.
+          const anchor = clip[0];
+          let anchorNewX: number, anchorNewY: number;
           if (freeMode) {
-            x = cursor.x;
-            y = cursor.y;
+            anchorNewX = cursor.x;
+            anchorNewY = cursor.y;
           } else {
             const col = Math.floor(cursor.x / s.tileSize);
             const row = Math.floor(cursor.y / s.tileSize);
-            x = snapXForSprite(col, src.spriteKey, s.tileSize);
-            y = (row + 1) * s.tileSize;
+            anchorNewX = snapXForSprite(col, anchor.spriteKey, s.tileSize);
+            anchorNewY = (row + 1) * s.tileSize;
           }
-          const sortY = src.sortY < 0 ? y - 1000 : y;
-          const entity: Entity = {
-            ...src,
-            id: generateObjectId(),
-            x, y,
-            sortY,
-          };
-          dispatchRef.current({ type: 'PLACE_OBJECT', entity });
-          dispatchRef.current({ type: 'SELECT_OBJECT', id: entity.id });
+          const dx = anchorNewX - anchor.x;
+          const dy = anchorNewY - anchor.y;
+          // Place each entity at original + delta. Generate new ids so the
+          // pasted entities are independent from the originals; preserve
+          // sortY relationship (decor's sortY < 0 trick is kept).
+          const newIds: string[] = [];
+          for (const src of clip) {
+            const x = src.x + dx;
+            const y = src.y + dy;
+            const newSortY = src.sortY === src.y
+              ? y
+              : (src.sortY < 0 ? y - 1000 : src.sortY + dy);
+            const entity: Entity = {
+              ...src,
+              id: generateObjectId(),
+              x, y, sortY: newSortY,
+            };
+            dispatchRef.current({ type: 'PLACE_OBJECT', entity });
+            newIds.push(entity.id);
+          }
+          // Replace the selection with the pasted entities so the user can
+          // immediately reposition them with arrow keys / drag.
+          if (newIds.length > 0) {
+            dispatchRef.current({ type: 'SELECT_OBJECT', id: newIds[0] });
+            for (let i = 1; i < newIds.length; i++) {
+              dispatchRef.current({ type: 'TOGGLE_SELECT_OBJECT', id: newIds[i] });
+            }
+          }
         }
       }
     };
