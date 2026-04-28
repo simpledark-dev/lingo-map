@@ -13258,54 +13258,6 @@
       "layer": "props"
     },
     {
-      "id": "obj-moi4mr4s-6hfad",
-      "x": 320,
-      "y": 496,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/prebuilt_generic_building.",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 496,
-      "collisionBox": {
-        "offsetX": -48,
-        "offsetY": -95,
-        "width": 95,
-        "height": 95
-      },
-      "scale": 1,
-      "layer": "props",
-      "transition": {
-        "targetMapId": "pokemon-house-1f",
-        "targetSpawnId": "entrance",
-        "triggerBox": {
-          "offsetX": -35,
-          "offsetY": -13,
-          "width": 24,
-          "height": 16
-        }
-      }
-    },
-    {
-      "id": "obj-moi4o9f5-io5mn",
-      "x": 392,
-      "y": 496,
-      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 496,
-      "collisionBox": {
-        "offsetX": -24,
-        "offsetY": -96,
-        "width": 48,
-        "height": 96
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
       "id": "obj-moi4oj71-e5d8y",
       "x": 432,
       "y": 496,
@@ -13418,6 +13370,66 @@
       },
       "scale": 1,
       "layer": "props"
+    },
+    {
+      "id": "obj-moi4o9f5-io5mn",
+      "x": 392,
+      "y": 496,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 496,
+      "collisionBox": {
+        "offsetX": -24,
+        "offsetY": -96,
+        "width": 48,
+        "height": 96
+      },
+      "scale": 1,
+      "layer": "props",
+      "transition": {
+        "targetMapId": "grocer-1f",
+        "targetSpawnId": "indoor-b",
+        "triggerBox": {
+          "offsetX": -16,
+          "offsetY": -13,
+          "width": 32,
+          "height": 16
+        },
+        "incomingSpawnId": "outdoor-b"
+      }
+    },
+    {
+      "id": "obj-moi4mr4s-6hfad",
+      "x": 320,
+      "y": 496,
+      "spriteKey": "me:4_Generic_Building_Singles_16x16/prebuilt_generic_building.",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 496,
+      "collisionBox": {
+        "offsetX": -48,
+        "offsetY": -95,
+        "width": 95,
+        "height": 95
+      },
+      "scale": 1,
+      "layer": "props",
+      "transition": {
+        "targetMapId": "pokemon-house-1f",
+        "targetSpawnId": "entrance",
+        "triggerBox": {
+          "offsetX": -35,
+          "offsetY": -13,
+          "width": 24,
+          "height": 16
+        },
+        "incomingSpawnId": "outdoor-houseA-door"
+      }
     }
   ],
   "buildings": [],
@@ -26783,54 +26795,6 @@
           "layer": "props"
         },
         {
-          "id": "obj-moi4mr4s-6hfad",
-          "x": 320,
-          "y": 496,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/prebuilt_generic_building.",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 496,
-          "collisionBox": {
-            "offsetX": -48,
-            "offsetY": -95,
-            "width": 95,
-            "height": 95
-          },
-          "scale": 1,
-          "layer": "props",
-          "transition": {
-            "targetMapId": "pokemon-house-1f",
-            "targetSpawnId": "entrance",
-            "triggerBox": {
-              "offsetX": -35,
-              "offsetY": -13,
-              "width": 24,
-              "height": 16
-            }
-          }
-        },
-        {
-          "id": "obj-moi4o9f5-io5mn",
-          "x": 392,
-          "y": 496,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 496,
-          "collisionBox": {
-            "offsetX": -24,
-            "offsetY": -96,
-            "width": 48,
-            "height": 96
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-moi4oj71-e5d8y",
           "x": 432,
           "y": 496,
@@ -26943,6 +26907,66 @@
           },
           "scale": 1,
           "layer": "props"
+        },
+        {
+          "id": "obj-moi4o9f5-io5mn",
+          "x": 392,
+          "y": 496,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 496,
+          "collisionBox": {
+            "offsetX": -24,
+            "offsetY": -96,
+            "width": 48,
+            "height": 96
+          },
+          "scale": 1,
+          "layer": "props",
+          "transition": {
+            "targetMapId": "grocer-1f",
+            "targetSpawnId": "indoor-b",
+            "triggerBox": {
+              "offsetX": -16,
+              "offsetY": -13,
+              "width": 32,
+              "height": 16
+            },
+            "incomingSpawnId": "outdoor-b"
+          }
+        },
+        {
+          "id": "obj-moi4mr4s-6hfad",
+          "x": 320,
+          "y": 496,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/prebuilt_generic_building.",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 496,
+          "collisionBox": {
+            "offsetX": -48,
+            "offsetY": -95,
+            "width": 95,
+            "height": 95
+          },
+          "scale": 1,
+          "layer": "props",
+          "transition": {
+            "targetMapId": "pokemon-house-1f",
+            "targetSpawnId": "entrance",
+            "triggerBox": {
+              "offsetX": -35,
+              "offsetY": -13,
+              "width": 24,
+              "height": 16
+            },
+            "incomingSpawnId": "outdoor-houseA-door"
+          }
         }
       ]
     },

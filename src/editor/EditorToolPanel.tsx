@@ -598,6 +598,30 @@ function DoorEditor({
               style={inputStyle}
             />
           </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 10, color: '#888' }}>
+            Incoming spawn id <span style={{ color: '#555' }}>(optional)</span>
+            <input
+              type="text"
+              value={t.incomingSpawnId ?? ''}
+              onChange={e => {
+                const v = e.target.value.trim();
+                // Empty string strips the field so save format stays clean
+                // and the engine doesn't register a spawn for it.
+                const next = { ...t };
+                if (v) next.incomingSpawnId = v;
+                else delete next.incomingSpawnId;
+                setT(next);
+              }}
+              placeholder="e.g. outdoor-houseA-door"
+              style={inputStyle}
+            />
+            <span style={{ color: '#666', fontSize: 9, lineHeight: 1.4 }}>
+              The runtime registers this name as a spawn point 1 tile below
+              this entity. Set the interior exit door&apos;s <strong>Target
+              spawn id</strong> to the same value so leaving the building
+              lands the player back here.
+            </span>
+          </label>
           <div style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>Trigger zone</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             <NumberRow

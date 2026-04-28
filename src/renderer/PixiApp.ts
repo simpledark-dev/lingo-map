@@ -183,16 +183,34 @@ export class PixiApp {
         targetSpawnId: o.transition!.targetSpawnId,
       }];
     });
-    // Spawn point: 1 tile BELOW the entity's feet, so arriving players don't
-    // immediately land in the trigger zone above.
+    // Spawn point: anchor on the trigger zone when one is set explicitly,
+    // else fall back to the legacy "1 tile below the entity's feet"
+    // shape (still correct for staircases, where entity.y IS the door).
+    // Anchoring on the triggerBox matters for big building sprites whose
+    // feet sit far below the actual door tile — without this fix the
+    // returning player materialised in the middle of the building.
     const dynamicSpawns = transitionEntities
       .filter(o => o.transition!.incomingSpawnId)
-      .map(o => ({
-        id: o.transition!.incomingSpawnId!,
-        x: o.x,
-        y: o.y + T,
-        facing: 'down' as const,
-      }));
+      .map(o => {
+        const tb = o.transition!.triggerBox;
+        let x: number, y: number;
+        if (tb && tb.width > 0 && tb.height > 0) {
+          // Land player just below the trigger zone, centred on it.
+          // `+ T` keeps a one-tile buffer so spawning doesn't immediately
+          // re-fire the door trigger and bounce the player back inside.
+          x = o.x + tb.offsetX + tb.width / 2;
+          y = o.y + tb.offsetY + tb.height + T;
+        } else {
+          x = o.x;
+          y = o.y + T;
+        }
+        return {
+          id: o.transition!.incomingSpawnId!,
+          x,
+          y,
+          facing: 'down' as const,
+        };
+      });
     const mergedSpawns = dynamicSpawns.length > 0
       ? [
           ...baseMap.spawnPoints.filter(s => !dynamicSpawns.some(d => d.id === s.id)),

@@ -330,7 +330,8 @@
         "width": 0,
         "height": 0
       },
-      "scale": 0.17600000000000002
+      "scale": 0.17600000000000002,
+      "layer": "props"
     },
     {
       "id": "obj-10",
@@ -348,7 +349,8 @@
         "width": 28,
         "height": 14
       },
-      "scale": 0.15
+      "scale": 0.15,
+      "layer": "props"
     },
     {
       "id": "obj-14",
@@ -366,7 +368,8 @@
         "width": 0,
         "height": 0
       },
-      "scale": 0.11
+      "scale": 0.11,
+      "layer": "props"
     },
     {
       "id": "obj-15",
@@ -384,7 +387,8 @@
         "width": 0,
         "height": 0
       },
-      "scale": 0.2
+      "scale": 0.2,
+      "layer": "props"
     },
     {
       "id": "obj-mo7kcb1m-tzp1h",
@@ -402,7 +406,8 @@
         "width": 28,
         "height": 12
       },
-      "scale": 0.17
+      "scale": 0.17,
+      "layer": "props"
     },
     {
       "id": "obj-mo7mg4ip-cwr7c",
@@ -420,7 +425,8 @@
         "width": 0,
         "height": 0
       },
-      "scale": 0.12
+      "scale": 0.12,
+      "layer": "props"
     },
     {
       "id": "obj-mo7mgtx0-as14j",
@@ -438,7 +444,8 @@
         "width": 14,
         "height": 8
       },
-      "scale": 0.16
+      "scale": 0.16,
+      "layer": "props"
     },
     {
       "id": "obj-mo7mhif4-rfmg7",
@@ -456,7 +463,8 @@
         "width": 10,
         "height": 6
       },
-      "scale": 0.15400000000000003
+      "scale": 0.15400000000000003,
+      "layer": "props"
     },
     {
       "id": "obj-mo7mik8q-zf129",
@@ -474,7 +482,8 @@
         "width": 14,
         "height": 7
       },
-      "scale": 0.13
+      "scale": 0.13,
+      "layer": "props"
     },
     {
       "id": "obj-moa0za02-d5o3l",
@@ -492,7 +501,8 @@
         "width": 12,
         "height": 6
       },
-      "scale": 0.14
+      "scale": 0.14,
+      "layer": "props"
     }
   ],
   "buildings": [],
@@ -504,6 +514,548 @@
       "x": 272,
       "y": 80,
       "facing": "down"
+    }
+  ],
+  "layers": [
+    {
+      "id": "ground",
+      "name": "Ground",
+      "kind": "tile",
+      "visible": true,
+      "locked": false,
+      "tiles": [
+        [
+          "wall-interior-top-bl",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top",
+          "wall-interior-top-br"
+        ],
+        [
+          "wall-interior-left",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior-right"
+        ],
+        [
+          "wall-interior-left",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "floor-wood",
+          "floor-wood",
+          "wall-interior",
+          "wall-interior-right"
+        ],
+        [
+          "wall-interior-left",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "wall-interior",
+          "floor-wood",
+          "floor-wood",
+          "wall-interior",
+          "wall-interior-right"
+        ],
+        [
+          "wall-interior-corner-bottom-left",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "wall-interior-bottom",
+          "floor-wood",
+          "floor-wood",
+          "wall-interior-bottom",
+          "wall-interior-corner-bottom-right"
+        ],
+        [
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood"
+        ],
+        [
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood"
+        ],
+        [
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood"
+        ],
+        [
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood"
+        ],
+        [
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood"
+        ],
+        [
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood"
+        ],
+        [
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood"
+        ],
+        [
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood"
+        ],
+        [
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood",
+          "floor-wood"
+        ]
+      ]
+    },
+    {
+      "id": "floor",
+      "name": "Floor",
+      "kind": "object",
+      "visible": true,
+      "locked": false,
+      "objects": []
+    },
+    {
+      "id": "decor-low",
+      "name": "Decor",
+      "kind": "object",
+      "visible": true,
+      "locked": false,
+      "objects": []
+    },
+    {
+      "id": "props",
+      "name": "Props",
+      "kind": "object",
+      "visible": true,
+      "locked": false,
+      "objects": [
+        {
+          "id": "obj-3",
+          "x": 272.11979166666674,
+          "y": 80.29947916666669,
+          "spriteKey": "wall-staircase",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 80.29947916666669,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 0.17600000000000002,
+          "layer": "props"
+        },
+        {
+          "id": "obj-10",
+          "x": 111.66093749999999,
+          "y": 138.27187499999997,
+          "spriteKey": "bed",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 138.27187499999997,
+          "collisionBox": {
+            "offsetX": -14,
+            "offsetY": -14,
+            "width": 28,
+            "height": 14
+          },
+          "scale": 0.15,
+          "layer": "props"
+        },
+        {
+          "id": "obj-14",
+          "x": 153.50781250000003,
+          "y": 49.17838541666667,
+          "spriteKey": "wall-clock",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 49.17838541666667,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 0.11,
+          "layer": "props"
+        },
+        {
+          "id": "obj-15",
+          "x": 66.15104166666667,
+          "y": 58.8828125,
+          "spriteKey": "wall-painting",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 58.8828125,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 0.2,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mo7kcb1m-tzp1h",
+          "x": 190.67031249999997,
+          "y": 112.16093750000002,
+          "spriteKey": "drawer-cabinet",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 112.16093750000002,
+          "collisionBox": {
+            "offsetX": -14,
+            "offsetY": -12,
+            "width": 28,
+            "height": 12
+          },
+          "scale": 0.17,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mo7mg4ip-cwr7c",
+          "x": 200,
+          "y": 176,
+          "spriteKey": "rug-medium",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": -824,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 0.12,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mo7mgtx0-as14j",
+          "x": 55.90781249999996,
+          "y": 101.71614583333334,
+          "spriteKey": "floor-clock",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 101.71614583333334,
+          "collisionBox": {
+            "offsetX": -7,
+            "offsetY": -8,
+            "width": 14,
+            "height": 8
+          },
+          "scale": 0.16,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mo7mhif4-rfmg7",
+          "x": 160,
+          "y": 224,
+          "spriteKey": "lamp-table",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 224,
+          "collisionBox": {
+            "offsetX": -5,
+            "offsetY": -6,
+            "width": 10,
+            "height": 6
+          },
+          "scale": 0.15400000000000003,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mo7mik8q-zf129",
+          "x": 20.44401041666667,
+          "y": 220.39713541666669,
+          "spriteKey": "plant-pot-2",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 220.39713541666669,
+          "collisionBox": {
+            "offsetX": -7,
+            "offsetY": -7,
+            "width": 14,
+            "height": 7
+          },
+          "scale": 0.13,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moa0za02-d5o3l",
+          "x": 116.78125000000006,
+          "y": 216.871875,
+          "spriteKey": "chair",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 216.871875,
+          "collisionBox": {
+            "offsetX": -6,
+            "offsetY": -6,
+            "width": 12,
+            "height": 6
+          },
+          "scale": 0.14,
+          "layer": "props"
+        }
+      ]
+    },
+    {
+      "id": "above",
+      "name": "Above",
+      "kind": "object",
+      "visible": true,
+      "locked": false,
+      "objects": []
     }
   ]
 }
