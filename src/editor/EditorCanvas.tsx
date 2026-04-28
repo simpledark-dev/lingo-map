@@ -1208,6 +1208,20 @@ export default function EditorCanvas() {
   // ── Keyboard shortcuts ──
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip every editor shortcut while focus is on a form control. Without
+      // this, typing into the panel's numeric inputs / spawn-id text field
+      // accidentally fires Backspace→DELETE_OBJECT, '[' / ']' →
+      // SET_OBJECTS_LAYER, 'g' → TOGGLE_GRID, etc. The browser-native
+      // text-edit behaviour (cursor movement, character delete, undo within
+      // the field) is what the user actually wants while typing.
+      const focusEl = e.target as (HTMLElement | null);
+      if (focusEl) {
+        const tag = focusEl.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || focusEl.isContentEditable) {
+          return;
+        }
+      }
+
       // Single source of truth for the modifier — covers both Cmd (Mac) and
       // Ctrl (PC). Prior code had two separate Ctrl+Z branches that fired
       // back-to-back on PC, undoing two steps per keypress.
