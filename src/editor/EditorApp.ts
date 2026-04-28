@@ -22,6 +22,12 @@ export class EditorApp {
   // shown while the user is dragging the selection to a new location.
   private areaSelectGraphics: Graphics;
   private areaSelectGhostGraphics: Graphics;
+  /** Marquee rectangle drawn while the user is drag-selecting in the
+   * Select tool — Figma-style click-and-drag in empty space to lasso many
+   * entities at once. Pixel-precise (not tile-snapped) since entities have
+   * free positions. Distinct from `areaSelectGraphics`, which is the
+   * tile-aligned rect for the Area Sel tool. */
+  private marqueeGraphics: Graphics;
   private selectionLabel: Text | null = null;
   /** Floating layer-name tag drawn near the cursor during placement-style
    * tools so the user can see which layer their next click will write to.
@@ -68,6 +74,7 @@ export class EditorApp {
     this.areaRectGraphics = new Graphics();
     this.areaSelectGraphics = new Graphics();
     this.areaSelectGhostGraphics = new Graphics();
+    this.marqueeGraphics = new Graphics();
     this.previewContainer = new Container();
     this.entityLayer.sortableChildren = true;
   }
@@ -100,6 +107,7 @@ export class EditorApp {
     this.worldContainer.addChild(this.areaRectGraphics);
     this.worldContainer.addChild(this.areaSelectGraphics);
     this.worldContainer.addChild(this.areaSelectGhostGraphics);
+    this.worldContainer.addChild(this.marqueeGraphics);
     this.worldContainer.addChild(this.previewContainer);
     this.app.stage.addChild(this.worldContainer);
 
@@ -476,6 +484,25 @@ export class EditorApp {
 
   clearSelectionGhost(): void {
     this.areaSelectGhostGraphics.clear();
+  }
+
+  /** Draw the marquee selection rectangle in WORLD pixel coords (not
+   * tile-aligned). EditorCanvas calls this on every pointermove while the
+   * user is drag-selecting in the Select tool. */
+  showMarquee(x1: number, y1: number, x2: number, y2: number): void {
+    const left = Math.min(x1, x2);
+    const top = Math.min(y1, y2);
+    const w = Math.abs(x2 - x1);
+    const h = Math.abs(y2 - y1);
+    this.marqueeGraphics.clear();
+    if (w < 1 && h < 1) return;
+    this.marqueeGraphics.rect(left, top, w, h);
+    this.marqueeGraphics.fill({ color: 0x44aaff, alpha: 0.12 });
+    this.marqueeGraphics.stroke({ color: 0x44aaff, alpha: 0.9, width: 1 });
+  }
+
+  clearMarquee(): void {
+    this.marqueeGraphics.clear();
   }
 
   highlightBuilding(b: Building): void {

@@ -252,6 +252,16 @@ export default function EditorCanvas() {
   // Area Select: dragging an EXISTING selection to a new location.
   const areaMoveRef = useRef<{ source: { row1: number; col1: number; row2: number; col2: number }; startCol: number; startRow: number; dRow: number; dCol: number } | null>(null);
 
+  // Marquee selection: Figma-style click+drag in empty space within the
+  // Select tool to draw a rectangle that selects every entity whose bbox
+  // intersects it. `addToSelection` is captured at drag-start (shift held)
+  // so subsequent pointermoves don't depend on the live shift state.
+  const marqueeRef = useRef<{
+    startWorld: { x: number; y: number };
+    currentWorld: { x: number; y: number };
+    addToSelection: boolean;
+  } | null>(null);
+
   // Copy/paste: last copied entity (without id) and last known cursor world pos
   const clipboardRef = useRef<Entity | null>(null);
   const cursorWorldRef = useRef<{ x: number; y: number } | null>(null);
@@ -673,9 +683,19 @@ export default function EditorCanvas() {
           }
         }
       }
-      // Click on empty space: shift held → keep selection; no shift → clear.
-      // Lets the user re-anchor the cursor without losing a partial group.
-      if (!found && !e.shiftKey) dispatchRef.current({ type: 'SELECT_OBJECT', id: null });
+      // Click on empty space: start a marquee. The selection is computed
+      // on pointerup so a true click-without-drag (no movement, immediate
+      // release) still acts as a deselect (handled in pointerup). Shift
+      // held captures intent to ADD-to-selection on release; otherwise the
+      // marquee REPLACES the existing selection.
+      if (!found) {
+        marqueeRef.current = {
+          startWorld: { x, y },
+          currentWorld: { x, y },
+          addToSelection: e.shiftKey,
+        };
+        editorAppRef.current?.showMarquee(x, y, x, y);
+      }
     } else if (s.activeTool === 'eraser') {
       const lockedLayers = new Set(s.layers.filter(l => l.locked).map(l => l.id));
       // Try erasing a building first — sprite-sized hit box
@@ -731,6 +751,24 @@ export default function EditorCanvas() {
       const { row, col } = getWorldPos(e);
       ref.end = { row, col };
       editorAppRef.current?.showSelectionArea(ref.start.row, ref.start.col, row, col);
+      return;
+    }
+
+    // Marquee selection in the Select tool: stretch the rect from the
+    // anchor to the current cursor position. Selection is computed on
+    // pointerup so the user can refine the rectangle freely without
+    // racking up dispatches.
+    if (marqueeRef.current) {
+      const world = editorAppRef.current?.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, s.zoom);
+      if (world) {
+        marqueeRef.current.currentWorld = world;
+        editorAppRef.current?.showMarquee(
+          marqueeRef.current.startWorld.x,
+          marqueeRef.current.startWorld.y,
+          world.x,
+          world.y,
+        );
+      }
       return;
     }
 
@@ -942,6 +980,14 @@ export default function EditorCanvas() {
     const app = editorAppRef.current;
     app?.clearCursorLayerLabel();
     app?.clearPreview();
+    // If a marquee was in flight, dropping the cursor off the canvas
+    // cancels it without committing a half-formed selection. The pointerup
+    // path that immediately follows for left-button-still-down events
+    // would otherwise see a stale ref.
+    if (marqueeRef.current) {
+      marqueeRef.current = null;
+      app?.clearMarquee();
+    }
   }, []);
 
   const handlePointerUp = useCallback(() => {
@@ -972,6 +1018,69 @@ export default function EditorCanvas() {
       // the map bounds, so we dispatch raw cell indices.
       dispatchRef.current({ type: 'CLEAR_AREA', row1: start.row, col1: start.col, row2: end.row, col2: end.col });
       editorAppRef.current?.clearAreaRect();
+      return;
+    }
+
+    if (marqueeRef.current) {
+      // Commit a marquee selection in the Select tool. Two outcomes:
+      //   - True click (no movement): treat as deselect (legacy behavior).
+      //   - Real drag: bbox-intersect every visible/unlocked entity against
+      //     the marquee rect; replace or augment selection per shift state.
+      const m = marqueeRef.current;
+      marqueeRef.current = null;
+      editorAppRef.current?.clearMarquee();
+      const dx = m.currentWorld.x - m.startWorld.x;
+      const dy = m.currentWorld.y - m.startWorld.y;
+      const moved = Math.abs(dx) > 3 || Math.abs(dy) > 3;
+      if (!moved) {
+        // Click without drag → deselect, unless shift was held (then keep
+        // the existing selection so re-anchoring the cursor is harmless).
+        if (!m.addToSelection) dispatchRef.current({ type: 'SELECT_OBJECT', id: null });
+        return;
+      }
+      const s = stateRef.current;
+      const left = Math.min(m.startWorld.x, m.currentWorld.x);
+      const right = Math.max(m.startWorld.x, m.currentWorld.x);
+      const top = Math.min(m.startWorld.y, m.currentWorld.y);
+      const bottom = Math.max(m.startWorld.y, m.currentWorld.y);
+      const lockedLayers = new Set(s.layers.filter(l => l.locked).map(l => l.id));
+      // Bbox-intersection rather than feet-position-inside: matches Figma's
+      // "anything overlapping the rect" intuition. Skip locked-layer
+      // entities (they can't be moved/deleted anyway, so excluding them
+      // keeps the resulting selection actionable).
+      const hits: string[] = [];
+      for (const o of getAllObjects(s)) {
+        if (lockedLayers.has(o.layer ?? '')) continue;
+        const bb = getSpriteBounds(o.x, o.y, o.spriteKey, o.anchor, s.tileSize, o.scale ?? 1);
+        if (bb.right > left && bb.left < right && bb.bottom > top && bb.top < bottom) {
+          hits.push(o.id);
+        }
+      }
+      // Buildings get included too — they share `selectedObjectIds` with
+      // entities, and Delete works on either kind.
+      for (const b of s.buildings) {
+        const bb = getSpriteBounds(b.x, b.y, b.baseSpriteKey, b.anchor, s.tileSize, b.scale ?? 1);
+        if (bb.right > left && bb.left < right && bb.bottom > top && bb.top < bottom) {
+          hits.push(b.id);
+        }
+      }
+      if (m.addToSelection) {
+        // Toggle each hit so a second shift-marquee over the same items
+        // unselects them (mirrors shift-click toggle semantics).
+        for (const id of hits) dispatchRef.current({ type: 'TOGGLE_SELECT_OBJECT', id });
+      } else {
+        // Replace selection. Empty-marquee = clear.
+        if (hits.length === 0) {
+          dispatchRef.current({ type: 'SELECT_OBJECT', id: null });
+        } else {
+          // First hit replaces; rest are toggled in to build the multi
+          // selection in one batch.
+          dispatchRef.current({ type: 'SELECT_OBJECT', id: hits[0] });
+          for (let i = 1; i < hits.length; i++) {
+            dispatchRef.current({ type: 'TOGGLE_SELECT_OBJECT', id: hits[i] });
+          }
+        }
+      }
       return;
     }
 
