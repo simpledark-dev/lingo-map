@@ -180,8 +180,24 @@ function initFromGameMap(): ReturnType<typeof createInitialState> {
     } catch { /* fall through to compiled map */ }
   }
 
-  // 3) Fallback: compiled map
-  const map = loadMap(mapId);
+  // 3) Fallback: compiled map. If `mapId` was set to something not in the
+  // compiled registry (e.g. a stale custom name from an old import session,
+  // or the placeholder 'custom-map' default), `loadMap` throws and the
+  // entire editor page errors out. Catch and degrade to 'pokemon' instead
+  // — the disk-load effect will still try `/api/maps/<original-id>` next,
+  // so a real on-disk map with a non-registry id stays loadable.
+  let map: ReturnType<typeof loadMap>;
+  try {
+    map = loadMap(mapId);
+  } catch {
+    try {
+      map = loadMap('pokemon');
+    } catch {
+      // Registry is broken or pokemon is missing — return an empty default
+      // state so the editor can at least render the chrome.
+      return createInitialState();
+    }
+  }
   const base = createInitialState(map.width, map.height);
   return {
     ...base,
