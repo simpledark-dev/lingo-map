@@ -196,8 +196,11 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
               style={{ width: '100%' }}
             />
           </div>
-          <CollisionEditor entity={selectedObject} dispatch={dispatch} />
-          <DoorEditor entity={selectedObject} dispatch={dispatch} tileSize={state.tileSize} />
+          {/* Key on entity.id resets the collapse state of these sub-
+              sections when the user switches selection — Entity A's
+              expanded "Door" shouldn't carry over into Entity B. */}
+          <CollisionEditor key={`coll-${selectedObject.id}`} entity={selectedObject} dispatch={dispatch} />
+          <DoorEditor key={`door-${selectedObject.id}`} entity={selectedObject} dispatch={dispatch} tileSize={state.tileSize} />
         </Section>
       )}
 
@@ -407,6 +410,39 @@ function ScaleBtn({ label, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
+/** Collapsible section header shared by CollisionEditor / DoorEditor.
+ * Click toggles a chevron and shows/hides the children. Initial state is
+ * derived from `defaultOpen` so sections with data on the entity start
+ * expanded and empty ones stay tucked away — keeps the panel compact. */
+function CollapsibleSubsection({
+  title,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  defaultOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #333', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+          color: '#aaa', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1,
+        }}
+      >
+        <span>{title}</span>
+        <span style={{ fontSize: 9, color: '#777' }}>{open ? '▼' : '▶'}</span>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 /** Collision editor sub-section shown inside the entity selection panel.
  * Displays the entity's collisionBox as four numeric inputs (offsetX,
  * offsetY, width, height) plus a "Block player" toggle and an "Auto-fit at
@@ -446,8 +482,7 @@ function CollisionEditor({
   };
 
   return (
-    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #333', display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1 }}>Collision</div>
+    <CollapsibleSubsection title="Collision" defaultOpen={enabled}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
         <input
           type="checkbox"
@@ -474,7 +509,7 @@ function CollisionEditor({
           >Auto-fit ({visW}×{Math.round(visH / 2)})</button>
         </>
       )}
-    </div>
+    </CollapsibleSubsection>
   );
 }
 
@@ -547,8 +582,7 @@ function DoorEditor({
   };
 
   return (
-    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #333', display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1 }}>Door / Transition</div>
+    <CollapsibleSubsection title="Door / Transition" defaultOpen={enabled}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
         <input
           type="checkbox"
@@ -664,7 +698,7 @@ function DoorEditor({
           </div>
         </>
       )}
-    </div>
+    </CollapsibleSubsection>
   );
 }
 
