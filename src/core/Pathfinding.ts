@@ -112,13 +112,18 @@ export function findPath(
   const ec = Math.max(0, Math.min(cols - 1, endC));
   const er = Math.max(0, Math.min(rows - 1, endR));
 
-  // If target is blocked, find nearest walkable cell
+  // If target is blocked, find nearest walkable cell. Track whether we
+  // relocated so the final-waypoint override below knows whether to
+  // honour the original tap coordinates (target IS walkable) or stop
+  // at the nearest-walkable cell center (target was unreachable).
   let goalR = er, goalC = ec;
+  let goalRelocated = false;
   if (!grid[goalR]?.[goalC]) {
     const nearest = findNearestWalkable(grid, er, ec, rows, cols);
     if (!nearest) return [];
     goalR = nearest[0];
     goalC = nearest[1];
+    goalRelocated = true;
   }
 
   // If start is blocked (shouldn't happen but safety)
@@ -224,8 +229,14 @@ export function findPath(
     }
   }
 
-  // Replace last waypoint with exact target position
-  if (simplified.length > 0) {
+  // When the target is walkable, replace the last waypoint with the
+  // exact tap coordinates so the player ends up where the user pointed
+  // (not the cell center). When the target was unreachable and we
+  // relocated the goal, KEEP the cell-center as the final waypoint —
+  // overriding to the tap coords would send the player into the
+  // obstacle and let the runtime stuck-guard cancel it. Now the path
+  // ends correctly at the nearest reachable spot.
+  if (simplified.length > 0 && !goalRelocated) {
     simplified[simplified.length - 1] = { x: toX, y: toY };
   }
 
