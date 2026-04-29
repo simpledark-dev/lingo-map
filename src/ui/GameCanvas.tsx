@@ -233,40 +233,63 @@ export default function GameCanvas() {
       });
     };
 
-    // Cold-start path:
-    //   1. Block on the START MAP ONLY — that's the only override the
-    //      first frame actually needs. Was previously /api/maps which
-    //      pulled every map's data (~440 KB) before Pixi even started.
-    //   2. After `pixiApp.init()` resolves (first scene mounted, all
-    //      blocking pack PNGs loaded), wait 500ms then background-fetch
-    //      the rest of the maps. The wait-for-init keeps this off the
-    //      first-paint critical path; the 500ms additional delay keeps
-    //      it off the player's immediate-input path.
-    //   3. If the user races a door transition to an interior before
-    //      the background fetch lands, they get the compiled-map
-    //      fallback for that scene. Rare; recoverable on next visit.
-    const fetchOtherMapsInBackground = () => {
-      fetch('/api/maps')
+    // Cold-start override loading:
+    //   Primary: fetch ONLY the start map (~390 KB, vs 440 KB for the
+    //   all-maps endpoint). Saves a small chunk off the boot critical
+    //   path.
+    //
+    //   Fallback: if the per-id fetch fails for ANY reason (mobile
+    //   network blip, SW returning stale 503, malformed response),
+    //   fall back to /api/maps so the user doesn't end up rendering
+    //   the compiled-scaffold fallback (which is missing all their
+    //   edits — sidewalks, buildings, NPCs).
+    //
+    //   Background: if the primary path succeeded, kick off /api/maps
+    //   500 ms after first paint to grab interior-map overrides. If
+    //   the fallback ran, all maps are already applied — skip.
+    const fetchAllMaps = (): Promise<{ ok: boolean; appliedAll: boolean }> => {
+      return fetch('/api/maps')
         .then(r => r.ok ? r.json() : null)
         .then(data => {
-          if (cancelled || !data?.maps) return;
-          for (const id of Object.keys(data.maps)) {
-            if (id === startMapId) continue; // already applied above
-            applyOverride(data.maps[id]);
-          }
+          if (cancelled || !data?.maps) return { ok: false, appliedAll: false };
+          for (const id of Object.keys(data.maps)) applyOverride(data.maps[id]);
+          return { ok: true, appliedAll: true };
         })
-        .catch(() => { /* compiled fallback for interiors is fine */ });
+        .catch(() => ({ ok: false, appliedAll: false }));
     };
-    fetch(`/api/maps/${encodeURIComponent(startMapId)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data && !data.error) applyOverride(data);
-      })
-      .catch(() => { /* offline or no data dir — use compiled maps */ })
-      .finally(() => {
+    const isValidMapData = (d: unknown): d is { id: string; width: number; height: number; layers?: unknown[] } => {
+      if (!d || typeof d !== 'object') return false;
+      const m = d as { id?: unknown; width?: unknown; height?: unknown; error?: unknown };
+      return typeof m.id === 'string' && typeof m.width === 'number' && typeof m.height === 'number' && !m.error;
+    };
+    const loadStartMapOverride = async (): Promise<{ appliedAll: boolean }> => {
+      // Primary path
+      try {
+        const r = await fetch(`/api/maps/${encodeURIComponent(startMapId)}`);
+        if (r.ok) {
+          const data = await r.json();
+          if (isValidMapData(data)) {
+            applyOverride(data);
+            return { appliedAll: false };
+          }
+        }
+      } catch {
+        // fall through to the all-maps fallback
+      }
+      // Fallback path — pull every map. Reliable but heavier.
+      const result = await fetchAllMaps();
+      return { appliedAll: result.appliedAll };
+    };
+    loadStartMapOverride()
+      .catch(() => ({ appliedAll: false }))
+      .then(({ appliedAll }) => {
         startGame().then(() => {
           if (cancelled) return;
-          window.setTimeout(fetchOtherMapsInBackground, 500);
+          // If the primary path applied just the start map, we still
+          // need interior overrides — fire the background fetch. If
+          // the fallback ran, /api/maps already covered everything
+          // (start map AND interiors); skip the duplicate fetch.
+          if (!appliedAll) window.setTimeout(fetchAllMaps, 500);
         });
       });
 
