@@ -33,6 +33,13 @@ export class RenderSystem {
   private autoTileLayer: Container;
   private entityLayer: Container;
   private roofLayer: Container;
+  // Sits between autoTileLayer and entityLayer. Holds objects on the
+  // 'floor' layer (sidewalks, rugs, doormats — flat decor that never
+  // needs to Y-sort with the player). Crucially, this container's
+  // children do NOT participate in entityLayer.sortableChildren, so
+  // moving 478 sidewalk objects here cuts the dynamic sort cost
+  // dramatically.
+  private floorContainer: Container;
 
   private playerSprite: Sprite | null = null;
 
@@ -91,15 +98,19 @@ export class RenderSystem {
     this.groundLayer = new Container();
     this.transitionLayer = new Container();
     this.autoTileLayer = new Container();
+    this.floorContainer = new Container();
     this.entityLayer = new Container();
     this.roofLayer = new Container();
 
-    // Entity layer uses sortableChildren for zIndex-based depth sorting
+    // Entity layer uses sortableChildren for zIndex-based depth sorting.
+    // floorContainer intentionally does NOT — its children are flat
+    // sidewalk/rug decor that never Y-sort with the player.
     this.entityLayer.sortableChildren = true;
 
     this.worldContainer.addChild(this.groundLayer);
     this.worldContainer.addChild(this.transitionLayer);
     this.worldContainer.addChild(this.autoTileLayer);
+    this.worldContainer.addChild(this.floorContainer);
     this.worldContainer.addChild(this.entityLayer);
     this.worldContainer.addChild(this.roofLayer);
     this.app.stage.addChild(this.worldContainer);
@@ -168,6 +179,7 @@ export class RenderSystem {
   renderObjects(map: MapData): void {
     this.currentMap = map;
     this.entityLayer.removeChildren();
+    this.floorContainer.removeChildren();
     this.roofLayer.removeChildren();
     this.objectSprites.clear();
     this.buildingBaseSprites.clear();
@@ -190,7 +202,16 @@ export class RenderSystem {
       sprite.y = obj.y;
       sprite.zIndex = getEffectiveZIndex(layers, obj.layer, obj.sortY);
       if (obj.scale && obj.scale !== 1) sprite.scale.set(obj.scale);
-      this.entityLayer.addChild(sprite);
+      // Flat 'floor' decor lives in a non-sortable sibling container
+      // below entityLayer. zIndex still gets set above for the few code
+      // paths that read it (e.g., debug overlays), but the renderer
+      // never sorts these children — order falls back to addChild
+      // order, which matches data order.
+      if (obj.layer === 'floor') {
+        this.floorContainer.addChild(sprite);
+      } else {
+        this.entityLayer.addChild(sprite);
+      }
       this.objectSprites.set(obj.id, sprite);
       // Pre-filter occluders: a sprite must be both wide AND tall enough
       // to plausibly hide the player. Floor decor (rugs, sidewalks,
@@ -417,6 +438,14 @@ export class RenderSystem {
     // Cull entity layer (trees, objects, NPCs, buildings — but not player)
     for (const child of this.entityLayer.children) {
       if (child === this.playerSprite) continue;
+      child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 32 > top && child.y - 192 < bottom;
+    }
+
+    // Cull flat floor decor — same bbox-extend approach. These live in
+    // their own non-sortable container after the layer split (R4), so
+    // we have to walk them here too or off-screen sidewalks stay
+    // active in the GPU batch.
+    for (const child of this.floorContainer.children) {
       child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 32 > top && child.y - 192 < bottom;
     }
 
