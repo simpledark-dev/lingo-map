@@ -501,8 +501,16 @@ export class RenderSystem {
     const offsetY = viewportCap ? (canvasH - cappedScreenH) / 2 : 0;
 
     this.worldContainer.scale.set(zoom, zoom);
-    this.worldContainer.x = offsetX - cameraX * zoom;
-    this.worldContainer.y = offsetY - cameraY * zoom;
+    // Snap the camera to whole CSS pixels. Without this, fractional
+    // worldContainer.x means every sprite gets a fractional screen
+    // position; Pixi's `roundPixels` rounds each independently, but at
+    // low zoom on high-DPI screens neighbouring sprites can round in
+    // opposite directions per-frame, producing a "shimmer/shake" effect
+    // that the user reported on mobile. Snapping the whole container's
+    // translation up front makes every child shift by the same integer
+    // pixel count, eliminating the per-sprite divergence.
+    this.worldContainer.x = Math.round(offsetX - cameraX * zoom);
+    this.worldContainer.y = Math.round(offsetY - cameraY * zoom);
 
     // Install / update / remove the viewport mask so anything outside the
     // visible window renders black (the stage background).
