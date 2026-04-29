@@ -489,7 +489,7 @@ export class RenderSystem {
     const layers = this.currentMap ? getLayers(this.currentMap) : [];
     const zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, y);
     const tex = getTexture(spriteKey);
-    if (!tex && !this.warnedMissingCarKeys.has(spriteKey)) {
+    if (process.env.NODE_ENV === 'development' && !tex && !this.warnedMissingCarKeys.has(spriteKey)) {
       console.warn(`[RenderSystem] car sprite "${spriteKey}" not loaded — falling back to red rect. Check that the pack file exists at /assets/me/${spriteKey.startsWith('me:') ? spriteKey.slice(3) : spriteKey}.png`);
       this.warnedMissingCarKeys.add(spriteKey);
     }

@@ -45,3 +45,4 @@ modernexteriors-win
 # Symlink to the licensed pack folder above; do not commit.
 public/assets/me
 .playwright-cli
+docs

@@ -131,7 +131,9 @@ export class PixiApp {
       if (e.code === 'Backquote') {
         this.debugShowCollisions = !this.debugShowCollisions;
         if (!this.debugShowCollisions) this.renderSystem?.clearDebugCollisions();
-        console.log(`[PixiApp] collision-box debug overlay: ${this.debugShowCollisions ? 'ON' : 'OFF'}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[PixiApp] collision-box debug overlay: ${this.debugShowCollisions ? 'ON' : 'OFF'}`);
+        }
       }
     };
     window.addEventListener('keydown', this.debugKeydownHandler);
@@ -305,7 +307,9 @@ export class PixiApp {
     this.carNetwork = buildCarNetwork(map);
     this.carSystemState = this.carNetwork ? createCarSystemState() : null;
     if (this.carSystemState) {
-      console.log(`[CarSystem] enabled on map "${mapId}" — first spawn attempt in ${this.carSystemState.spawnInterval}s, max ${this.carSystemState.maxCars} concurrent`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[CarSystem] enabled on map "${mapId}" — first spawn attempt in ${this.carSystemState.spawnInterval}s, max ${this.carSystemState.maxCars} concurrent`);
+      }
       // Reset before the fetch so a previous map's overrides don't
       // bleed in if the file fetch is slow / fails.
       this.carCollisionOverrides = {};
@@ -482,11 +486,10 @@ export class PixiApp {
     this.gameState.player.y = Math.max(0, Math.min(mapH, this.gameState.player.y));
     this.gameState.player.sortY = this.gameState.player.y;
 
-    // Cell-position log (game runtime only, never the editor). Throttled to
-    // tile-cell crossings — every pixel of motion would flood the console.
-    // Resets when the active map changes so the first cell of a new map
-    // also gets logged.
-    {
+    // Cell-position log — dev only. Even though it's already throttled
+    // to tile crossings, in production it serves no purpose and the
+    // floor-divisions + console call still cost something on mobile.
+    if (process.env.NODE_ENV === 'development') {
       const T = map.tileSize;
       const col = Math.floor(this.gameState.player.x / T);
       const row = Math.floor(this.gameState.player.y / T);

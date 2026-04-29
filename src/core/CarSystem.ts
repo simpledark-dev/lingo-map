@@ -1,6 +1,12 @@
 import { CarDirection, MapData } from "./types";
 import { isCarPathLayer } from "./Layers";
 
+// Bundlers (Next.js / Turbopack) inline this at build time, so the
+// gated console.log calls below get dead-code-eliminated in production.
+// Keeps the developer experience verbose locally without paying the
+// cost of per-tick string-interpolation + console plumbing on mobile.
+const DEV = process.env.NODE_ENV !== "production";
+
 /** A live ambient car driving the city. Position is in world pixels;
  * `cell` and `dir` are the discrete navigation state. Cars are visual-only
  * — no collision against the player, NPCs, or each other. */
@@ -125,7 +131,7 @@ export function buildCarNetwork(map: MapData): CarNetwork | null {
     }
   }
   if (exits.size === 0) {
-    console.log("[CarSystem] no car-path cells painted → cars disabled");
+    if (DEV) console.log("[CarSystem] no car-path cells painted → cars disabled");
     return null;
   }
 
@@ -141,20 +147,22 @@ export function buildCarNetwork(map: MapData): CarNetwork | null {
     if (spawnDirs.length === 0) continue;
     borderSpawns.push({ row, col, spawnDirs });
   }
-  console.log(
-    `[CarSystem] network ready: ${exits.size} painted cell(s), ${borderSpawns.length} spawn-eligible border cell(s)`
-  );
-  if (borderSpawns.length === 0) {
+  if (DEV) {
     console.log(
-      "[CarSystem] no cars will spawn — paint at least one border cell with an exit pointing INWARD (north→south on top row, etc.)"
+      `[CarSystem] network ready: ${exits.size} painted cell(s), ${borderSpawns.length} spawn-eligible border cell(s)`
     );
-  } else {
-    console.log(
-      "[CarSystem] spawn cells:",
-      borderSpawns
-        .map((s) => `(${s.row},${s.col})→${s.spawnDirs.join("|")}`)
-        .join(" ")
-    );
+    if (borderSpawns.length === 0) {
+      console.log(
+        "[CarSystem] no cars will spawn — paint at least one border cell with an exit pointing INWARD (north→south on top row, etc.)"
+      );
+    } else {
+      console.log(
+        "[CarSystem] spawn cells:",
+        borderSpawns
+          .map((s) => `(${s.row},${s.col})→${s.spawnDirs.join("|")}`)
+          .join(" ")
+      );
+    }
   }
   return { exits, borderSpawns };
 }
@@ -307,9 +315,11 @@ export function spawnCar(
       forceMovePixelsLeft: 0,
     };
     state.cars.push(car);
-    console.log(
-      `[CarSystem] spawned ${car.id} at cell (${spawn.row},${spawn.col}) heading ${dir} — total live: ${state.cars.length}`
-    );
+    if (DEV) {
+      console.log(
+        `[CarSystem] spawned ${car.id} at cell (${spawn.row},${spawn.col}) heading ${dir} — total live: ${state.cars.length}`
+      );
+    }
     return car;
   }
   // Every attempted spawn cell was blocked.
@@ -461,7 +471,7 @@ export function updateCars(
       resolveCarCollision,
       collidables
     );
-    if (state.cars.length === before) {
+    if (DEV && state.cars.length === before) {
       console.log(
         `[CarSystem] spawn skipped — at cap ${state.maxCars} OR no free border cell (${state.cars.length} live)`
       );
@@ -591,9 +601,11 @@ export function updateCars(
       ) {
         despawned.push(car.id);
         state.cars.splice(i, 1);
-        console.log(
-          `[CarSystem] ${car.id} despawned: drove off the map past (${newRow},${newCol})`
-        );
+        if (DEV) {
+          console.log(
+            `[CarSystem] ${car.id} despawned: drove off the map past (${newRow},${newCol})`
+          );
+        }
         continue;
       }
       // Still in the buffer zone — keep current heading, just advance
@@ -609,9 +621,11 @@ export function updateCars(
     if (!exits || exits.length === 0) {
       despawned.push(car.id);
       state.cars.splice(i, 1);
-      console.log(
-        `[CarSystem] ${car.id} despawned: cell (${newRow},${newCol}) is off the painted network`
-      );
+      if (DEV) {
+        console.log(
+          `[CarSystem] ${car.id} despawned: cell (${newRow},${newCol}) is off the painted network`
+        );
+      }
       continue;
     }
 
