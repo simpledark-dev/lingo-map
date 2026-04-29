@@ -6,6 +6,16 @@ import { getTexture, getTileTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
 import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
 
+// Filter thresholds for the occlusion-fade candidate list. Object
+// sprites narrower than `MIN_OCCLUDER_WIDTH` or shorter than
+// `MIN_OCCLUDER_HEIGHT` (both at the sprite's rendered scale) can never
+// meaningfully hide the player, so they're omitted from the per-frame
+// fade scan. Width matches the in-fade `MIN_FADE_WIDTH` so the runtime
+// behaviour is consistent with the user's earlier "don't fade thin
+// things like lampposts" preference.
+const MIN_OCCLUDER_WIDTH = 75;
+const MIN_OCCLUDER_HEIGHT = 32;
+
 interface AnimData {
   baseX: number;
   baseY: number;
@@ -30,6 +40,12 @@ export class RenderSystem {
   private objectSprites = new Map<string, Sprite>();
   private buildingBaseSprites = new Map<string, Sprite>();
   private npcSprites = new Map<string, Sprite>();
+  // Subset of objectSprites that could actually occlude the player
+  // (sprite is wide AND tall enough to be a meaningful blocker). Built
+  // once at scene load; applyOcclusionFade iterates this set instead
+  // of all 600+ object sprites every frame. Floor decor like rugs and
+  // sidewalks never qualify and are skipped entirely.
+  private occludingObjectSprites = new Map<string, Sprite>();
 
   // Managed roof collection — supports per-roof control for future extensibility
   private roofSprites = new Map<string, Sprite>();
@@ -157,6 +173,7 @@ export class RenderSystem {
     this.buildingBaseSprites.clear();
     this.npcSprites.clear();
     this.roofSprites.clear();
+    this.occludingObjectSprites.clear();
     this.treeAnims.clear();
     this.npcAnims.clear();
 
@@ -175,6 +192,16 @@ export class RenderSystem {
       if (obj.scale && obj.scale !== 1) sprite.scale.set(obj.scale);
       this.entityLayer.addChild(sprite);
       this.objectSprites.set(obj.id, sprite);
+      // Pre-filter occluders: a sprite must be both wide AND tall enough
+      // to plausibly hide the player. Floor decor (rugs, sidewalks,
+      // doormats — typically 16×16 or wider-but-flat) never qualifies
+      // and is skipped from the per-frame fade scan entirely.
+      const scale = obj.scale ?? 1;
+      const visW = texture.width * scale;
+      const visH = texture.height * scale;
+      if (visW >= MIN_OCCLUDER_WIDTH && visH >= MIN_OCCLUDER_HEIGHT) {
+        this.occludingObjectSprites.set(obj.id, sprite);
+      }
 
       // Register tree animations
       if (obj.spriteKey === 'tree') {
@@ -471,7 +498,12 @@ export class RenderSystem {
       lerp(sprite, occludes(sprite) ? TARGET_FADED : TARGET_CLEAR);
     };
 
-    for (const sprite of this.objectSprites.values()) checkEntitySprite(sprite);
+    // Iterate the precomputed occluder subset, NOT all 600+ object
+    // sprites. Floor decor and other small/flat sprites were filtered
+    // out at scene load (in renderObjects) so they never reach this
+    // per-frame loop. Their alpha stays at the initial 1.0 — no need
+    // to lerp them since they were never going to be faded anyway.
+    for (const sprite of this.occludingObjectSprites.values()) checkEntitySprite(sprite);
     for (const sprite of this.buildingBaseSprites.values()) checkEntitySprite(sprite);
 
     // Roofs — separate container always above entityLayer, so skip the
