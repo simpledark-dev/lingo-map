@@ -12,8 +12,14 @@ import { GameBridge } from '../core/GameBridge';
 import { CommandQueue } from '../core/CommandQueue';
 import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
-import { buildCarNetwork, CarNetwork, CarSystemState, createCarSystemState, spriteKeyForCar, updateCars } from '../core/CarSystem';
-import { loadAssets, preloadAllAssets } from './AssetLoader';
+import { buildCarNetwork, carAABB, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
+import { getTexture, loadAssets, preloadAllAssets } from './AssetLoader';
+
+/** localStorage key kept in sync with `data/car-collisions.json` by the
+ * editor. The runtime no longer reads it (we use the disk file via the
+ * API instead) but the constant stays exported for the editor's cache. */
+const CAR_COLLISIONS_KEY = 'editor:car-collisions';
+void CAR_COLLISIONS_KEY;
 import { loadAutoTileset } from './AutoTileset';
 import { InputAdapter } from './InputAdapter';
 import { RenderSystem } from './RenderSystem';
@@ -49,6 +55,17 @@ export class PixiApp {
    * by `loadScene` and torn down on scene change. */
   private carSystemState: CarSystemState | null = null;
   private carNetwork: CarNetwork | null = null;
+  /** Toggle for the per-frame collision-box debug overlay. Backtick (`)
+   * flips it. When on, every player + NPC + car AABB renders as a
+   * coloured rect, and each car's look-ahead box renders in a different
+   * shade so you can see what the obstacle test is actually checking. */
+  private debugShowCollisions = false;
+  private debugKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  /** Per-sprite collision overrides loaded from `data/car-collisions.json`
+   * via the API. Cached here for the lifetime of the scene so the
+   * resolver in the per-frame tick is allocation-free. Empty until the
+   * fetch resolves (CarSystem falls back to a tile-sized box meanwhile). */
+  private carCollisionOverrides: Record<string, CarCollisionBox> = {};
 
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
@@ -96,6 +113,20 @@ export class PixiApp {
     if (process.env.NODE_ENV === 'development') {
       this.debugOverlay = new DebugOverlay(container);
     }
+
+    // Backtick toggles the collision-box debug overlay. We attach to
+    // `window` (not the canvas) so the toggle works even when the canvas
+    // doesn't have keyboard focus — matching the user's expectation
+    // that pressing the key from anywhere on the page just works.
+    this.debugKeydownHandler = (e: KeyboardEvent) => {
+      // Backquote / backtick — distinct enough from gameplay keys.
+      if (e.code === 'Backquote') {
+        this.debugShowCollisions = !this.debugShowCollisions;
+        if (!this.debugShowCollisions) this.renderSystem?.clearDebugCollisions();
+        console.log(`[PixiApp] collision-box debug overlay: ${this.debugShowCollisions ? 'ON' : 'OFF'}`);
+      }
+    };
+    window.addEventListener('keydown', this.debugKeydownHandler);
 
     // Load the grass↔water auto-tileset before the first scene so RenderSystem
     // can paint the dual-grid layer immediately rather than waiting for a paint.
@@ -267,6 +298,21 @@ export class PixiApp {
     this.carSystemState = this.carNetwork ? createCarSystemState() : null;
     if (this.carSystemState) {
       console.log(`[CarSystem] enabled on map "${mapId}" — first spawn attempt in ${this.carSystemState.spawnInterval}s, max ${this.carSystemState.maxCars} concurrent`);
+      // Reset before the fetch so a previous map's overrides don't
+      // bleed in if the file fetch is slow / fails.
+      this.carCollisionOverrides = {};
+      // Pull the user-edited per-sprite collision boxes from disk. The
+      // request is fire-and-forget — the per-frame resolver consults
+      // the cached field; until the response lands, CarSystem falls
+      // back to texture dimensions (or one tile if textures aren't
+      // loaded yet).
+      fetch('/api/car-collisions')
+        .then(r => r.json())
+        .then(data => {
+          if (!data || typeof data !== 'object' || Array.isArray(data)) return;
+          this.carCollisionOverrides = data as Record<string, CarCollisionBox>;
+        })
+        .catch(err => console.warn('[CarSystem] failed to load /api/car-collisions, using defaults:', err));
     }
 
     const mapW = map.width * map.tileSize;
@@ -524,12 +570,107 @@ export class PixiApp {
     // simulation, drop sprites for any car that despawned this frame, and
     // sync the survivors' positions to the renderer.
     if (this.carSystemState && this.carNetwork) {
-      const despawned = updateCars(this.carSystemState, this.carNetwork, delta, map.tileSize, map.width, map.height);
+      // Build the obstacle list cars should stop for: player + every
+      // NPC's collision box, in world coordinates. Static decor isn't
+      // included because cars stay on painted paths.
+      const collidables = [
+        {
+          left: this.gameState.player.x + this.gameState.player.collisionBox.offsetX,
+          top: this.gameState.player.y + this.gameState.player.collisionBox.offsetY,
+          right: this.gameState.player.x + this.gameState.player.collisionBox.offsetX + this.gameState.player.collisionBox.width,
+          bottom: this.gameState.player.y + this.gameState.player.collisionBox.offsetY + this.gameState.player.collisionBox.height,
+        },
+        ...this.gameState.npcs.map(n => ({
+          left: n.x + n.collisionBox.offsetX,
+          top: n.y + n.collisionBox.offsetY,
+          right: n.x + n.collisionBox.offsetX + n.collisionBox.width,
+          bottom: n.y + n.collisionBox.offsetY + n.collisionBox.height,
+        })),
+      ];
+      // Per-sprite collision-box resolver. Order:
+      //   1. User-edited box from `data/car-collisions.json` (cached at
+      //      scene load).
+      //   2. Fallback: full sprite footprint, centered (matches the
+      //      visible image but typically has lots of transparent
+      //      padding — the user can shrink it via the editor panel).
+      // Returns null when both fail (texture not loaded yet); CarSystem
+      // then defaults to a tile-sized box.
+      const resolveCarCollision = (key: string) => {
+        const override = this.carCollisionOverrides[key];
+        if (override) return override;
+        const tex = getTexture(key);
+        if (!tex) return null;
+        return {
+          offsetX: -tex.width / 2,
+          offsetY: -tex.height / 2,
+          width: tex.width,
+          height: tex.height,
+        };
+      };
+      const despawned = updateCars(
+        this.carSystemState,
+        this.carNetwork,
+        delta,
+        map.tileSize,
+        map.width,
+        map.height,
+        collidables,
+        resolveCarCollision,
+      );
       for (const id of despawned) this.renderSystem.removeCar(id);
       for (const car of this.carSystemState.cars) {
         this.renderSystem.setCar(car.id, car.x, car.y, spriteKeyForCar(car), map.tileSize);
       }
     }
+
+    // Collision-box debug overlay — drawn after everything else so the
+    // rects sit on top of sprites. Player + NPC AABBs in green, car
+    // bodies in red, car look-aheads in yellow. Shows exactly what the
+    // car-system obstacle test sees each frame, which is the fast way
+    // to diagnose "the car went through me" reports.
+    if (this.debugShowCollisions) {
+      const T = map.tileSize;
+      const items: Array<{ box: { left: number; top: number; right: number; bottom: number }; color: number }> = [];
+      const p = this.gameState.player;
+      items.push({
+        box: {
+          left: p.x + p.collisionBox.offsetX,
+          top: p.y + p.collisionBox.offsetY,
+          right: p.x + p.collisionBox.offsetX + p.collisionBox.width,
+          bottom: p.y + p.collisionBox.offsetY + p.collisionBox.height,
+        },
+        color: 0x00ff66,
+      });
+      for (const n of this.gameState.npcs) {
+        items.push({
+          box: {
+            left: n.x + n.collisionBox.offsetX,
+            top: n.y + n.collisionBox.offsetY,
+            right: n.x + n.collisionBox.offsetX + n.collisionBox.width,
+            bottom: n.y + n.collisionBox.offsetY + n.collisionBox.height,
+          },
+          color: 0x00ff66,
+        });
+      }
+      if (this.carSystemState) {
+        // Same override-then-fallback resolution as the simulation, so
+        // the debug rects always match what the obstacle test sees.
+        for (const car of this.carSystemState.cars) {
+          const key = spriteKeyForCar(car);
+          let box = this.carCollisionOverrides[key];
+          if (!box) {
+            const tex = getTexture(key);
+            box = tex
+              ? { offsetX: -tex.width / 2, offsetY: -tex.height / 2, width: tex.width, height: tex.height }
+              : { offsetX: -T / 2, offsetY: -T / 2, width: T, height: T };
+          }
+          items.push({ box: carAABB(car, box), color: 0xff3333 });
+          items.push({ box: lookAheadBox(car, T, box), color: 0xffcc00 });
+        }
+      }
+      this.renderSystem.drawDebugCollisions(items);
+    }
+
     if (this.tapFeedback) this.tapFeedback.update(delta);
 
     // Debug overlay
@@ -563,6 +704,10 @@ export class PixiApp {
     this.currentMap = null;
     this.inputAdapter.destroy();
     this.bgm.destroy();
+    if (this.debugKeydownHandler) {
+      window.removeEventListener('keydown', this.debugKeydownHandler);
+      this.debugKeydownHandler = null;
+    }
     if (this.tapFeedback) {
       this.tapFeedback.destroy();
       this.tapFeedback = null;

@@ -11648,6 +11648,120 @@
       "layer": "decor-low"
     },
     {
+      "id": "obj-moigjzu4-nqnjf",
+      "x": 552,
+      "y": 336,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 336,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "decor-low"
+    },
+    {
+      "id": "obj-moi78xh5-n9fvz",
+      "x": 377.54166666666663,
+      "y": 715.83984375,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 715.83984375,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "decor-low"
+    },
+    {
+      "id": "obj-moi79zvf-vstvu",
+      "x": 431.48125000000005,
+      "y": 635.735625,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 635.735625,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "decor-low"
+    },
+    {
+      "id": "obj-moi797qd-vrv4e",
+      "x": 240.078125,
+      "y": 710.4908854166667,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 710.4908854166667,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "decor-low"
+    },
+    {
+      "id": "obj-moi78rn4-mpd1o",
+      "x": 128.859375,
+      "y": 710.7447916666667,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 710.7447916666667,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "decor-low"
+    },
+    {
+      "id": "obj-moi7a796-ay4on",
+      "x": 660.580625,
+      "y": 765.2518749999999,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 765.2518749999999,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "decor-low"
+    },
+    {
       "id": "obj-moh6aiy5-pmmhh",
       "x": 127.82552083333337,
       "y": 687.9205729166667,
@@ -12259,101 +12373,6 @@
       }
     },
     {
-      "id": "obj-moi78rn4-mpd1o",
-      "x": 128.859375,
-      "y": 710.7447916666667,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 710.7447916666667,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moi78xh5-n9fvz",
-      "x": 377.54166666666663,
-      "y": 715.83984375,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 715.83984375,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moi797qd-vrv4e",
-      "x": 240.078125,
-      "y": 710.4908854166667,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 710.4908854166667,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moi79zvf-vstvu",
-      "x": 431.48125000000005,
-      "y": 635.735625,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 635.735625,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moi7a796-ay4on",
-      "x": 660.580625,
-      "y": 765.2518749999999,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 765.2518749999999,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
       "id": "obj-moh7ct4v-01lpa",
       "x": 408,
       "y": 528,
@@ -12881,25 +12900,6 @@
         "offsetY": -32,
         "width": 32,
         "height": 32
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moigjzu4-nqnjf",
-      "x": 552,
-      "y": 336,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 336,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
       },
       "scale": 1,
       "layer": "props"
@@ -25368,7 +25368,7 @@
       "name": "Decor",
       "kind": "object",
       "visible": true,
-      "locked": true,
+      "locked": false,
       "objects": [
         {
           "id": "obj-moh684e8-xg2fh",
@@ -25570,6 +25570,120 @@
             "y": 1
           },
           "sortY": 368,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "decor-low"
+        },
+        {
+          "id": "obj-moigjzu4-nqnjf",
+          "x": 552,
+          "y": 336,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 336,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "decor-low"
+        },
+        {
+          "id": "obj-moi78xh5-n9fvz",
+          "x": 377.54166666666663,
+          "y": 715.83984375,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 715.83984375,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "decor-low"
+        },
+        {
+          "id": "obj-moi79zvf-vstvu",
+          "x": 431.48125000000005,
+          "y": 635.735625,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 635.735625,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "decor-low"
+        },
+        {
+          "id": "obj-moi797qd-vrv4e",
+          "x": 240.078125,
+          "y": 710.4908854166667,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 710.4908854166667,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "decor-low"
+        },
+        {
+          "id": "obj-moi78rn4-mpd1o",
+          "x": 128.859375,
+          "y": 710.7447916666667,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 710.7447916666667,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "decor-low"
+        },
+        {
+          "id": "obj-moi7a796-ay4on",
+          "x": 660.580625,
+          "y": 765.2518749999999,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 765.2518749999999,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
@@ -26200,101 +26314,6 @@
           }
         },
         {
-          "id": "obj-moi78rn4-mpd1o",
-          "x": 128.859375,
-          "y": 710.7447916666667,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 710.7447916666667,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moi78xh5-n9fvz",
-          "x": 377.54166666666663,
-          "y": 715.83984375,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 715.83984375,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moi797qd-vrv4e",
-          "x": 240.078125,
-          "y": 710.4908854166667,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 710.4908854166667,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moi79zvf-vstvu",
-          "x": 431.48125000000005,
-          "y": 635.735625,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 635.735625,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moi7a796-ay4on",
-          "x": 660.580625,
-          "y": 765.2518749999999,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 765.2518749999999,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-moh7ct4v-01lpa",
           "x": 408,
           "y": 528,
@@ -26822,25 +26841,6 @@
             "offsetY": -32,
             "width": 32,
             "height": 32
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moigjzu4-nqnjf",
-          "x": 552,
-          "y": 336,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Manhole_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 336,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
           },
           "scale": 1,
           "layer": "props"
@@ -27791,8 +27791,8 @@
       "id": "layer-mojny5t0-2eor",
       "name": "Car Path",
       "kind": "car-path",
-      "visible": true,
-      "locked": false,
+      "visible": false,
+      "locked": true,
       "exits": {
         "17,3": [
           "e"

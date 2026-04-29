@@ -18,6 +18,19 @@ export interface Car {
    * each frame based on the current `dir`, so a car turning at an
    * intersection swaps texture without needing a separate animation. */
   sprites: Record<CarDirection, string>;
+  /** Seconds the car has been blocked by an obstacle in its look-ahead
+   * box. When this passes `STUCK_TIMEOUT_SEC` the car force-moves one
+   * tick to break gridlocks (e.g., two cars at a 4-way intersection
+   * each politely waiting for the other forever). */
+  stoppedFor: number;
+}
+
+/** Axis-aligned bbox in world coordinates. */
+export interface AABB {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
 }
 
 /** Pool of vehicle sprite sets — Modern Exteriors pack singles. Each
@@ -25,7 +38,7 @@ export interface Car {
  * at random per spawn so the road feels alive instead of monochrome.
  * Add or remove indices to widen/narrow the variety. */
 export const CAR_SPRITE_SETS: Array<Record<CarDirection, string>> = [
-  3, 7, 12, 18, 24,
+  2, 5, 8, 10, 13, 16, 19, 21, 23, 26,
 ].map((n) => ({
   n: `me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_${n}`,
   s: `me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_${n}`,
@@ -199,12 +212,66 @@ export function spawnCar(
     dir,
     speed,
     sprites,
+    stoppedFor: 0,
   };
   state.cars.push(car);
   console.log(
     `[CarSystem] spawned ${car.id} at cell (${spawn.row},${spawn.col}) heading ${dir} — total live: ${state.cars.length}`
   );
   return car;
+}
+
+/** Per-sprite collision rect. Offsets are relative to the car's
+ * position (sprite anchor 0.5/0.5), so a horizontally-centered box has
+ * `offsetX = -width / 2`. Width/height are the full extents. */
+export interface CarCollisionBox {
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+}
+
+/** Car's own AABB, derived from its sprite-specific collision box.
+ * Defaulting to "the full sprite footprint" ignores the transparent
+ * padding most pack-singles ship with — the user-editable override
+ * lets them shrink the box to the actual vehicle pixels. */
+export function carAABB(car: Car, box: CarCollisionBox): AABB {
+  return {
+    left: car.x + box.offsetX,
+    top: car.y + box.offsetY,
+    right: car.x + box.offsetX + box.width,
+    bottom: car.y + box.offsetY + box.height,
+  };
+}
+
+/** Box projected `distance` pixels in front of the car along its current
+ * heading, attached to whichever edge of the car is the leading one.
+ * Perpendicular extent matches the car's body so the test covers the
+ * full lane the car is about to enter. */
+export function lookAheadBox(car: Car, distance: number, box: CarCollisionBox): AABB {
+  const body = carAABB(car, box);
+  switch (car.dir) {
+    case 'e':
+      return { left: body.right, right: body.right + distance, top: body.top, bottom: body.bottom };
+    case 'w':
+      return { left: body.left - distance, right: body.left, top: body.top, bottom: body.bottom };
+    case 's':
+      return { left: body.left, right: body.right, top: body.bottom, bottom: body.bottom + distance };
+    case 'n':
+      return { left: body.left, right: body.right, top: body.top - distance, bottom: body.top };
+  }
+}
+
+/** Caller-supplied lookup returning the per-sprite collision box, or
+ * null to use the default (full sprite size, centered). CarSystem stays
+ * renderer-agnostic by letting PixiApp resolve from texture dimensions
+ * + user overrides stored elsewhere. */
+export type CarCollisionResolver = (spriteKey: string) => CarCollisionBox | null;
+
+/** Standard AABB overlap test. Touching edges count as non-overlap so
+ * cars don't lock up immediately when they spawn next to each other. */
+function aabbOverlap(a: AABB, b: AABB): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
 /** Pick a valid outgoing direction at a cell, excluding the U-turn back
@@ -231,8 +298,28 @@ export function updateCars(
   deltaSec: number,
   tileSize: number,
   mapWidth: number,
-  mapHeight: number
+  mapHeight: number,
+  /** External AABBs the cars should stop for — typically the player and
+   * NPCs. Static decor isn't included since cars stay on painted paths
+   * (which already avoid collidable scenery). Cars test each other
+   * separately, internally. */
+  collidables: AABB[] = [],
+  /** Optional per-sprite collision-box lookup. When provided, each car's
+   * AABB and look-ahead use the user-defined box for the current
+   * heading's sprite. Returning null falls back to a tile-sized,
+   * center-anchored box (the default for sprites with no override). */
+  resolveCarCollision?: CarCollisionResolver,
 ): string[] {
+  const DEFAULT_BOX: CarCollisionBox = {
+    offsetX: -tileSize / 2,
+    offsetY: -tileSize / 2,
+    width: tileSize,
+    height: tileSize,
+  };
+  const boxFor = (car: Car): CarCollisionBox => {
+    if (!resolveCarCollision) return DEFAULT_BOX;
+    return resolveCarCollision(car.sprites[car.dir]) ?? DEFAULT_BOX;
+  };
   // Spawn attempt — every `spawnInterval` seconds. Reset timer regardless
   // of whether spawning actually succeeded so a full map doesn't get a
   // backlog of pending spawns the moment a car despawns.
@@ -248,9 +335,53 @@ export function updateCars(
     }
   }
 
+  // Snapshot every car's current AABB so cars can check each other
+  // without seeing partial mid-tick positions of cars earlier in the
+  // loop. Index matches `state.cars`. Each car's box uses its own
+  // sprite-derived size so a long sedan registers as a long box, not a
+  // tile.
+  const carBoxes = state.cars.map((c) => carAABB(c, boxFor(c)));
+  const STUCK_TIMEOUT_SEC = 3;
+  const LOOK_AHEAD_TILES = 1;
+
   const despawned: string[] = [];
   for (let i = state.cars.length - 1; i >= 0; i--) {
     const car = state.cars[i];
+
+    // Look-ahead obstacle test — a 1-tile-distance box projected from the
+    // car's leading edge in its current heading, perpendicular extent
+    // matching the car's body so the lane the car is about to enter is
+    // fully covered. Hits = freeze for this tick; misses = move normally.
+    // Cars test against the external collidables (player, NPCs) AND
+    // against every other live car.
+    const box = boxFor(car);
+    const lookBox = lookAheadBox(car, tileSize * LOOK_AHEAD_TILES, box);
+    let blocked = false;
+    for (const c of collidables) {
+      if (aabbOverlap(lookBox, c)) {
+        blocked = true;
+        break;
+      }
+    }
+    if (!blocked) {
+      for (let j = 0; j < state.cars.length; j++) {
+        if (j === i) continue;
+        if (aabbOverlap(lookBox, carBoxes[j])) {
+          blocked = true;
+          break;
+        }
+      }
+    }
+
+    if (blocked) {
+      car.stoppedFor += deltaSec;
+      // Force-move past a long stall so two cars at a four-way
+      // intersection both yielding to each other don't deadlock — one
+      // just goes after 3s and the system unstuck itself.
+      if (car.stoppedFor < STUCK_TIMEOUT_SEC) continue;
+    }
+    car.stoppedFor = 0;
+
     const { dx, dy } = DELTA[car.dir];
     car.x += dx * car.speed * deltaSec;
     car.y += dy * car.speed * deltaSec;

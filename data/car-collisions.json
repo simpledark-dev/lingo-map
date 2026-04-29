@@ -1,0 +1,242 @@
+{
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_2": {
+    "offsetX": -32,
+    "offsetY": -6,
+    "width": 64,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_2": {
+    "offsetX": -32,
+    "offsetY": -6,
+    "width": 64,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_5": {
+    "offsetX": -32,
+    "offsetY": -6,
+    "width": 64,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_5": {
+    "offsetX": -32,
+    "offsetY": -6,
+    "width": 64,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_8": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_8": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_2": {
+    "offsetX": -16,
+    "offsetY": -32,
+    "width": 32,
+    "height": 64
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_2": {
+    "offsetX": -16,
+    "offsetY": -32,
+    "width": 32,
+    "height": 64
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_5": {
+    "offsetX": -16,
+    "offsetY": -32,
+    "width": 32,
+    "height": 64
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_5": {
+    "offsetX": -16,
+    "offsetY": -32,
+    "width": 32,
+    "height": 64
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_8": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_8": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_10": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_10": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_10": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_10": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_13": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_13": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_13": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_13": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_16": {
+    "offsetX": -16,
+    "offsetY": -32,
+    "width": 30,
+    "height": 64
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_16": {
+    "offsetX": -16,
+    "offsetY": -32,
+    "width": 30,
+    "height": 64
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_16": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_16": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_19": {
+    "offsetX": -16,
+    "offsetY": -32,
+    "width": 30,
+    "height": 64
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_19": {
+    "offsetX": -16,
+    "offsetY": -32,
+    "width": 30,
+    "height": 64
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_19": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_19": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_21": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_21": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_21": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_21": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_23": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_23": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_23": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_23": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_26": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Down_26": {
+    "offsetX": -16,
+    "offsetY": -40,
+    "width": 30,
+    "height": 80
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_26": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  },
+  "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Left_26": {
+    "offsetX": -40,
+    "offsetY": -6,
+    "width": 80,
+    "height": 30
+  }
+}

@@ -50,6 +50,10 @@ export class RenderSystem {
   // smoothly out of the visible area instead of either popping out or
   // hovering past the world boundary.
   private mapBoundsMask: Graphics | null = null;
+  // Optional debug overlay drawing collision boxes for the player, NPCs,
+  // cars, and the cars' look-ahead boxes. Toggled via PixiApp's keyboard
+  // shortcut. Cleared when disabled.
+  private debugCollisionGraphics: Graphics | null = null;
 
   // Current map data (needed for sorting)
   private currentMap: MapData | null = null;
@@ -532,6 +536,34 @@ export class RenderSystem {
       g.destroy();
       this.carFallbacks.delete(id);
     }
+  }
+
+  /** Draw debug overlays for the supplied AABB lists. Each entry pairs a
+   * world-space box with a color. Called once per frame from PixiApp
+   * when the debug toggle is on; the previous frame's drawing is wiped
+   * and replaced wholesale to avoid leaking stale boxes. */
+  drawDebugCollisions(items: Array<{ box: { left: number; top: number; right: number; bottom: number }; color: number; label?: string }>): void {
+    if (!this.debugCollisionGraphics) {
+      this.debugCollisionGraphics = new Graphics();
+      // Add ABOVE the entity layer + roof layer so debug rects sit on
+      // top of all gameplay sprites.
+      this.worldContainer.addChild(this.debugCollisionGraphics);
+    }
+    const g = this.debugCollisionGraphics;
+    g.clear();
+    for (const { box, color } of items) {
+      const w = box.right - box.left;
+      const h = box.bottom - box.top;
+      g.rect(box.left, box.top, w, h)
+        .stroke({ color, width: 1.5, alpha: 1 })
+        .fill({ color, alpha: 0.12 });
+    }
+  }
+
+  /** Hide debug collision overlay — empties the Graphics instance so no
+   * boxes render until `drawDebugCollisions` is called again. */
+  clearDebugCollisions(): void {
+    if (this.debugCollisionGraphics) this.debugCollisionGraphics.clear();
   }
 
   /** Wipe all car sprites — called on scene change so cars from the old

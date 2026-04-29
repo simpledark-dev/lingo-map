@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TileType } from '../core/types';
 import { EditorAction, EditorState, getAllObjects } from './editorState';
 import { TILE_ITEMS, OBJECT_CATEGORIES, BUILDING_ITEMS } from './objectDefaults';
 import PackPicker from './PackPicker';
 import { getTexture } from '../renderer/AssetLoader';
+import { CAR_SPRITE_SETS } from '../core/CarSystem';
 
 interface Props {
   state: EditorState;
@@ -173,6 +174,16 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
       {state.layers.find(l => l.id === state.activeLayerId)?.kind === 'car-path' && (
         <Section title="Car-path exits">
           <CarPathDirectionToggles state={state} dispatch={dispatch} />
+        </Section>
+      )}
+
+      {/* Per-sprite car collision boxes — also gated on car-path layer
+          activation since that's when the user is dialling in car
+          behaviour. Edits persist to localStorage; PixiApp reads them on
+          every game-tab refresh, so changes take effect on reload. */}
+      {state.layers.find(l => l.id === state.activeLayerId)?.kind === 'car-path' && (
+        <Section title="Car collision boxes">
+          <CarCollisionEditor />
         </Section>
       )}
 
@@ -511,6 +522,283 @@ function CollapsibleSubsection({
         <span style={{ fontSize: 9, color: '#777' }}>{open ? '▼' : '▶'}</span>
       </button>
       {open && children}
+    </div>
+  );
+}
+
+/** Per-sprite collision-box editor for ambient cars. Modern Exteriors
+ * pack-singles ship with a lot of transparent padding, so the
+ * full-sprite default fires the obstacle test way too early. This
+ * panel lets the user shrink each sprite's box to the actual visible
+ * vehicle.
+ *
+ * Persistence is plain localStorage — the runtime (PixiApp) reads the
+ * same key on every game-tab load. No disk round-trip yet, since the
+ * user is on a single dev machine and saving is instant. */
+function CarCollisionEditor() {
+  const STORAGE_KEY = 'editor:car-collisions';
+  type Box = { offsetX: number; offsetY: number; width: number; height: number };
+  // Build the unique sprite-key list once. CAR_SPRITE_SETS already
+  // dedupes by id, but the same sprite key shows up four times per
+  // vehicle (one per heading) — only one entry per key is kept.
+  const allKeys = (() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const set of CAR_SPRITE_SETS) {
+      for (const k of Object.values(set)) {
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.push(k);
+      }
+    }
+    return out;
+  })();
+  // Initial state from localStorage so the panel renders snappily; disk
+  // fetch below upgrades to the canonical version once it returns.
+  const [overrides, setOverrides] = useState<Record<string, Box>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  });
+  // On mount: load disk + ensure every sprite key has an entry.
+  //
+  // The flow is one shot, on purpose: the previous design seeded entries
+  // as each <img> fired its onLoad and debounced a POST per entry, which
+  // raced with React StrictMode's double-mount and disk-fetch returns.
+  // Result: only a handful of entries actually got persisted. We now
+  // preload every sprite via `new Image()` ourselves, wait for ALL of
+  // them via Promise.all, merge with the disk version, then POST once.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const disk: Record<string, Box> = await fetch('/api/car-collisions')
+        .then(r => r.json())
+        .catch(() => ({}));
+      const merged: Record<string, Box> = (disk && typeof disk === 'object') ? { ...disk } : {};
+      let changed = false;
+      await Promise.all(allKeys.map(key => new Promise<void>(resolve => {
+        if (merged[key]) { resolve(); return; }
+        const img = new Image();
+        img.onload = () => {
+          merged[key] = defaultBoxFor(img.naturalWidth, img.naturalHeight);
+          changed = true;
+          resolve();
+        };
+        // 404s shouldn't block the seeding pass — log and move on so a
+        // single missing PNG doesn't prevent the other 39 from being
+        // persisted.
+        img.onerror = () => {
+          console.warn(`[CarCollisionEditor] sprite "${key}" failed to load — skipping seed`);
+          resolve();
+        };
+        img.src = key.startsWith('me:')
+          ? `/assets/me/${key.slice(3)}.png`
+          : `/assets/placeholder/${key}.png`;
+      })));
+      if (cancelled) return;
+      setOverrides(merged);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch { /* quota */ }
+      // Only POST when seeding actually added entries — avoids a
+      // pointless write on every editor open after the file is
+      // complete.
+      if (changed) {
+        fetch('/api/car-collisions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(merged),
+        }).catch(err => console.error('Failed to seed car collisions:', err));
+      }
+    })();
+    return () => { cancelled = true; };
+    // allKeys is stable (computed from a module-level constant); deps
+    // empty is intentional so this runs exactly once per mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Debounced disk save — fires 500ms after the last edit so rapid
+  // typing in number inputs collapses to a single POST. The file is
+  // the source of truth and contains an entry for EVERY sprite key,
+  // so we always POST the full map (no partial writes).
+  const diskSaveTimerRef = useRef<number | null>(null);
+  const persist = (next: Record<string, Box>) => {
+    setOverrides(next);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* quota / disabled */ }
+    if (diskSaveTimerRef.current) window.clearTimeout(diskSaveTimerRef.current);
+    diskSaveTimerRef.current = window.setTimeout(() => {
+      fetch('/api/car-collisions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next),
+      }).catch(err => console.error('Failed to persist car collisions:', err));
+    }, 500);
+  };
+  useEffect(() => {
+    return () => {
+      if (diskSaveTimerRef.current) window.clearTimeout(diskSaveTimerRef.current);
+    };
+  }, []);
+  // Default box for a sprite of given natural dimensions: full footprint,
+  // centred on the anchor (sprite anchor is 0.5/0.5). Same shape the
+  // runtime resolver falls back to when no override exists.
+  const defaultBoxFor = (natW: number, natH: number): Box => ({
+    offsetX: -natW / 2,
+    offsetY: -natH / 2,
+    width: natW,
+    height: natH,
+  });
+  // Cache image dimensions so the visual overlay can scale the rect
+  // correctly relative to the rendered preview. Loaded lazily via the
+  // <img>'s onLoad handler.
+  const [naturalDims, setNaturalDims] = useState<Record<string, { w: number; h: number }>>({});
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontSize: 11, color: '#aaa', lineHeight: 1.4 }}>
+        Default: full sprite footprint. Shrink each box to the actual visible vehicle pixels so cars stop at the right distance from the player. Reload the game tab to apply.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
+        {allKeys.map(key => (
+          <CarCollisionRow
+            key={key}
+            spriteKey={key}
+            box={overrides[key]}
+            naturalDims={naturalDims[key]}
+            onLoadDims={(w, h) => setNaturalDims(prev => ({ ...prev, [key]: { w, h } }))}
+            onReset={(natW, natH) => {
+              persist({ ...overrides, [key]: defaultBoxFor(natW, natH) });
+            }}
+            onChange={next => {
+              persist({ ...overrides, [key]: next });
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One row in the car-collision editor: sprite preview with a
+ * translucent red rectangle showing the current box, plus four numeric
+ * inputs and a Reset button. The rectangle is positioned in CSS pixels
+ * scaled from the sprite's natural dimensions, so the visual lines up
+ * regardless of how the preview is sized. */
+function CarCollisionRow({
+  spriteKey,
+  box,
+  naturalDims,
+  onLoadDims,
+  onChange,
+  onReset,
+}: {
+  spriteKey: string;
+  box: { offsetX: number; offsetY: number; width: number; height: number } | undefined;
+  naturalDims: { w: number; h: number } | undefined;
+  onLoadDims: (w: number, h: number) => void;
+  onChange: (next: { offsetX: number; offsetY: number; width: number; height: number }) => void;
+  onReset: (natW: number, natH: number) => void;
+}) {
+  // PREVIEW_PX caps the rendered sprite so a 64×48 horizontal car and a
+  // 32×64 vertical car both fit the same row layout without wrapping.
+  const PREVIEW_PX = 80;
+  // Resolve the URL the same way the renderer does — pack keys map to
+  // /assets/me/<themeFolder>/<file>.png. Keep this aligned with
+  // packKeyToUrl in AssetLoader.ts.
+  const url = spriteKey.startsWith('me:') ? `/assets/me/${spriteKey.slice(3)}.png` : `/assets/placeholder/${spriteKey}.png`;
+  // Effective box for the overlay: user override, else full-sprite
+  // default. This matches the runtime fallback so the editor preview
+  // doesn't lie about what the simulation is actually using.
+  const dims = naturalDims ?? { w: 16, h: 16 };
+  const effective = box ?? { offsetX: -dims.w / 2, offsetY: -dims.h / 2, width: dims.w, height: dims.h };
+  const scale = Math.min(PREVIEW_PX / dims.w, PREVIEW_PX / dims.h);
+  const previewW = dims.w * scale;
+  const previewH = dims.h * scale;
+  const inputStyle: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box',
+    padding: '2px 4px', fontSize: 10,
+    background: '#2a2a3a', color: '#ddd',
+    border: '1px solid #444', borderRadius: 3,
+  };
+  // Pretty short label — drop the long pack-key prefix and show only
+  // the meaningful "<vehicle>_<dir>_<idx>" portion so 40 rows are
+  // visually scannable.
+  const label = spriteKey.split('/').pop() ?? spriteKey;
+  return (
+    <div style={{ display: 'flex', gap: 8, padding: 4, background: '#15151f', borderRadius: 3 }}>
+      <div style={{ width: PREVIEW_PX, height: PREVIEW_PX, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a14', flexShrink: 0 }}>
+        <img
+          src={url}
+          alt={spriteKey}
+          onLoad={(e) => onLoadDims(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
+          style={{
+            width: previewW, height: previewH,
+            imageRendering: 'pixelated',
+            objectFit: 'contain',
+          }}
+        />
+        {/* Red rectangle overlay — coordinates derived from the
+            collision box anchored at sprite center (sprite's anchor is
+            0.5/0.5 at runtime, so center-of-sprite → CSS center of the
+            preview). Positive offsetX moves right, positive offsetY
+            moves down. */}
+        <div
+          style={{
+            position: 'absolute',
+            left: previewW / 2 + effective.offsetX * scale + (PREVIEW_PX - previewW) / 2,
+            top: previewH / 2 + effective.offsetY * scale + (PREVIEW_PX - previewH) / 2,
+            width: effective.width * scale,
+            height: effective.height * scale,
+            border: '1px solid #ff4444',
+            background: 'rgba(255, 68, 68, 0.15)',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+        <div style={{ fontSize: 10, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={spriteKey}>{label}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+          {(['offsetX','offsetY','width','height'] as const).map(field => (
+            <label key={field} style={{ fontSize: 9, color: '#888' }}>
+              {field}
+              <input
+                type="number"
+                value={effective[field]}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (Number.isNaN(v)) return;
+                  let next = { ...effective, [field]: v };
+                  // Height grows/shrinks from the TOP — keep the bottom
+                  // edge of the box anchored where it was so cars don't
+                  // hover above the road when the user shaves height
+                  // off the top of the sprite. Mirrors the entity
+                  // collision editor's behaviour.
+                  if (field === 'height') {
+                    next = {
+                      ...next,
+                      offsetY: effective.offsetY + (effective.height - v),
+                    };
+                  }
+                  onChange(next);
+                }}
+                style={inputStyle}
+              />
+            </label>
+          ))}
+        </div>
+        <button
+          onClick={() => {
+            if (!naturalDims) return;
+            onReset(naturalDims.w, naturalDims.h);
+          }}
+          disabled={!naturalDims}
+          style={{
+            padding: '2px 4px', fontSize: 9,
+            background: naturalDims ? '#3a2a3a' : '#1a1a2e',
+            border: '1px solid #444', borderRadius: 3,
+            color: naturalDims ? '#ccc' : '#555',
+            cursor: naturalDims ? 'pointer' : 'not-allowed',
+          }}
+        >Reset to default (full sprite)</button>
+      </div>
     </div>
   );
 }
