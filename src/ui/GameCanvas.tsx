@@ -347,6 +347,16 @@ export default function GameCanvas() {
         width: viewportSize ? `${viewportSize.width}px` : '100vw',
         height: viewportSize ? `${viewportSize.height}px` : '100dvh',
         overflow: 'hidden',
+        // Suppress browser text-selection / long-press selection /
+        // tap-highlight on the game viewport. Without these, users
+        // could highlight dialogue text by dragging, get the iOS
+        // long-press callout menu (copy/share) on the canvas, or see
+        // the Android blue tap-highlight box on every interaction.
+        // The pure-prefix versions cover Safari iOS specifically.
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       {/* PixiJS canvas mounts here */}
