@@ -399,10 +399,17 @@ export class RenderSystem {
       sprite.alpha = Math.abs(next - target) < 0.01 ? target : next;
     };
 
+    // Skip narrow sprites entirely — fading a lamppost or fencepost is
+    // visually noisy and the player isn't really "hidden" behind them
+    // anyway. Threshold tuned to roughly the width of a small building
+    // base, so anything wider triggers normally.
+    const MIN_FADE_WIDTH = 75;
+
     /** True iff the player's box is fully contained in the sprite's box —
      * the whole character is behind the sprite, not just clipping an edge. */
     const occludes = (sprite: Sprite): boolean => {
       const w = sprite.width;
+      if (w < MIN_FADE_WIDTH) return false;
       const h = sprite.height;
       const left = sprite.x - sprite.anchor.x * w;
       const top = sprite.y - sprite.anchor.y * h;

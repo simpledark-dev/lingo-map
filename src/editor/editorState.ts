@@ -914,7 +914,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, cameraX: action.x, cameraY: action.y };
 
     case 'SET_ZOOM':
-      return { ...state, zoom: Math.max(0.25, Math.min(3, action.zoom)) };
+      return { ...state, zoom: Math.max(0.25, Math.min(8, action.zoom)) };
 
     case 'TOGGLE_GRID':
       return { ...state, showGrid: !state.showGrid };

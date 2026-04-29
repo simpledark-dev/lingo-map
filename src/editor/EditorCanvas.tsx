@@ -1435,7 +1435,7 @@ export default function EditorCanvas() {
         // 2.0→2.4 in proportional terms instead of a fixed +0.05.
         const oldZoom = s.zoom;
         const factor = e.deltaY > 0 ? 1 / 1.2 : 1.2;
-        const newZoom = Math.max(0.25, Math.min(3, oldZoom * factor));
+        const newZoom = Math.max(0.25, Math.min(8, oldZoom * factor));
         if (newZoom === oldZoom) return;
 
         const world = app.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, oldZoom);
