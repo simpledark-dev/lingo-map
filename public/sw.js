@@ -1,6 +1,6 @@
 // Bump on every behavioural change so the activate handler purges the
 // old cache. (Browsers also refetch the SW when its bytes change.)
-const CACHE_NAME = 'lingo-map-v86';
+const CACHE_NAME = 'lingo-map-v87';
 
 // Bare-minimum precache: stuff every player needs on every map. Kept
 // short so install never fails — `cache.addAll` rejects atomically on
@@ -49,36 +49,61 @@ self.addEventListener('activate', (event) => {
 // Strategy chooser per request — different content has different
 // freshness/speed tradeoffs.
 //
-//   /_next/static/* and /assets/*    : CACHE-FIRST
-//     Both are content-addressable (Next hashes the filename, our
-//     pack/placeholder PNGs only change with a deploy). Once cached,
-//     never go back to the network unless the cache misses.
+//   /_next/static/*    : CACHE-FIRST
+//     Content-addressable: Next.js hashes the filename, so a changed
+//     file means a different URL. Once cached, never go back to the
+//     network unless the cache misses.
 //
-//   /api/* and HTML navigations      : NETWORK-FIRST, fallback to cache
+//   /assets/*          : STALE-WHILE-REVALIDATE
+//     URLs are stable (`/assets/me-bundle/foo.png`) but the contents
+//     CAN change between deploys. Cache-first would lock users on
+//     stale art forever (or until a manual CACHE_NAME bump). SWR
+//     serves cached instantly for snappy boot, then refetches in
+//     background — next visit picks up the fresh version.
+//
+//   /api/* and HTML    : NETWORK-FIRST, fallback to cache
 //     Editor saves the disk file, the runtime needs to see fresh
 //     /api/maps and /api/car-collisions on every visit. Cache exists
 //     only as an offline backstop.
 //
-//   everything else                  : NETWORK-FIRST, fallback to cache
-//     Same as API. Safer default — better to be a little slower than
-//     to serve stale dynamic content.
-function isCacheFirst(url) {
+//   everything else    : NETWORK-FIRST
+//     Safer default — better to be a little slower than serve stale
+//     dynamic content.
+function pickStrategy(url) {
   const path = url.pathname;
-  return path.startsWith('/_next/static/') || path.startsWith('/assets/');
+  if (path.startsWith('/_next/static/')) return 'cache-first';
+  if (path.startsWith('/assets/')) return 'stale-while-revalidate';
+  return 'network-first';
 }
 
 async function cacheFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
   if (cached) return cached;
-  // Cache miss — fetch and cache for next time. Failures fall through
-  // to the network error so the caller sees the same behaviour as a
-  // direct fetch.
+  // Cache miss — fetch and cache for next time.
   const response = await fetch(request);
   if (response.ok && request.method === 'GET') {
     cache.put(request, response.clone());
   }
   return response;
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  // Kick off the network update unconditionally so the cache catches
+  // up to whatever's deployed. Don't await it before serving cached.
+  const networkUpdate = fetch(request)
+    .then((response) => {
+      if (response.ok && request.method === 'GET') {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => null);
+  // Cache hit: serve immediately, refresh in background. Cache miss:
+  // wait for the network we just kicked off.
+  return cached || (await networkUpdate) || new Response('Offline', { status: 503 });
 }
 
 async function networkFirst(request) {
@@ -108,7 +133,12 @@ self.addEventListener('fetch', (event) => {
   // Only handle same-origin requests; cross-origin (analytics, fonts)
   // bypass the SW entirely.
   if (url.origin !== self.location.origin) return;
-  event.respondWith(
-    isCacheFirst(url) ? cacheFirst(event.request) : networkFirst(event.request)
-  );
+  const strategy = pickStrategy(url);
+  if (strategy === 'cache-first') {
+    event.respondWith(cacheFirst(event.request));
+  } else if (strategy === 'stale-while-revalidate') {
+    event.respondWith(staleWhileRevalidate(event.request));
+  } else {
+    event.respondWith(networkFirst(event.request));
+  }
 });

@@ -198,8 +198,15 @@ export default function GameCanvas() {
 
     let unsubscribe: (() => void) | null = null;
 
-    const startGame = () => {
-      if (cancelled || !containerRef.current) return;
+    // Returns a Promise that resolves after `pixiApp.init()` finishes
+    // (i.e., the first scene is fully mounted and the ticker is
+    // running). Earlier this fire-and-forgot the init promise; the
+    // 500ms background fetch chained off `.finally()` of the start-map
+    // fetch could then race ahead and compete for bandwidth WHILE init
+    // was still awaiting `loadAssets`. Returning the promise lets the
+    // caller schedule the background fetch only AFTER first paint.
+    const startGame = (): Promise<void> => {
+      if (cancelled || !containerRef.current) return Promise.resolve();
       const pixiApp = new PixiApp({
         objectMultiplier,
         musicEnabled: soundOnRef.current,
@@ -221,7 +228,7 @@ export default function GameCanvas() {
             break;
         }
       });
-      pixiApp.init(containerRef.current).catch((err) => {
+      return pixiApp.init(containerRef.current).catch((err) => {
         if (!cancelled) console.error(err);
       });
     };
@@ -230,10 +237,11 @@ export default function GameCanvas() {
     //   1. Block on the START MAP ONLY — that's the only override the
     //      first frame actually needs. Was previously /api/maps which
     //      pulled every map's data (~440 KB) before Pixi even started.
-    //   2. Once the game is up, background-fetch the rest of the maps
-    //      so door transitions to interiors still get their overrides
-    //      applied. The 500ms delay keeps the bandwidth out of the
-    //      contended first-paint window.
+    //   2. After `pixiApp.init()` resolves (first scene mounted, all
+    //      blocking pack PNGs loaded), wait 500ms then background-fetch
+    //      the rest of the maps. The wait-for-init keeps this off the
+    //      first-paint critical path; the 500ms additional delay keeps
+    //      it off the player's immediate-input path.
     //   3. If the user races a door transition to an interior before
     //      the background fetch lands, they get the compiled-map
     //      fallback for that scene. Rare; recoverable on next visit.
@@ -256,8 +264,10 @@ export default function GameCanvas() {
       })
       .catch(() => { /* offline or no data dir — use compiled maps */ })
       .finally(() => {
-        startGame();
-        window.setTimeout(fetchOtherMapsInBackground, 500);
+        startGame().then(() => {
+          if (cancelled) return;
+          window.setTimeout(fetchOtherMapsInBackground, 500);
+        });
       });
 
     return () => {
