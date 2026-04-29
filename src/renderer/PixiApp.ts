@@ -13,7 +13,7 @@ import { CommandQueue } from '../core/CommandQueue';
 import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
 import { buildCarNetwork, carAABB, CAR_SPRITE_SETS, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
-import { getTexture, loadAssets, loadPackSingle, preloadAllAssets } from './AssetLoader';
+import { getTexture, loadAssets, loadPackSingle } from './AssetLoader';
 
 /** localStorage key kept in sync with `data/car-collisions.json` by the
  * editor. The runtime no longer reads it (we use the disk file via the
@@ -143,8 +143,15 @@ export class PixiApp {
       this.update(ticker.deltaMS / 1000);
     });
 
-    // Preload all remaining assets in the background so scene transitions are instant
-    preloadAllAssets().catch(() => {});
+    // Earlier we kicked off a `preloadAllAssets()` here to make scene
+    // transitions instant. The cost: ~3 MB of PNGs fetched in the
+    // background during the most fragile moment of the cold start —
+    // competing for bandwidth with the user's first inputs and the
+    // car-sprite preload that already runs in `loadScene`. Scene
+    // transitions instead lazy-load whatever the destination map
+    // actually needs (via `loadAssets` inside `loadScene`); first door
+    // entry pays a small one-time cost, every subsequent entry hits
+    // the SW cache (cache-first for `/assets/*`).
   }
 
   private async loadScene(mapId: string, spawnId: string): Promise<void> {

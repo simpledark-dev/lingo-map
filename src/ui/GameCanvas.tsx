@@ -226,16 +226,39 @@ export default function GameCanvas() {
       });
     };
 
-    // Fetch disk overrides first, then start. If API fails, fall back to compiled maps.
-    fetch('/api/maps')
+    // Cold-start path:
+    //   1. Block on the START MAP ONLY — that's the only override the
+    //      first frame actually needs. Was previously /api/maps which
+    //      pulled every map's data (~440 KB) before Pixi even started.
+    //   2. Once the game is up, background-fetch the rest of the maps
+    //      so door transitions to interiors still get their overrides
+    //      applied. The 500ms delay keeps the bandwidth out of the
+    //      contended first-paint window.
+    //   3. If the user races a door transition to an interior before
+    //      the background fetch lands, they get the compiled-map
+    //      fallback for that scene. Rare; recoverable on next visit.
+    const fetchOtherMapsInBackground = () => {
+      fetch('/api/maps')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (cancelled || !data?.maps) return;
+          for (const id of Object.keys(data.maps)) {
+            if (id === startMapId) continue; // already applied above
+            applyOverride(data.maps[id]);
+          }
+        })
+        .catch(() => { /* compiled fallback for interiors is fine */ });
+    };
+    fetch(`/api/maps/${encodeURIComponent(startMapId)}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.maps) {
-          for (const id of Object.keys(data.maps)) applyOverride(data.maps[id]);
-        }
+        if (data && !data.error) applyOverride(data);
       })
       .catch(() => { /* offline or no data dir — use compiled maps */ })
-      .finally(startGame);
+      .finally(() => {
+        startGame();
+        window.setTimeout(fetchOtherMapsInBackground, 500);
+      });
 
     return () => {
       cancelled = true;
