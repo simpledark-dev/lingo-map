@@ -9,11 +9,17 @@ function sanitizeId(id: string): string | null {
   return id;
 }
 
-/** Save a single map as JSON. */
+/** Save a single map as JSON. Disabled in production builds — Vercel's
+ * runtime filesystem is read-only and per-request ephemeral, so a write
+ * here either errors or silently lands on an instance nobody else sees.
+ * Editor is intended to run locally; commit + redeploy to ship changes. */
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  if (process.env.NODE_ENV === 'production') {
+    return Response.json({ error: 'Map editing is disabled in production. Run the editor locally and commit changes.' }, { status: 403 });
+  }
   const { id: rawId } = await params;
   const id = sanitizeId(rawId);
   if (!id) return Response.json({ error: 'Invalid map id' }, { status: 400 });

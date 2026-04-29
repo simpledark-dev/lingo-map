@@ -25,8 +25,15 @@ export async function GET(): Promise<Response> {
 /** Replace the whole overrides map. The body must be a flat object whose
  * values are `{offsetX, offsetY, width, height}` — extra fields are
  * preserved verbatim, but the value type is shape-checked so a stray
- * editor bug can't write garbage that crashes the runtime. */
+ * editor bug can't write garbage that crashes the runtime.
+ *
+ * Disabled in production for the same reason as the map POST: Vercel's
+ * filesystem is read-only and ephemeral. Editor runs locally; commit
+ * the resulting `data/car-collisions.json` change to deploy it. */
 export async function POST(req: Request): Promise<Response> {
+  if (process.env.NODE_ENV === 'production') {
+    return Response.json({ error: 'Car-collision editing is disabled in production. Run the editor locally and commit changes.' }, { status: 403 });
+  }
   let body: unknown;
   try {
     body = await req.json();
