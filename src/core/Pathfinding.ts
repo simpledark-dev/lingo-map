@@ -8,6 +8,20 @@ import { getWorldCollisionBox, checkAABBOverlap, WorldBox } from './CollisionSys
 // claimed "half a tile" but the value was always one tile.
 const GRID_CELL = 16;
 
+// Extra pixels of "personal space" added to the player's collision
+// box when checking grid-cell walkability. With buffer = 0, A* picks
+// the shortest path which can hug obstacle edges so closely that the
+// runtime collision system briefly stops the player on every corner —
+// the player visually catches against trees / building walls when
+// going around them. With buffer = 3, the path keeps the player ~3px
+// further from any obstacle, eliminating the edge-clip stutter.
+//
+// Tradeoff: gaps narrower than `playerWidth + 2 * buffer = 16` px get
+// marked impassable. That's exactly one tile, matching the engine's
+// natural smallest passable space. If you ever build a 1-tile-wide
+// corridor and want the player to fit, lower this to 1-2.
+const PATHFIND_BUFFER = 3;
+
 /**
  * Build a walkability grid for pathfinding.
  * Each cell is true = walkable, false = blocked.
@@ -42,11 +56,18 @@ function isCellWalkable(
   map: MapData, objects: Entity[], buildings: Building[],
   pcb: CollisionBox,
 ): boolean {
+  // Inflate the player's collision box by PATHFIND_BUFFER on each
+  // side. The grid then marks any cell where the inflated box would
+  // touch an obstacle as blocked, so the resulting paths stay a clear
+  // margin from walls / trees / buildings. The runtime collision
+  // system uses the REAL (un-inflated) box, so the player still fits
+  // through tight runtime spots — this only steers PATHFINDING away
+  // from edges, not movement.
   const box: WorldBox = {
-    x: cx + pcb.offsetX,
-    y: cy + pcb.offsetY,
-    width: pcb.width,
-    height: pcb.height,
+    x: cx + pcb.offsetX - PATHFIND_BUFFER,
+    y: cy + pcb.offsetY - PATHFIND_BUFFER,
+    width: pcb.width + 2 * PATHFIND_BUFFER,
+    height: pcb.height + 2 * PATHFIND_BUFFER,
   };
 
   // Tile check
@@ -101,7 +122,9 @@ function isCellWalkable(
 /** True if any NPC's CURRENT collision box overlaps the player's
  * hypothetical position at the given grid cell. Called per A* node so
  * pathfinding always sees up-to-date NPC positions, not stale ones
- * baked into the static walk grid. */
+ * baked into the static walk grid. Uses the same PATHFIND_BUFFER
+ * inflation as the static check so paths give NPCs the same personal
+ * space as walls/trees. */
 function isCellBlockedByNpc(
   cx: number, cy: number,
   npcs: NPCData[],
@@ -109,10 +132,10 @@ function isCellBlockedByNpc(
 ): boolean {
   if (npcs.length === 0) return false;
   const box: WorldBox = {
-    x: cx + pcb.offsetX,
-    y: cy + pcb.offsetY,
-    width: pcb.width,
-    height: pcb.height,
+    x: cx + pcb.offsetX - PATHFIND_BUFFER,
+    y: cy + pcb.offsetY - PATHFIND_BUFFER,
+    width: pcb.width + 2 * PATHFIND_BUFFER,
+    height: pcb.height + 2 * PATHFIND_BUFFER,
   };
   for (const npc of npcs) {
     if (npc.collisionBox.width === 0 || npc.collisionBox.height === 0) continue;
