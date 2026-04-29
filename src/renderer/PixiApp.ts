@@ -1,5 +1,5 @@
 import { Application } from 'pixi.js';
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DEFAULT_ZOOM, DECOR_SPRITE_KEYS } from '../core/constants';
+import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DECOR_SPRITE_KEYS } from '../core/constants';
 import { GameState, MapData, TileType } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
 import { buildStressMap, StressOptions } from '../core/MapStress';
@@ -66,15 +66,6 @@ export class PixiApp {
    * resolver in the per-frame tick is allocation-free. Empty until the
    * fetch resolves (CarSystem falls back to a tile-sized box meanwhile). */
   private carCollisionOverrides: Record<string, CarCollisionBox> = {};
-  /** Camera-follow mode. Currently always false — earlier we tried
-   * keeping the player dead-center on mobile but the resulting black
-   * margins past the map edge looked worse than the player drifting
-   * toward a screen edge. The default clamp keeps the camera centered
-   * whenever the player is away from any map edge AND avoids margins.
-   * Kept as a field so a future "always-center" debug toggle is a
-   * one-line flip. */
-  private centerOnPlayer = false;
-
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
   private debugOverlay: DebugOverlay | null = null;
@@ -345,7 +336,7 @@ export class PixiApp {
     this.gameState = {
       currentMapId: mapId,
       player,
-      camera: updateCamera(player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height), this.centerOnPlayer),
+      camera: updateCamera(player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height)),
       entities: map.objects,
       buildings: map.buildings,
       npcs: map.npcs,
@@ -412,7 +403,7 @@ export class PixiApp {
       }
       // Update camera and render even during dialogue (player is frozen, but camera should stay)
       const capDialogue = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
-      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capDialogue, this.centerOnPlayer);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capDialogue);
       this.renderSystem.updatePlayer(this.gameState.player, delta);
       this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom, map.maxViewTiles ? capDialogue : undefined);
       this.renderSystem.updateAnimations(performance.now() / 1000);
@@ -428,7 +419,7 @@ export class PixiApp {
       this.bridge.emit({ type: 'dialogueStart', dialogue: dialogueEvent });
       // Don't process movement this frame
       const capInteract = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
-      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capInteract, this.centerOnPlayer);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capInteract);
       this.renderSystem.updatePlayer(this.gameState.player, delta);
       this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom, map.maxViewTiles ? capInteract : undefined);
       return;
@@ -560,7 +551,7 @@ export class PixiApp {
     // capped viewport in world px and pass it through so the camera clamps
     // inside the visible window and anything outside renders as black.
     const viewportCap = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
-    this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, viewportCap, this.centerOnPlayer);
+    this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, viewportCap);
 
     // Update NPC wandering
     if (this.npcWanderStates.length > 0 && this.walkGrid) {
