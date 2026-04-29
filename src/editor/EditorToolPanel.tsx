@@ -190,7 +190,7 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
             <input
               type="range"
               min={1}
-              max={100}
+              max={150}
               value={Math.round((selectedObject.scale ?? 1) * 100)}
               onChange={e => dispatch({ type: 'SET_OBJECT_SCALE', id: selectedObject.id, scale: parseInt(e.target.value) / 100 })}
               style={{ width: '100%' }}
@@ -544,7 +544,18 @@ function CollisionEditor({
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             <NumberRow label="Width" value={cb.width} onChange={v => setBox({ ...cb, width: v })} inputStyle={inputStyle} />
-            <NumberRow label="Height" value={cb.height} onChange={v => setBox({ ...cb, height: v })} inputStyle={inputStyle} />
+            {/* Height grows/shrinks from the TOP — bottom edge stays anchored
+                to the feet line (entity.y + offsetY + height). Without this
+                offsetY adjustment the box would extend downward into the
+                ground when height grew, or pull away from the feet when it
+                shrank, neither of which matches how players actually
+                collide with sprites. */}
+            <NumberRow
+              label="Height"
+              value={cb.height}
+              onChange={v => setBox({ ...cb, offsetY: cb.offsetY + (cb.height - v), height: v })}
+              inputStyle={inputStyle}
+            />
             <NumberRow label="Offset X" value={cb.offsetX} onChange={v => setBox({ ...cb, offsetX: v })} inputStyle={inputStyle} />
             <NumberRow label="Offset Y" value={cb.offsetY} onChange={v => setBox({ ...cb, offsetY: v })} inputStyle={inputStyle} />
           </div>

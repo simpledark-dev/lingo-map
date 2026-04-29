@@ -246,6 +246,12 @@ export default function EditorCanvas() {
     anchorObjectId: string;
   } | null>(null);
   const draggingBuildingRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  // Shift+click on an entity is ambiguous: it might be a toggle-into-multi-
+  // select (no movement on release) OR the start of a free-placement drag
+  // (movement before release). We commit to a drag immediately so motion
+  // takes effect without a hand-off, but record `pendingShiftToggleId` so
+  // pointerup can fire the toggle if the user never actually moved.
+  const pendingShiftToggleRef = useRef<{ id: string; startScreen: { x: number; y: number } } | null>(null);
   const areaEraseRef = useRef<{ start: { row: number; col: number }; end: { row: number; col: number } } | null>(null);
   // Area Select: drawing a new selection rectangle.
   const areaSelectRef = useRef<{ start: { row: number; col: number }; end: { row: number; col: number } } | null>(null);
@@ -813,9 +819,13 @@ export default function EditorCanvas() {
           const bb = getSpriteBounds(obj.x, obj.y, obj.spriteKey, obj.anchor, s.tileSize, obj.scale ?? 1);
           if (x >= bb.left && x < bb.right && y >= bb.top && y < bb.bottom) {
             if (shift) {
-              // Shift-click: toggle this id in/out of the multi-selection;
-              // never start a drag — user is building up the selection.
-              dispatchRef.current({ type: 'TOGGLE_SELECT_OBJECT', id: obj.id });
+              // Shift-click on an entity is ambiguous: it could be a toggle
+              // into the multi-selection (no drag) OR the start of a
+              // free-placement drag (shift suppresses snap). We don't pick
+              // yet — record the click and let pointermove promote it to a
+              // drag once the cursor moves past a small threshold.
+              // pointerup with no promotion fires the toggle.
+              pendingShiftToggleRef.current = { id: obj.id, startScreen: { x: e.clientX, y: e.clientY } };
             } else if (s.selectedObjectIds.includes(obj.id) && s.selectedObjectIds.length > 1) {
               // Plain click on an already-multi-selected object: keep the
               // group as-is and start a group drag.
@@ -897,6 +907,49 @@ export default function EditorCanvas() {
       const dy = (e.clientY - panStartRef.current.y) / s.zoom;
       dispatchRef.current({ type: 'SET_CAMERA', x: panStartRef.current.camX - dx, y: panStartRef.current.camY - dy });
       return;
+    }
+
+    // Promote a pending shift+click into a drag once the cursor moves past
+    // a small dead-zone (4 px in screen space). Below the threshold the
+    // user might still be intending a toggle-into-selection click — we
+    // wait until they unmistakably moved before committing to a drag.
+    if (pendingShiftToggleRef.current) {
+      const dx = e.clientX - pendingShiftToggleRef.current.startScreen.x;
+      const dy = e.clientY - pendingShiftToggleRef.current.startScreen.y;
+      if (dx * dx + dy * dy > 16) {
+        const id = pendingShiftToggleRef.current.id;
+        pendingShiftToggleRef.current = null;
+        const app = editorAppRef.current;
+        if (app) {
+          const w = app.screenToWorld(e.clientX, e.clientY, s.cameraX, s.cameraY, s.zoom);
+          const obj = getAllObjects(s).find(o => o.id === id);
+          if (obj) {
+            // If the clicked entity already belongs to a multi-selection,
+            // drag the whole group; otherwise drag just this one entity.
+            // We don't add it to the selection here — pointer-up's no-move
+            // path handles the toggle if the user releases without moving.
+            // Once we're here they DID move, so the drag itself is the
+            // intent and the existing selection stays as-is.
+            if (s.selectedObjectIds.includes(id) && s.selectedObjectIds.length > 1) {
+              const allObjs = getAllObjects(s);
+              const originals = new Map<string, { x: number; y: number; sortY: number }>();
+              for (const sid of s.selectedObjectIds) {
+                const o = allObjs.find(oo => oo.id === sid);
+                if (o) originals.set(sid, { x: o.x, y: o.y, sortY: o.sortY });
+              }
+              draggingMultiRef.current = {
+                ids: [...s.selectedObjectIds],
+                originals,
+                anchorWorld: { x: w.x, y: w.y },
+                dragId: `drag-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+                anchorObjectId: id,
+              };
+            } else {
+              draggingObjectRef.current = { id, dx: obj.x - w.x, dy: obj.y - w.y };
+            }
+          }
+        }
+      }
     }
 
     // Resize-mode edge drag: snap the active edge to the nearest tile
@@ -1224,6 +1277,15 @@ export default function EditorCanvas() {
     // End of a resize-mode edge drag.
     if (resizeDragRef.current) {
       resizeDragRef.current = null;
+      return;
+    }
+
+    // Pending shift+click that never promoted to a drag → fire the toggle
+    // selection now (user released without moving = pure click, not drag).
+    if (pendingShiftToggleRef.current) {
+      const id = pendingShiftToggleRef.current.id;
+      pendingShiftToggleRef.current = null;
+      dispatchRef.current({ type: 'TOGGLE_SELECT_OBJECT', id });
       return;
     }
 

@@ -10758,6 +10758,956 @@
       "layer": "floor"
     },
     {
+      "id": "obj-mojijxx3-ejh1s",
+      "x": 720,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-peq1n",
+      "x": 688,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-8zk4r",
+      "x": 656,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-37rx4",
+      "x": 624,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-baw7h",
+      "x": 592,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-favia",
+      "x": 560,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-u4pyt",
+      "x": 528,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-o6phw",
+      "x": 496,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-0tfo9",
+      "x": 464,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-961pn",
+      "x": 432,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-f7hbj",
+      "x": 400,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-z62ob",
+      "x": 368,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-dei8j",
+      "x": 336,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-9ck9x",
+      "x": 304,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-0y27n",
+      "x": 272,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-i2mhd",
+      "x": 240,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-up7tg",
+      "x": 208,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-80iok",
+      "x": 176,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-uqq17",
+      "x": 144,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-gj65j",
+      "x": 112,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-lozc6",
+      "x": 80,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-t88jt",
+      "x": 48,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-nc2p8",
+      "x": 16,
+      "y": 64,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 64,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-dj4ez",
+      "x": 488,
+      "y": 80,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_9",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 80,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-jiofi",
+      "x": 744,
+      "y": 48,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_9",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 48,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-nv1ns",
+      "x": 720,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-5l30a",
+      "x": 688,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-w9xu4",
+      "x": 656,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-x7xzh",
+      "x": 624,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-5n9rw",
+      "x": 592,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-xcsmp",
+      "x": 560,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-digz0",
+      "x": 528,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-phcjy",
+      "x": 496,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-ypcbh",
+      "x": 464,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-v36k7",
+      "x": 432,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-qq1z1",
+      "x": 400,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-rzyjv",
+      "x": 368,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-4o7p1",
+      "x": 336,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-7z9d2",
+      "x": 304,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-8jj03",
+      "x": 272,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-xb2pu",
+      "x": 240,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-xrsoe",
+      "x": 208,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-ijxku",
+      "x": 176,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-xy0gr",
+      "x": 144,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-1aa0i",
+      "x": 112,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-qh4nu",
+      "x": 80,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-2zvzi",
+      "x": 48,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-02gat",
+      "x": 16,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-2avtq",
+      "x": 744,
+      "y": 32,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_9",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 32,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
+      "id": "obj-mojijxx3-kbqvb",
+      "x": 744,
+      "y": 16,
+      "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_9",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 16,
+      "collisionBox": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scale": 1,
+      "layer": "floor"
+    },
+    {
       "id": "obj-moh684e8-xg2fh",
       "x": 72,
       "y": 816,
@@ -10873,21 +11823,21 @@
     },
     {
       "id": "obj-moifaiag-q6ir2",
-      "x": 296,
-      "y": 336,
+      "x": 292.1588541666667,
+      "y": 338.80859375,
       "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_45",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 336,
+      "sortY": 338.80859375,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
         "width": 0,
         "height": 0
       },
-      "scale": 1,
+      "scale": 1.2100000000000002,
       "layer": "decor-low"
     },
     {
@@ -10929,22 +11879,22 @@
       "layer": "decor-low"
     },
     {
-      "id": "obj-moifbnwl-ycvo6",
-      "x": 664,
-      "y": 336,
+      "id": "obj-moje5eu1-bwu8v",
+      "x": 663.609375,
+      "y": 339.15234375,
       "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_45",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 336,
+      "sortY": 339.15234375,
       "collisionBox": {
         "offsetX": 0,
         "offsetY": 0,
         "width": 0,
         "height": 0
       },
-      "scale": 1,
+      "scale": 1.2100000000000002,
       "layer": "decor-low"
     },
     {
@@ -10996,29 +11946,10 @@
       },
       "sortY": 826.855,
       "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moh6eeok-iu3vv",
-      "x": 239.40364583333337,
-      "y": 826.3333333333335,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 826.3333333333335,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
+        "offsetX": -13,
+        "offsetY": -27,
+        "width": 26,
+        "height": 27
       },
       "scale": 1,
       "layer": "props"
@@ -11053,48 +11984,10 @@
       },
       "sortY": 811.3333333333333,
       "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moh7egud-q6uhi",
-      "x": 633.0350000000001,
-      "y": 826.4012499999999,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 826.4012499999999,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
-      "id": "obj-moh7epxh-e34ul",
-      "x": 709.5418749999999,
-      "y": 825.6481249999999,
-      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 825.6481249999999,
-      "collisionBox": {
-        "offsetX": 0,
-        "offsetY": 0,
-        "width": 0,
-        "height": 0
+        "offsetX": -32,
+        "offsetY": -24,
+        "width": 64,
+        "height": 24
       },
       "scale": 1,
       "layer": "props"
@@ -12034,25 +12927,6 @@
       "layer": "props"
     },
     {
-      "id": "obj-moiffnwb-btbrr",
-      "x": 672,
-      "y": 336,
-      "spriteKey": "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Camper_Left_4",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 336,
-      "collisionBox": {
-        "offsetX": -48,
-        "offsetY": -32,
-        "width": 96,
-        "height": 32
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
       "id": "obj-moiffxqg-4xis8",
       "x": 344,
       "y": 320,
@@ -12244,14 +13118,14 @@
     },
     {
       "id": "obj-moifxr65-pg691",
-      "x": 264,
-      "y": 320,
+      "x": 258.51822916666663,
+      "y": 318.41276041666663,
       "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Cone_3",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 320,
+      "sortY": 318.41276041666663,
       "collisionBox": {
         "offsetX": -8,
         "offsetY": -8,
@@ -12547,25 +13421,6 @@
       "layer": "props"
     },
     {
-      "id": "obj-moinjz1e-8j3se",
-      "x": 376,
-      "y": 464,
-      "spriteKey": "me:3_City_Props_Singles_16x16/cherry_blossom_tree",
-      "anchor": {
-        "x": 0.5,
-        "y": 1
-      },
-      "sortY": 464,
-      "collisionBox": {
-        "offsetX": -25,
-        "offsetY": -41,
-        "width": 49,
-        "height": 41
-      },
-      "scale": 1,
-      "layer": "props"
-    },
-    {
       "id": "obj-moinqtbl-t2uj9",
       "x": 168,
       "y": 448,
@@ -12842,10 +13697,10 @@
       },
       "sortY": 535.8921875,
       "collisionBox": {
-        "offsetX": -37,
-        "offsetY": -48,
-        "width": 73,
-        "height": 48
+        "offsetX": -16,
+        "offsetY": -25,
+        "width": 31,
+        "height": 21
       },
       "scale": 1,
       "layer": "props"
@@ -12861,10 +13716,10 @@
       },
       "sortY": 579.6342395833332,
       "collisionBox": {
-        "offsetX": -38,
+        "offsetX": -20,
         "offsetY": -50,
-        "width": 75,
-        "height": 50
+        "width": 37,
+        "height": 43
       },
       "scale": 1,
       "layer": "props"
@@ -12880,10 +13735,10 @@
       },
       "sortY": 464.7044270833333,
       "collisionBox": {
-        "offsetX": -36,
-        "offsetY": -54,
-        "width": 72,
-        "height": 54
+        "offsetX": -18,
+        "offsetY": -42,
+        "width": 33,
+        "height": 41
       },
       "scale": 0.7290000000000001,
       "layer": "props"
@@ -12960,6 +13815,139 @@
         "offsetY": -16,
         "width": 16,
         "height": 16
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moje0cds-g59wh",
+      "x": 222.74869791666669,
+      "y": 220.3984375,
+      "spriteKey": "me:3_City_Props_Singles_16x16/decor-1",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 220.3984375,
+      "collisionBox": {
+        "offsetX": -9,
+        "offsetY": -13,
+        "width": 17,
+        "height": 13
+      },
+      "scale": 0.88,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moiffnwb-btbrr",
+      "x": 664.29296875,
+      "y": 334.15234375,
+      "spriteKey": "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Camper_Left_4",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 334.15234375,
+      "collisionBox": {
+        "offsetX": -48,
+        "offsetY": -32,
+        "width": 96,
+        "height": 32
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mojhpfcv-cqs9a",
+      "x": 600,
+      "y": 320,
+      "spriteKey": "me:3_City_Props_Singles_16x16/cherry_blossom_tree",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 320,
+      "collisionBox": {
+        "offsetX": -16,
+        "offsetY": -28,
+        "width": 31,
+        "height": 27
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-moji6dob-di2bk",
+      "x": 376,
+      "y": 464,
+      "spriteKey": "me:3_City_Props_Singles_16x16/cherry_blossom_tree",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 464,
+      "collisionBox": {
+        "offsetX": -16,
+        "offsetY": -28,
+        "width": 31,
+        "height": 27
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mojifff8-u315h",
+      "x": 239.45703125000003,
+      "y": 824.45703125,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 824.45703125,
+      "collisionBox": {
+        "offsetX": -13,
+        "offsetY": -27,
+        "width": 26,
+        "height": 27
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mojikz2u-waq5q",
+      "x": 634.0638020833334,
+      "y": 826.09375,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 826.09375,
+      "collisionBox": {
+        "offsetX": -13,
+        "offsetY": -27,
+        "width": 26,
+        "height": 27
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mojiloit-mtvd2",
+      "x": 712.4101562499999,
+      "y": 825.4986979166667,
+      "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 825.4986979166667,
+      "collisionBox": {
+        "offsetX": -13,
+        "offsetY": -27,
+        "width": 26,
+        "height": 27
       },
       "scale": 1,
       "layer": "props"
@@ -23846,6 +24834,956 @@
             "height": 0
           },
           "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-ejh1s",
+          "x": 720,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-peq1n",
+          "x": 688,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-8zk4r",
+          "x": 656,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-37rx4",
+          "x": 624,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-baw7h",
+          "x": 592,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-favia",
+          "x": 560,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-u4pyt",
+          "x": 528,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-o6phw",
+          "x": 496,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-0tfo9",
+          "x": 464,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-961pn",
+          "x": 432,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-f7hbj",
+          "x": 400,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-z62ob",
+          "x": 368,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-dei8j",
+          "x": 336,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-9ck9x",
+          "x": 304,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-0y27n",
+          "x": 272,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-i2mhd",
+          "x": 240,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-up7tg",
+          "x": 208,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-80iok",
+          "x": 176,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-uqq17",
+          "x": 144,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-gj65j",
+          "x": 112,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-lozc6",
+          "x": 80,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-t88jt",
+          "x": 48,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-nc2p8",
+          "x": 16,
+          "y": 64,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 64,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-dj4ez",
+          "x": 488,
+          "y": 80,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_9",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 80,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-jiofi",
+          "x": 744,
+          "y": 48,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_9",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 48,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-nv1ns",
+          "x": 720,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-5l30a",
+          "x": 688,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-w9xu4",
+          "x": 656,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-x7xzh",
+          "x": 624,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-5n9rw",
+          "x": 592,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-xcsmp",
+          "x": 560,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-digz0",
+          "x": 528,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-phcjy",
+          "x": 496,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-ypcbh",
+          "x": 464,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-v36k7",
+          "x": 432,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-qq1z1",
+          "x": 400,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-rzyjv",
+          "x": 368,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-4o7p1",
+          "x": 336,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-7z9d2",
+          "x": 304,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-8jj03",
+          "x": 272,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-xb2pu",
+          "x": 240,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-xrsoe",
+          "x": 208,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-ijxku",
+          "x": 176,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-xy0gr",
+          "x": 144,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-1aa0i",
+          "x": 112,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-qh4nu",
+          "x": 80,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-2zvzi",
+          "x": 48,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-02gat",
+          "x": 16,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_25",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-2avtq",
+          "x": 744,
+          "y": 32,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_9",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 32,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
+        },
+        {
+          "id": "obj-mojijxx3-kbqvb",
+          "x": 744,
+          "y": 16,
+          "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_9",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 16,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "floor"
         }
       ]
     },
@@ -23972,21 +25910,21 @@
         },
         {
           "id": "obj-moifaiag-q6ir2",
-          "x": 296,
-          "y": 336,
+          "x": 292.1588541666667,
+          "y": 338.80859375,
           "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_45",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 336,
+          "sortY": 338.80859375,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
             "width": 0,
             "height": 0
           },
-          "scale": 1,
+          "scale": 1.2100000000000002,
           "layer": "decor-low"
         },
         {
@@ -24028,22 +25966,22 @@
           "layer": "decor-low"
         },
         {
-          "id": "obj-moifbnwl-ycvo6",
-          "x": 664,
-          "y": 336,
+          "id": "obj-moje5eu1-bwu8v",
+          "x": 663.609375,
+          "y": 339.15234375,
           "spriteKey": "me:2_City_Terrains_Singles_16x16/ME_Singles_City_Terrains_16x16_Sidewalk_2_45",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 336,
+          "sortY": 339.15234375,
           "collisionBox": {
             "offsetX": 0,
             "offsetY": 0,
             "width": 0,
             "height": 0
           },
-          "scale": 1,
+          "scale": 1.2100000000000002,
           "layer": "decor-low"
         }
       ]
@@ -24104,29 +26042,10 @@
           },
           "sortY": 826.855,
           "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moh6eeok-iu3vv",
-          "x": 239.40364583333337,
-          "y": 826.3333333333335,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 826.3333333333335,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
+            "offsetX": -13,
+            "offsetY": -27,
+            "width": 26,
+            "height": 27
           },
           "scale": 1,
           "layer": "props"
@@ -24161,48 +26080,10 @@
           },
           "sortY": 811.3333333333333,
           "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moh7egud-q6uhi",
-          "x": 633.0350000000001,
-          "y": 826.4012499999999,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 826.4012499999999,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moh7epxh-e34ul",
-          "x": 709.5418749999999,
-          "y": 825.6481249999999,
-          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 825.6481249999999,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
+            "offsetX": -32,
+            "offsetY": -24,
+            "width": 64,
+            "height": 24
           },
           "scale": 1,
           "layer": "props"
@@ -25142,25 +27023,6 @@
           "layer": "props"
         },
         {
-          "id": "obj-moiffnwb-btbrr",
-          "x": 672,
-          "y": 336,
-          "spriteKey": "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Camper_Left_4",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 336,
-          "collisionBox": {
-            "offsetX": -48,
-            "offsetY": -32,
-            "width": 96,
-            "height": 32
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-moiffxqg-4xis8",
           "x": 344,
           "y": 320,
@@ -25352,14 +27214,14 @@
         },
         {
           "id": "obj-moifxr65-pg691",
-          "x": 264,
-          "y": 320,
+          "x": 258.51822916666663,
+          "y": 318.41276041666663,
           "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Cone_3",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 320,
+          "sortY": 318.41276041666663,
           "collisionBox": {
             "offsetX": -8,
             "offsetY": -8,
@@ -25655,25 +27517,6 @@
           "layer": "props"
         },
         {
-          "id": "obj-moinjz1e-8j3se",
-          "x": 376,
-          "y": 464,
-          "spriteKey": "me:3_City_Props_Singles_16x16/cherry_blossom_tree",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 464,
-          "collisionBox": {
-            "offsetX": -25,
-            "offsetY": -41,
-            "width": 49,
-            "height": 41
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-moinqtbl-t2uj9",
           "x": 168,
           "y": 448,
@@ -25950,10 +27793,10 @@
           },
           "sortY": 535.8921875,
           "collisionBox": {
-            "offsetX": -37,
-            "offsetY": -48,
-            "width": 73,
-            "height": 48
+            "offsetX": -16,
+            "offsetY": -25,
+            "width": 31,
+            "height": 21
           },
           "scale": 1,
           "layer": "props"
@@ -25969,10 +27812,10 @@
           },
           "sortY": 579.6342395833332,
           "collisionBox": {
-            "offsetX": -38,
+            "offsetX": -20,
             "offsetY": -50,
-            "width": 75,
-            "height": 50
+            "width": 37,
+            "height": 43
           },
           "scale": 1,
           "layer": "props"
@@ -25988,10 +27831,10 @@
           },
           "sortY": 464.7044270833333,
           "collisionBox": {
-            "offsetX": -36,
-            "offsetY": -54,
-            "width": 72,
-            "height": 54
+            "offsetX": -18,
+            "offsetY": -42,
+            "width": 33,
+            "height": 41
           },
           "scale": 0.7290000000000001,
           "layer": "props"
@@ -26068,6 +27911,139 @@
             "offsetY": -16,
             "width": 16,
             "height": 16
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moje0cds-g59wh",
+          "x": 222.74869791666669,
+          "y": 220.3984375,
+          "spriteKey": "me:3_City_Props_Singles_16x16/decor-1",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 220.3984375,
+          "collisionBox": {
+            "offsetX": -9,
+            "offsetY": -13,
+            "width": 17,
+            "height": 13
+          },
+          "scale": 0.88,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moiffnwb-btbrr",
+          "x": 664.29296875,
+          "y": 334.15234375,
+          "spriteKey": "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Camper_Left_4",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 334.15234375,
+          "collisionBox": {
+            "offsetX": -48,
+            "offsetY": -32,
+            "width": 96,
+            "height": 32
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mojhpfcv-cqs9a",
+          "x": 600,
+          "y": 320,
+          "spriteKey": "me:3_City_Props_Singles_16x16/cherry_blossom_tree",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 320,
+          "collisionBox": {
+            "offsetX": -16,
+            "offsetY": -28,
+            "width": 31,
+            "height": 27
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-moji6dob-di2bk",
+          "x": 376,
+          "y": 464,
+          "spriteKey": "me:3_City_Props_Singles_16x16/cherry_blossom_tree",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 464,
+          "collisionBox": {
+            "offsetX": -16,
+            "offsetY": -28,
+            "width": 31,
+            "height": 27
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mojifff8-u315h",
+          "x": 239.45703125000003,
+          "y": 824.45703125,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 824.45703125,
+          "collisionBox": {
+            "offsetX": -13,
+            "offsetY": -27,
+            "width": 26,
+            "height": 27
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mojikz2u-waq5q",
+          "x": 634.0638020833334,
+          "y": 826.09375,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 826.09375,
+          "collisionBox": {
+            "offsetX": -13,
+            "offsetY": -27,
+            "width": 26,
+            "height": 27
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mojiloit-mtvd2",
+          "x": 712.4101562499999,
+          "y": 825.4986979166667,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 825.4986979166667,
+          "collisionBox": {
+            "offsetX": -13,
+            "offsetY": -27,
+            "width": 26,
+            "height": 27
           },
           "scale": 1,
           "layer": "props"

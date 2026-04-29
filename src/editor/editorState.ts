@@ -698,10 +698,10 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     }
 
     case 'SET_OBJECT_SCALE': {
-      // Scale is capped at 100% since source assets are already bigger than
-      // needed — the only workflow is shrinking. Lower bound 1% for fine
-      // granularity on very small decor.
-      const clamped = Math.max(0.01, Math.min(1, action.scale));
+      // Scale range 1%–150%. Most assets are already at intended size so
+      // shrinking is the common case, but 150% headroom lets the user
+      // emphasise hero objects (signs, special props) above their default.
+      const clamped = Math.max(0.01, Math.min(1.5, action.scale));
       const obj = findObject(state, action.id);
       if (!obj || obj.scale === clamped) return state;
       if (isLayerLocked(state, obj.layer)) return state;
