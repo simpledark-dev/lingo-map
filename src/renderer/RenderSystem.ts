@@ -98,16 +98,18 @@ export class RenderSystem {
     // visible tile area. Lazy creation on first scene load; otherwise
     // resize the existing mask to the new map's dimensions.
     //
-    // CRITICAL: `renderable = false` so the white-filled rect is used
-    // as a clip shape only and never drawn on top of the world. Without
-    // this, the entire map renders behind a solid white box until the
-    // first sprite (the first spawned car) attaches to the mask, at
-    // which point Pixi flips the mask invisible — symptom is "blank
-    // canvas for the first few seconds, then the world pops in".
+    // The mask Graphics is added at index 0 of `worldContainer`, so it
+    // renders FIRST (behind everything) and gets fully covered by the
+    // ground / transition / autotile / entity layers stacked above. The
+    // user never sees the white rectangle, but it's still in the scene
+    // graph and `renderable = true`, which is what PixiJS v8's prod
+    // pipeline needs for the mask buffer to populate correctly. Earlier
+    // we tried `renderable = false`, which worked in dev but in prod
+    // emptied the mask → every sprite using it as a mask (i.e., every
+    // ambient car) became invisible.
     if (!this.mapBoundsMask) {
       this.mapBoundsMask = new Graphics();
-      this.mapBoundsMask.renderable = false;
-      this.worldContainer.addChild(this.mapBoundsMask);
+      this.worldContainer.addChildAt(this.mapBoundsMask, 0);
     }
     this.mapBoundsMask.clear();
     this.mapBoundsMask
