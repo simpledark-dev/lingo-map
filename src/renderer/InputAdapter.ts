@@ -56,11 +56,16 @@ export class InputAdapter {
       return;
     }
 
+    // Click coordinates stay in CSS pixels — Pixi's coordinate system
+    // is in CSS pixels too even after we bumped `resolution` to
+    // devicePixelRatio (autoDensity handles the canvas-buffer-vs-CSS
+    // distinction for us). Earlier this code multiplied by
+    // canvas.width / rect.width, which was 1 at resolution=1 but
+    // equals devicePixelRatio after the switch — making mobile taps
+    // land 3× away from where the user pointed.
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
-    const screenX = (e.clientX - rect.left) * scaleX;
-    const screenY = (e.clientY - rect.top) * scaleY;
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
 
     // Screen-to-world conversion accounting for zoom
     const worldX = screenX / this.zoom + this.cameraOffset.x;
