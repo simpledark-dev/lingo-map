@@ -61,6 +61,13 @@ export class PixiApp {
    * shade so you can see what the obstacle test is actually checking. */
   private debugShowCollisions = false;
   private debugKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  /** Frame counter for the path/target "give up" guard. Each tick the
+   * player is in path/target mode but didn't actually move (collision
+   * blocked us, or pathfinding sent us at an obstacle), this
+   * increments. After STUCK_FRAMES_LIMIT, we cancel the path/target
+   * and drop to direct mode so the player isn't trapped banging on a
+   * wall forever. */
+  private stuckFrames = 0;
   /** Per-sprite collision overrides loaded from `data/car-collisions.json`
    * via the API. Cached here for the lifetime of the scene so the
    * resolver in the per-frame tick is allocation-free. Empty until the
@@ -489,6 +496,11 @@ export class PixiApp {
       this.gameState.buildings,
     );
 
+    // Capture pre-update position so the stuck guard below knows whether
+    // the resolved move actually changed anything.
+    const prevX = this.gameState.player.x;
+    const prevY = this.gameState.player.y;
+
     this.gameState.player = {
       ...desiredPlayer,
       x: resolved.x,
@@ -502,6 +514,30 @@ export class PixiApp {
     this.gameState.player.x = Math.max(0, Math.min(mapW, this.gameState.player.x));
     this.gameState.player.y = Math.max(0, Math.min(mapH, this.gameState.player.y));
     this.gameState.player.sortY = this.gameState.player.y;
+
+    // ── Stuck guard ──
+    // If the player is on a path/target and the resolved move barely
+    // moved them, count it. After 10 consecutive stuck frames (~165ms
+    // at 60fps) cancel the path/target so the user can issue a fresh
+    // command instead of jamming on a wall. Closes the three "tap on
+    // an obstacle / unreachable goal / NPC blocks our path" wall-bang
+    // bugs without restructuring pathfinding itself.
+    const STUCK_EPSILON_SQ = 0.01; // 0.1 pixels squared
+    const STUCK_FRAMES_LIMIT = 10;
+    const dxMoved = this.gameState.player.x - prevX;
+    const dyMoved = this.gameState.player.y - prevY;
+    const movedEnough = dxMoved * dxMoved + dyMoved * dyMoved > STUCK_EPSILON_SQ;
+    const inPathOrTarget = this.gameState.player.movementMode.type === 'path'
+      || this.gameState.player.movementMode.type === 'target';
+    if (inPathOrTarget && !movedEnough) {
+      this.stuckFrames += 1;
+      if (this.stuckFrames >= STUCK_FRAMES_LIMIT) {
+        this.gameState.player = { ...this.gameState.player, movementMode: { type: 'direct' } };
+        this.stuckFrames = 0;
+      }
+    } else {
+      this.stuckFrames = 0;
+    }
 
     // Cell-position log — dev only. Even though it's already throttled
     // to tile crossings, in production it serves no purpose and the

@@ -47,12 +47,18 @@ export class InputAdapter {
 
     // Exactly 2 fingers down = pinch. 3+ fingers stops pinch handling
     // entirely so an accidental third finger doesn't yank the zoom.
+    // Also discard any move-target that the FIRST finger's pointerdown
+    // queued up — without this, the player would walk toward the first
+    // tap location WHILE the user is pinch-zooming. Same logic for 3+
+    // (something weird happened, abandon any queued tap).
     if (this.activeTouches.size === 2) {
       this.lastPinchDist = this.getPinchDist();
+      this._moveTarget = null;
       return;
     }
     if (this.activeTouches.size > 2) {
       this.lastPinchDist = null;
+      this._moveTarget = null;
       return;
     }
 
