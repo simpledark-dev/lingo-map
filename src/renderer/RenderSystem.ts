@@ -1,8 +1,8 @@
-import { Application, Container, Graphics, RenderTexture, Sprite } from 'pixi.js';
-import { MapData, PlayerState, TileType } from '../core/types';
+import { Application, Container, Graphics, RenderTexture, Sprite, Texture } from 'pixi.js';
+import { Entity, MapData, MapLayer, PlayerState } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
-import { getEffectiveZIndex, getLayers, getObjectLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
-import { getTexture, getTileTexture } from './AssetLoader';
+import { getEffectiveZIndex, getLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
+import { getTexture, getTileTexture, loadPackSingle } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
 import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
 
@@ -89,6 +89,11 @@ export class RenderSystem {
   // them all in one draw call. Drops Pixi's static scene-graph cost
   // from thousands of sprites to one.
   private bakedStaticTexture: RenderTexture | null = null;
+  // Flipped true in `destroy()`. Lazy-load callbacks for pack-key
+  // objects check this before adding sprites — without it, a Promise
+  // that resolves after a scene transition would try to attach
+  // children to destroyed containers (PixiJS throws on that).
+  private destroyed = false;
 
   // Current map data (needed for sorting)
   private currentMap: MapData | null = null;
@@ -204,52 +209,42 @@ export class RenderSystem {
 
     const layers = getLayers(map);
 
-    // Objects (trees, rocks)
-    let seed = 1;
+    // Tree-anim seed walks per sync-loaded tree to give each its own
+    // sway phase. Lazy-loaded trees (pack-key trees) don't get an
+    // animation entry — current data only puts placeholder 'tree'
+    // sprites under sync load anyway, so this is moot in practice.
+    const treeSeedRef = { value: 1 };
+
+    // Objects: create sprites for whichever textures are already loaded
+    // (sync path), and lazy-load the rest in the background. Late-arrived
+    // pack-key sprites land in floorContainer/entityLayer post-bake and
+    // simply render live. Order matters less than throughput here —
+    // we'd rather have the player-controllable scene visible immediately
+    // than block on every me:* PNG before first paint.
     for (const obj of map.objects) {
       const texture = getTexture(obj.spriteKey);
-      if (!texture) continue;
-      const sprite = new Sprite(texture);
-      sprite.anchor.set(obj.anchor.x, obj.anchor.y);
-      sprite.x = obj.x;
-      sprite.y = obj.y;
-      sprite.zIndex = getEffectiveZIndex(layers, obj.layer, obj.sortY);
-      if (obj.scale && obj.scale !== 1) sprite.scale.set(obj.scale);
-      // Flat 'floor' decor lives in a non-sortable sibling container
-      // below entityLayer. zIndex still gets set above for the few code
-      // paths that read it (e.g., debug overlays), but the renderer
-      // never sorts these children — order falls back to addChild
-      // order, which matches data order.
-      if (obj.layer === 'floor') {
-        this.floorContainer.addChild(sprite);
-      } else {
-        this.entityLayer.addChild(sprite);
+      if (texture) {
+        this.createObjectSprite(obj, texture, layers, treeSeedRef);
+      } else if (obj.spriteKey.startsWith('me:')) {
+        const targetMap = map;
+        loadPackSingle(obj.spriteKey)
+          .then((tex) => {
+            // Bail if scene changed during the load — we'd otherwise
+            // attach this sprite to the wrong map's containers.
+            if (this.currentMap !== targetMap) return;
+            // Re-check the cache; another path (e.g., editor preload)
+            // may have already populated it.
+            const final = tex ?? getTexture(obj.spriteKey);
+            if (!final) return;
+            // Skip if this id already has a sprite (defensive — could
+            // happen if the same key loads twice via different paths).
+            if (this.objectSprites.has(obj.id)) return;
+            this.createObjectSprite(obj, final, layers, treeSeedRef);
+          })
+          .catch(() => { /* AssetLoader logs */ });
       }
-      this.objectSprites.set(obj.id, sprite);
-      // Pre-filter occluders: a sprite must be both wide AND tall enough
-      // to plausibly hide the player. Floor decor (rugs, sidewalks,
-      // doormats — typically 16×16 or wider-but-flat) never qualifies
-      // and is skipped from the per-frame fade scan entirely.
-      const scale = obj.scale ?? 1;
-      const visW = texture.width * scale;
-      const visH = texture.height * scale;
-      if (visW >= MIN_OCCLUDER_WIDTH && visH >= MIN_OCCLUDER_HEIGHT) {
-        this.occludingObjectSprites.set(obj.id, sprite);
-      }
-
-      // Register tree animations
-      if (obj.spriteKey === 'tree') {
-        // Deterministic per-tree variation using a simple hash
-        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-        this.treeAnims.set(obj.id, {
-          baseX: obj.x,
-          baseY: obj.y,
-          phase: (seed % 1000) / 1000 * Math.PI * 2,
-          speed: 0.8 + (seed % 500) / 1000,  // 0.8–1.3
-          rotAmount: 0.015 + (seed % 300) / 30000, // 0.015–0.025 rad (~1–1.5 deg)
-          swayAmount: 0.5 + (seed % 200) / 400, // 0.5–1.0 px
-        });
-      }
+      // Non-pack key with missing texture — nothing to lazy-load,
+      // sprite stays absent. Same behaviour as before C4.
     }
 
     // Building bases
@@ -287,7 +282,11 @@ export class RenderSystem {
       }
     }
 
-    // NPCs — always on the props layer alongside the player.
+    // NPCs — always on the props layer alongside the player. NPCs use
+    // a local seed independent of trees since their iteration is
+    // strictly synchronous; tree-anim seeds shared an LCG with NPCs
+    // before but the dependency was incidental, not desirable.
+    let npcSeed = treeSeedRef.value;
     for (const npc of map.npcs) {
       const texture = getTexture(npc.spriteKey);
       if (!texture) continue;
@@ -300,14 +299,70 @@ export class RenderSystem {
       this.npcSprites.set(npc.id, sprite);
 
       // NPC idle bob — very subtle vertical movement
-      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      npcSeed = (npcSeed * 1103515245 + 12345) & 0x7fffffff;
       this.npcAnims.set(npc.id, {
         baseX: npc.x,
         baseY: npc.y,
-        phase: (seed % 1000) / 1000 * Math.PI * 2,
-        speed: 1.2 + (seed % 400) / 1000, // 1.2–1.6
+        phase: (npcSeed % 1000) / 1000 * Math.PI * 2,
+        speed: 1.2 + (npcSeed % 400) / 1000, // 1.2–1.6
         rotAmount: 0,
         swayAmount: 0.8, // subtle vertical bob in pixels
+      });
+    }
+  }
+
+  /** Build the sprite for a single object and stash it in the right
+   * containers/maps. Used by both the synchronous renderObjects loop
+   * and the async lazy-load callback for pack-key objects whose
+   * texture wasn't ready at scene mount. Keeping these paths sharing
+   * one helper means the occluder filter, layer routing, and tree-anim
+   * registration stay consistent regardless of when the sprite arrives. */
+  private createObjectSprite(
+    obj: Entity,
+    texture: Texture,
+    layers: MapLayer[],
+    treeSeedRef: { value: number },
+  ): void {
+    // Stale-callback guard — `destroy()` flips this so any in-flight
+    // `loadPackSingle` Promise that resolves after the RenderSystem
+    // was torn down (scene transition, app teardown) bails before
+    // touching destroyed PixiJS containers.
+    if (this.destroyed) return;
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(obj.anchor.x, obj.anchor.y);
+    sprite.x = obj.x;
+    sprite.y = obj.y;
+    sprite.zIndex = getEffectiveZIndex(layers, obj.layer, obj.sortY);
+    if (obj.scale && obj.scale !== 1) sprite.scale.set(obj.scale);
+    // Flat 'floor' decor lives in a non-sortable sibling container
+    // below entityLayer (R4). zIndex is still set above for the few
+    // code paths that read it (debug overlay), but the renderer never
+    // sorts these children — order is addChild order.
+    if (obj.layer === 'floor') {
+      this.floorContainer.addChild(sprite);
+    } else {
+      this.entityLayer.addChild(sprite);
+    }
+    this.objectSprites.set(obj.id, sprite);
+    // Pre-filter occluders for the per-frame fade scan.
+    const scale = obj.scale ?? 1;
+    const visW = texture.width * scale;
+    const visH = texture.height * scale;
+    if (visW >= MIN_OCCLUDER_WIDTH && visH >= MIN_OCCLUDER_HEIGHT) {
+      this.occludingObjectSprites.set(obj.id, sprite);
+    }
+    // Tree anim — only fires for the literal 'tree' placeholder sprite
+    // key, so lazy-loaded pack-key objects never hit this branch.
+    if (obj.spriteKey === 'tree') {
+      treeSeedRef.value = (treeSeedRef.value * 1103515245 + 12345) & 0x7fffffff;
+      const seed = treeSeedRef.value;
+      this.treeAnims.set(obj.id, {
+        baseX: obj.x,
+        baseY: obj.y,
+        phase: (seed % 1000) / 1000 * Math.PI * 2,
+        speed: 0.8 + (seed % 500) / 1000,
+        rotAmount: 0.015 + (seed % 300) / 30000,
+        swayAmount: 0.5 + (seed % 200) / 400,
       });
     }
   }
@@ -807,7 +862,22 @@ export class RenderSystem {
     }
     for (const t of tileTypes) keys.add(t);
 
-    for (const obj of map.objects) keys.add(obj.spriteKey);
+    // Object pack-key textures lazy-load via renderObjects so the
+    // long tail of decor PNG fetches doesn't block scene mount —
+    // EXCEPT objects with a non-zero collision box. Those define
+    // walkable space; if the player can hit a tree before its texture
+    // arrives, they collide with thin air and the bug is invisible.
+    // Sync-loading collidable pack objects costs more PNG fetches up
+    // front but the count is far smaller than the full set (typically
+    // ~15% of objects have collision; the rest are flat floor decor).
+    // Non-pack object spriteKeys (placeholder PNGs in spriteManifest)
+    // also stay sync since they're cheap.
+    for (const obj of map.objects) {
+      const isPackKey = obj.spriteKey.startsWith('me:');
+      const hasCollision = obj.collisionBox.width > 0 && obj.collisionBox.height > 0;
+      if (isPackKey && !hasCollision) continue;
+      keys.add(obj.spriteKey);
+    }
     for (const b of map.buildings) {
       keys.add(b.baseSpriteKey);
       if (b.roofSpriteKey) keys.add(b.roofSpriteKey);
@@ -833,6 +903,11 @@ export class RenderSystem {
   }
 
   destroy(): void {
+    // Set BEFORE tearing anything down so any in-flight async
+    // callback (lazy-loaded pack object, future preload step) bails
+    // out at its `if (this.destroyed) return` guard before touching
+    // destroyed containers.
+    this.destroyed = true;
     // Free the GPU memory backing the static-layer bake — destroying
     // the worldContainer recursively destroys the bake sprite, but the
     // underlying RenderTexture's source isn't freed automatically.
