@@ -70,7 +70,11 @@ export default function GameCanvas() {
     // spawnPoints and NPCs always come from the compiled map so gameplay logic
     // isn't broken by a stale version.
     const applyOverride = (mapData: { id?: string; width?: number; height?: number; tileSize?: number; tiles?: unknown; objects?: unknown[]; buildings?: unknown[]; layers?: unknown[] }) => {
-      if (!mapData?.id || !Array.isArray(mapData.tiles) || typeof mapData.width !== 'number' || typeof mapData.height !== 'number') return;
+      // Either `layers` (current editor) or `tiles` (legacy mirror) is enough
+      // content to override. `normalizeMapData` in registerMap handles
+      // filling in whichever is missing.
+      const hasContent = Array.isArray(mapData.layers) || Array.isArray(mapData.tiles);
+      if (!mapData?.id || !hasContent || typeof mapData.width !== 'number' || typeof mapData.height !== 'number') return;
       let compiled: ReturnType<typeof loadMap> | null = null;
       try { compiled = loadMap(mapData.id); } catch { /* map not in registry */ }
 
@@ -103,7 +107,11 @@ export default function GameCanvas() {
         width: mapData.width,
         height: mapData.height,
         tileSize: mapData.tileSize ?? compiled?.tileSize ?? 16,
-        tiles: mapData.tiles,
+        // `tiles` and `objects` may be omitted in newer saves where
+        // `layers` is the sole content store; normalizeMapData inside
+        // registerMap fills them in from the layers list. Pass empty
+        // arrays here as a safe placeholder.
+        tiles: (mapData.tiles as string[][] | undefined) ?? [],
         objects,
         buildings: mapData.buildings ?? [],
         npcs: compiled?.npcs ?? [],

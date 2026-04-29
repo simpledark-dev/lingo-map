@@ -167,10 +167,10 @@ export function buildCarNetwork(map: MapData): CarNetwork | null {
 /** Seconds between spawn attempts. Each attempt may no-op (cap reached
  * or no spawn-eligible border cells), so live traffic stabilises lower
  * than 1/interval cars-per-second. */
-export const CAR_SPAWN_INTERVAL_SEC = 1;
+export const CAR_SPAWN_INTERVAL_SEC = 3;
 
 /** Cap on concurrent cars. Spawn attempts no-op once reached. */
-export const CAR_MAX_CONCURRENT = 16;
+export const CAR_MAX_CONCURRENT = 4;
 
 /** Default-shaped state. Tunable knobs live here; PixiApp can override
  * after construction (e.g., heavier traffic for the city map vs the

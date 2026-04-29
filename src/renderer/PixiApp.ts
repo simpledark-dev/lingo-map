@@ -12,8 +12,8 @@ import { GameBridge } from '../core/GameBridge';
 import { CommandQueue } from '../core/CommandQueue';
 import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
-import { buildCarNetwork, carAABB, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
-import { getTexture, loadAssets, preloadAllAssets } from './AssetLoader';
+import { buildCarNetwork, carAABB, CAR_SPRITE_SETS, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
+import { getTexture, loadAssets, loadPackSingle, preloadAllAssets } from './AssetLoader';
 
 /** localStorage key kept in sync with `data/car-collisions.json` by the
  * editor. The runtime no longer reads it (we use the disk file via the
@@ -313,6 +313,18 @@ export class PixiApp {
           this.carCollisionOverrides = data as Record<string, CarCollisionBox>;
         })
         .catch(err => console.warn('[CarSystem] failed to load /api/car-collisions, using defaults:', err));
+      // Background-preload every car sprite. Intentionally NOT awaited
+      // — adding 40 pack-single fetches to the blocking scene-load path
+      // was the cause of the multi-second white-screen on reload. Cars
+      // that spawn before their textures finish loading momentarily
+      // render as the red-rect fallback in RenderSystem; on a typical
+      // 12-second spawn interval the textures are ready well before
+      // the first car actually appears.
+      for (const set of CAR_SPRITE_SETS) {
+        for (const k of Object.values(set)) {
+          loadPackSingle(k).catch(() => { /* AssetLoader already warns */ });
+        }
+      }
     }
 
     const mapW = map.width * map.tileSize;

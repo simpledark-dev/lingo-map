@@ -25,9 +25,12 @@ export async function POST(
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  // Minimum shape check
-  const m = body as { tiles?: unknown; width?: unknown; height?: unknown };
-  if (!Array.isArray(m.tiles) || typeof m.width !== 'number' || typeof m.height !== 'number') {
+  // Minimum shape check. `layers` is the authoritative content store
+  // post-refactor; `tiles` is still accepted for back-compat with older
+  // editor builds but no longer required (normalize derives it on load).
+  const m = body as { layers?: unknown; tiles?: unknown; width?: unknown; height?: unknown };
+  const hasContent = Array.isArray(m.layers) || Array.isArray(m.tiles);
+  if (!hasContent || typeof m.width !== 'number' || typeof m.height !== 'number') {
     return Response.json({ error: 'Map missing required fields' }, { status: 400 });
   }
 

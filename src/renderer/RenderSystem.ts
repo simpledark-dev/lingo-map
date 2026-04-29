@@ -2,7 +2,6 @@ import { Application, Container, Graphics, Sprite } from 'pixi.js';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
 import { getEffectiveZIndex, getLayers, getObjectLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
-import { CAR_SPRITE_SETS } from '../core/CarSystem';
 import { getTexture, getTileTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
 import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
@@ -98,8 +97,16 @@ export class RenderSystem {
     // Build (or refresh) the map-bounds mask so car sprites clip to the
     // visible tile area. Lazy creation on first scene load; otherwise
     // resize the existing mask to the new map's dimensions.
+    //
+    // CRITICAL: `renderable = false` so the white-filled rect is used
+    // as a clip shape only and never drawn on top of the world. Without
+    // this, the entire map renders behind a solid white box until the
+    // first sprite (the first spawned car) attaches to the mask, at
+    // which point Pixi flips the mask invisible — symptom is "blank
+    // canvas for the first few seconds, then the world pops in".
     if (!this.mapBoundsMask) {
       this.mapBoundsMask = new Graphics();
+      this.mapBoundsMask.renderable = false;
       this.worldContainer.addChild(this.mapBoundsMask);
     }
     this.mapBoundsMask.clear();
@@ -659,13 +666,12 @@ export class RenderSystem {
       keys.add(`player-${dir}-walk1`);
       keys.add(`player-${dir}-walk2`);
     }
-    // Pool of car sprite sets — pack-single keys, routed through the
-    // pack loader inside `loadAssets`. Maps without a car-path layer
-    // still request these (cheap; they're just URLs in a Set), but the
-    // actual network drives whether the textures get used.
-    for (const set of CAR_SPRITE_SETS) {
-      for (const k of Object.values(set)) keys.add(k);
-    }
+    // NOTE: car sprite keys deliberately omitted here. Adding 40
+    // pack-single fetches to the blocking `await loadAssets(...)` was
+    // adding several seconds to scene boot. Cars use a background
+    // preload kicked off after `loadScene` completes (see PixiApp);
+    // the few cars that spawn before their textures are ready
+    // momentarily render as the red-rect fallback in RenderSystem.
 
     // Transition tiles
     for (const k of TRANSITION_ASSET_KEYS) keys.add(k);

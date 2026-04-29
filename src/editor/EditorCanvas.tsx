@@ -391,16 +391,17 @@ export default function EditorCanvas() {
       spawnPoints = compiled.spawnPoints;
     } catch { /* map isn't a compiled game map — use defaults */ }
 
-    // Mirror the layered structure into the legacy `tiles` / `objects` fields
-    // so the game runtime (which still reads those when normalizing) sees a
-    // consistent view. The new `layers` field is the authoritative store.
+    // `layers` is the authoritative store. We previously also wrote
+    // legacy `tiles` and `objects` mirror fields for runtime back-compat,
+    // but those duplicated ~50% of the file (216 KB on the pokemon
+    // map alone) and slowed the boot fetch to a crawl. `normalizeMapData`
+    // in core/Layers.ts already derives them from `layers` at register
+    // time, so the runtime sees the same view either way.
     const mapData = {
       id: state.mapName,
       width: state.mapWidth,
       height: state.mapHeight,
       tileSize: state.tileSize,
-      tiles: getPrimaryTiles(state),
-      objects: getAllObjects(state),
       buildings: state.buildings,
       npcs,
       triggers,
