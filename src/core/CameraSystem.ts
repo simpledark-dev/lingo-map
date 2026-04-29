@@ -22,9 +22,14 @@ export function getViewportWorldSize(
 
 /**
  * Compute camera position (top-left of viewport in world coords).
- * Centers on player, clamps to map bounds.
+ * Centers on player, clamps to map bounds by default.
  * If map is smaller than viewport, centers the map.
  * Zoom affects the effective viewport size in world space.
+ *
+ * `centerOnPlayer = true` skips the edge clamp so the player is always
+ * dead-center on screen — important on mobile where the small viewport
+ * makes "player drifts toward edge" feel disorienting. The empty area
+ * past the map renders black (the canvas background).
  */
 export function updateCamera(
   playerPos: Position,
@@ -34,6 +39,7 @@ export function updateCamera(
   canvasWidth: number = 800,
   canvasHeight: number = 480,
   viewportCap?: { viewW: number; viewH: number },
+  centerOnPlayer: boolean = false,
 ): Position {
   // Default viewport is the canvas at current zoom. A cap (e.g. for interior
   // maps with `maxViewTiles`) shrinks it further so the visible area is
@@ -41,20 +47,26 @@ export function updateCamera(
   const viewW = viewportCap?.viewW ?? canvasWidth / zoom;
   const viewH = viewportCap?.viewH ?? canvasHeight / zoom;
 
-  let x = playerPos.x - viewW / 2;
-  let y = playerPos.y - viewH / 2;
+  const x = playerPos.x - viewW / 2;
+  const y = playerPos.y - viewH / 2;
 
+  // Mobile / centered mode: player is always at viewport center, no
+  // edge clamp. Off-map area renders as black.
+  if (centerOnPlayer) return { x, y };
+
+  // Desktop mode: clamp to map bounds so the camera stops following
+  // when the player approaches an edge (avoids showing black margins).
+  let cx = x;
+  let cy = y;
   if (mapPixelWidth <= viewW) {
-    x = -(viewW - mapPixelWidth) / 2;
+    cx = -(viewW - mapPixelWidth) / 2;
   } else {
-    x = Math.max(0, Math.min(x, mapPixelWidth - viewW));
+    cx = Math.max(0, Math.min(x, mapPixelWidth - viewW));
   }
-
   if (mapPixelHeight <= viewH) {
-    y = -(viewH - mapPixelHeight) / 2;
+    cy = -(viewH - mapPixelHeight) / 2;
   } else {
-    y = Math.max(0, Math.min(y, mapPixelHeight - viewH));
+    cy = Math.max(0, Math.min(y, mapPixelHeight - viewH));
   }
-
-  return { x, y };
+  return { x: cx, y: cy };
 }

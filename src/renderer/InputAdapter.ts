@@ -45,9 +45,14 @@ export class InputAdapter {
     // Track touch for pinch detection
     this.activeTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    // If 2 fingers down, start pinch — don't process as tap
-    if (this.activeTouches.size >= 2) {
+    // Exactly 2 fingers down = pinch. 3+ fingers stops pinch handling
+    // entirely so an accidental third finger doesn't yank the zoom.
+    if (this.activeTouches.size === 2) {
       this.lastPinchDist = this.getPinchDist();
+      return;
+    }
+    if (this.activeTouches.size > 2) {
+      this.lastPinchDist = null;
       return;
     }
 
@@ -80,13 +85,16 @@ export class InputAdapter {
     if (!this.activeTouches.has(e.pointerId)) return;
     this.activeTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    if (this.activeTouches.size >= 2 && this.lastPinchDist !== null) {
+    // Proportional pinch zoom: scale by the ratio of current finger
+    // distance to the previous frame's distance, so a small pinch =
+    // small zoom and a big pinch = big zoom in one motion. Earlier
+    // version stepped zoom by a fixed ZOOM_STEP whenever |delta| >
+    // 8 px, which felt sluggish for big zooms (need to keep pinching).
+    if (this.activeTouches.size === 2 && this.lastPinchDist !== null) {
       const dist = this.getPinchDist();
-      const delta = dist - this.lastPinchDist;
-      if (Math.abs(delta) > 8) {
-        this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM,
-          this.zoom + (delta > 0 ? ZOOM_STEP : -ZOOM_STEP)
-        ));
+      if (dist > 0 && this.lastPinchDist > 0) {
+        const ratio = dist / this.lastPinchDist;
+        this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom * ratio));
         this.lastPinchDist = dist;
       }
     }

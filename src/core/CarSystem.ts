@@ -172,13 +172,24 @@ export const CAR_SPAWN_INTERVAL_SEC = 3;
 /** Cap on concurrent cars. Spawn attempts no-op once reached. */
 export const CAR_MAX_CONCURRENT = 4;
 
+/** Extra seconds the very-first spawn waits beyond `spawnInterval` so
+ * the background pack-texture preload has time to land before any car
+ * appears on screen. Without this, the first car spawns at 3 s with
+ * the red-rect fallback for ~1-2 s while its sprite finishes loading;
+ * adding 2 s of pre-roll usually lets the texture arrive first. */
+const FIRST_SPAWN_DELAY_SEC = 2;
+
 /** Default-shaped state. Tunable knobs live here; PixiApp can override
  * after construction (e.g., heavier traffic for the city map vs the
  * pokemon starter town). */
 export function createCarSystemState(): CarSystemState {
   return {
     cars: [],
-    timeSinceSpawn: 0,
+    // Negative initial value — the spawn timer accumulates each tick
+    // and fires at `spawnInterval`, so starting at -delay pushes the
+    // first spawn out by exactly that many seconds while subsequent
+    // intervals run normally.
+    timeSinceSpawn: -FIRST_SPAWN_DELAY_SEC,
     spawnInterval: CAR_SPAWN_INTERVAL_SEC,
     maxCars: CAR_MAX_CONCURRENT,
   };
