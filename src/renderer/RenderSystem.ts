@@ -76,6 +76,13 @@ export class RenderSystem {
   // cars, and the cars' look-ahead boxes. Toggled via PixiApp's keyboard
   // shortcut. Cleared when disabled.
   private debugCollisionGraphics: Graphics | null = null;
+  // Last camera cell (col/row) + zoom we used for the static-layer cull
+  // pass. Static layers (ground, transition, autotile, floor, roof) are
+  // re-culled only when this changes — otherwise running ~3000 bbox
+  // checks every frame on stationary content is wasted work. Dynamic
+  // entities (player, NPCs, cars) are still re-culled every frame
+  // because they can walk into a stationary camera's viewport.
+  private lastStaticCullKey: { col: number; row: number; zoom: number } | null = null;
 
   // Current map data (needed for sorting)
   private currentMap: MapData | null = null;
@@ -410,8 +417,31 @@ export class RenderSystem {
     const right = left + vw;
     const bottom = top + vh;
 
-    // Cull ground tiles
     const T = this.currentMap?.tileSize ?? 32;
+
+    // ── Dynamic entity layer: cull every frame ──
+    // Trees and signposts in here never move, but NPCs, cars, and the
+    // player do — and a moving NPC can walk into a stationary camera's
+    // viewport, so a fresh visibility pass each frame is required for
+    // correctness. After the R4 floor-split this container holds
+    // ~125 sprites instead of ~600.
+    for (const child of this.entityLayer.children) {
+      if (child === this.playerSprite) continue;
+      child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 32 > top && child.y - 192 < bottom;
+    }
+
+    // ── Static layers: re-cull only when the camera crosses a tile ──
+    // boundary or zoom changes. Skipping these in steady state turns
+    // ~3000 per-frame bbox checks into ~125. None of these containers'
+    // contents move at runtime so the visibility set is stable until
+    // the camera shifts to a new cell.
+    const cellCol = Math.floor(camX / T);
+    const cellRow = Math.floor(camY / T);
+    const last = this.lastStaticCullKey;
+    if (last && last.col === cellCol && last.row === cellRow && last.zoom === zoom) return;
+    this.lastStaticCullKey = { col: cellCol, row: cellRow, zoom };
+
+    // Cull ground tiles
     for (const child of this.groundLayer.children) {
       child.visible = child.x + T > left && child.x < right && child.y + T > top && child.y < bottom;
     }
@@ -435,21 +465,13 @@ export class RenderSystem {
       }
     }
 
-    // Cull entity layer (trees, objects, NPCs, buildings — but not player)
-    for (const child of this.entityLayer.children) {
-      if (child === this.playerSprite) continue;
-      child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 32 > top && child.y - 192 < bottom;
-    }
-
     // Cull flat floor decor — same bbox-extend approach. These live in
-    // their own non-sortable container after the layer split (R4), so
-    // we have to walk them here too or off-screen sidewalks stay
-    // active in the GPU batch.
+    // their own non-sortable container after the layer split (R4).
     for (const child of this.floorContainer.children) {
       child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 32 > top && child.y - 192 < bottom;
     }
 
-    // Cull roofs
+    // Cull roofs (buildings don't move, so static)
     for (const child of this.roofLayer.children) {
       child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 128 > top && child.y - 128 < bottom;
     }
