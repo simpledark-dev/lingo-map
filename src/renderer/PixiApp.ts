@@ -91,8 +91,15 @@ export class PixiApp {
       height: rect.height || VIEWPORT_HEIGHT,
       backgroundColor: 0x000000,
       antialias: false,
-      resolution: 1,
-      autoDensity: false,
+      // Match the screen's pixel density so 1 renderer pixel == 1
+      // device pixel. Without this, the canvas was internally at
+      // logical-pixel resolution and the browser CSS-stretched it up
+      // by devicePixelRatio (≈3 on mobile), nearest-neighboring at
+      // every redraw — that browser-side upscale was the source of the
+      // intermittent shimmer at low zoom on mobile. autoDensity sets
+      // the matching CSS size automatically.
+      resolution: typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1,
+      autoDensity: true,
       resizeTo: container,
       // Snap sprite world-positions to whole pixels at draw time. Without
       // this, fractional camera movement (player.x is a float, so
