@@ -54,6 +54,7 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
             const isActive = layer.id === state.activeLayerId;
             const isVisible = layer.visible !== false;
             const isTile = layer.kind === 'tile';
+            const isCarPath = layer.kind === 'car-path';
             return (
               <div
                 key={layer.id}
@@ -79,20 +80,20 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
                 >
                   {layer.locked ? <LockedIcon /> : <UnlockedIcon />}
                 </button>
-                {/* Kind badge — T (tile) vs O (object). Color-coded so the
-                    user can scan the stack at a glance and tell what each
-                    layer holds. */}
+                {/* Kind badge — T (tile), O (object), or C (car path).
+                    Color-coded so the user can scan the stack at a glance
+                    and tell what each layer holds. */}
                 <span
-                  title={isTile ? 'Tile layer' : 'Object layer'}
+                  title={isTile ? 'Tile layer' : isCarPath ? 'Car-path layer' : 'Object layer'}
                   style={{
                     width: 16, height: 16, fontSize: 9, fontWeight: 'bold',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isTile ? '#3a4a6a' : '#4a3a5a',
-                    color: isTile ? '#88bbff' : '#cc99ff',
+                    background: isTile ? '#3a4a6a' : isCarPath ? '#5a4a2a' : '#4a3a5a',
+                    color: isTile ? '#88bbff' : isCarPath ? '#ffcc66' : '#cc99ff',
                     borderRadius: 2, flexShrink: 0,
                   }}
                 >
-                  {isTile ? 'T' : 'O'}
+                  {isTile ? 'T' : isCarPath ? 'C' : 'O'}
                 </span>
                 <button
                   onClick={() => dispatch({ type: 'SET_ACTIVE_LAYER', id: layer.id })}
@@ -156,9 +157,24 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
               title="Add a new object layer (free-positioned entities). Stacks above existing layers."
               style={addLayerBtnStyle('#cc99ff')}
             >+ Object</button>
+            <button
+              onClick={() => dispatch({ type: 'ADD_LAYER', kind: 'car-path', name: 'Car Path' })}
+              title="Add a new car-path layer (paint allowed exit directions per cell). Editor-only — invisible in game."
+              style={addLayerBtnStyle('#ffcc66')}
+            >+ Car</button>
           </div>
         </div>
       </Section>
+
+      {/* Car-path painter controls — only when the active layer is a
+          car-path layer. The four direction toggles compose into the set
+          of exits stamped onto each clicked cell; an empty set clears
+          the cell. */}
+      {state.layers.find(l => l.id === state.activeLayerId)?.kind === 'car-path' && (
+        <Section title="Car-path exits">
+          <CarPathDirectionToggles state={state} dispatch={dispatch} />
+        </Section>
+      )}
 
       {/* Multi-selection summary — replaces the per-object scale slider when
           more than one object is selected. Shows count + a hint that
@@ -247,7 +263,14 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
           <PackPicker
             selectedTileType={state.selectedTileType}
             selectedObjectKey={state.selectedObjectKey}
-            activeLayerKind={state.layers.find(l => l.id === state.activeLayerId)?.kind ?? 'object'}
+            activeLayerKind={(() => {
+              const k = state.layers.find(l => l.id === state.activeLayerId)?.kind;
+              // PackPicker only knows about tile/object layers — car-path
+              // doesn't pick assets, so coerce. The palette panel will
+              // hide itself for car-path layers anyway via the layer-kind
+              // gate.
+              return k === 'tile' ? 'tile' : 'object';
+            })()}
             dispatch={dispatch}
           />
         )}
@@ -488,6 +511,63 @@ function CollapsibleSubsection({
         <span style={{ fontSize: 9, color: '#777' }}>{open ? '▼' : '▶'}</span>
       </button>
       {open && children}
+    </div>
+  );
+}
+
+/** Direction toggles for the car-path painter. Click one or more arrows
+ * to set which exits get stamped into each clicked/dragged cell. An empty
+ * selection clears cells. */
+function CarPathDirectionToggles({
+  state,
+  dispatch,
+}: {
+  state: EditorState;
+  dispatch: React.Dispatch<EditorAction>;
+}) {
+  const sel = new Set(state.selectedCarDirections);
+  const toggle = (d: 'n' | 's' | 'e' | 'w') => {
+    const next = new Set(sel);
+    if (next.has(d)) next.delete(d);
+    else next.add(d);
+    dispatch({ type: 'SET_SELECTED_CAR_DIRECTIONS', directions: Array.from(next) as ('n'|'s'|'e'|'w')[] });
+  };
+  const btn = (d: 'n' | 's' | 'e' | 'w', label: string, title: string): React.ReactElement => {
+    const active = sel.has(d);
+    return (
+      <button
+        key={d}
+        onClick={() => toggle(d)}
+        title={title}
+        style={{
+          width: 36, height: 36, padding: 0,
+          background: active ? '#5a4a2a' : '#1a1a2e',
+          border: active ? '2px solid #ffcc66' : '1px solid #444',
+          borderRadius: 4,
+          color: active ? '#ffcc66' : '#888',
+          cursor: 'pointer', fontSize: 18, fontWeight: 'bold',
+        }}
+      >{label}</button>
+    );
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontSize: 11, color: '#aaa', lineHeight: 1.4 }}>
+        Pick one or more directions, then click/drag on the map. Empty selection clears cells.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 36px)', gridTemplateRows: 'repeat(3, 36px)', gap: 4, justifyContent: 'center' }}>
+        <span />{btn('n', '↑', 'North exit (Y−)')}<span />
+        {btn('w', '←', 'West exit (X−)')}<span />{btn('e', '→', 'East exit (X+)')}
+        <span />{btn('s', '↓', 'South exit (Y+)')}<span />
+      </div>
+      <button
+        onClick={() => dispatch({ type: 'SET_SELECTED_CAR_DIRECTIONS', directions: [] })}
+        style={{
+          padding: '4px 6px', fontSize: 10,
+          background: '#3a2a2a', border: '1px solid #444', borderRadius: 3,
+          color: '#c99', cursor: 'pointer',
+        }}
+      >Clear (eraser mode)</button>
     </div>
   );
 }

@@ -260,14 +260,25 @@ export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Text
     toLoad.push({ key, path });
   }
 
-  // Load registered placeholder assets in parallel.
+  // Load registered placeholder assets in parallel. Individual failures
+  // (e.g., a sprite key like `car-up` whose PNG hasn't been dropped into
+  // public/assets/placeholder/ yet) resolve to null so one missing file
+  // doesn't take down the whole map load — the renderer falls back to a
+  // colored rect for missing car sprites and skips other missing keys.
   if (toLoad.length > 0) {
     const textures = await Promise.all(
-      toLoad.map(({ path }) => Assets.load<Texture>(path))
+      toLoad.map(({ key, path }) =>
+        Assets.load<Texture>(path).catch((err) => {
+          console.warn(`Failed to load asset "${key}" (${path}):`, err);
+          return null;
+        })
+      )
     );
     for (let i = 0; i < toLoad.length; i++) {
-      textures[i].source.scaleMode = 'nearest';
-      textureCache.set(toLoad[i].key, textures[i]);
+      const tex = textures[i];
+      if (!tex) continue;
+      tex.source.scaleMode = 'nearest';
+      textureCache.set(toLoad[i].key, tex);
     }
   }
 

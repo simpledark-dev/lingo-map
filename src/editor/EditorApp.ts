@@ -1,7 +1,7 @@
 import { Application, Container, Sprite, Graphics, Text } from 'pixi.js';
-import { TileType, Entity, Building, Layer, MapLayer } from '../core/types';
+import { TileType, Entity, Building, CarDirection, Layer, MapLayer } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
-import { getEffectiveZIndex, isObjectLayer, isTileLayer } from '../core/Layers';
+import { getEffectiveZIndex, isCarPathLayer, isObjectLayer, isTileLayer } from '../core/Layers';
 import { getTexture, getTileTexture, loadPackSingle, preloadAllAssets } from '../renderer/AssetLoader';
 import { buildTransitionLayer } from '../renderer/TransitionTiles';
 import { loadAutoTileset, buildAutoTileLayer, isAutoTilesetReady } from '../renderer/AutoTileset';
@@ -44,6 +44,10 @@ export class EditorApp {
    * that will be kept. Visible only while `resizeMode` is active in
    * EditorCanvas; the user drags any line to crop or extend that edge. */
   private resizeOverlay: Graphics;
+  /** Arrow overlays for car-path layers — one entry per painted cell,
+   * drawn over the world but below grid/hover/selection so other editor
+   * UI stays on top. Editor-only (game runtime ignores). */
+  private carPathLayer: Container;
   private selectionLabel: Text | null = null;
   /** Floating layer-name tag drawn near the cursor during placement-style
    * tools so the user can see which layer their next click will write to.
@@ -94,6 +98,7 @@ export class EditorApp {
     this.collisionPreview = new Graphics();
     this.doorPreview = new Graphics();
     this.resizeOverlay = new Graphics();
+    this.carPathLayer = new Container();
     this.previewContainer = new Container();
     this.entityLayer.sortableChildren = true;
   }
@@ -120,6 +125,7 @@ export class EditorApp {
     this.worldContainer.addChild(this.autoTileLayer);
     this.worldContainer.addChild(this.entityLayer);
     this.worldContainer.addChild(this.roofLayer);
+    this.worldContainer.addChild(this.carPathLayer);
     this.worldContainer.addChild(this.gridOverlay);
     this.worldContainer.addChild(this.hoverGraphics);
     this.worldContainer.addChild(this.selectionGraphics);
@@ -249,6 +255,38 @@ export class EditorApp {
       for (const o of layer.objects) flatObjects.push(o.layer === layer.id ? o : { ...o, layer: layer.id });
     }
     this.renderObjects(flatObjects);
+
+    // Car-path overlays — one arrow set per cell across every visible
+    // car-path layer. Drawn AFTER objects so the arrows sit visibly over
+    // sprites; below grid/hover/selection (added later in worldContainer)
+    // so editor UI overlays stay on top.
+    this.rebuildCarPathOverlay(layers, tileSize);
+  }
+
+  /** Draw arrow indicators for every painted car-path cell. Wipes the
+   * container first so paint edits replace cleanly. Arrow color matches
+   * the cursor-label palette (orange) so the user can correlate. */
+  private rebuildCarPathOverlay(layers: Layer[], tileSize: number): void {
+    this.carPathLayer.removeChildren();
+    for (const layer of layers) {
+      if (!isCarPathLayer(layer)) continue;
+      if (layer.visible === false) continue;
+      const g = new Graphics();
+      for (const [key, exits] of Object.entries(layer.exits)) {
+        const [r, c] = key.split(',').map(Number);
+        if (Number.isNaN(r) || Number.isNaN(c)) continue;
+        const cx = c * tileSize + tileSize / 2;
+        const cy = r * tileSize + tileSize / 2;
+        // Translucent fill on the cell itself so even an "empty exits" cell
+        // would be visible — but we only render cells that have ≥1 exit.
+        g.rect(c * tileSize + 1, r * tileSize + 1, tileSize - 2, tileSize - 2)
+          .fill({ color: 0xffcc66, alpha: 0.12 });
+        for (const dir of exits) {
+          drawArrow(g, cx, cy, dir, tileSize);
+        }
+      }
+      this.carPathLayer.addChild(g);
+    }
   }
 
   /** Draw every non-empty cell of a tile layer's grid into `groundLayer`.
@@ -802,8 +840,8 @@ export class EditorApp {
    * `1 / zoom` so it stays a constant on-screen size regardless of zoom.
    * `kind` controls the color so the caller doesn't need to look the layer
    * up themselves. */
-  showCursorLayerLabel(text: string, kind: 'tile' | 'object', x: number, y: number, zoom: number): void {
-    const fg = kind === 'tile' ? 0x88bbff : 0xcc99ff;
+  showCursorLayerLabel(text: string, kind: 'tile' | 'object' | 'car-path', x: number, y: number, zoom: number): void {
+    const fg = kind === 'tile' ? 0x88bbff : kind === 'car-path' ? 0xffcc66 : 0xcc99ff;
     if (!this.cursorLayerLabel) {
       this.cursorLayerLabelBg = new Graphics();
       this.cursorLayerLabel = new Text({
@@ -898,4 +936,44 @@ export class EditorApp {
       this.app.destroy(true, { children: true });
     }
   }
+}
+
+/** Draw a single short triangular arrow from the cell center toward the
+ * given exit direction. Sized relative to tileSize so 16/32px tiles both
+ * look balanced. */
+function drawArrow(g: Graphics, cx: number, cy: number, dir: CarDirection, tileSize: number): void {
+  const len = tileSize * 0.4;
+  const half = tileSize * 0.18;
+  // Line from center to a point near the cell edge, then a triangle head.
+  let tipX = cx, tipY = cy;
+  let baseX = cx, baseY = cy;
+  let leftX = 0, leftY = 0, rightX = 0, rightY = 0;
+  switch (dir) {
+    case 'n':
+      tipY = cy - len; baseY = cy;
+      leftX = cx - half; leftY = cy - len + half;
+      rightX = cx + half; rightY = cy - len + half;
+      break;
+    case 's':
+      tipY = cy + len; baseY = cy;
+      leftX = cx - half; leftY = cy + len - half;
+      rightX = cx + half; rightY = cy + len - half;
+      break;
+    case 'e':
+      tipX = cx + len; baseX = cx;
+      leftX = cx + len - half; leftY = cy - half;
+      rightX = cx + len - half; rightY = cy + half;
+      break;
+    case 'w':
+      tipX = cx - len; baseX = cx;
+      leftX = cx - len + half; leftY = cy - half;
+      rightX = cx - len + half; rightY = cy + half;
+      break;
+  }
+  g.moveTo(baseX, baseY).lineTo(tipX, tipY).stroke({ color: 0xffcc66, width: 2 });
+  g.moveTo(tipX, tipY)
+    .lineTo(leftX, leftY)
+    .lineTo(rightX, rightY)
+    .lineTo(tipX, tipY)
+    .fill({ color: 0xffcc66 });
 }

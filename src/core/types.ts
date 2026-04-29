@@ -179,7 +179,19 @@ export interface ObjectLayer extends BaseLayer {
   objects: Entity[];
 }
 
-export type Layer = TileLayer | ObjectLayer;
+/** Cardinal direction a car can exit from a car-path cell. */
+export type CarDirection = 'n' | 's' | 'e' | 'w';
+
+export interface CarPathLayer extends BaseLayer {
+  kind: 'car-path';
+  /** Sparse cell map keyed `"row,col"` → set of allowed car-exit directions
+   * from that cell. Empty (no entry) means the cell isn't part of any road
+   * the cars travel on. The runtime treats each cell's exits as outgoing
+   * directions, so a cell with `['n']` only sends cars northward. */
+  exits: Record<string, CarDirection[]>;
+}
+
+export type Layer = TileLayer | ObjectLayer | CarPathLayer;
 
 /** Backwards-compat alias for code paths that only need the editor-only flags
  * (visible/locked/id/name). All Layer instances satisfy this shape. */

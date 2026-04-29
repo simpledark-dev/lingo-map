@@ -1,4 +1,4 @@
-import { Entity, Layer, MapData, MapLayer, ObjectLayer, TileLayer } from './types';
+import { CarPathLayer, Entity, Layer, MapData, MapLayer, ObjectLayer, TileLayer } from './types';
 import { DEFAULT_LAYERS, LAYER_SORT_SPACING, PLAYER_LAYER_ID } from './constants';
 
 /** Resolve a map's effective layer list. Maps may omit `layers`; in that
@@ -17,6 +17,11 @@ export function isTileLayer(l: Layer): l is TileLayer {
 /** Type-narrowing guard. */
 export function isObjectLayer(l: Layer): l is ObjectLayer {
   return l.kind === 'object';
+}
+
+/** Type-narrowing guard. */
+export function isCarPathLayer(l: Layer): l is CarPathLayer {
+  return l.kind === 'car-path';
 }
 
 /** Tile layers in render order. Always non-empty after `normalizeMapData`. */

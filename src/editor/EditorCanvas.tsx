@@ -82,7 +82,7 @@ function isMultiTilePackTile(tileType: string): boolean {
  * - 'eraser' → not shown; the destination depends on what's under the
  *   cursor (building, object, or tile-paint), which we can't predict here. */
 function resolveCursorPlacementLayer(state: ReturnType<typeof createInitialState>):
-  { name: string; kind: 'tile' | 'object' } | null
+  { name: string; kind: 'tile' | 'object' | 'car-path' } | null
 {
   switch (state.activeTool) {
     case 'tile': {
@@ -709,6 +709,23 @@ export default function EditorCanvas() {
       return;
     }
 
+    // Car-path painting takes precedence over tool-based dispatch so the
+    // user can paint road exits onto cells whenever a car-path layer is
+    // active, regardless of which tool button was last pressed. Click
+    // stamps the currently-toggled `selectedCarDirections` set into the
+    // clicked cell, drags continue stamping on each new cell entered.
+    {
+      const active = s.layers.find(l => l.id === s.activeLayerId);
+      if (active && active.kind === 'car-path') {
+        if (active.locked) return;
+        isPaintingRef.current = true;
+        paintedCellsRef.current = new Set();
+        paintedCellsRef.current.add(`${row},${col}`);
+        dispatchRef.current({ type: 'PAINT_CAR_CELL', row, col, exits: s.selectedCarDirections });
+        return;
+      }
+    }
+
     if (s.activeTool === 'tile') {
       // Bail when the tile layer the paint would actually land on is
       // locked. The reducer also rejects PAINT_TILES on pointer-up, but
@@ -1234,17 +1251,26 @@ export default function EditorCanvas() {
     }
 
     if (isPaintingRef.current) {
-      const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
       const key = `${row},${col}`;
       if (!paintedCellsRef.current.has(key)) {
         paintedCellsRef.current.add(key);
-        // Multi-tile pack tiles drag-stamp as additional objects on the
-        // active layer (free placement); single-tile sources continue with
-        // normal cell-paint visual feedback.
-        if (s.activeTool === 'tile' && isMultiTilePackTile(tileType)) {
-          stampMultiTileAsObject(tileType, row, col, s.tileSize, s.layers, dispatchRef.current);
+        // Drag-paint dispatch differs based on what kind of layer the
+        // user is painting on. Car-path drag stamps the currently-toggled
+        // direction set into each new cell; tile drag does optimistic
+        // visual updates batched into PAINT_TILES on pointerup.
+        const active = s.layers.find(l => l.id === s.activeLayerId);
+        if (active && active.kind === 'car-path') {
+          dispatchRef.current({ type: 'PAINT_CAR_CELL', row, col, exits: s.selectedCarDirections });
         } else {
-          editorAppRef.current?.updateSingleTile(row, col, tileType);
+          const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
+          // Multi-tile pack tiles drag-stamp as additional objects on
+          // the active layer (free placement); single-tile sources
+          // continue with normal cell-paint visual feedback.
+          if (s.activeTool === 'tile' && isMultiTilePackTile(tileType)) {
+            stampMultiTileAsObject(tileType, row, col, s.tileSize, s.layers, dispatchRef.current);
+          } else {
+            editorAppRef.current?.updateSingleTile(row, col, tileType);
+          }
         }
       }
     }
@@ -1401,15 +1427,22 @@ export default function EditorCanvas() {
 
     if (isPaintingRef.current && paintedCellsRef.current.size > 0) {
       const s = stateRef.current;
-      const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
-      // Multi-tile pack tiles already placed individual objects per cell
-      // during drag — nothing to batch into PAINT_TILES.
-      if (!(s.activeTool === 'tile' && isMultiTilePackTile(tileType))) {
-        const cells = Array.from(paintedCellsRef.current).map(k => {
-          const [r, c] = k.split(',').map(Number);
-          return { row: r, col: c };
-        });
-        dispatchRef.current({ type: 'PAINT_TILES', cells, tileType });
+      const active = s.layers.find(l => l.id === s.activeLayerId);
+      // Car-path painting already fired PAINT_CAR_CELL per cell during
+      // the drag — nothing to batch on pointerup.
+      if (active && active.kind === 'car-path') {
+        // no-op
+      } else {
+        const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
+        // Multi-tile pack tiles already placed individual objects per cell
+        // during drag — nothing to batch into PAINT_TILES.
+        if (!(s.activeTool === 'tile' && isMultiTilePackTile(tileType))) {
+          const cells = Array.from(paintedCellsRef.current).map(k => {
+            const [r, c] = k.split(',').map(Number);
+            return { row: r, col: c };
+          });
+          dispatchRef.current({ type: 'PAINT_TILES', cells, tileType });
+        }
       }
       isPaintingRef.current = false;
       paintedCellsRef.current.clear();

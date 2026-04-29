@@ -2,6 +2,7 @@ import { Application, Container, Graphics, Sprite } from 'pixi.js';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
 import { getEffectiveZIndex, getLayers, getObjectLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
+import { CAR_SPRITE_SETS } from '../core/CarSystem';
 import { getTexture, getTileTexture } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
 import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
@@ -33,6 +34,22 @@ export class RenderSystem {
 
   // Managed roof collection — supports per-roof control for future extensibility
   private roofSprites = new Map<string, Sprite>();
+  // Car sprites — managed by CarSystem via setCar/removeCar/clearCars.
+  // Live in entityLayer so they Y-sort with the player and props.
+  private carSprites = new Map<string, Sprite>();
+  // Fallback colored rect drawn when a car's sprite key isn't loaded
+  // (e.g., the user hasn't dropped car art into public/assets yet). Same
+  // entity-layer slot as the textured version so toggling between fallback
+  // and real art is transparent to the rest of the renderer.
+  private carFallbacks = new Map<string, Graphics>();
+  // Sprite keys we've already warned about, to avoid spamming the console
+  // every frame for the same missing texture.
+  private warnedMissingCarKeys = new Set<string>();
+  // Clip mask matching the current map's tile rect. Applied to every car
+  // sprite (and fallback rect) so cars driving past the map edge clip
+  // smoothly out of the visible area instead of either popping out or
+  // hovering past the world boundary.
+  private mapBoundsMask: Graphics | null = null;
 
   // Current map data (needed for sorting)
   private currentMap: MapData | null = null;
@@ -73,6 +90,18 @@ export class RenderSystem {
     this.groundLayer.removeChildren();
     this.transitionLayer.removeChildren();
     this.autoTileLayer.removeChildren();
+
+    // Build (or refresh) the map-bounds mask so car sprites clip to the
+    // visible tile area. Lazy creation on first scene load; otherwise
+    // resize the existing mask to the new map's dimensions.
+    if (!this.mapBoundsMask) {
+      this.mapBoundsMask = new Graphics();
+      this.worldContainer.addChild(this.mapBoundsMask);
+    }
+    this.mapBoundsMask.clear();
+    this.mapBoundsMask
+      .rect(0, 0, map.width * map.tileSize, map.height * map.tileSize)
+      .fill({ color: 0xffffff });
 
     // Iterate every tile layer in render order, drawing each non-empty cell
     // into the shared ground container. Empty cells let lower layers show
@@ -439,6 +468,87 @@ export class RenderSystem {
     }
   }
 
+  /** Create or update a car sprite. Cars Y-sort on the props layer so
+   * they walk visually behind tall objects like the player. If the
+   * sprite key isn't loaded, fall back to a solid red rectangle so the
+   * car is still visible while the user drops in the real art. */
+  setCar(id: string, x: number, y: number, spriteKey: string, tileSize: number): void {
+    const layers = this.currentMap ? getLayers(this.currentMap) : [];
+    const zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, y);
+    const tex = getTexture(spriteKey);
+    if (!tex && !this.warnedMissingCarKeys.has(spriteKey)) {
+      console.warn(`[RenderSystem] car sprite "${spriteKey}" not loaded — falling back to red rect. Check that the pack file exists at /assets/me/${spriteKey.startsWith('me:') ? spriteKey.slice(3) : spriteKey}.png`);
+      this.warnedMissingCarKeys.add(spriteKey);
+    }
+    if (tex) {
+      // Drop any leftover fallback rect from before the texture loaded.
+      const fallback = this.carFallbacks.get(id);
+      if (fallback) {
+        this.entityLayer.removeChild(fallback);
+        this.carFallbacks.delete(id);
+      }
+      let sprite = this.carSprites.get(id);
+      if (!sprite) {
+        sprite = new Sprite(tex);
+        sprite.anchor.set(0.5, 0.5);
+        if (this.mapBoundsMask) sprite.mask = this.mapBoundsMask;
+        this.entityLayer.addChild(sprite);
+        this.carSprites.set(id, sprite);
+      } else if (sprite.texture !== tex) {
+        sprite.texture = tex;
+      }
+      sprite.x = x;
+      sprite.y = y;
+      sprite.zIndex = zIndex;
+      return;
+    }
+    // No texture — show a fallback rect so the system is debuggable
+    // without art. Sized at one tile so it doesn't overpower the map.
+    let g = this.carFallbacks.get(id);
+    if (!g) {
+      g = new Graphics();
+      g.rect(-tileSize / 2, -tileSize / 2, tileSize, tileSize).fill({ color: 0xff4444 });
+      if (this.mapBoundsMask) g.mask = this.mapBoundsMask;
+      this.entityLayer.addChild(g);
+      this.carFallbacks.set(id, g);
+    }
+    g.x = x;
+    g.y = y;
+    g.zIndex = zIndex;
+  }
+
+  /** Drop a car's sprite (or fallback) — called when the system despawns
+   * a car at the map edge or a dead-end. */
+  removeCar(id: string): void {
+    const sprite = this.carSprites.get(id);
+    if (sprite) {
+      this.entityLayer.removeChild(sprite);
+      sprite.destroy();
+      this.carSprites.delete(id);
+    }
+    const g = this.carFallbacks.get(id);
+    if (g) {
+      this.entityLayer.removeChild(g);
+      g.destroy();
+      this.carFallbacks.delete(id);
+    }
+  }
+
+  /** Wipe all car sprites — called on scene change so cars from the old
+   * map don't linger in the new one. */
+  clearCars(): void {
+    for (const sprite of this.carSprites.values()) {
+      this.entityLayer.removeChild(sprite);
+      sprite.destroy();
+    }
+    this.carSprites.clear();
+    for (const g of this.carFallbacks.values()) {
+      this.entityLayer.removeChild(g);
+      g.destroy();
+    }
+    this.carFallbacks.clear();
+  }
+
   /** Update an NPC sprite's position (for wandering). */
   updateNPC(npcId: string, x: number, y: number): void {
     const sprite = this.npcSprites.get(npcId);
@@ -516,6 +626,13 @@ export class RenderSystem {
       keys.add(`player-${dir}`);
       keys.add(`player-${dir}-walk1`);
       keys.add(`player-${dir}-walk2`);
+    }
+    // Pool of car sprite sets — pack-single keys, routed through the
+    // pack loader inside `loadAssets`. Maps without a car-path layer
+    // still request these (cheap; they're just URLs in a Set), but the
+    // actual network drives whether the textures get used.
+    for (const set of CAR_SPRITE_SETS) {
+      for (const k of Object.values(set)) keys.add(k);
     }
 
     // Transition tiles

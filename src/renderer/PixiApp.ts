@@ -12,6 +12,7 @@ import { GameBridge } from '../core/GameBridge';
 import { CommandQueue } from '../core/CommandQueue';
 import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
+import { buildCarNetwork, CarNetwork, CarSystemState, createCarSystemState, spriteKeyForCar, updateCars } from '../core/CarSystem';
 import { loadAssets, preloadAllAssets } from './AssetLoader';
 import { loadAutoTileset } from './AutoTileset';
 import { InputAdapter } from './InputAdapter';
@@ -43,6 +44,11 @@ export class PixiApp {
   private npcWanderStates: NPCWanderState[] = [];
   private tapFeedback: TapFeedback | null = null;
   private bgm: BGMManager;
+  /** Ambient-traffic state for the current map. Null when the map has no
+   * car-path layer painted (so most interior maps stay car-free). Built
+   * by `loadScene` and torn down on scene change. */
+  private carSystemState: CarSystemState | null = null;
+  private carNetwork: CarNetwork | null = null;
 
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
@@ -250,6 +256,18 @@ export class PixiApp {
     this.renderSystem.renderTiles(map);
     this.renderSystem.renderObjects(map);
     this.renderSystem.initPlayer(player);
+
+    // Build the car-traffic graph for this map. Maps without a painted
+    // car-path layer simply skip car simulation entirely (most interiors).
+    // RenderSystem was just re-created above so any stale car sprites
+    // from the prior scene are already gone — but call clearCars()
+    // anyway so a non-recreated renderer (future refactor) stays safe.
+    this.renderSystem.clearCars();
+    this.carNetwork = buildCarNetwork(map);
+    this.carSystemState = this.carNetwork ? createCarSystemState() : null;
+    if (this.carSystemState) {
+      console.log(`[CarSystem] enabled on map "${mapId}" — first spawn attempt in ${this.carSystemState.spawnInterval}s, max ${this.carSystemState.maxCars} concurrent`);
+    }
 
     const mapW = map.width * map.tileSize;
     const mapH = map.height * map.tileSize;
@@ -502,6 +520,16 @@ export class PixiApp {
     this.renderSystem.updateAnimations(performance.now() / 1000);
     // X-ray occluding sprites so the player stays visible behind tall objects.
     this.renderSystem.applyOcclusionFade();
+    // Ambient cars — only when this map has a car-path network. Tick the
+    // simulation, drop sprites for any car that despawned this frame, and
+    // sync the survivors' positions to the renderer.
+    if (this.carSystemState && this.carNetwork) {
+      const despawned = updateCars(this.carSystemState, this.carNetwork, delta, map.tileSize, map.width, map.height);
+      for (const id of despawned) this.renderSystem.removeCar(id);
+      for (const car of this.carSystemState.cars) {
+        this.renderSystem.setCar(car.id, car.x, car.y, spriteKeyForCar(car), map.tileSize);
+      }
+    }
     if (this.tapFeedback) this.tapFeedback.update(delta);
 
     // Debug overlay

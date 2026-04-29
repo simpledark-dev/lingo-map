@@ -1,6 +1,6 @@
-import { TileType, Entity, Building, CollisionBox, Layer, MapLayer, TileLayer } from '../core/types';
+import { TileType, Entity, Building, CollisionBox, CarDirection, CarPathLayer, Layer, MapLayer, TileLayer } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
-import { isObjectLayer, isTileLayer } from '../core/Layers';
+import { isCarPathLayer, isObjectLayer, isTileLayer } from '../core/Layers';
 
 // ── State ──
 
@@ -10,7 +10,7 @@ export interface EditorState {
   tileSize: number;
   buildings: Building[];
 
-  activeTool: 'tile' | 'object' | 'building' | 'select' | 'eraser' | 'area-erase' | 'area-select';
+  activeTool: 'tile' | 'object' | 'building' | 'select' | 'eraser' | 'area-erase' | 'area-select' | 'car-path';
   selectedTileType: string;
   selectedObjectKey: string | null;
   selectedBuildingKey: string | null;
@@ -41,6 +41,12 @@ export interface EditorState {
    * Null when no selection is active. Persists across other tool uses so the
    * user can drag-move it from inside, then keep editing elsewhere. */
   selectionArea: { row1: number; col1: number; row2: number; col2: number } | null;
+
+  /** Direction toggles for the car-path painter. Active layer of `kind:
+   * 'car-path'` paints these directions into each clicked cell — empty
+   * array means "clear the cell". Sticks across pointer events so a drag
+   * stamps the same set into every cell crossed. */
+  selectedCarDirections: CarDirection[];
 }
 
 interface UndoEntry {
@@ -94,6 +100,7 @@ export function createInitialState(width = 50, height = 50): EditorState {
     layers: defaultLayers(width, height),
     activeLayerId: PLAYER_LAYER_ID,
     selectionArea: null,
+    selectedCarDirections: ['n'],
   };
 }
 
@@ -191,7 +198,9 @@ export type EditorAction =
   | { type: 'RESIZE_MAP'; width: number; height: number; anchor?: { dRow: number; dCol: number } }
   | { type: 'IMPORT_MAP'; tiles: string[][]; objects: Entity[]; buildings: Building[]; width: number; height: number; layers?: MapLayer[] | Layer[] }
   | { type: 'SET_ACTIVE_LAYER'; id: string }
-  | { type: 'ADD_LAYER'; name?: string; kind?: 'tile' | 'object' }
+  | { type: 'ADD_LAYER'; name?: string; kind?: 'tile' | 'object' | 'car-path' }
+  | { type: 'SET_SELECTED_CAR_DIRECTIONS'; directions: CarDirection[] }
+  | { type: 'PAINT_CAR_CELL'; row: number; col: number; exits: CarDirection[] }
   | { type: 'REMOVE_LAYER'; id: string }
   | { type: 'RENAME_LAYER'; id: string; name: string }
   | { type: 'REORDER_LAYER'; id: string; direction: 'up' | 'down' }
@@ -273,6 +282,30 @@ function withAllObjectLayers(state: EditorState, transform: (objects: Entity[], 
     return { ...l, objects: next };
   });
   return changed ? { ...state, layers: newLayers } : state;
+}
+
+/** Stable cell-key encoding for the sparse car-path map. */
+function carCellKey(row: number, col: number): string {
+  return `${row},${col}`;
+}
+
+/** Update the active car-path layer's `exits` map by running `transform`
+ * against a copy of the current map. No-op if the active layer isn't a
+ * car-path layer. The reducer shallow-copies the modified layer so React
+ * detects the change. */
+function withActiveCarPathLayer(
+  state: EditorState,
+  transform: (exits: Record<string, CarDirection[]>) => Record<string, CarDirection[]>,
+): EditorState {
+  const idx = state.layers.findIndex(l => l.id === state.activeLayerId);
+  if (idx < 0) return state;
+  const layer = state.layers[idx];
+  if (!isCarPathLayer(layer)) return state;
+  const next = transform(layer.exits);
+  if (next === layer.exits) return state;
+  const newLayers = state.layers.slice();
+  newLayers[idx] = { ...layer, exits: next };
+  return { ...state, layers: newLayers };
 }
 
 /** Find a single object by id across every object layer. */
@@ -901,6 +934,48 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'SET_TOOL':
       return { ...state, activeTool: action.tool, selectedObjectIds: [] };
 
+    case 'SET_SELECTED_CAR_DIRECTIONS':
+      return { ...state, selectedCarDirections: action.directions };
+
+    case 'PAINT_CAR_CELL': {
+      const { row, col, exits } = action;
+      if (row < 0 || row >= state.mapHeight || col < 0 || col >= state.mapWidth) return state;
+      // Only valid when the active layer is a car-path layer. Lock honored.
+      const active = state.layers.find(l => l.id === state.activeLayerId);
+      if (!active || !isCarPathLayer(active)) return state;
+      if (active.locked) return state;
+      const key = carCellKey(row, col);
+      const before = active.exits[key];
+      const dedup = Array.from(new Set(exits)).sort();
+      // No-op when the cell already has the same set (sorted compare).
+      const sameAs = (a: CarDirection[] | undefined, b: CarDirection[]): boolean => {
+        if (!a) return b.length === 0;
+        if (a.length !== b.length) return false;
+        const aSorted = [...a].sort();
+        for (let i = 0; i < aSorted.length; i++) if (aSorted[i] !== b[i]) return false;
+        return true;
+      };
+      if (sameAs(before, dedup)) return state;
+      const next: Record<string, CarDirection[]> = { ...active.exits };
+      if (dedup.length === 0) {
+        delete next[key];
+      } else {
+        next[key] = dedup;
+      }
+      // Coalesce the undo step within a continuous drag: tag with the
+      // active layer id so paints across the same drag share one entry.
+      // shouldCoalesceUndo reads `data.id`, so we use `id` not `layerId`.
+      const coalesce = shouldCoalesceUndo(state.undoStack, 'PAINT_CAR_CELL', active.id);
+      const undoStack = coalesce
+        ? state.undoStack
+        : [...state.undoStack, { type: 'PAINT_CAR_CELL', data: { id: active.id, snapshot: active.exits } }];
+      return {
+        ...withActiveCarPathLayer(state, () => next),
+        undoStack,
+        redoStack: [],
+      };
+    }
+
     case 'SET_SELECTED_TILE':
       return { ...state, selectedTileType: action.tileType, activeTool: 'tile' };
 
@@ -1040,7 +1115,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const kind = action.kind ?? 'object';
       const newLayer: Layer = kind === 'tile'
         ? { id, name, kind: 'tile', visible: true, locked: false, tiles: emptyTileGrid(state.mapWidth, state.mapHeight, '') }
-        : { id, name, kind: 'object', visible: true, locked: false, objects: [] };
+        : kind === 'car-path'
+          ? { id, name, kind: 'car-path', visible: true, locked: false, exits: {} }
+          : { id, name, kind: 'object', visible: true, locked: false, objects: [] };
       return {
         ...state,
         layers: [...state.layers, newLayer],
@@ -1173,6 +1250,16 @@ export function buildImportedLayers(
           visible: l.visible !== false,
           locked: l.locked === true,
           tiles: l.tiles ?? emptyTileGrid(width, height, ''),
+        };
+      }
+      if (l.kind === 'car-path') {
+        return {
+          id: l.id,
+          name: l.name,
+          kind: 'car-path',
+          visible: l.visible !== false,
+          locked: l.locked === true,
+          exits: l.exits ?? {},
         };
       }
       return {
@@ -1488,6 +1575,24 @@ function applyUndo(state: EditorState, entry: UndoEntry, newUndo: UndoEntry[]): 
         redoStack: [...state.redoStack, { type: 'LAYERS_SNAPSHOT', data: captureLayersSnapshot(state) }],
       };
     }
+    case 'PAINT_CAR_CELL': {
+      // Snapshot-based: undo restores the layer's exits to `snapshot`,
+      // and we capture the *current* exits as the redo snapshot.
+      const { id: layerId, snapshot } = data as { id: string; snapshot: Record<string, CarDirection[]> };
+      const idx = state.layers.findIndex(l => l.id === layerId);
+      if (idx < 0) return { ...state, undoStack: newUndo };
+      const layer = state.layers[idx];
+      if (!isCarPathLayer(layer)) return { ...state, undoStack: newUndo };
+      const redoData = { id: layerId, snapshot: layer.exits };
+      const newLayers = state.layers.slice();
+      newLayers[idx] = { ...layer, exits: snapshot };
+      return {
+        ...state,
+        layers: newLayers,
+        undoStack: newUndo,
+        redoStack: [...state.redoStack, { type: 'PAINT_CAR_CELL', data: redoData }],
+      };
+    }
     case 'RESIZE_MAP': {
       const snap = data as unknown as ResizeSnapshot;
       return {
@@ -1758,6 +1863,22 @@ function applyRedo(state: EditorState, entry: UndoEntry, newRedo: UndoEntry[]): 
         activeLayerId: snap.activeLayerId,
         redoStack: newRedo,
         undoStack: [...state.undoStack, { type: 'LAYERS_SNAPSHOT', data: captureLayersSnapshot(state) }],
+      };
+    }
+    case 'PAINT_CAR_CELL': {
+      const { id: layerId, snapshot } = data as { id: string; snapshot: Record<string, CarDirection[]> };
+      const idx = state.layers.findIndex(l => l.id === layerId);
+      if (idx < 0) return { ...state, redoStack: newRedo };
+      const layer = state.layers[idx];
+      if (!isCarPathLayer(layer)) return { ...state, redoStack: newRedo };
+      const undoData = { id: layerId, snapshot: layer.exits };
+      const newLayers = state.layers.slice();
+      newLayers[idx] = { ...layer, exits: snapshot };
+      return {
+        ...state,
+        layers: newLayers,
+        redoStack: newRedo,
+        undoStack: [...state.undoStack, { type: 'PAINT_CAR_CELL', data: undoData }],
       };
     }
     case 'RESIZE_MAP': {
