@@ -287,6 +287,11 @@ export class PixiApp {
     this.renderSystem = new RenderSystem(this.app);
     this.renderSystem.renderTiles(map);
     this.renderSystem.renderObjects(map);
+    // Flatten static layers (ground/transition/autotile/floor) into a
+    // single RenderTexture sprite — must run BEFORE the first
+    // updateCamera so worldContainer's transform is still identity
+    // (children render at their local positions inside the bake).
+    this.renderSystem.bakeStaticLayers(map);
     this.renderSystem.initPlayer(player);
 
     // Build the car-traffic graph for this map. Maps without a painted

@@ -1,4 +1,4 @@
-import { Application, Container, Graphics, Sprite } from 'pixi.js';
+import { Application, Container, Graphics, RenderTexture, Sprite } from 'pixi.js';
 import { MapData, PlayerState, TileType } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
 import { getEffectiveZIndex, getLayers, getObjectLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
@@ -83,6 +83,12 @@ export class RenderSystem {
   // entities (player, NPCs, cars) are still re-culled every frame
   // because they can walk into a stationary camera's viewport.
   private lastStaticCullKey: { col: number; row: number; zoom: number } | null = null;
+  // RenderTexture holding the entire static map art baked once at
+  // scene mount. After the bake, ground/transition/autotile/floor
+  // containers are emptied and a single Sprite of this texture renders
+  // them all in one draw call. Drops Pixi's static scene-graph cost
+  // from thousands of sprites to one.
+  private bakedStaticTexture: RenderTexture | null = null;
 
   // Current map data (needed for sorting)
   private currentMap: MapData | null = null;
@@ -306,6 +312,63 @@ export class RenderSystem {
     }
   }
 
+  /** Flatten the four static layers (ground tiles + transitions +
+   * autotile + floor decor) into a single RenderTexture, then replace
+   * their sprite contents with one Sprite of that texture. This is
+   * R5 of the runtime-perf plan: drops the static scene graph from
+   * ~3000 individual sprites to one, slashing per-frame Pixi work
+   * (sort/cull/transform/draw-call) on mobile.
+   *
+   * Called from PixiApp.loadScene after renderTiles + renderObjects,
+   * BEFORE the first updateCamera. At that moment worldContainer's
+   * transform is still identity, so each static container's children
+   * render at their local pixel positions inside the bake texture. */
+  bakeStaticLayers(map: MapData): void {
+    const w = map.width * map.tileSize;
+    const h = map.height * map.tileSize;
+    if (w <= 0 || h <= 0) return;
+
+    const bakeTexture = RenderTexture.create({ width: w, height: h });
+    // Pixel-art look — no interpolation when the bake is upscaled.
+    bakeTexture.source.scaleMode = 'nearest';
+
+    // Multi-pass: clear on the first one, accumulate on the rest. Order
+    // matches the original z-stack so the bake looks identical to the
+    // unbaked version.
+    const staticContainers: Container[] = [
+      this.groundLayer,
+      this.transitionLayer,
+      this.autoTileLayer,
+      this.floorContainer,
+    ];
+    let first = true;
+    for (const c of staticContainers) {
+      if (c.children.length === 0) continue;
+      this.app.renderer.render({ container: c, target: bakeTexture, clear: first });
+      first = false;
+    }
+    if (first) {
+      // Nothing to bake — empty map. Drop the unused texture and bail.
+      bakeTexture.destroy(true);
+      return;
+    }
+
+    // Wipe originals — they're now baked into the texture and shouldn't
+    // render anything anymore. Each container stays in worldContainer
+    // (with no children) so existing layer ordering and cull iteration
+    // stays intact, just over zero items.
+    for (const c of staticContainers) {
+      c.removeChildren();
+    }
+
+    // Single sprite holding the bake. Goes into groundLayer so it
+    // renders at the bottom of the z-stack, mirroring where the original
+    // tile sprites used to live.
+    const bakeSprite = new Sprite(bakeTexture);
+    this.groundLayer.addChild(bakeSprite);
+    this.bakedStaticTexture = bakeTexture;
+  }
+
   initPlayer(player: PlayerState): void {
     const texture = getTexture(player.spriteKey);
     if (!texture) return;
@@ -441,9 +504,14 @@ export class RenderSystem {
     if (last && last.col === cellCol && last.row === cellRow && last.zoom === zoom) return;
     this.lastStaticCullKey = { col: cellCol, row: cellRow, zoom };
 
-    // Cull ground tiles
+    // Cull ground tiles. After R5 bakes the static map, this container
+    // holds a single big sprite covering the whole map instead of one
+    // tile per cell, so use the sprite's real width/height (with the
+    // tile size as a fallback for the pre-bake/empty case).
     for (const child of this.groundLayer.children) {
-      child.visible = child.x + T > left && child.x < right && child.y + T > top && child.y < bottom;
+      const cw = (child as Sprite).width || T;
+      const ch = (child as Sprite).height || T;
+      child.visible = child.x + cw > left && child.x < right && child.y + ch > top && child.y < bottom;
     }
 
     // Cull transition layer
@@ -765,6 +833,13 @@ export class RenderSystem {
   }
 
   destroy(): void {
+    // Free the GPU memory backing the static-layer bake — destroying
+    // the worldContainer recursively destroys the bake sprite, but the
+    // underlying RenderTexture's source isn't freed automatically.
+    if (this.bakedStaticTexture) {
+      this.bakedStaticTexture.destroy(true);
+      this.bakedStaticTexture = null;
+    }
     this.worldContainer.destroy({ children: true });
   }
 }
