@@ -40,6 +40,7 @@ export class InputAdapter {
 
   private onPointerDown = (e: PointerEvent) => {
     if (!this.canvas) return;
+    this.canvas.setPointerCapture(e.pointerId);
 
     // Track touch for pinch detection
     this.activeTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -83,7 +84,7 @@ export class InputAdapter {
       const dist = this.getPinchDist();
       const delta = dist - this.lastPinchDist;
       if (Math.abs(delta) > 8) {
-        this.zoom = Math.max(MIN_ZOOM, Math.max(MAX_ZOOM,
+        this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM,
           this.zoom + (delta > 0 ? ZOOM_STEP : -ZOOM_STEP)
         ));
         this.lastPinchDist = dist;
@@ -92,6 +93,9 @@ export class InputAdapter {
   };
 
   private onPointerUp = (e: PointerEvent) => {
+    if (this.canvas?.hasPointerCapture(e.pointerId)) {
+      this.canvas.releasePointerCapture(e.pointerId);
+    }
     this.activeTouches.delete(e.pointerId);
     if (this.activeTouches.size < 2) {
       this.lastPinchDist = null;
