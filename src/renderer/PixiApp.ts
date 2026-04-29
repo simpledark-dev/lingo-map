@@ -66,12 +66,14 @@ export class PixiApp {
    * resolver in the per-frame tick is allocation-free. Empty until the
    * fetch resolves (CarSystem falls back to a tile-sized box meanwhile). */
   private carCollisionOverrides: Record<string, CarCollisionBox> = {};
-  /** True on touch-primary devices (phone, tablet). Drives the camera
-   * to keep the player dead-center instead of clamping to map bounds —
-   * the small viewport makes "player walks toward edge while camera
-   * stops" feel disorienting on mobile. Detected once at construction
-   * via `pointer: coarse`. */
-  private centerOnPlayer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  /** Camera-follow mode. Currently always false — earlier we tried
+   * keeping the player dead-center on mobile but the resulting black
+   * margins past the map edge looked worse than the player drifting
+   * toward a screen edge. The default clamp keeps the camera centered
+   * whenever the player is away from any map edge AND avoids margins.
+   * Kept as a field so a future "always-center" debug toggle is a
+   * one-line flip. */
+  private centerOnPlayer = false;
 
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
