@@ -1,6 +1,5 @@
-import { Application, Graphics, Container } from 'pixi.js';
+import { Graphics, Container } from 'pixi.js';
 
-const TAP_SOUND_PATH = '/assets/audio/tap.mp3';
 const INDICATOR_DURATION = 0.4; // seconds
 const INDICATOR_MAX_RADIUS = 16;
 const INDICATOR_COLOR = 0xffffff;
@@ -12,42 +11,22 @@ interface TapIndicator {
 }
 
 /**
- * Tap feedback — sound + visual ring indicator.
+ * Tap feedback — visual ring indicator.
  * Renderer-only, does not affect gameplay.
  */
 export class TapFeedback {
-  private audio: HTMLAudioElement | null = null;
   private indicators: TapIndicator[] = [];
   private container: Container;
-  private audioReady = false;
 
   constructor(private worldContainer: Container) {
     // Container for indicators — added to worldContainer so they move with the camera
     this.container = new Container();
     this.container.zIndex = 99999;
     this.worldContainer.addChild(this.container);
-
-    // Preload audio
-    if (typeof Audio !== 'undefined') {
-      this.audio = new Audio(TAP_SOUND_PATH);
-      this.audio.volume = 0.3;
-      this.audio.preload = 'auto';
-      // Audio needs user interaction to unlock on mobile
-      this.audio.load();
-      this.audioReady = true;
-    }
   }
 
   /** Call when the player taps/clicks on the map. worldX/worldY = world coordinates. */
   trigger(worldX: number, worldY: number): void {
-    // Play sound
-    if (this.audio && this.audioReady) {
-      // Clone for overlapping plays
-      const sound = this.audio.cloneNode() as HTMLAudioElement;
-      sound.volume = 0.3;
-      sound.play().catch(() => {});
-    }
-
     // Create visual indicator
     const g = new Graphics();
     g.x = worldX;
