@@ -1,13 +1,24 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from '../core/constants';
 import { normalizeObjectMultiplier } from '../core/MapStress';
+import { loadMap, registerMap } from '../core/MapLoader';
 import { PixiApp } from '../renderer/PixiApp';
 import { DialogueState, MapData, GameState } from '../core/types';
 import { GameEvent } from '../core/GameBridge';
 import DialogueOverlay from './DialogueOverlay';
 import Minimap from './Minimap';
+
+type ViewportSize = { width: number; height: number };
+
+function readViewportSize(): ViewportSize | null {
+  if (typeof window === 'undefined') return null;
+  const vv = window.visualViewport;
+  const width = Math.round(vv?.width ?? window.innerWidth);
+  const height = Math.round(vv?.height ?? window.innerHeight);
+  if (width <= 0 || height <= 0) return null;
+  return { width, height };
+}
 
 function readInitialObjectMultiplier(): number {
   if (typeof window === 'undefined') return 1;
@@ -24,6 +35,66 @@ export default function GameCanvas() {
   const [currentMapId, setCurrentMapId] = useState('outdoor');
   const [objectMultiplier] = useState(readInitialObjectMultiplier);
   const [soundOn, setSoundOn] = useState(true);
+  const [viewportSize, setViewportSize] = useState<ViewportSize | null>(readViewportSize);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let frame = 0;
+    let timers: number[] = [];
+
+    const applySize = () => {
+      frame = 0;
+      const next = readViewportSize();
+      if (!next) return;
+      setViewportSize((prev) => (
+        prev && prev.width === next.width && prev.height === next.height
+          ? prev
+          : next
+      ));
+    };
+
+    const scheduleSizeSync = () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(applySize);
+
+      // iOS standalone/PWA mode can report intermediate viewport sizes
+      // during orientation changes. Sample a few delayed ticks so the
+      // fixed game container and Pixi renderer settle on the final size.
+      for (const timer of timers) window.clearTimeout(timer);
+      timers = [120, 360, 800].map((delay) => window.setTimeout(applySize, delay));
+    };
+
+    scheduleSizeSync();
+    window.addEventListener('resize', scheduleSizeSync);
+    window.addEventListener('orientationchange', scheduleSizeSync);
+    window.addEventListener('pageshow', scheduleSizeSync);
+    window.visualViewport?.addEventListener('resize', scheduleSizeSync);
+    window.visualViewport?.addEventListener('scroll', scheduleSizeSync);
+    window.screen.orientation?.addEventListener?.('change', scheduleSizeSync);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      for (const timer of timers) window.clearTimeout(timer);
+      window.removeEventListener('resize', scheduleSizeSync);
+      window.removeEventListener('orientationchange', scheduleSizeSync);
+      window.removeEventListener('pageshow', scheduleSizeSync);
+      window.visualViewport?.removeEventListener('resize', scheduleSizeSync);
+      window.visualViewport?.removeEventListener('scroll', scheduleSizeSync);
+      window.screen.orientation?.removeEventListener?.('change', scheduleSizeSync);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!viewportSize) return;
+    const resizePixi = () => pixiAppRef.current?.resize();
+    const frame = window.requestAnimationFrame(resizePixi);
+    const timers = [120, 360].map((delay) => window.setTimeout(resizePixi, delay));
+    return () => {
+      window.cancelAnimationFrame(frame);
+      for (const timer of timers) window.clearTimeout(timer);
+    };
+  }, [viewportSize]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -63,8 +134,6 @@ export default function GameCanvas() {
       if (mapParam) startMapId = mapParam;
     }
 
-    const { loadMap, registerMap } = require('../core/MapLoader');
-
     // Fetch disk-persisted map edits, register them as overrides, then start the game.
     // We only take the edited parts (tiles/objects/buildings/dimensions) — triggers,
     // spawnPoints and NPCs always come from the compiled map so gameplay logic
@@ -93,13 +162,14 @@ export default function GameCanvas() {
           if (o.transition) transitionsBySpriteKey.set(o.spriteKey, o.transition);
         });
       }
-      const objects = (mapData.objects ?? []).map(o => {
+      const diskObjects = (mapData.objects ?? []) as MapData['objects'];
+      const objects: MapData['objects'] = diskObjects.map(o => {
         const obj = o as { spriteKey?: string; transition?: unknown };
         if (isLegacySave && obj.spriteKey && !obj.transition) {
           const t = transitionsBySpriteKey.get(obj.spriteKey);
-          if (t) return { ...obj, transition: t };
+          if (t) return { ...o, transition: t };
         }
-        return obj;
+        return o;
       });
 
       registerMap(mapData.id, {
@@ -113,7 +183,7 @@ export default function GameCanvas() {
         // arrays here as a safe placeholder.
         tiles: (mapData.tiles as string[][] | undefined) ?? [],
         objects,
-        buildings: mapData.buildings ?? [],
+        buildings: (mapData.buildings as MapData['buildings'] | undefined) ?? [],
         npcs: compiled?.npcs ?? [],
         triggers: compiled?.triggers ?? [],
         spawnPoints: compiled?.spawnPoints ?? [{ id: 'default', x: 0, y: 0, facing: 'down' }],
@@ -122,7 +192,7 @@ export default function GameCanvas() {
         maxViewTiles: compiled?.maxViewTiles,
         // Editor-managed layer list — fall back to compiled layers, then to
         // implicit defaults via `getLayers()` when neither is set.
-        layers: (mapData.layers as never[] | undefined) ?? compiled?.layers,
+        layers: (mapData.layers as MapData['layers'] | undefined) ?? compiled?.layers,
       });
     };
 
@@ -217,8 +287,9 @@ export default function GameCanvas() {
       style={{
         position: 'fixed',
         inset: 0,
-        width: '100vw',
-        height: '100dvh',
+        width: viewportSize ? `${viewportSize.width}px` : '100vw',
+        height: viewportSize ? `${viewportSize.height}px` : '100dvh',
+        overflow: 'hidden',
       }}
     >
       {/* PixiJS canvas mounts here */}

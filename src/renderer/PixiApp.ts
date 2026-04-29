@@ -713,6 +713,11 @@ export class PixiApp {
     return this.bgm.isEnabled();
   }
 
+  resize(): void {
+    if (this.destroyed || !this.initialized) return;
+    this.app.resize();
+  }
+
   destroy(): void {
     this.destroyed = true;
     this.currentMap = null;
