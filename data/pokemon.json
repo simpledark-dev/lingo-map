@@ -11754,9 +11754,9 @@
       "sortY": 791.53125,
       "collisionBox": {
         "offsetX": -16,
-        "offsetY": -24,
+        "offsetY": -21,
         "width": 32,
-        "height": 24
+        "height": 21
       },
       "scale": 1,
       "layer": "props"
@@ -12060,7 +12060,7 @@
         "offsetX": -13,
         "offsetY": -30,
         "width": 22,
-        "height": 16
+        "height": 19
       },
       "scale": 1,
       "layer": "props"
@@ -13563,7 +13563,7 @@
       "collisionBox": {
         "offsetX": -32,
         "offsetY": -46,
-        "width": 64,
+        "width": 59,
         "height": 32
       },
       "scale": 1,
@@ -13675,12 +13675,50 @@
       },
       "sortY": 287.9172634548611,
       "collisionBox": {
-        "offsetX": -33,
-        "offsetY": -52,
-        "width": 65,
-        "height": 52
+        "offsetX": -15,
+        "offsetY": -26,
+        "width": 28,
+        "height": 26
       },
       "scale": 0.76,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mojmusf6-1decj",
+      "x": 456,
+      "y": 736,
+      "spriteKey": "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_11",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 736,
+      "collisionBox": {
+        "offsetX": -40,
+        "offsetY": -24,
+        "width": 80,
+        "height": 24
+      },
+      "scale": 1,
+      "layer": "props"
+    },
+    {
+      "id": "obj-mojmw7yk-qc92j",
+      "x": 472,
+      "y": 384,
+      "spriteKey": "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_24",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 384,
+      "collisionBox": {
+        "offsetX": -24,
+        "offsetY": -40,
+        "width": 48,
+        "height": 40
+      },
+      "scale": 1,
       "layer": "props"
     },
     {
@@ -13890,7 +13928,7 @@
     {
       "id": "default",
       "x": 72,
-      "y": 688,
+      "y": 656,
       "facing": "down"
     },
     {
@@ -16376,7 +16414,7 @@
       "id": "floor",
       "name": "Floor",
       "kind": "object",
-      "visible": true,
+      "visible": false,
       "locked": true,
       "objects": [
         {
@@ -25367,7 +25405,7 @@
       "id": "decor-low",
       "name": "Decor",
       "kind": "object",
-      "visible": true,
+      "visible": false,
       "locked": true,
       "objects": [
         {
@@ -25566,8 +25604,8 @@
       "id": "props",
       "name": "Props",
       "kind": "object",
-      "visible": true,
-      "locked": false,
+      "visible": false,
+      "locked": true,
       "objects": [
         {
           "id": "obj-moh6aiy5-pmmhh",
@@ -25695,9 +25733,9 @@
           "sortY": 791.53125,
           "collisionBox": {
             "offsetX": -16,
-            "offsetY": -24,
+            "offsetY": -21,
             "width": 32,
-            "height": 24
+            "height": 21
           },
           "scale": 1,
           "layer": "props"
@@ -26001,7 +26039,7 @@
             "offsetX": -13,
             "offsetY": -30,
             "width": 22,
-            "height": 16
+            "height": 19
           },
           "scale": 1,
           "layer": "props"
@@ -27504,7 +27542,7 @@
           "collisionBox": {
             "offsetX": -32,
             "offsetY": -46,
-            "width": 64,
+            "width": 59,
             "height": 32
           },
           "scale": 1,
@@ -27616,12 +27654,50 @@
           },
           "sortY": 287.9172634548611,
           "collisionBox": {
-            "offsetX": -33,
-            "offsetY": -52,
-            "width": 65,
-            "height": 52
+            "offsetX": -15,
+            "offsetY": -26,
+            "width": 28,
+            "height": 26
           },
           "scale": 0.76,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mojmusf6-1decj",
+          "x": 456,
+          "y": 736,
+          "spriteKey": "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Right_11",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 736,
+          "collisionBox": {
+            "offsetX": -40,
+            "offsetY": -24,
+            "width": 80,
+            "height": 24
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mojmw7yk-qc92j",
+          "x": 472,
+          "y": 384,
+          "spriteKey": "me:10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Car_Up_24",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 384,
+          "collisionBox": {
+            "offsetX": -24,
+            "offsetY": -40,
+            "width": 48,
+            "height": 40
+          },
+          "scale": 1,
           "layer": "props"
         }
       ]
@@ -27630,8 +27706,8 @@
       "id": "above",
       "name": "Above",
       "kind": "object",
-      "visible": true,
-      "locked": false,
+      "visible": false,
+      "locked": true,
       "objects": [
         {
           "id": "obj-moigfeav-duk9p",

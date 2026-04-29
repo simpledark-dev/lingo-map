@@ -1,4 +1,4 @@
-import { MapData, TileType, Entity, Building, NPCData } from '../core/types';
+import { MapData, TileType, Entity, Building, NPCData } from "../core/types";
 
 // ══════════════════════════════════════════════════════════════
 // POKEMON-STYLE MAP (60×40 tiles @ 16px)
@@ -43,21 +43,44 @@ function makeTiles(): TileType[][] {
 }
 
 let nextId = 0;
-function tx(col: number) { return col * T + T / 2; }
-function ty(row: number) { return (row + 1) * T; }
+function tx(col: number) {
+  return col * T + T / 2;
+}
+function ty(row: number) {
+  return (row + 1) * T;
+}
 
-function obj(x: number, y: number, key: string, cw: number, ch: number): Entity {
+function obj(
+  x: number,
+  y: number,
+  key: string,
+  cw: number,
+  ch: number
+): Entity {
   return {
-    id: `pk-${++nextId}`, x, y, spriteKey: key,
-    anchor: { x: 0.5, y: 1.0 }, sortY: y,
-    collisionBox: { offsetX: -Math.floor(cw / 2), offsetY: -ch, width: cw, height: ch },
+    id: `pk-${++nextId}`,
+    x,
+    y,
+    spriteKey: key,
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: y,
+    collisionBox: {
+      offsetX: -Math.floor(cw / 2),
+      offsetY: -ch,
+      width: cw,
+      height: ch,
+    },
   };
 }
 
 function decor(x: number, y: number, key: string): Entity {
   return {
-    id: `pk-${++nextId}`, x, y, spriteKey: key,
-    anchor: { x: 0.5, y: 1.0 }, sortY: y - 1000,
+    id: `pk-${++nextId}`,
+    x,
+    y,
+    spriteKey: key,
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: y - 1000,
     collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 },
   };
 }
@@ -66,21 +89,29 @@ function decor(x: number, y: number, key: string): Entity {
 
 const objects: Entity[] = [
   // Border trees (16×16 each, collision 12×8)
-  ...Array.from({ length: 14 }, (_, i) => obj(tx(2 + i * 4), ty(1), 'tree', 12, 8)),
-  ...Array.from({ length: 14 }, (_, i) => obj(tx(2 + i * 4), ty(H - 2), 'tree', 12, 8)),
-  ...Array.from({ length: 8 }, (_, i) => obj(tx(1), ty(4 + i * 4), 'tree', 12, 8)),
-  ...Array.from({ length: 8 }, (_, i) => obj(tx(W - 2), ty(4 + i * 4), 'tree', 12, 8)),
+  ...Array.from({ length: 14 }, (_, i) =>
+    obj(tx(2 + i * 4), ty(1), "tree", 12, 8)
+  ),
+  ...Array.from({ length: 14 }, (_, i) =>
+    obj(tx(2 + i * 4), ty(H - 2), "tree", 12, 8)
+  ),
+  ...Array.from({ length: 8 }, (_, i) =>
+    obj(tx(1), ty(4 + i * 4), "tree", 12, 8)
+  ),
+  ...Array.from({ length: 8 }, (_, i) =>
+    obj(tx(W - 2), ty(4 + i * 4), "tree", 12, 8)
+  ),
 
   // Flower bushes
-  decor(tx(24), ty(19), 'bush'),
-  decor(tx(26), ty(19), 'bush'),
-  decor(tx(28), ty(19), 'bush'),
-  decor(tx(24), ty(20), 'bush'),
-  decor(tx(26), ty(20), 'bush'),
-  decor(tx(28), ty(20), 'bush'),
+  decor(tx(24), ty(19), "bush"),
+  decor(tx(26), ty(19), "bush"),
+  decor(tx(28), ty(19), "bush"),
+  decor(tx(24), ty(20), "bush"),
+  decor(tx(26), ty(20), "bush"),
+  decor(tx(28), ty(20), "bush"),
 
   // Town sign
-  obj(tx(20), ty(21), 'signpost', 10, 10),
+  obj(tx(20), ty(21), "signpost", 10, 10),
 ];
 
 // ── Buildings — sized for 16px scale ──
@@ -89,40 +120,43 @@ const objects: Entity[] = [
 
 const buildings: Building[] = [
   {
-    id: 'pk-house',
-    x: tx(13), y: ty(12),
-    baseSpriteKey: 'house-base',
-    roofSpriteKey: 'house-roof',
+    id: "pk-house",
+    x: tx(13),
+    y: ty(12),
+    baseSpriteKey: "house-base",
+    roofSpriteKey: "house-roof",
     anchor: { x: 0.5, y: 1.0 },
     sortY: ty(12),
     collisionBox: { offsetX: -38, offsetY: -52, width: 76, height: 52 },
     doorTrigger: { offsetX: -6, offsetY: 0, width: 12, height: 8 },
-    targetMapId: 'pokemon-house-1f',
-    targetSpawnId: 'entrance',
+    targetMapId: "pokemon-house-1f",
+    targetSpawnId: "entrance",
   },
   {
-    id: 'pk-mart',
-    x: tx(37), y: ty(12),
-    baseSpriteKey: 'mart-base',
-    roofSpriteKey: 'mart-roof',
+    id: "pk-mart",
+    x: tx(37),
+    y: ty(12),
+    baseSpriteKey: "mart-base",
+    roofSpriteKey: "mart-roof",
     anchor: { x: 0.5, y: 1.0 },
     sortY: ty(12),
     collisionBox: { offsetX: -38, offsetY: -52, width: 76, height: 52 },
     doorTrigger: { offsetX: -6, offsetY: 0, width: 12, height: 8 },
-    targetMapId: 'pokemon-house-1f',
-    targetSpawnId: 'entrance',
+    targetMapId: "pokemon-house-1f",
+    targetSpawnId: "entrance",
   },
   {
-    id: 'pk-lab',
-    x: tx(13), y: ty(32),
-    baseSpriteKey: 'lab-base',
-    roofSpriteKey: 'lab-roof',
+    id: "pk-lab",
+    x: tx(13),
+    y: ty(32),
+    baseSpriteKey: "lab-base",
+    roofSpriteKey: "lab-roof",
     anchor: { x: 0.5, y: 1.0 },
     sortY: ty(32),
     collisionBox: { offsetX: -46, offsetY: -68, width: 92, height: 68 },
     doorTrigger: { offsetX: -8, offsetY: 0, width: 16, height: 8 },
-    targetMapId: 'pokemon-house-1f',
-    targetSpawnId: 'entrance',
+    targetMapId: "pokemon-house-1f",
+    targetSpawnId: "entrance",
   },
 ];
 
@@ -130,47 +164,48 @@ const buildings: Building[] = [
 
 const npcs: NPCData[] = [
   {
-    id: 'pk-npc-1',
-    x: tx(20), y: ty(18),
-    spriteKey: 'npc',
+    id: "pk-npc-1",
+    x: tx(20),
+    y: ty(18),
+    spriteKey: "npc",
     anchor: { x: 0.5, y: 1.0 },
     sortY: ty(18),
     collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
-    name: 'Neighbor',
+    name: "Neighbor",
     dialogue: [
-      'Welcome to our little town!',
-      'The professor\'s lab is just south of here.',
+      "Welcome to our little town!",
+      "The professor's lab is just south of here.",
     ],
     wanderRadius: 24,
   },
   {
-    id: 'pk-npc-2',
-    x: tx(44), y: ty(20),
-    spriteKey: 'npc-blue',
+    id: "pk-npc-2",
+    x: tx(44),
+    y: ty(20),
+    spriteKey: "npc-blue",
     anchor: { x: 0.5, y: 1.0 },
     sortY: ty(20),
     collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
-    name: 'Shopkeeper',
-    dialogue: [
-      'The Mart has everything you need!',
-      'Come visit us anytime.',
-    ],
+    name: "Shopkeeper",
+    dialogue: ["The Mart has everything you need!", "Come visit us anytime."],
     wanderRadius: 16,
   },
 ];
 
 export const pokemonMap: MapData = {
-  id: 'pokemon',
-  width: W, height: H, tileSize: T,
+  id: "pokemon",
+  width: W,
+  height: H,
+  tileSize: T,
   tiles: makeTiles(),
   objects,
   buildings,
   npcs,
   triggers: [],
   spawnPoints: [
-    { id: 'default', x: tx(4), y: ty(42), facing: 'down' },
-    { id: 'from-house', x: tx(14), y: ty(14), facing: 'down' },
-    { id: 'from-mart', x: tx(38), y: ty(14), facing: 'down' },
-    { id: 'from-lab', x: tx(14), y: ty(34), facing: 'up' },
+    { id: "default", x: tx(4), y: ty(40), facing: "down" },
+    { id: "from-house", x: tx(14), y: ty(14), facing: "down" },
+    { id: "from-mart", x: tx(38), y: ty(14), facing: "down" },
+    { id: "from-lab", x: tx(14), y: ty(34), facing: "up" },
   ],
 };
