@@ -10,7 +10,10 @@ const ASSET_BASE = '/assets/placeholder/';
 // at its native size — could be 16×16 (paintable as a tile) or 256×240 (a
 // whole building used as an object). The renderer treats the texture as-is.
 
-const PACK_BASE = '/assets/me/';
+// Dev points at the symlinked full pack (`public/assets/me`, gitignored,
+// not deployed). Vercel builds set `NEXT_PUBLIC_PACK_BASE_URL=/assets/me-bundle/`,
+// which is the committed subset produced by `npm run pack:bundle`.
+const PACK_BASE = process.env.NEXT_PUBLIC_PACK_BASE_URL ?? '/assets/me/';
 
 const packPromises = new Map<string, Promise<Texture | null>>();
 
