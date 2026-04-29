@@ -8,6 +8,7 @@ import { DialogueState, MapData, GameState } from '../core/types';
 import { GameEvent } from '../core/GameBridge';
 import DialogueOverlay from './DialogueOverlay';
 import Minimap from './Minimap';
+import { APP_VERSION } from '../version';
 
 type ViewportSize = { width: number; height: number };
 
@@ -350,6 +351,25 @@ export default function GameCanvas() {
     >
       {/* PixiJS canvas mounts here */}
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+
+      {/* Build-version stamp — bumped manually in src/version.ts on
+          every commit so a quick glance from the phone confirms whether
+          the latest deploy is actually live (vs. the SW serving a
+          stale bundle). Bottom-left, low alpha, no pointer events. */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 4,
+          left: 6,
+          fontSize: 10,
+          fontFamily: 'monospace',
+          color: 'rgba(255,255,255,0.45)',
+          textShadow: '0 0 2px rgba(0,0,0,0.8)',
+          pointerEvents: 'none',
+          zIndex: 10,
+          userSelect: 'none',
+        }}
+      >v{APP_VERSION}</div>
 
       {/* UI overlay — always on top of canvas */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }}>
