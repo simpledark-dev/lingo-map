@@ -74,17 +74,24 @@ export default function GameCanvas() {
       let compiled: ReturnType<typeof loadMap> | null = null;
       try { compiled = loadMap(mapData.id); } catch { /* map not in registry */ }
 
-      // The editor doesn't know about engine-only entity metadata (e.g.,
-      // `transition` on a staircase). Re-attach it from the compiled map by
-      // matching spriteKey — assumes one entity per transition-bearing
-      // spriteKey, which is fine for our current single-staircase rooms.
+      // For legacy disk saves (no `layers` field) the editor used not to
+      // serialise `transition`, so we re-attach it from the compiled map by
+      // matching spriteKey. New-format saves (with `layers`) come from an
+      // editor that DOES write `transition` explicitly — re-attaching there
+      // would override the user's intent (e.g., duplicating a door entity
+      // and unchecking "Acts as a door" on the duplicate; the duplicate
+      // shares the original's spriteKey and would silently get its door
+      // back). So only run the back-compat re-attach for legacy saves.
+      const isLegacySave = !Array.isArray(mapData.layers);
       const transitionsBySpriteKey = new Map<string, { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string }>();
-      compiled?.objects.forEach((o: { spriteKey: string; transition?: { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string } }) => {
-        if (o.transition) transitionsBySpriteKey.set(o.spriteKey, o.transition);
-      });
+      if (isLegacySave) {
+        compiled?.objects.forEach((o: { spriteKey: string; transition?: { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string } }) => {
+          if (o.transition) transitionsBySpriteKey.set(o.spriteKey, o.transition);
+        });
+      }
       const objects = (mapData.objects ?? []).map(o => {
         const obj = o as { spriteKey?: string; transition?: unknown };
-        if (obj.spriteKey && !obj.transition) {
+        if (isLegacySave && obj.spriteKey && !obj.transition) {
           const t = transitionsBySpriteKey.get(obj.spriteKey);
           if (t) return { ...obj, transition: t };
         }
