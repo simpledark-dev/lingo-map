@@ -94,6 +94,13 @@ export class PixiApp {
       resolution: 1,
       autoDensity: false,
       resizeTo: container,
+      // Snap sprite world-positions to whole pixels at draw time. Without
+      // this, fractional camera movement (player.x is a float, so
+      // worldContainer.x = -cameraX * zoom is also fractional) causes
+      // sprites to sample across texel boundaries each frame —
+      // imperceptible on desktop, but on mobile with devicePixelRatio
+      // 2-3 it shows up as a visible per-frame shimmer/jitter.
+      roundPixels: true,
     });
 
     // If destroy() was called while we were awaiting, bail out
