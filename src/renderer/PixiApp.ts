@@ -463,12 +463,17 @@ export class PixiApp {
       this.tapFeedback.trigger(input.moveTarget.x, input.moveTarget.y);
     }
 
-    // Convert moveTarget to pathfinding waypoints
+    // Convert moveTarget to pathfinding waypoints. Pass current NPCs +
+    // player collision box so A* sees up-to-date NPC positions and
+    // routes around whoever's standing where right NOW (the static
+    // walk grid no longer bakes NPC positions in — they wandered).
     if (input.moveTarget && this.walkGrid) {
       const waypoints = findPath(
         this.walkGrid,
         this.gameState.player.x, this.gameState.player.y,
         input.moveTarget.x, input.moveTarget.y,
+        this.gameState.npcs,
+        this.gameState.player.collisionBox,
       );
       if (waypoints.length > 0) {
         // Override input — set path mode instead of straight-line target

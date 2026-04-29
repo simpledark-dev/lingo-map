@@ -1,4 +1,4 @@
-import { MapData, Entity, Building, Position, CollisionBox, TileType } from './types';
+import { MapData, Entity, Building, NPCData, Position, CollisionBox, TileType } from './types';
 import { getWorldCollisionBox, checkAABBOverlap, WorldBox } from './CollisionSystem';
 
 const GRID_CELL = 16; // pathfinding resolution — half a tile for smoother paths
@@ -74,9 +74,13 @@ function isCellWalkable(
     }
   }
 
-  // Object/building/NPC check
-  const allObjects = [...objects, ...map.npcs];
-  for (const obj of allObjects) {
+  // Static collidable objects + buildings only. NPCs were previously
+  // included here, but they wander at runtime — baking their starting
+  // positions into the grid meant after a few seconds the grid lied
+  // (cells where NPCs USED to be looked blocked, cells where they
+  // currently stand looked free). NPC blocking is now checked
+  // dynamically inside `findPath`.
+  for (const obj of objects) {
     if (obj.collisionBox.width === 0) continue; // skip decor
     const ob = getWorldCollisionBox(obj.x, obj.y, obj.collisionBox);
     if (checkAABBOverlap(box, ob)) return false;
@@ -89,14 +93,45 @@ function isCellWalkable(
   return true;
 }
 
+/** True if any NPC's CURRENT collision box overlaps the player's
+ * hypothetical position at the given grid cell. Called per A* node so
+ * pathfinding always sees up-to-date NPC positions, not stale ones
+ * baked into the static walk grid. */
+function isCellBlockedByNpc(
+  cx: number, cy: number,
+  npcs: NPCData[],
+  pcb: CollisionBox,
+): boolean {
+  if (npcs.length === 0) return false;
+  const box: WorldBox = {
+    x: cx + pcb.offsetX,
+    y: cy + pcb.offsetY,
+    width: pcb.width,
+    height: pcb.height,
+  };
+  for (const npc of npcs) {
+    if (npc.collisionBox.width === 0 || npc.collisionBox.height === 0) continue;
+    const nb = getWorldCollisionBox(npc.x, npc.y, npc.collisionBox);
+    if (checkAABBOverlap(box, nb)) return true;
+  }
+  return false;
+}
+
 /**
  * A* pathfinding on the walk grid.
  * Returns a list of world-space positions (waypoints), or empty if no path found.
+ *
+ * `npcs` and `playerCollisionBox` enable dynamic NPC blocking — the static
+ * grid has walls/buildings/static objects baked in, but NPCs are checked
+ * against their current positions per node so paths never route through
+ * an NPC that's standing somewhere different from where the grid was built.
  */
 export function findPath(
   grid: boolean[][],
   fromX: number, fromY: number,
   toX: number, toY: number,
+  npcs: NPCData[] = [],
+  playerCollisionBox: CollisionBox = { offsetX: 0, offsetY: 0, width: 0, height: 0 },
 ): Position[] {
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
@@ -187,6 +222,18 @@ export function findPath(
       if (dr !== 0 && dc !== 0) {
         if (!grid[current.r + dr]?.[current.c] || !grid[current.r]?.[current.c + dc]) continue;
       }
+
+      // Dynamic NPC block check — uses current NPC positions, not the
+      // stale ones from grid build. Skip the goal cell itself (we want
+      // paths that approach an NPC; the runtime collision system will
+      // still stop the player just before contact) — otherwise pathing
+      // toward a stationary NPC always returns "no path".
+      if (nk !== goalKey && isCellBlockedByNpc(
+        nc * GRID_CELL + GRID_CELL / 2,
+        nr * GRID_CELL + GRID_CELL / 2,
+        npcs,
+        playerCollisionBox,
+      )) continue;
 
       const ng = current.g + cost;
       const existing = open.get(nk);
