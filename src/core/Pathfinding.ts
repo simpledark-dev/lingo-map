@@ -1,7 +1,12 @@
 import { MapData, Entity, Building, NPCData, Position, CollisionBox, TileType } from './types';
 import { getWorldCollisionBox, checkAABBOverlap, WorldBox } from './CollisionSystem';
 
-const GRID_CELL = 16; // pathfinding resolution — half a tile for smoother paths
+// Pathfinding cell size in world pixels. Currently equal to the engine
+// tile size (16), so each path-grid cell maps 1:1 to a tile — paths
+// step in tile-aligned increments. Halve this for sub-tile precision
+// (smoother diagonals at the cost of ~4× more A* work). Earlier comment
+// claimed "half a tile" but the value was always one tile.
+const GRID_CELL = 16;
 
 /**
  * Build a walkability grid for pathfinding.
@@ -167,11 +172,24 @@ export function findPath(
   // Same cell
   if (sr === goalR && sc === goalC) return [{ x: toX, y: toY }];
 
-  // A* with 8-directional movement
+  // A* with 8-directional movement.
+  // Open set is a binary min-heap keyed on f (g + h). Earlier this was
+  // a Map<key, node> with a linear scan to find the lowest-f entry,
+  // which is O(n²) over the whole search and produced 50-150 ms hitches
+  // on mobile when tapping far. Heap brings each pop down to O(log n)
+  // — for the worst-case 2350-cell grid that's ~12 ops vs ~2350.
+  //
+  // We don't implement decrease-key. Instead, when a better path to a
+  // node is found we just push a NEW heap entry; the stale one gets
+  // popped later and skipped via the closed-set check. This is the
+  // standard "lazy deletion" trick for A*.
   const key = (r: number, c: number) => r * cols + c;
-  const open = new Map<number, { r: number; c: number; g: number; f: number }>();
   const closed = new Set<number>();
   const parent = new Map<number, number>();
+  // Best known g per node. Lets us reject heap entries that were
+  // superseded by a cheaper path (and avoid re-exploring nodes whose
+  // best path didn't change).
+  const bestG = new Map<number, number>();
 
   const h = (r: number, c: number) => {
     const dr = Math.abs(r - goalR);
@@ -180,8 +198,10 @@ export function findPath(
     return Math.max(dr, dc) + (Math.SQRT2 - 1) * Math.min(dr, dc);
   };
 
+  const open = new MinHeap<HeapNode>((a, b) => a.f - b.f);
   const startKey = key(sr, sc);
-  open.set(startKey, { r: sr, c: sc, g: 0, f: h(sr, sc) });
+  open.push({ k: startKey, r: sr, c: sc, g: 0, f: h(sr, sc) });
+  bestG.set(startKey, 0);
 
   const dirs = [
     [-1, 0, 1], [1, 0, 1], [0, -1, 1], [0, 1, 1],
@@ -191,23 +211,18 @@ export function findPath(
   let found = false;
   const goalKey = key(goalR, goalC);
 
-  // Limit iterations for performance on large maps
+  // Hard cap. With heap, each pop is cheap, so a generous cap doesn't
+  // dominate cost — but it stops pathological maps from spinning.
+  // Worst-case nodes in a 47×50 grid is ~2350; 5000 leaves headroom.
   let iterations = 0;
-  const MAX_ITER = 10000;
+  const MAX_ITER = 5000;
 
-  while (open.size > 0 && iterations++ < MAX_ITER) {
-    // Find lowest f in open set
-    let bestKey = -1;
-    let bestF = Infinity;
-    for (const [k, node] of open) {
-      if (node.f < bestF) { bestF = node.f; bestKey = k; }
-    }
+  while (open.size() > 0 && iterations++ < MAX_ITER) {
+    const current = open.pop()!;
+    if (closed.has(current.k)) continue; // stale heap entry
+    closed.add(current.k);
 
-    const current = open.get(bestKey)!;
-    open.delete(bestKey);
-    closed.add(bestKey);
-
-    if (bestKey === goalKey) { found = true; break; }
+    if (current.k === goalKey) { found = true; break; }
 
     for (const [dr, dc, cost] of dirs) {
       const nr = current.r + dr;
@@ -236,11 +251,12 @@ export function findPath(
       )) continue;
 
       const ng = current.g + cost;
-      const existing = open.get(nk);
-      if (existing && ng >= existing.g) continue;
+      const existingG = bestG.get(nk);
+      if (existingG !== undefined && ng >= existingG) continue;
 
-      parent.set(nk, bestKey);
-      open.set(nk, { r: nr, c: nc, g: ng, f: ng + h(nr, nc) });
+      bestG.set(nk, ng);
+      parent.set(nk, current.k);
+      open.push({ k: nk, r: nr, c: nc, g: ng, f: ng + h(nr, nc) });
     }
   }
 
@@ -303,4 +319,60 @@ function findNearestWalkable(grid: boolean[][], r: number, c: number, rows: numb
     }
   }
   return null;
+}
+
+/** A* heap entry. `k` is the cell key (row * cols + col), `r`/`c` the
+ * grid coords, `g` the cost-so-far, `f` = g + heuristic. */
+interface HeapNode {
+  k: number;
+  r: number;
+  c: number;
+  g: number;
+  f: number;
+}
+
+/** Tiny binary min-heap. Inlined here rather than reaching for a
+ * dependency — A* is the only consumer and the implementation is
+ * ~40 lines. `compare` returns negative if `a` should come out first. */
+class MinHeap<T> {
+  private heap: T[] = [];
+  constructor(private compare: (a: T, b: T) => number) {}
+  size(): number { return this.heap.length; }
+  push(item: T): void {
+    this.heap.push(item);
+    this.bubbleUp(this.heap.length - 1);
+  }
+  pop(): T | undefined {
+    const n = this.heap.length;
+    if (n === 0) return undefined;
+    const top = this.heap[0];
+    const last = this.heap.pop()!;
+    if (n > 1) {
+      this.heap[0] = last;
+      this.bubbleDown(0);
+    }
+    return top;
+  }
+  private bubbleUp(i: number): void {
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (this.compare(this.heap[i], this.heap[p]) < 0) {
+        [this.heap[i], this.heap[p]] = [this.heap[p], this.heap[i]];
+        i = p;
+      } else break;
+    }
+  }
+  private bubbleDown(i: number): void {
+    const n = this.heap.length;
+    while (true) {
+      const l = 2 * i + 1;
+      const r = 2 * i + 2;
+      let smallest = i;
+      if (l < n && this.compare(this.heap[l], this.heap[smallest]) < 0) smallest = l;
+      if (r < n && this.compare(this.heap[r], this.heap[smallest]) < 0) smallest = r;
+      if (smallest === i) break;
+      [this.heap[i], this.heap[smallest]] = [this.heap[smallest], this.heap[i]];
+      i = smallest;
+    }
+  }
 }
