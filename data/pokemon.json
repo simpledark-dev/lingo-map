@@ -27791,7 +27791,7 @@
       "id": "layer-mojny5t0-2eor",
       "name": "Car Path",
       "kind": "car-path",
-      "visible": false,
+      "visible": true,
       "locked": true,
       "exits": {
         "17,3": [

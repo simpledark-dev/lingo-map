@@ -18,11 +18,19 @@ export interface Car {
    * each frame based on the current `dir`, so a car turning at an
    * intersection swaps texture without needing a separate animation. */
   sprites: Record<CarDirection, string>;
-  /** Seconds the car has been blocked by an obstacle in its look-ahead
-   * box. When this passes `STUCK_TIMEOUT_SEC` the car force-moves one
-   * tick to break gridlocks (e.g., two cars at a 4-way intersection
-   * each politely waiting for the other forever). */
+  /** Seconds the car has been blocked by another CAR (not by the player
+   * or an NPC — pedestrians block forever on purpose). Counts toward
+   * `stuckTimeoutSec` and resets when the car moves. */
   stoppedFor: number;
+  /** Per-car randomized timeout for the deadlock breaker. Picking a
+   * different value per car so a 3-way intersection doesn't have all
+   * three cars yield-then-go on the same frame and immediately re-jam. */
+  stuckTimeoutSec: number;
+  /** While > 0, the obstacle test is bypassed and the car just drives.
+   * Set when the deadlock breaker fires; gives the car enough runway
+   * to clear the intersection (one full tile) instead of edging
+   * forward 0.5 px and immediately restalling. */
+  forceMovePixelsLeft: number;
 }
 
 /** Axis-aligned bbox in world coordinates. */
@@ -159,10 +167,10 @@ export function buildCarNetwork(map: MapData): CarNetwork | null {
 /** Seconds between spawn attempts. Each attempt may no-op (cap reached
  * or no spawn-eligible border cells), so live traffic stabilises lower
  * than 1/interval cars-per-second. */
-export const CAR_SPAWN_INTERVAL_SEC = 2;
+export const CAR_SPAWN_INTERVAL_SEC = 1;
 
 /** Cap on concurrent cars. Spawn attempts no-op once reached. */
-export const CAR_MAX_CONCURRENT = 6;
+export const CAR_MAX_CONCURRENT = 16;
 
 /** Default-shaped state. Tunable knobs live here; PixiApp can override
  * after construction (e.g., heavier traffic for the city map vs the
@@ -191,34 +199,110 @@ export function spawnCar(
   network: CarNetwork,
   tileSize: number,
   spritePool: Array<Record<CarDirection, string>> = CAR_SPRITE_SETS,
-  speedRange: [number, number] = [40, 60]
+  speedRange: [number, number] = [40, 60],
+  /** Optional collision-box resolver — when provided, spawn skips
+   * cells where the new car's AABB would overlap an existing car or
+   * external collidable. Without this, we'd materialise a new car on
+   * top of one stalled at the entrance, which the player sees as the
+   * sprite suddenly doubling. */
+  resolveCarCollision?: CarCollisionResolver,
+  /** External obstacles (player, NPCs) the spawn should also avoid.
+   * Same shape and source as `updateCars`'s `collidables`. */
+  obstacles: AABB[] = []
 ): Car | null {
   if (state.cars.length >= state.maxCars) return null;
   if (network.borderSpawns.length === 0) return null;
   if (spritePool.length === 0) return null;
-  const spawn =
-    network.borderSpawns[
-      Math.floor(Math.random() * network.borderSpawns.length)
-    ];
-  const dir =
-    spawn.spawnDirs[Math.floor(Math.random() * spawn.spawnDirs.length)];
-  const speed = speedRange[0] + Math.random() * (speedRange[1] - speedRange[0]);
-  const sprites = spritePool[Math.floor(Math.random() * spritePool.length)];
-  const car: Car = {
-    id: nextCarId(),
-    x: spawn.col * tileSize + tileSize / 2,
-    y: spawn.row * tileSize + tileSize / 2,
-    cell: { row: spawn.row, col: spawn.col },
-    dir,
-    speed,
-    sprites,
-    stoppedFor: 0,
-  };
-  state.cars.push(car);
-  console.log(
-    `[CarSystem] spawned ${car.id} at cell (${spawn.row},${spawn.col}) heading ${dir} — total live: ${state.cars.length}`
-  );
-  return car;
+
+  // Try multiple spawn cells / directions before giving up. A single
+  // attempt would skew variety toward whichever cell happens to come
+  // up first; ATTEMPTS lets us pick a different border cell when the
+  // first one is occupied. Cap is small so we don't burn a frame on
+  // doomed spawns when the entire road is congested.
+  const ATTEMPTS = 6;
+  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+    const spawn =
+      network.borderSpawns[
+        Math.floor(Math.random() * network.borderSpawns.length)
+      ];
+    const dir =
+      spawn.spawnDirs[Math.floor(Math.random() * spawn.spawnDirs.length)];
+    const speed =
+      speedRange[0] + Math.random() * (speedRange[1] - speedRange[0]);
+    const sprites = spritePool[Math.floor(Math.random() * spritePool.length)];
+
+    const x = spawn.col * tileSize + tileSize / 2;
+    const y = spawn.row * tileSize + tileSize / 2;
+
+    // Check whether the spawn cell is currently free. Use the resolved
+    // collision box for the spawn-direction sprite if available, else
+    // a tile-sized fallback. Compare against every existing car AND
+    // the external obstacles (player + NPCs).
+    const spriteKey = sprites[dir];
+    const box = resolveCarCollision?.(spriteKey) ?? {
+      offsetX: -tileSize / 2,
+      offsetY: -tileSize / 2,
+      width: tileSize,
+      height: tileSize,
+    };
+    const probe: AABB = {
+      left: x + box.offsetX,
+      top: y + box.offsetY,
+      right: x + box.offsetX + box.width,
+      bottom: y + box.offsetY + box.height,
+    };
+    let blocked = false;
+    for (const c of state.cars) {
+      const otherBox = resolveCarCollision?.(c.sprites[c.dir]) ?? {
+        offsetX: -tileSize / 2,
+        offsetY: -tileSize / 2,
+        width: tileSize,
+        height: tileSize,
+      };
+      const otherAABB: AABB = {
+        left: c.x + otherBox.offsetX,
+        top: c.y + otherBox.offsetY,
+        right: c.x + otherBox.offsetX + otherBox.width,
+        bottom: c.y + otherBox.offsetY + otherBox.height,
+      };
+      if (aabbOverlap(probe, otherAABB)) {
+        blocked = true;
+        break;
+      }
+    }
+    if (!blocked) {
+      for (const o of obstacles) {
+        if (aabbOverlap(probe, o)) {
+          blocked = true;
+          break;
+        }
+      }
+    }
+    if (blocked) continue; // try a different cell next attempt
+
+    const car: Car = {
+      id: nextCarId(),
+      x,
+      y,
+      cell: { row: spawn.row, col: spawn.col },
+      dir,
+      speed,
+      sprites,
+      stoppedFor: 0,
+      // Random per-car timeout in [2, 4) seconds. Stagger lets one car
+      // in a multi-way deadlock unstick first; the others follow when
+      // their look-ahead clears.
+      stuckTimeoutSec: 2 + Math.random() * 2,
+      forceMovePixelsLeft: 0,
+    };
+    state.cars.push(car);
+    console.log(
+      `[CarSystem] spawned ${car.id} at cell (${spawn.row},${spawn.col}) heading ${dir} — total live: ${state.cars.length}`
+    );
+    return car;
+  }
+  // Every attempted spawn cell was blocked.
+  return null;
 }
 
 /** Per-sprite collision rect. Offsets are relative to the car's
@@ -248,17 +332,41 @@ export function carAABB(car: Car, box: CarCollisionBox): AABB {
  * heading, attached to whichever edge of the car is the leading one.
  * Perpendicular extent matches the car's body so the test covers the
  * full lane the car is about to enter. */
-export function lookAheadBox(car: Car, distance: number, box: CarCollisionBox): AABB {
+export function lookAheadBox(
+  car: Car,
+  distance: number,
+  box: CarCollisionBox
+): AABB {
   const body = carAABB(car, box);
   switch (car.dir) {
-    case 'e':
-      return { left: body.right, right: body.right + distance, top: body.top, bottom: body.bottom };
-    case 'w':
-      return { left: body.left - distance, right: body.left, top: body.top, bottom: body.bottom };
-    case 's':
-      return { left: body.left, right: body.right, top: body.bottom, bottom: body.bottom + distance };
-    case 'n':
-      return { left: body.left, right: body.right, top: body.top - distance, bottom: body.top };
+    case "e":
+      return {
+        left: body.right,
+        right: body.right + distance,
+        top: body.top,
+        bottom: body.bottom,
+      };
+    case "w":
+      return {
+        left: body.left - distance,
+        right: body.left,
+        top: body.top,
+        bottom: body.bottom,
+      };
+    case "s":
+      return {
+        left: body.left,
+        right: body.right,
+        top: body.bottom,
+        bottom: body.bottom + distance,
+      };
+    case "n":
+      return {
+        left: body.left,
+        right: body.right,
+        top: body.top - distance,
+        bottom: body.top,
+      };
   }
 }
 
@@ -266,12 +374,16 @@ export function lookAheadBox(car: Car, distance: number, box: CarCollisionBox): 
  * null to use the default (full sprite size, centered). CarSystem stays
  * renderer-agnostic by letting PixiApp resolve from texture dimensions
  * + user overrides stored elsewhere. */
-export type CarCollisionResolver = (spriteKey: string) => CarCollisionBox | null;
+export type CarCollisionResolver = (
+  spriteKey: string
+) => CarCollisionBox | null;
 
 /** Standard AABB overlap test. Touching edges count as non-overlap so
  * cars don't lock up immediately when they spawn next to each other. */
 function aabbOverlap(a: AABB, b: AABB): boolean {
-  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  return (
+    a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+  );
 }
 
 /** Pick a valid outgoing direction at a cell, excluding the U-turn back
@@ -308,7 +420,7 @@ export function updateCars(
    * AABB and look-ahead use the user-defined box for the current
    * heading's sprite. Returning null falls back to a tile-sized,
    * center-anchored box (the default for sprites with no override). */
-  resolveCarCollision?: CarCollisionResolver,
+  resolveCarCollision?: CarCollisionResolver
 ): string[] {
   const DEFAULT_BOX: CarCollisionBox = {
     offsetX: -tileSize / 2,
@@ -327,10 +439,20 @@ export function updateCars(
   if (state.timeSinceSpawn >= state.spawnInterval) {
     state.timeSinceSpawn = 0;
     const before = state.cars.length;
-    spawnCar(state, network, tileSize);
+    // Forward the resolver + obstacles so spawn skips occupied cells
+    // (cars stalled at the entrance, player standing on the spawn).
+    spawnCar(
+      state,
+      network,
+      tileSize,
+      undefined,
+      undefined,
+      resolveCarCollision,
+      collidables
+    );
     if (state.cars.length === before) {
       console.log(
-        `[CarSystem] spawn skipped — at cap ${state.maxCars} OR no border cells (${state.cars.length} live)`
+        `[CarSystem] spawn skipped — at cap ${state.maxCars} OR no free border cell (${state.cars.length} live)`
       );
     }
   }
@@ -341,46 +463,89 @@ export function updateCars(
   // sprite-derived size so a long sedan registers as a long box, not a
   // tile.
   const carBoxes = state.cars.map((c) => carAABB(c, boxFor(c)));
-  const STUCK_TIMEOUT_SEC = 3;
   const LOOK_AHEAD_TILES = 1;
+  // When the deadlock breaker fires, the car gets a window of `tileSize`
+  // pixels of guaranteed-no-blocking movement so it actually clears the
+  // intersection instead of inching forward 0.5 px per timeout.
+  const FORCE_MOVE_DISTANCE = tileSize;
+
+  // ── Phase 1: classify each car's immediate blocker ──
+  // Pedestrian = player or NPC in look-ahead. Car = another car in
+  // look-ahead. None = free to drive.
+  type Blocker =
+    | { kind: "pedestrian" }
+    | { kind: "car"; index: number }
+    | { kind: "none" };
+  const blockers: Blocker[] = state.cars.map((car, i) => {
+    const box = boxFor(car);
+    const lookBox = lookAheadBox(car, tileSize * LOOK_AHEAD_TILES, box);
+    for (const c of collidables) {
+      if (aabbOverlap(lookBox, c)) return { kind: "pedestrian" };
+    }
+    for (let j = 0; j < state.cars.length; j++) {
+      if (j === i) continue;
+      if (aabbOverlap(lookBox, carBoxes[j])) return { kind: "car", index: j };
+    }
+    return { kind: "none" };
+  });
+
+  // ── Phase 2: propagate pedestrian-blocked status down the queue ──
+  // If car A is blocked by a pedestrian and car B is blocked by car A,
+  // B inherits A's pedestrian-blocked status — that way the deadlock
+  // breaker can't run past A and through A into the pedestrian. Iterate
+  // until no new cars get the flag (chain length is bounded by maxCars,
+  // so this terminates quickly).
+  const pedestrianBlocked = new Set<number>();
+  for (let i = 0; i < blockers.length; i++) {
+    if (blockers[i].kind === "pedestrian") pedestrianBlocked.add(i);
+  }
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = 0; i < blockers.length; i++) {
+      if (pedestrianBlocked.has(i)) continue;
+      const b = blockers[i];
+      if (b.kind === "car" && pedestrianBlocked.has(b.index)) {
+        pedestrianBlocked.add(i);
+        changed = true;
+      }
+    }
+  }
 
   const despawned: string[] = [];
   for (let i = state.cars.length - 1; i >= 0; i--) {
     const car = state.cars[i];
 
-    // Look-ahead obstacle test — a 1-tile-distance box projected from the
-    // car's leading edge in its current heading, perpendicular extent
-    // matching the car's body so the lane the car is about to enter is
-    // fully covered. Hits = freeze for this tick; misses = move normally.
-    // Cars test against the external collidables (player, NPCs) AND
-    // against every other live car.
-    const box = boxFor(car);
-    const lookBox = lookAheadBox(car, tileSize * LOOK_AHEAD_TILES, box);
-    let blocked = false;
-    for (const c of collidables) {
-      if (aabbOverlap(lookBox, c)) {
-        blocked = true;
-        break;
-      }
-    }
-    if (!blocked) {
-      for (let j = 0; j < state.cars.length; j++) {
-        if (j === i) continue;
-        if (aabbOverlap(lookBox, carBoxes[j])) {
-          blocked = true;
-          break;
-        }
-      }
+    // Pedestrian-blocked (direct or via chain) freezes the car
+    // indefinitely. Cancel any in-flight force-move window so an
+    // already-escaping car still stops if a person walks into its lane.
+    if (pedestrianBlocked.has(i)) {
+      car.stoppedFor = 0;
+      car.forceMovePixelsLeft = 0;
+      continue;
     }
 
-    if (blocked) {
-      car.stoppedFor += deltaSec;
-      // Force-move past a long stall so two cars at a four-way
-      // intersection both yielding to each other don't deadlock — one
-      // just goes after 3s and the system unstuck itself.
-      if (car.stoppedFor < STUCK_TIMEOUT_SEC) continue;
+    // Force-move window from a previous deadlock-break — bypass the
+    // obstacle test and just drive until the budget runs out.
+    if (car.forceMovePixelsLeft > 0) {
+      const stepPx = car.speed * deltaSec;
+      car.forceMovePixelsLeft = Math.max(0, car.forceMovePixelsLeft - stepPx);
+      car.stoppedFor = 0;
+    } else {
+      const b = blockers[i];
+      if (b.kind === "car") {
+        car.stoppedFor += deltaSec;
+        if (car.stoppedFor < car.stuckTimeoutSec) continue;
+        // Timeout fired — open the force-move window so this car
+        // actually escapes instead of inching forward one frame and
+        // re-stalling. Other deadlocked cars have their own randomized
+        // timeouts so they unstick on different frames.
+        car.forceMovePixelsLeft = FORCE_MOVE_DISTANCE;
+        car.stoppedFor = 0;
+      } else {
+        car.stoppedFor = 0;
+      }
     }
-    car.stoppedFor = 0;
 
     const { dx, dy } = DELTA[car.dir];
     car.x += dx * car.speed * deltaSec;
@@ -397,7 +562,8 @@ export function updateCars(
     // it visibly clips piece-by-piece). Despawn only after the car has
     // travelled `OFF_MAP_BUFFER_TILES` past the edge — guarantees the
     // full sprite has cleared the visible map area.
-    const off = newRow < 0 || newRow >= mapHeight || newCol < 0 || newCol >= mapWidth;
+    const off =
+      newRow < 0 || newRow >= mapHeight || newCol < 0 || newCol >= mapWidth;
     if (off) {
       // Tiles of extra travel past the map edge before despawn. Needs to
       // cover (a) the half-sprite trailing tail crossing the edge plus
