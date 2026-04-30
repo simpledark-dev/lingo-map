@@ -459,7 +459,7 @@ export default function GameCanvas() {
           left: 6,
           fontSize: 10,
           fontFamily: 'monospace',
-          color: 'rgba(255,255,255,0.45)',
+          color: 'rgba(255, 235, 90, 0.75)',
           textShadow: '0 0 2px rgba(0,0,0,0.8)',
           pointerEvents: 'none',
           zIndex: 10,
