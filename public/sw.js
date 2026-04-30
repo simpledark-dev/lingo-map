@@ -1,6 +1,6 @@
 // Bump on every behavioural change so the activate handler purges the
 // old cache. (Browsers also refetch the SW when its bytes change.)
-const CACHE_NAME = 'lingo-map-v89';
+const CACHE_NAME = 'lingo-map-v90';
 
 // Bare-minimum precache: stuff every player needs on every map. Kept
 // short so install never fails — `cache.addAll` rejects atomically on
