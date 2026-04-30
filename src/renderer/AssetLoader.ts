@@ -14,13 +14,20 @@ const ASSET_BASE = '/assets/placeholder/';
 // not deployed). Vercel builds set `NEXT_PUBLIC_PACK_BASE_URL=/assets/me-bundle/`,
 // which is the committed subset produced by `npm run pack:bundle`.
 const PACK_BASE = process.env.NEXT_PUBLIC_PACK_BASE_URL ?? '/assets/me/';
+// Pack file extension. Production deploys point at `/assets/me-bundle/`,
+// which `scripts/convert-to-webp.mjs` filled with `.webp` versions
+// (~50% smaller than the originals). Dev still reads from the
+// gitignored full pack symlinked at `/assets/me/`, which is plain
+// `.png` — converting 6000+ source files locally isn't worth it.
+// Detect which base we're on via the env-controlled URL prefix.
+const PACK_EXT = PACK_BASE.includes('me-bundle') ? '.webp' : '.png';
 
 const packPromises = new Map<string, Promise<Texture | null>>();
 
 /** Resolve a pack key to its public URL. Returns null if not a pack key. */
 function packKeyToUrl(key: string): string | null {
   if (!key.startsWith('me:')) return null;
-  return `${PACK_BASE}${key.slice(3)}.png`;
+  return `${PACK_BASE}${key.slice(3)}${PACK_EXT}`;
 }
 
 /** Lazy-load a pack single by its key. Idempotent. Texture is cached in
@@ -48,144 +55,144 @@ export function loadPackSingle(key: string): Promise<Texture | null> {
 /** Maps sprite keys to file paths. */
 const spriteManifest: Record<string, string> = {
   // Tiles
-  [TileType.GRASS]: `${ASSET_BASE}grass.png`,
-  [TileType.GRASS_DARK]: `${ASSET_BASE}grass_dark.png`,
-  [TileType.DIRT]: `${ASSET_BASE}dirt.png`,
-  [TileType.PATH]: `${ASSET_BASE}path.png`,
-  [TileType.FLOOR]: `${ASSET_BASE}floor.png`,
-  [TileType.FLOOR_WOOD]: `${ASSET_BASE}floor-wood.png`,
-  [TileType.FLOOR_WOOD_2]: `${ASSET_BASE}floor-wood-2.png`,
-  [TileType.FLOOR_WOOD_3]: `${ASSET_BASE}floor-wood-3.png`,
-  [TileType.WALL]: `${ASSET_BASE}wall.png`,
-  [TileType.WALL_INTERIOR]: `${ASSET_BASE}wall-interior.png`,
-  [TileType.WALL_INTERIOR_TOP]: `${ASSET_BASE}wall-interior-top.png`,
-  [TileType.WALL_INTERIOR_TOP_LEFT]: `${ASSET_BASE}wall-interior-top-left.png`,
-  [TileType.WALL_INTERIOR_TOP_CORNER_BL]: `${ASSET_BASE}wall-interior-top-corner-bl.png`,
-  [TileType.WALL_INTERIOR_TOP_CORNER_INNER_TR]: `${ASSET_BASE}wall-interior-top-corner-inner-tr.png`,
-  [TileType.WALL_INTERIOR_TOP_BL]: `${ASSET_BASE}wall-interior-top-bl.png`,
-  [TileType.WALL_INTERIOR_TOP_BR]: `${ASSET_BASE}wall-interior-top-br.png`,
-  [TileType.WALL_INTERIOR_BOTTOM]: `${ASSET_BASE}wall-interior-bottom.png`,
-  [TileType.WALL_INTERIOR_LEFT]: `${ASSET_BASE}wall-interior-left.png`,
-  [TileType.WALL_INTERIOR_RIGHT]: `${ASSET_BASE}wall-interior-right.png`,
-  [TileType.WALL_INTERIOR_CORNER_BOTTOM_LEFT]: `${ASSET_BASE}wall-interior-corner-bottom-left.png`,
-  [TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT]: `${ASSET_BASE}wall-interior-corner-bottom-right.png`,
-  [TileType.WATER]: `${ASSET_BASE}water.png`,
-  [TileType.BRIDGE]: `${ASSET_BASE}bridge.png`,
+  [TileType.GRASS]: `${ASSET_BASE}grass.webp`,
+  [TileType.GRASS_DARK]: `${ASSET_BASE}grass_dark.webp`,
+  [TileType.DIRT]: `${ASSET_BASE}dirt.webp`,
+  [TileType.PATH]: `${ASSET_BASE}path.webp`,
+  [TileType.FLOOR]: `${ASSET_BASE}floor.webp`,
+  [TileType.FLOOR_WOOD]: `${ASSET_BASE}floor-wood.webp`,
+  [TileType.FLOOR_WOOD_2]: `${ASSET_BASE}floor-wood-2.webp`,
+  [TileType.FLOOR_WOOD_3]: `${ASSET_BASE}floor-wood-3.webp`,
+  [TileType.WALL]: `${ASSET_BASE}wall.webp`,
+  [TileType.WALL_INTERIOR]: `${ASSET_BASE}wall-interior.webp`,
+  [TileType.WALL_INTERIOR_TOP]: `${ASSET_BASE}wall-interior-top.webp`,
+  [TileType.WALL_INTERIOR_TOP_LEFT]: `${ASSET_BASE}wall-interior-top-left.webp`,
+  [TileType.WALL_INTERIOR_TOP_CORNER_BL]: `${ASSET_BASE}wall-interior-top-corner-bl.webp`,
+  [TileType.WALL_INTERIOR_TOP_CORNER_INNER_TR]: `${ASSET_BASE}wall-interior-top-corner-inner-tr.webp`,
+  [TileType.WALL_INTERIOR_TOP_BL]: `${ASSET_BASE}wall-interior-top-bl.webp`,
+  [TileType.WALL_INTERIOR_TOP_BR]: `${ASSET_BASE}wall-interior-top-br.webp`,
+  [TileType.WALL_INTERIOR_BOTTOM]: `${ASSET_BASE}wall-interior-bottom.webp`,
+  [TileType.WALL_INTERIOR_LEFT]: `${ASSET_BASE}wall-interior-left.webp`,
+  [TileType.WALL_INTERIOR_RIGHT]: `${ASSET_BASE}wall-interior-right.webp`,
+  [TileType.WALL_INTERIOR_CORNER_BOTTOM_LEFT]: `${ASSET_BASE}wall-interior-corner-bottom-left.webp`,
+  [TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT]: `${ASSET_BASE}wall-interior-corner-bottom-right.webp`,
+  [TileType.WATER]: `${ASSET_BASE}water.webp`,
+  [TileType.BRIDGE]: `${ASSET_BASE}bridge.webp`,
   // Transition tiles (grass ↔ dirt edges)
-  'trans-n': `${ASSET_BASE}trans-n.png`,
-  'trans-s': `${ASSET_BASE}trans-s.png`,
-  'trans-w': `${ASSET_BASE}trans-w.png`,
-  'trans-e': `${ASSET_BASE}trans-e.png`,
-  'trans-nw': `${ASSET_BASE}trans-nw.png`,
-  'trans-ne': `${ASSET_BASE}trans-ne.png`,
-  'trans-sw': `${ASSET_BASE}trans-sw.png`,
-  'trans-se': `${ASSET_BASE}trans-se.png`,
-  'trans-full': `${ASSET_BASE}trans-nse.png`,
-  'trans-inner-nw': `${ASSET_BASE}trans-inner-nw.png`,
-  'trans-inner-ne': `${ASSET_BASE}trans-inner-ne.png`,
-  'trans-inner-sw': `${ASSET_BASE}trans-inner-sw.png`,
-  'trans-inner-se': `${ASSET_BASE}trans-inner-se.png`,
-  'trans-inner-nw-se': `${ASSET_BASE}trans-inner-nw-se.png`,
-  'trans-inner-ne-sw': `${ASSET_BASE}trans-inner-ne-sw.png`,
+  'trans-n': `${ASSET_BASE}trans-n.webp`,
+  'trans-s': `${ASSET_BASE}trans-s.webp`,
+  'trans-w': `${ASSET_BASE}trans-w.webp`,
+  'trans-e': `${ASSET_BASE}trans-e.webp`,
+  'trans-nw': `${ASSET_BASE}trans-nw.webp`,
+  'trans-ne': `${ASSET_BASE}trans-ne.webp`,
+  'trans-sw': `${ASSET_BASE}trans-sw.webp`,
+  'trans-se': `${ASSET_BASE}trans-se.webp`,
+  'trans-full': `${ASSET_BASE}trans-nse.webp`,
+  'trans-inner-nw': `${ASSET_BASE}trans-inner-nw.webp`,
+  'trans-inner-ne': `${ASSET_BASE}trans-inner-ne.webp`,
+  'trans-inner-sw': `${ASSET_BASE}trans-inner-sw.webp`,
+  'trans-inner-se': `${ASSET_BASE}trans-inner-se.webp`,
+  'trans-inner-nw-se': `${ASSET_BASE}trans-inner-nw-se.webp`,
+  'trans-inner-ne-sw': `${ASSET_BASE}trans-inner-ne-sw.webp`,
   // Water transition tiles
-  'trans-water-n': `${ASSET_BASE}trans-water-n.png`,
-  'trans-water-s': `${ASSET_BASE}trans-water-s.png`,
-  'trans-water-w': `${ASSET_BASE}trans-water-w.png`,
-  'trans-water-e': `${ASSET_BASE}trans-water-e.png`,
-  'trans-water-nw': `${ASSET_BASE}trans-water-nw.png`,
-  'trans-water-ne': `${ASSET_BASE}trans-water-ne.png`,
-  'trans-water-sw': `${ASSET_BASE}trans-water-sw.png`,
-  'trans-water-se': `${ASSET_BASE}trans-water-se.png`,
-  'trans-water-full': `${ASSET_BASE}trans-water-full.png`,
-  'trans-water-inner-nw': `${ASSET_BASE}trans-water-inner-nw.png`,
-  'trans-water-inner-ne': `${ASSET_BASE}trans-water-inner-ne.png`,
-  'trans-water-inner-sw': `${ASSET_BASE}trans-water-inner-sw.png`,
-  'trans-water-inner-se': `${ASSET_BASE}trans-water-inner-se.png`,
+  'trans-water-n': `${ASSET_BASE}trans-water-n.webp`,
+  'trans-water-s': `${ASSET_BASE}trans-water-s.webp`,
+  'trans-water-w': `${ASSET_BASE}trans-water-w.webp`,
+  'trans-water-e': `${ASSET_BASE}trans-water-e.webp`,
+  'trans-water-nw': `${ASSET_BASE}trans-water-nw.webp`,
+  'trans-water-ne': `${ASSET_BASE}trans-water-ne.webp`,
+  'trans-water-sw': `${ASSET_BASE}trans-water-sw.webp`,
+  'trans-water-se': `${ASSET_BASE}trans-water-se.webp`,
+  'trans-water-full': `${ASSET_BASE}trans-water-full.webp`,
+  'trans-water-inner-nw': `${ASSET_BASE}trans-water-inner-nw.webp`,
+  'trans-water-inner-ne': `${ASSET_BASE}trans-water-inner-ne.webp`,
+  'trans-water-inner-sw': `${ASSET_BASE}trans-water-inner-sw.webp`,
+  'trans-water-inner-se': `${ASSET_BASE}trans-water-inner-se.webp`,
   // Player
-  'player-down': `${ASSET_BASE}player-down.png`,
-  'player-down-walk1': `${ASSET_BASE}player-down-walk1.png`,
-  'player-down-walk2': `${ASSET_BASE}player-down-walk2.png`,
-  'player-up': `${ASSET_BASE}player-up.png`,
-  'player-up-walk1': `${ASSET_BASE}player-up-walk1.png`,
-  'player-up-walk2': `${ASSET_BASE}player-up-walk2.png`,
-  'player-left': `${ASSET_BASE}player-left.png`,
-  'player-left-walk1': `${ASSET_BASE}player-left-walk1.png`,
-  'player-left-walk2': `${ASSET_BASE}player-left-walk2.png`,
-  'player-right': `${ASSET_BASE}player-right.png`,
-  'player-right-walk1': `${ASSET_BASE}player-right-walk1.png`,
-  'player-right-walk2': `${ASSET_BASE}player-right-walk2.png`,
+  'player-down': `${ASSET_BASE}player-down.webp`,
+  'player-down-walk1': `${ASSET_BASE}player-down-walk1.webp`,
+  'player-down-walk2': `${ASSET_BASE}player-down-walk2.webp`,
+  'player-up': `${ASSET_BASE}player-up.webp`,
+  'player-up-walk1': `${ASSET_BASE}player-up-walk1.webp`,
+  'player-up-walk2': `${ASSET_BASE}player-up-walk2.webp`,
+  'player-left': `${ASSET_BASE}player-left.webp`,
+  'player-left-walk1': `${ASSET_BASE}player-left-walk1.webp`,
+  'player-left-walk2': `${ASSET_BASE}player-left-walk2.webp`,
+  'player-right': `${ASSET_BASE}player-right.webp`,
+  'player-right-walk1': `${ASSET_BASE}player-right-walk1.webp`,
+  'player-right-walk2': `${ASSET_BASE}player-right-walk2.webp`,
   // Modern Interiors premade characters #01–#20 are appended below
   // (see ME_CHAR_COUNT loop) — used as alt player skins via
   // PLAYER_SPRITE_PREFIX, and as NPC spriteKeys in map data. Frames
   // are sliced from the gitignored pack by
   // scripts/slice-premade-characters.mjs.
   // Objects
-  'tree': `${ASSET_BASE}tree.png`,
-  'rock': `${ASSET_BASE}rock.png`,
-  'house-base': `${ASSET_BASE}house-base.png`,
-  'house-roof': `${ASSET_BASE}house-roof.png`,
-  'house-new': `${ASSET_BASE}house-new.png`,
-  'house-new-2': `${ASSET_BASE}house-new-2.png`,
-  'house-new-3': `${ASSET_BASE}house-new-3.png`,
-  'house-new-4': `${ASSET_BASE}house-new-4.png`,
-  'grass-new': `${ASSET_BASE}grass-new.png`,
+  'tree': `${ASSET_BASE}tree.webp`,
+  'rock': `${ASSET_BASE}rock.webp`,
+  'house-base': `${ASSET_BASE}house-base.webp`,
+  'house-roof': `${ASSET_BASE}house-roof.webp`,
+  'house-new': `${ASSET_BASE}house-new.webp`,
+  'house-new-2': `${ASSET_BASE}house-new-2.webp`,
+  'house-new-3': `${ASSET_BASE}house-new-3.webp`,
+  'house-new-4': `${ASSET_BASE}house-new-4.webp`,
+  'grass-new': `${ASSET_BASE}grass-new.webp`,
   // 32×32 floor motif sliced into 4 quadrants — see `TileType.FLOOR_PATTERN`.
-  'floor-tl': `${ASSET_BASE}floor-tl.png`,
-  'floor-tr': `${ASSET_BASE}floor-tr.png`,
-  'floor-bl': `${ASSET_BASE}floor-bl.png`,
-  'floor-br': `${ASSET_BASE}floor-br.png`,
+  'floor-tl': `${ASSET_BASE}floor-tl.webp`,
+  'floor-tr': `${ASSET_BASE}floor-tr.webp`,
+  'floor-bl': `${ASSET_BASE}floor-bl.webp`,
+  'floor-br': `${ASSET_BASE}floor-br.webp`,
   // Running-bond brick wall quadrants — see `TileType.WALL_BRICK`.
-  'wall-brick-tl': `${ASSET_BASE}wall-brick-tl.png`,
-  'wall-brick-tr': `${ASSET_BASE}wall-brick-tr.png`,
-  'wall-brick-bl': `${ASSET_BASE}wall-brick-bl.png`,
-  'wall-brick-br': `${ASSET_BASE}wall-brick-br.png`,
-  'food-row': `${ASSET_BASE}food-row.png`,
-  'mart-base': `${ASSET_BASE}mart-base.png`,
-  'mart-roof': `${ASSET_BASE}mart-roof.png`,
-  'lab-base': `${ASSET_BASE}lab-base.png`,
-  'lab-roof': `${ASSET_BASE}lab-roof.png`,
-  'npc': `${ASSET_BASE}npc.png`,
-  'npc-blue': `${ASSET_BASE}npc-blue.png`,
+  'wall-brick-tl': `${ASSET_BASE}wall-brick-tl.webp`,
+  'wall-brick-tr': `${ASSET_BASE}wall-brick-tr.webp`,
+  'wall-brick-bl': `${ASSET_BASE}wall-brick-bl.webp`,
+  'wall-brick-br': `${ASSET_BASE}wall-brick-br.webp`,
+  'food-row': `${ASSET_BASE}food-row.webp`,
+  'mart-base': `${ASSET_BASE}mart-base.webp`,
+  'mart-roof': `${ASSET_BASE}mart-roof.webp`,
+  'lab-base': `${ASSET_BASE}lab-base.webp`,
+  'lab-roof': `${ASSET_BASE}lab-roof.webp`,
+  'npc': `${ASSET_BASE}npc.webp`,
+  'npc-blue': `${ASSET_BASE}npc-blue.webp`,
   // Artist-drawn NPC variants
   // Indoor objects
-  'chair': `${ASSET_BASE}chair.png`,
-  'bed': `${ASSET_BASE}bed.png`,
-  'bookshelf': `${ASSET_BASE}bookshelf.png`,
-  'rug': `${ASSET_BASE}rug.png`,
-  'candle': `${ASSET_BASE}candle.png`,
-  'window-indoor': `${ASSET_BASE}window.png`,
+  'chair': `${ASSET_BASE}chair.webp`,
+  'bed': `${ASSET_BASE}bed.webp`,
+  'bookshelf': `${ASSET_BASE}bookshelf.webp`,
+  'rug': `${ASSET_BASE}rug.webp`,
+  'candle': `${ASSET_BASE}candle.webp`,
+  'window-indoor': `${ASSET_BASE}window.webp`,
   // Building exteriors
   // Indoor — cafe/restaurant shared
   // Cafe-specific
-  'coffee-cup': `${ASSET_BASE}coffee-cup.png`,
+  'coffee-cup': `${ASSET_BASE}coffee-cup.webp`,
   // Restaurant-specific
-  'dining-table': `${ASSET_BASE}dining-table.png`,
+  'dining-table': `${ASSET_BASE}dining-table.webp`,
   // New building exteriors
   // Location-specific indoor objects
   // Pokemon-style interior objects
-  'wall-window': `${ASSET_BASE}wall-window.png`,
-  'wall-window-double': `${ASSET_BASE}wall-window-double.png`,
-  'wall-painting': `${ASSET_BASE}wall-painting.png`,
-  'wall-clock': `${ASSET_BASE}wall-clock.png`,
-  'wall-staircase': `${ASSET_BASE}wall-staircase.png`,
-  'computer-desk': `${ASSET_BASE}computer-desk.png`,
-  'dresser': `${ASSET_BASE}dresser.png`,
-  'fridge': `${ASSET_BASE}fridge.png`,
-  'sink-counter': `${ASSET_BASE}sink-counter.png`,
-  'drawer-cabinet': `${ASSET_BASE}drawer-cabinet.png`,
-  'dining-table-small': `${ASSET_BASE}dining-table-small.png`,
-  'plant-pot': `${ASSET_BASE}plant-pot.png`,
-  'tv': `${ASSET_BASE}tv.png`,
-  'rug-large': `${ASSET_BASE}rug-large.png`,
-  'rug-medium': `${ASSET_BASE}rug-medium.png`,
-  'doormat': `${ASSET_BASE}doormat.png`,
-  'floor-clock': `${ASSET_BASE}floor-clock.png`,
-  'plant-pot-2': `${ASSET_BASE}plant-pot-2.png`,
-  'lamp-table': `${ASSET_BASE}lamp-table.png`,
+  'wall-window': `${ASSET_BASE}wall-window.webp`,
+  'wall-window-double': `${ASSET_BASE}wall-window-double.webp`,
+  'wall-painting': `${ASSET_BASE}wall-painting.webp`,
+  'wall-clock': `${ASSET_BASE}wall-clock.webp`,
+  'wall-staircase': `${ASSET_BASE}wall-staircase.webp`,
+  'computer-desk': `${ASSET_BASE}computer-desk.webp`,
+  'dresser': `${ASSET_BASE}dresser.webp`,
+  'fridge': `${ASSET_BASE}fridge.webp`,
+  'sink-counter': `${ASSET_BASE}sink-counter.webp`,
+  'drawer-cabinet': `${ASSET_BASE}drawer-cabinet.webp`,
+  'dining-table-small': `${ASSET_BASE}dining-table-small.webp`,
+  'plant-pot': `${ASSET_BASE}plant-pot.webp`,
+  'tv': `${ASSET_BASE}tv.webp`,
+  'rug-large': `${ASSET_BASE}rug-large.webp`,
+  'rug-medium': `${ASSET_BASE}rug-medium.webp`,
+  'doormat': `${ASSET_BASE}doormat.webp`,
+  'floor-clock': `${ASSET_BASE}floor-clock.webp`,
+  'plant-pot-2': `${ASSET_BASE}plant-pot-2.webp`,
+  'lamp-table': `${ASSET_BASE}lamp-table.webp`,
   // Outdoor decorations
-  'flowers': `${ASSET_BASE}flowers.png`,
-  'signpost': `${ASSET_BASE}signpost.png`,
-  'bush': `${ASSET_BASE}bush.png`,
+  'flowers': `${ASSET_BASE}flowers.webp`,
+  'signpost': `${ASSET_BASE}signpost.webp`,
+  'bush': `${ASSET_BASE}bush.webp`,
 };
 
 // Modern Interiors premade-character textures load from a single
@@ -281,7 +288,11 @@ export function loadCharacterAtlas(): Promise<void> {
         if (!r.ok) throw new Error(`atlas json HTTP ${r.status}`);
         return r.json() as Promise<{ image: string; frames: Record<string, [number, number, number, number]> }>;
       });
-      const sheet = await Assets.load<Texture>(`/assets/${manifest.image}`);
+      // Manifest still records `.png` (slicer output), but the
+      // shipped sheet is `.webp`. Rewrite the extension at runtime so
+      // we don't have to re-slice the atlas when the converter runs.
+      const imagePath = manifest.image.replace(/\.png$/i, '.webp');
+      const sheet = await Assets.load<Texture>(`/assets/${imagePath}`);
       // Pixel art — disable bilinear filtering on the shared atlas
       // BEFORE we slice frames out, otherwise some sub-textures
       // would inherit the default `linear` setting and shimmer.

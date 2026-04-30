@@ -75,7 +75,7 @@ interface LoadedTileset extends TilesetConfig {
 
 const tilesets: LoadedTileset[] = [
   {
-    path: '/assets/tileset-1.png',
+    path: '/assets/tileset-1.webp',
     // Grass-like cells are upper; water is lower. Other tiles (dirt, path,
     // floor, wall) are not part of this tileset and are filtered out by
     // isAutoTile, so isUpper for them is irrelevant.
@@ -88,7 +88,7 @@ const tilesets: LoadedTileset[] = [
     frames: null,
   },
   {
-    path: '/assets/tileset-2.png',
+    path: '/assets/tileset-2.webp',
     // Dark grass is the upper terrain, light grass is lower.
     isUpper: (t) => t === TileType.GRASS_DARK,
     // Both participate so the dual-grid finds the boundary; we additionally
@@ -99,7 +99,7 @@ const tilesets: LoadedTileset[] = [
     frames: null,
   },
   {
-    path: '/assets/tileset-3.png',
+    path: '/assets/tileset-3.webp',
     // Dirt is the upper terrain (this sheet is laid out as "dirt over grass"
     // — index 12 = mask 1111 is the all-dirt cell).
     isUpper: (t) => t === TileType.DIRT,

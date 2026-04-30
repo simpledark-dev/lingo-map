@@ -1,25 +1,22 @@
 // Bump on every behavioural change so the activate handler purges the
 // old cache. (Browsers also refetch the SW when its bytes change.)
-const CACHE_NAME = 'lingo-map-v87';
+const CACHE_NAME = 'lingo-map-v88';
 
 // Bare-minimum precache: stuff every player needs on every map. Kept
 // short so install never fails — `cache.addAll` rejects atomically on
 // any 404, and a missing entry here used to wedge the SW in
 // "installing" state forever, defeating the cache strategy below.
 const PRECACHE_URLS = [
-  '/assets/placeholder/grass.png',
-  '/assets/placeholder/path.png',
-  '/assets/placeholder/player-down.png',
-  '/assets/placeholder/player-up.png',
-  '/assets/placeholder/player-left.png',
-  '/assets/placeholder/player-right.png',
-  '/assets/placeholder/tree.png',
-  '/assets/placeholder/rock.png',
-  '/assets/placeholder/house-base.png',
-  '/assets/placeholder/house-roof.png',
-  '/assets/placeholder/npc.png',
-  '/assets/placeholder/floor.png',
-  '/assets/placeholder/wall.png',
+  '/assets/placeholder/grass.webp',
+  '/assets/placeholder/path.webp',
+  '/assets/placeholder/tree.webp',
+  '/assets/placeholder/rock.webp',
+  '/assets/placeholder/house-base.webp',
+  '/assets/placeholder/house-roof.webp',
+  '/assets/placeholder/npc.webp',
+  '/assets/placeholder/floor.webp',
+  '/assets/placeholder/wall.webp',
+  '/assets/me-char-atlas.webp',
 ];
 
 self.addEventListener('install', (event) => {
