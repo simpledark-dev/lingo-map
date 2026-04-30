@@ -1,4 +1,4 @@
-import { Assets, Texture } from 'pixi.js';
+import { Assets, Rectangle, Texture } from 'pixi.js';
 import { TileType } from '../core/types';
 import { TILE_SIZE } from '../core/constants';
 
@@ -188,20 +188,15 @@ const spriteManifest: Record<string, string> = {
   'bush': `${ASSET_BASE}bush.png`,
 };
 
-// Modern Interiors premade characters: 20 sheets × 4 directions ×
-// (idle + walk1 + walk2) = 240 entries. Generated rather than listed
-// out so adding a new character is just dropping its sliced PNGs in.
-const ME_CHAR_COUNT = 20;
-const ME_CHAR_DIRS = ['down', 'up', 'left', 'right'] as const;
-for (let n = 1; n <= ME_CHAR_COUNT; n++) {
-  const id = String(n).padStart(2, '0');
-  for (const dir of ME_CHAR_DIRS) {
-    const base = `me-char-${id}-${dir}`;
-    spriteManifest[base] = `${ASSET_BASE}${base}.png`;
-    spriteManifest[`${base}-walk1`] = `${ASSET_BASE}${base}-walk1.png`;
-    spriteManifest[`${base}-walk2`] = `${ASSET_BASE}${base}-walk2.png`;
-  }
-}
+// Modern Interiors premade-character textures load from a single
+// atlas PNG (`me-char-atlas.png`) in `loadCharacterAtlas` below — see
+// scripts/slice-premade-characters.mjs for how the atlas is baked.
+// We deliberately DON'T register `me-char-*` keys in spriteManifest:
+// every directional + walk-frame variant lives as a sub-Texture of
+// the shared atlas, so individual PNG fetches never happen. If you
+// need a manifest-style URL for one of these keys (e.g., debug
+// overlay), look it up in textureCache after `loadCharacterAtlas`
+// has resolved.
 
 
 const textureCache = new Map<string, Texture>();
@@ -264,6 +259,45 @@ export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Text
 
 export function getTexture(key: string): Texture | undefined {
   return textureCache.get(key);
+}
+
+// ── Modern Interiors character atlas ──────────────────────────────────────
+// Loads the baked `me-char-atlas.png` ONCE, then synthesises a
+// `Texture` per named frame (e.g. `me-char-04-down-walk1`) and stores
+// each in `textureCache`. After this resolves, every `me-char-*` key
+// resolves through the normal `getTexture` path with no additional
+// network. Replaces 240 individual PNG fetches that used to dominate
+// cold start.
+//
+// Idempotent — calling twice is a no-op (returns the same in-flight
+// Promise). Failures are non-fatal: the player and NPCs will simply
+// render their fallback red rect until the atlas can be loaded.
+let charAtlasPromise: Promise<void> | null = null;
+export function loadCharacterAtlas(): Promise<void> {
+  if (charAtlasPromise) return charAtlasPromise;
+  charAtlasPromise = (async () => {
+    try {
+      const manifest = await fetch('/assets/me-char-atlas.json').then(r => {
+        if (!r.ok) throw new Error(`atlas json HTTP ${r.status}`);
+        return r.json() as Promise<{ image: string; frames: Record<string, [number, number, number, number]> }>;
+      });
+      const sheet = await Assets.load<Texture>(`/assets/${manifest.image}`);
+      // Pixel art — disable bilinear filtering on the shared atlas
+      // BEFORE we slice frames out, otherwise some sub-textures
+      // would inherit the default `linear` setting and shimmer.
+      sheet.source.scaleMode = 'nearest';
+      for (const [key, [x, y, w, h]] of Object.entries(manifest.frames)) {
+        // `new Texture({ source, frame })` is Pixi 8's way to make a
+        // sub-region view onto an existing base texture without
+        // copying pixel data. All 240 frames share `sheet.source`.
+        const sub = new Texture({ source: sheet.source, frame: new Rectangle(x, y, w, h) });
+        textureCache.set(key, sub);
+      }
+    } catch (err) {
+      console.warn('Failed to load character atlas — me-char-* sprites will fall back:', err);
+    }
+  })();
+  return charAtlasPromise;
 }
 
 /** Number of `TILE_SIZE × TILE_SIZE` cells a pack tile spans, derived from

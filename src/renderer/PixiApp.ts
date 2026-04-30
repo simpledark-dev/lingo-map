@@ -13,7 +13,7 @@ import { CommandQueue } from '../core/CommandQueue';
 import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
 import { buildCarNetwork, carAABB, CAR_SPRITE_SETS, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
-import { getTexture, loadAssets, loadPackSingle } from './AssetLoader';
+import { getTexture, loadAssets, loadCharacterAtlas, loadPackSingle } from './AssetLoader';
 
 /** localStorage key kept in sync with `data/car-collisions.json` by the
  * editor. The runtime no longer reads it (we use the disk file via the
@@ -153,9 +153,14 @@ export class PixiApp {
     };
     window.addEventListener('keydown', this.debugKeydownHandler);
 
-    // Load the grass↔water auto-tileset before the first scene so RenderSystem
-    // can paint the dual-grid layer immediately rather than waiting for a paint.
-    await loadAutoTileset();
+    // Load the grass↔water auto-tileset and the Modern-Interiors
+    // character atlas in parallel before the first scene paints. Both
+    // are one-time, blocking-on-first-frame loads. Doing them in
+    // parallel rather than sequentially saves a roundtrip on cold
+    // start; the atlas load also pre-populates 240 NPC/player
+    // sub-textures so loadAssets later has nothing to fetch for
+    // `me-char-*` keys.
+    await Promise.all([loadAutoTileset(), loadCharacterAtlas()]);
 
     await this.loadScene(this.options.startMapId ?? 'outdoor', 'default');
 
