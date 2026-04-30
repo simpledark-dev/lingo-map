@@ -658,16 +658,20 @@ export class PixiApp {
       }
     }
 
-    // Check door triggers. Building doors require the up key to be
-    // actively held — `input.up` from the live key state. Sticky
-    // `player.facing` was leaking lateral slides through; tying to
-    // the keypress is the explicit "I am trying to go up into this
-    // door" signal.
+    // Check door triggers. Building doors are gated on "user is
+    // steering up": either the up key is held (keyboard), OR the
+    // player's y decreased this tick (tap-walk approaching the door
+    // from below). Pure motion-based gating avoids the sticky-facing
+    // bug that fired doors during lateral slides, and pure key-based
+    // gating broke mobile entirely (no keys ever held). The combined
+    // gate covers both inputs cleanly.
+    const MOVE_UP_EPS = 0.01;
+    const movingUp = this.gameState.player.y < prevY - MOVE_UP_EPS;
     const transition = checkDoorTriggers(
       this.gameState.player.x,
       this.gameState.player.y,
       this.gameState.player.collisionBox,
-      input.up,
+      input.up || movingUp,
       map.triggers,
       this.gameState.buildings,
     );
