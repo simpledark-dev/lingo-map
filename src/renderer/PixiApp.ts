@@ -1,4 +1,4 @@
-import { Application } from 'pixi.js';
+import { Application, loadTextures } from 'pixi.js';
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DECOR_SPRITE_KEYS } from '../core/constants';
 import { GameState, MapData, TileType } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
@@ -94,6 +94,20 @@ export class PixiApp {
 
   async init(container: HTMLDivElement): Promise<void> {
     this.container = container;
+
+    // iOS Safari < 16.4 hangs forever inside `createImageBitmap`
+    // (sometimes silently, sometimes only on certain image sources),
+    // which is the path Pixi 8's default texture loader takes — and
+    // taking that path inside a worker just hides the hang. The user
+    // saw a 20-minute "loading…" screen on iPhone 13 because of this.
+    // Falling back to the classic `new Image()` loader sidesteps both
+    // the bitmap path and the worker dependency. Cost is one main-
+    // thread image-decode hop per asset, fine for our payload size.
+    loadTextures.config = {
+      crossOrigin: loadTextures.config?.crossOrigin ?? null,
+      preferCreateImageBitmap: false,
+      preferWorkers: false,
+    };
 
     const rect = container.getBoundingClientRect();
     await this.app.init({
