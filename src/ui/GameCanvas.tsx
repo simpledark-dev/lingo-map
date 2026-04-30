@@ -221,6 +221,12 @@ export default function GameCanvas() {
         startMapId,
       });
       pixiAppRef.current = pixiApp;
+      // Dev-only: expose the app on window for ad-hoc debugging from
+      // the browser console (`__pixi.bridge`, `__pixi.gameState`,
+      // etc.). Stripped from prod builds.
+      if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
+        (window as unknown as { __pixi: PixiApp }).__pixi = pixiApp;
+      }
       unsubscribe = pixiApp.bridge.subscribe((event: GameEvent) => {
         if (cancelled) return;
         switch (event.type) {
