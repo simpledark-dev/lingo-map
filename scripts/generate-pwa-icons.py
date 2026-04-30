@@ -23,10 +23,10 @@ def main() -> None:
     char = atlas.crop((0, 192, 16, 224))
 
     for path, size in OUTPUTS:
-        # Pick the largest integer scale that keeps the sprite at ~60% of the
+        # Pick the largest integer scale that keeps the sprite at ~85% of the
         # icon height. Integer scaling keeps pixel art crisp; nearest-neighbor
         # avoids blurring on upscale.
-        target_h = int(size * 0.6)
+        target_h = int(size * 0.85)
         scale = max(1, target_h // 32)
         sprite = char.resize((16 * scale, 32 * scale), Image.NEAREST)
 
