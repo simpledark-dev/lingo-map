@@ -2,4 +2,4 @@
  * so the in-game overlay confirms the new build is live (a quick way
  * to tell from your phone whether the deploy actually went out, vs.
  * a stale service-worker cache serving last week's bundle). */
-export const APP_VERSION = "0.1.20";
+export const APP_VERSION = "0.1.21";
