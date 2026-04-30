@@ -37,6 +37,13 @@ export default function GameCanvas() {
   const [objectMultiplier] = useState(readInitialObjectMultiplier);
   const [soundOn, setSoundOn] = useState(true);
   const [viewportSize, setViewportSize] = useState<ViewportSize | null>(readViewportSize);
+  // `loading` covers the boot window: from mount until pixiApp.init()
+  // resolves (assets loaded, first scene mounted). `loadingVisible` is
+  // a delayed sibling so we can fade out instead of popping — once
+  // loading flips false we wait for the CSS transition before
+  // unmounting the overlay.
+  const [loading, setLoading] = useState(true);
+  const [loadingVisible, setLoadingVisible] = useState(true);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -286,6 +293,13 @@ export default function GameCanvas() {
       .then(({ appliedAll }) => {
         startGame().then(() => {
           if (cancelled) return;
+          // First scene mounted — drop the loading overlay. `loading`
+          // flips immediately to start the fade; `loadingVisible`
+          // unmounts after the CSS transition completes.
+          setLoading(false);
+          window.setTimeout(() => {
+            if (!cancelled) setLoadingVisible(false);
+          }, 400);
           // If the primary path applied just the start map, we still
           // need interior overrides — fire the background fetch. If
           // the fallback ran, /api/maps already covered everything
@@ -361,6 +375,51 @@ export default function GameCanvas() {
     >
       {/* PixiJS canvas mounts here */}
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+
+      {/* Boot loading overlay — sits above the canvas while assets
+          load and the first scene mounts. Pixi's first frame can flash
+          the renderer's clear colour (a void-black square) before the
+          ground layer paints; the overlay hides that flash. Fades out
+          once `pixiApp.init()` resolves. */}
+      {loadingVisible && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 18,
+            background: '#1a2a1a',
+            color: 'rgba(255,255,255,0.85)',
+            fontFamily: 'monospace',
+            opacity: loading ? 1 : 0,
+            transition: 'opacity 350ms ease-out',
+            pointerEvents: loading ? 'auto' : 'none',
+          }}
+        >
+          <style>{`
+            @keyframes lingoMapSpin { to { transform: rotate(360deg); } }
+            @keyframes lingoMapPulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
+          `}</style>
+          <div style={{ fontSize: 22, letterSpacing: 2, animation: 'lingoMapPulse 1.4s ease-in-out infinite' }}>
+            SURVIVE LINGO
+          </div>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              border: '3px solid rgba(255,255,255,0.18)',
+              borderTopColor: 'rgba(255,255,255,0.85)',
+              animation: 'lingoMapSpin 0.9s linear infinite',
+            }}
+          />
+          <div style={{ fontSize: 11, opacity: 0.55 }}>loading…</div>
+        </div>
+      )}
 
       {/* Build-version stamp — bumped manually in src/version.ts on
           every commit so a quick glance from the phone confirms whether
