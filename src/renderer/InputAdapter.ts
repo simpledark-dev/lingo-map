@@ -47,6 +47,12 @@ export class InputAdapter {
   /** Current zoom level. Read by the game loop. */
   zoom: number = DEFAULT_ZOOM;
 
+  /** Mobile virtual D-pad state. The on-screen D-pad component
+   *  (`VirtualDPad.tsx`) writes booleans here; they're OR'd with the
+   *  keyboard state in `getInputState()`. Stays at all-false on
+   *  desktop where the pad isn't rendered. */
+  private virtualDir = { up: false, down: false, left: false, right: false };
+
   // Pinch tracking
   private activeTouches = new Map<number, { x: number; y: number }>();
   private lastPinchDist: number | null = null;
@@ -201,11 +207,30 @@ export class InputAdapter {
     }
   }
 
+  /** Set by the on-screen D-pad component each frame the user is
+   *  pressing it. `null` clears all four flags. */
+  setVirtualDirection(dir: { up: boolean; down: boolean; left: boolean; right: boolean } | null): void {
+    if (dir === null) {
+      this.virtualDir.up = this.virtualDir.down = this.virtualDir.left = this.virtualDir.right = false;
+    } else {
+      this.virtualDir.up = dir.up;
+      this.virtualDir.down = dir.down;
+      this.virtualDir.left = dir.left;
+      this.virtualDir.right = dir.right;
+    }
+    // Holding a direction supersedes any pending tap-to-move target —
+    // otherwise the path system keeps walking the user toward the old
+    // tap position even though they grabbed the d-pad to redirect.
+    if (dir && (dir.up || dir.down || dir.left || dir.right)) {
+      this._moveTarget = null;
+    }
+  }
+
   getInputState(): InputState {
-    const up = this.keys.has("ArrowUp") || this.keys.has("KeyW");
-    const down = this.keys.has("ArrowDown") || this.keys.has("KeyS");
-    const left = this.keys.has("ArrowLeft") || this.keys.has("KeyA");
-    const right = this.keys.has("ArrowRight") || this.keys.has("KeyD");
+    const up = this.keys.has("ArrowUp") || this.keys.has("KeyW") || this.virtualDir.up;
+    const down = this.keys.has("ArrowDown") || this.keys.has("KeyS") || this.virtualDir.down;
+    const left = this.keys.has("ArrowLeft") || this.keys.has("KeyA") || this.virtualDir.left;
+    const right = this.keys.has("ArrowRight") || this.keys.has("KeyD") || this.virtualDir.right;
     const interact = this._interact;
 
     // Consume one-shot flags

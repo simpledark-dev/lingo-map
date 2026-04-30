@@ -910,6 +910,11 @@ export class PixiApp {
     return this.bgm.isEnabled();
   }
 
+  /** Forwarded from the on-screen virtual D-pad in `VirtualDPad.tsx`. */
+  setVirtualDirection(dir: { up: boolean; down: boolean; left: boolean; right: boolean } | null): void {
+    this.inputAdapter.setVirtualDirection(dir);
+  }
+
   resize(): void {
     if (this.destroyed || !this.initialized) return;
     this.app.resize();

@@ -8,6 +8,7 @@ import { DialogueState, MapData, GameState } from '../core/types';
 import { GameEvent } from '../core/GameBridge';
 import DialogueOverlay from './DialogueOverlay';
 import Minimap from './Minimap';
+import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
 
 type ViewportSize = { width: number; height: number };
@@ -344,6 +345,10 @@ export default function GameCanvas() {
     setMinimapData(null);
   }, []);
 
+  const handleDPadChange = useCallback((dir: { up: boolean; down: boolean; left: boolean; right: boolean } | null) => {
+    pixiAppRef.current?.setVirtualDirection(dir);
+  }, []);
+
   const btnStyle: React.CSSProperties = {
     pointerEvents: 'auto',
     position: 'relative',
@@ -537,6 +542,13 @@ export default function GameCanvas() {
               onClose={handleCloseMinimap}
             />
           </div>
+        )}
+
+        {/* Mobile virtual D-pad — auto-hides on desktop. Suppressed
+            during dialogue so the pad doesn't sit on top of the
+            dialogue box and accidentally walk the player while reading. */}
+        {!dialogue && !minimapData && (
+          <VirtualDPad onChange={handleDPadChange} />
         )}
       </div>
     </div>
