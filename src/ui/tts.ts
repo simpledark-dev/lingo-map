@@ -24,8 +24,13 @@ function prime() {
   if (primed || !isSupported()) return;
   primed = true;
   try {
-    const u = new SpeechSynthesisUtterance('');
+    // iOS Safari ignores empty-text utterances for unlock purposes —
+    // it needs a real string scheduled inside the gesture before
+    // future speak() calls outside one are accepted. A single space
+    // is the smallest non-empty payload that reliably counts.
+    const u = new SpeechSynthesisUtterance(' ');
     u.volume = 0;
+    u.rate = 10; // burn through it as fast as possible so it doesn't add a perceptible silence
     window.speechSynthesis.speak(u);
   } catch {
     // Priming is best-effort; if it throws, leave `primed = true` so
@@ -62,7 +67,13 @@ export function speakDialogue(text: string) {
   if (!isSupported() || !text) return;
   try {
     const synth = window.speechSynthesis;
-    synth.cancel();
+    // Snapshot whether we actually need to flush a pending or playing
+    // utterance. If nothing is queued, skipping `cancel()` lets us
+    // speak synchronously — required on iOS, which bails on the
+    // utterance whenever the call hops a microtask/macrotask boundary
+    // away from the user-gesture context the React effect inherited.
+    const queueWasActive = synth.speaking || synth.pending;
+    if (queueWasActive) synth.cancel();
     // Browsers can leave the engine paused after long idles; resume
     // is a no-op when it's not paused.
     synth.resume();
@@ -79,15 +90,20 @@ export function speakDialogue(text: string) {
       }
     };
 
-    // Chromium occasionally drops a speak() that lands in the same tick
-    // as a cancel(); deferring one task lets the queue settle.
-    setTimeout(() => {
-      try {
-        synth.speak(utterance);
-      } catch (err) {
-        console.warn('[tts] speak threw:', err);
-      }
-    }, 0);
+    if (queueWasActive) {
+      // Chromium has a long-standing race where a `speak()` lands in
+      // the same tick as a `cancel()` and is silently dropped. The
+      // single-task defer below lets the engine drain the queue
+      // before our new utterance enters it. Only needed when we
+      // actually called cancel() — see the synchronous branch below
+      // for the iOS-friendly first-speak path.
+      setTimeout(() => {
+        try { synth.speak(utterance); }
+        catch (err) { console.warn('[tts] speak threw:', err); }
+      }, 0);
+    } else {
+      synth.speak(utterance);
+    }
   } catch (err) {
     console.warn('[tts] speak failed:', err);
   }
