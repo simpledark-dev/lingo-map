@@ -77,13 +77,29 @@ export class InputAdapter {
     const worldX = screenX / this.zoom + this.cameraOffset.x;
     const worldY = screenY / this.zoom + this.cameraOffset.y;
 
-    // Check if tap is near an NPC that the player can interact with
+    // Check if tap is near an NPC that the player can interact with.
+    // Hit zone is the NPC's sprite AABB plus a small finger-fudge,
+    // not a 48px circle around the feet — the latter was ~3× the
+    // sprite size and triggered accidental "talk to" on every tap
+    // near an NPC, even when the user was clearly tapping ground
+    // beside them. Sprite is 16w × 32h with feet anchor, so the
+    // body sits in [x-8, x+8] horizontally and [y-32, y] vertically.
+    // Padding NPC_TAP_FUDGE on each side gives mobile fingers some
+    // slack without bleeding into the next tile over.
+    const NPC_TAP_FUDGE = 4;
+    const NPC_TAP_HALF_W = 8 + NPC_TAP_FUDGE;
+    const NPC_TAP_TOP = 32 + NPC_TAP_FUDGE;
+    const NPC_TAP_BOTTOM = NPC_TAP_FUDGE;
     const playerDist = (nx: number, ny: number) =>
       Math.sqrt((this.playerPos.x - nx) ** 2 + (this.playerPos.y - ny) ** 2);
 
     for (const npc of this.npcs) {
-      const tapDist = Math.sqrt((worldX - npc.x) ** 2 + (worldY - npc.y) ** 2);
-      if (tapDist < 48 && playerDist(npc.x, npc.y) <= INTERACTION_RANGE) {
+      const dx = worldX - npc.x;
+      const dy = worldY - npc.y;
+      const inBox =
+        dx >= -NPC_TAP_HALF_W && dx <= NPC_TAP_HALF_W &&
+        dy >= -NPC_TAP_TOP && dy <= NPC_TAP_BOTTOM;
+      if (inBox && playerDist(npc.x, npc.y) <= INTERACTION_RANGE) {
         this._interact = true;
         return;
       }
