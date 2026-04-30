@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { DialogueState } from '../core/types';
+import { speakDialogue, cancelDialogueSpeech } from './tts';
 
 interface DialogueOverlayProps {
   dialogue: DialogueState;
@@ -13,20 +14,9 @@ export default function DialogueOverlay({ dialogue, onAdvance }: DialogueOverlay
   const currentLine = dialogue.lines[dialogue.currentLine] ?? '';
 
   useEffect(() => {
-    if (!currentLine || typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(currentLine);
-    utterance.rate = 1;
-    utterance.pitch = 1;
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-
-    return () => {
-      window.speechSynthesis.cancel();
-    };
+    if (!currentLine) return;
+    speakDialogue(currentLine);
+    return cancelDialogueSpeech;
   }, [currentLine, dialogue.npcId]);
 
   return (
