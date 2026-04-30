@@ -1,5 +1,17 @@
-import { MapData, Entity, Building, NPCData, Position, CollisionBox, TileType } from './types';
-import { getWorldCollisionBox, checkAABBOverlap, WorldBox } from './CollisionSystem';
+import {
+  MapData,
+  Entity,
+  Building,
+  NPCData,
+  Position,
+  CollisionBox,
+  TileType,
+} from "./types";
+import {
+  getWorldCollisionBox,
+  checkAABBOverlap,
+  WorldBox,
+} from "./CollisionSystem";
 
 // Pathfinding cell size in world pixels. Currently equal to the engine
 // tile size (16), so each path-grid cell maps 1:1 to a tile — paths
@@ -11,16 +23,26 @@ const GRID_CELL = 16;
 // Extra pixels of "personal space" added to the player's collision
 // box when checking grid-cell walkability. With buffer = 0, A* picks
 // the shortest path which can hug obstacle edges so closely that the
-// runtime collision system briefly stops the player on every corner —
-// the player visually catches against trees / building walls when
-// going around them. With buffer = 3, the path keeps the player ~3px
-// further from any obstacle, eliminating the edge-clip stutter.
+// runtime collision system briefly stops the player on every corner.
+// Higher values steer paths further from obstacles but ALSO close off
+// passable corridors when buildings sit next to each other:
 //
-// Tradeoff: gaps narrower than `playerWidth + 2 * buffer = 16` px get
-// marked impassable. That's exactly one tile, matching the engine's
-// natural smallest passable space. If you ever build a 1-tile-wide
-// corridor and want the player to fit, lower this to 1-2.
-const PATHFIND_BUFFER = 3;
+//   buffer 0-2: paths stay clear of obstacle EDGES; corridors as
+//                narrow as `playerWidth + 2 * buffer` (≤14 px) remain
+//                passable.
+//   buffer 3+:  paths keep visibly more distance from obstacles, but
+//                paths between adjacent buildings (e.g. the cinema
+//                and post office on the pokemon map have a 9 px gap)
+//                disappear AND the natural walkway just below tall
+//                buildings (which sits 1-2 px below the building's
+//                collision rect) gets eaten by the inflation. This
+//                bug surfaced as "I can't path around the cinema."
+//
+// 2 is the sweet spot for the current map: enough to avoid the
+// edge-clip stutter, low enough that adjacent-building corridors
+// remain navigable. Bump higher only if your map has wider gaps
+// between obstacles.
+const PATHFIND_BUFFER = 2;
 
 /**
  * Build a walkability grid for pathfinding.
@@ -31,7 +53,7 @@ export function buildWalkGrid(
   map: MapData,
   objects: Entity[],
   buildings: Building[],
-  playerCollisionBox: CollisionBox,
+  playerCollisionBox: CollisionBox
 ): boolean[][] {
   const cols = Math.ceil((map.width * map.tileSize) / GRID_CELL);
   const rows = Math.ceil((map.height * map.tileSize) / GRID_CELL);
@@ -43,7 +65,9 @@ export function buildWalkGrid(
       // Check if the player's collision box at this cell center would collide
       const cx = c * GRID_CELL + GRID_CELL / 2;
       const cy = r * GRID_CELL + GRID_CELL / 2;
-      row.push(isCellWalkable(cx, cy, map, objects, buildings, playerCollisionBox));
+      row.push(
+        isCellWalkable(cx, cy, map, objects, buildings, playerCollisionBox)
+      );
     }
     grid.push(row);
   }
@@ -52,9 +76,12 @@ export function buildWalkGrid(
 }
 
 function isCellWalkable(
-  cx: number, cy: number,
-  map: MapData, objects: Entity[], buildings: Building[],
-  pcb: CollisionBox,
+  cx: number,
+  cy: number,
+  map: MapData,
+  objects: Entity[],
+  buildings: Building[],
+  pcb: CollisionBox
 ): boolean {
   // Inflate the player's collision box by PATHFIND_BUFFER on each
   // side. The grid then marks any cell where the inflated box would
@@ -96,7 +123,8 @@ function isCellWalkable(
         t === TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT ||
         t === TileType.WATER ||
         t === TileType.VOID
-      ) return false;
+      )
+        return false;
     }
   }
 
@@ -126,9 +154,10 @@ function isCellWalkable(
  * inflation as the static check so paths give NPCs the same personal
  * space as walls/trees. */
 function isCellBlockedByNpc(
-  cx: number, cy: number,
+  cx: number,
+  cy: number,
   npcs: NPCData[],
-  pcb: CollisionBox,
+  pcb: CollisionBox
 ): boolean {
   if (npcs.length === 0) return false;
   const box: WorldBox = {
@@ -156,10 +185,17 @@ function isCellBlockedByNpc(
  */
 export function findPath(
   grid: boolean[][],
-  fromX: number, fromY: number,
-  toX: number, toY: number,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
   npcs: NPCData[] = [],
-  playerCollisionBox: CollisionBox = { offsetX: 0, offsetY: 0, width: 0, height: 0 },
+  playerCollisionBox: CollisionBox = {
+    offsetX: 0,
+    offsetY: 0,
+    width: 0,
+    height: 0,
+  }
 ): Position[] {
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
@@ -179,7 +215,8 @@ export function findPath(
   // relocated so the final-waypoint override below knows whether to
   // honour the original tap coordinates (target IS walkable) or stop
   // at the nearest-walkable cell center (target was unreachable).
-  let goalR = er, goalC = ec;
+  let goalR = er,
+    goalC = ec;
   let goalRelocated = false;
   if (!grid[goalR]?.[goalC]) {
     const nearest = findNearestWalkable(grid, er, ec, rows, cols);
@@ -189,11 +226,27 @@ export function findPath(
     goalRelocated = true;
   }
 
-  // If start is blocked (shouldn't happen but safety)
-  if (!grid[sr]?.[sc]) return [];
+  // If start is "blocked" per the grid, that's almost always because
+  // the player's CURRENT position overlaps an obstacle by a few pixels
+  // (cell-center sample is conservative; actual player feet are
+  // off-center). Player IS standing there — they're not magically
+  // teleported elsewhere — so refuse to bail. Substitute the nearest
+  // walkable cell as the A* origin; the path's first waypoint will
+  // pull the player off the wall edge and the runtime collision
+  // system handles their actual movement.
+  let actualStartR = sr,
+    actualStartC = sc;
+  if (!grid[actualStartR]?.[actualStartC]) {
+    const nearestStart = findNearestWalkable(grid, sr, sc, rows, cols);
+    if (!nearestStart) return [];
+    actualStartR = nearestStart[0];
+    actualStartC = nearestStart[1];
+  }
 
-  // Same cell
-  if (sr === goalR && sc === goalC) return [{ x: toX, y: toY }];
+  // Same cell — `actualStart*` because if the start was relocated, the
+  // player's nearest-walkable cell might already equal the goal.
+  if (actualStartR === goalR && actualStartC === goalC)
+    return [{ x: toX, y: toY }];
 
   // A* with 8-directional movement.
   // Open set is a binary min-heap keyed on f (g + h). Earlier this was
@@ -222,13 +275,25 @@ export function findPath(
   };
 
   const open = new MinHeap<HeapNode>((a, b) => a.f - b.f);
-  const startKey = key(sr, sc);
-  open.push({ k: startKey, r: sr, c: sc, g: 0, f: h(sr, sc) });
+  const startKey = key(actualStartR, actualStartC);
+  open.push({
+    k: startKey,
+    r: actualStartR,
+    c: actualStartC,
+    g: 0,
+    f: h(actualStartR, actualStartC),
+  });
   bestG.set(startKey, 0);
 
   const dirs = [
-    [-1, 0, 1], [1, 0, 1], [0, -1, 1], [0, 1, 1],
-    [-1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [1, 1, Math.SQRT2],
+    [-1, 0, 1],
+    [1, 0, 1],
+    [0, -1, 1],
+    [0, 1, 1],
+    [-1, -1, Math.SQRT2],
+    [-1, 1, Math.SQRT2],
+    [1, -1, Math.SQRT2],
+    [1, 1, Math.SQRT2],
   ];
 
   let found = false;
@@ -245,7 +310,10 @@ export function findPath(
     if (closed.has(current.k)) continue; // stale heap entry
     closed.add(current.k);
 
-    if (current.k === goalKey) { found = true; break; }
+    if (current.k === goalKey) {
+      found = true;
+      break;
+    }
 
     for (const [dr, dc, cost] of dirs) {
       const nr = current.r + dr;
@@ -258,7 +326,11 @@ export function findPath(
 
       // For diagonal movement, check that both adjacent cells are walkable (no corner cutting)
       if (dr !== 0 && dc !== 0) {
-        if (!grid[current.r + dr]?.[current.c] || !grid[current.r]?.[current.c + dc]) continue;
+        if (
+          !grid[current.r + dr]?.[current.c] ||
+          !grid[current.r]?.[current.c + dc]
+        )
+          continue;
       }
 
       // Dynamic NPC block check — uses current NPC positions, not the
@@ -266,12 +338,16 @@ export function findPath(
       // paths that approach an NPC; the runtime collision system will
       // still stop the player just before contact) — otherwise pathing
       // toward a stationary NPC always returns "no path".
-      if (nk !== goalKey && isCellBlockedByNpc(
-        nc * GRID_CELL + GRID_CELL / 2,
-        nr * GRID_CELL + GRID_CELL / 2,
-        npcs,
-        playerCollisionBox,
-      )) continue;
+      if (
+        nk !== goalKey &&
+        isCellBlockedByNpc(
+          nc * GRID_CELL + GRID_CELL / 2,
+          nr * GRID_CELL + GRID_CELL / 2,
+          npcs,
+          playerCollisionBox
+        )
+      )
+        continue;
 
       const ng = current.g + cost;
       const existingG = bestG.get(nk);
@@ -302,16 +378,24 @@ export function findPath(
   for (let i = 0; i < pathCells.length; i++) {
     const [r, c] = pathCells[i];
     if (i === 0 || i === pathCells.length - 1) {
-      simplified.push({ x: c * GRID_CELL + GRID_CELL / 2, y: r * GRID_CELL + GRID_CELL / 2 });
+      simplified.push({
+        x: c * GRID_CELL + GRID_CELL / 2,
+        y: r * GRID_CELL + GRID_CELL / 2,
+      });
       continue;
     }
     // Check if direction changes
     const [pr, pc] = pathCells[i - 1];
     const [nr, nc] = pathCells[i + 1];
-    const dr1 = r - pr, dc1 = c - pc;
-    const dr2 = nr - r, dc2 = nc - c;
+    const dr1 = r - pr,
+      dc1 = c - pc;
+    const dr2 = nr - r,
+      dc2 = nc - c;
     if (dr1 !== dr2 || dc1 !== dc2) {
-      simplified.push({ x: c * GRID_CELL + GRID_CELL / 2, y: r * GRID_CELL + GRID_CELL / 2 });
+      simplified.push({
+        x: c * GRID_CELL + GRID_CELL / 2,
+        y: r * GRID_CELL + GRID_CELL / 2,
+      });
     }
   }
 
@@ -329,12 +413,19 @@ export function findPath(
   return simplified;
 }
 
-function findNearestWalkable(grid: boolean[][], r: number, c: number, rows: number, cols: number): [number, number] | null {
+function findNearestWalkable(
+  grid: boolean[][],
+  r: number,
+  c: number,
+  rows: number,
+  cols: number
+): [number, number] | null {
   for (let radius = 1; radius < 20; radius++) {
     for (let dr = -radius; dr <= radius; dr++) {
       for (let dc = -radius; dc <= radius; dc++) {
         if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue;
-        const nr = r + dr, nc = c + dc;
+        const nr = r + dr,
+          nc = c + dc;
         if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc]) {
           return [nr, nc];
         }
@@ -360,7 +451,9 @@ interface HeapNode {
 class MinHeap<T> {
   private heap: T[] = [];
   constructor(private compare: (a: T, b: T) => number) {}
-  size(): number { return this.heap.length; }
+  size(): number {
+    return this.heap.length;
+  }
   push(item: T): void {
     this.heap.push(item);
     this.bubbleUp(this.heap.length - 1);
@@ -391,8 +484,10 @@ class MinHeap<T> {
       const l = 2 * i + 1;
       const r = 2 * i + 2;
       let smallest = i;
-      if (l < n && this.compare(this.heap[l], this.heap[smallest]) < 0) smallest = l;
-      if (r < n && this.compare(this.heap[r], this.heap[smallest]) < 0) smallest = r;
+      if (l < n && this.compare(this.heap[l], this.heap[smallest]) < 0)
+        smallest = l;
+      if (r < n && this.compare(this.heap[r], this.heap[smallest]) < 0)
+        smallest = r;
       if (smallest === i) break;
       [this.heap[i], this.heap[smallest]] = [this.heap[smallest], this.heap[i]];
       i = smallest;
