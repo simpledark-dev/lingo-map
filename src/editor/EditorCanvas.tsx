@@ -6,6 +6,7 @@ import { EditorApp } from './EditorApp';
 import { editorReducer, createInitialState, EditorAction, generateObjectId, buildImportedLayers, getPrimaryTiles, getAllObjects, getActiveTileLayer } from './editorState';
 import { OBJECT_DEFAULTS, BUILDING_DEFAULTS, DEFAULT_INTERIOR_MAP_ID } from './objectDefaults';
 import { loadMap } from '../core/MapLoader';
+import { parseSavedMap, SAVE_FORMAT_VERSION } from '../core/SaveSchema';
 import { getPackTileCellDims, getTexture } from '../renderer/AssetLoader';
 import EditorToolPanel from './EditorToolPanel';
 import EditorTopBar from './EditorTopBar';
@@ -158,19 +159,18 @@ function initFromGameMap(): ReturnType<typeof createInitialState> {
     if (saved) mapId = saved;
   }
 
-  // 2) Prefer localStorage-edited version over the compiled map
+  // 2) Prefer localStorage-edited version over the compiled map. All
+  //    schema validation goes through `parseSavedMap` — single source
+  //    of truth so any future schema migration is one change in
+  //    SaveSchema.ts, not four scattered filters that drift out of
+  //    sync (the bug we paid for).
   if (typeof window !== 'undefined') {
     try {
       const raw = localStorage.getItem(`editor-map:${mapId}`);
       if (raw) {
-        const saved = JSON.parse(raw);
-        // Accept both schemas: legacy top-level `tiles` and the new
-        // `layers[]` shape (where tiles live inside the first
-        // tile-kind layer). Same fix as the disk-load effect below;
-        // before this, new-format localStorage saves were rejected
-        // and the editor fell through to the compiled map fallback.
-        const hasContent = Array.isArray(saved?.tiles) || Array.isArray(saved?.layers);
-        if (saved && hasContent && saved.width && saved.height) {
+        const parsed = parseSavedMap(JSON.parse(raw));
+        if (parsed.ok) {
+          const saved = parsed.map;
           const base = createInitialState(saved.width, saved.height);
           return {
             ...base,
@@ -181,6 +181,8 @@ function initFromGameMap(): ReturnType<typeof createInitialState> {
             mapName: saved.id || mapId,
             tileSize: saved.tileSize || 16,
           };
+        } else if (process.env.NODE_ENV === 'development') {
+          console.warn('[editor] localStorage save rejected:', parsed.error);
         }
       }
     } catch { /* fall through to compiled map */ }
@@ -358,33 +360,57 @@ export default function EditorCanvas() {
     const mapId = stateRef.current.mapName;
     if (!mapId) { diskLoadedRef.current = true; return; }
     fetch(`/api/maps/${encodeURIComponent(mapId)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        // Accept either schema: legacy top-level `tiles` OR the new
-        // `layers[]` shape (where tiles live inside the first
-        // tile-kind layer). The previous filter ONLY accepted legacy,
-        // so opening an interior map saved in the new format failed
-        // to import — diskLoadedRef still flipped true in .finally(),
-        // and the very next auto-save effect tick wrote the editor's
-        // default state (loaded from compiled fallback) over the disk
-        // file, stripping layers and resetting object scales. Opening
-        // f1/f2 in the editor was thus destroying them every time.
-        const hasContent = Array.isArray(data?.tiles) || Array.isArray(data?.layers);
-        if (cancelled || !data || !hasContent || !data.width || !data.height) return;
+      .then(async r => {
+        // Distinguish "no file yet" (404) from "the file is broken".
+        //   404         → null payload, allow autosave to create it
+        //   200 + valid → import then allow autosave
+        //   200 + bad   → DON'T flip the flag, autosave stays disabled
+        //                 (refusing to overwrite a corrupted save with
+        //                 the editor's compiled-fallback state was the
+        //                 fix for the f1/f2/pokemon corruption bug)
+        if (r.status === 404) return { kind: 'absent' as const };
+        if (!r.ok) return { kind: 'error' as const, error: `HTTP ${r.status}` };
+        const json = await r.json();
+        const parsed = parseSavedMap(json);
+        return parsed.ok
+          ? { kind: 'ok' as const, map: parsed.map }
+          : { kind: 'invalid' as const, error: parsed.error };
+      })
+      .then(result => {
+        if (cancelled) return;
+        if (result.kind === 'absent') {
+          // No disk file yet. Editor's initial state (from localStorage
+          // or compiled fallback) is fine to save through, so flip the
+          // gate. The first auto-save will create the file.
+          diskLoadedRef.current = true;
+          return;
+        }
+        if (result.kind !== 'ok') {
+          // Either network error or parse rejection. Leave
+          // `diskLoadedRef` false so the auto-save effect bails — we
+          // refuse to overwrite a real disk file that we couldn't
+          // read, and a network error against localhost is suspicious
+          // enough to treat as "don't write blindly."
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[editor] disk save rejected:', result.error ?? '');
+          }
+          return;
+        }
+        const m = result.map;
         // Deduplicate object IDs — older saves can contain collisions (a
         // module-level counter that reset on refresh used to hand out repeat
         // IDs). Selecting/resizing one object used to affect all duplicates.
         const seenIds = new Set<string>();
-        const objects = (data.objects || []).map((o: Entity) => {
+        const objects = (m.objects || []).map((o: Entity) => {
           if (!seenIds.has(o.id)) { seenIds.add(o.id); return o; }
           return { ...o, id: generateObjectId() };
         });
-        dispatch({ type: 'IMPORT_MAP', tiles: data.tiles ?? [], objects, buildings: data.buildings || [], width: data.width, height: data.height, layers: data.layers });
-        if (data.id) dispatch({ type: 'SET_MAP_NAME', name: data.id });
-        if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });
+        dispatch({ type: 'IMPORT_MAP', tiles: m.tiles ?? [], objects, buildings: m.buildings || [], width: m.width, height: m.height, layers: m.layers });
+        if (m.id) dispatch({ type: 'SET_MAP_NAME', name: m.id });
+        if (m.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: m.tileSize });
+        diskLoadedRef.current = true;
       })
-      .catch(() => { /* no disk copy yet */ })
-      .finally(() => { diskLoadedRef.current = true; });
+      .catch(() => { /* network error — leave diskLoadedRef false so autosave doesn't fire */ });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -414,6 +440,10 @@ export default function EditorCanvas() {
     // in core/Layers.ts already derives them from `layers` at register
     // time, so the runtime sees the same view either way.
     const mapData = {
+      // Stamp every save with the current schema version so future
+      // loaders can route the file through the right migration branch.
+      // Missing-version is treated as v1 in `parseSavedMap`.
+      version: SAVE_FORMAT_VERSION,
       id: state.mapName,
       width: state.mapWidth,
       height: state.mapHeight,

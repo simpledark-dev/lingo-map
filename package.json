@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "pack:bundle": "node scripts/bundle-pack-assets.mjs"
+    "pack:bundle": "node scripts/bundle-pack-assets.mjs",
+    "test:maps": "node scripts/test-map-roundtrip.mjs"
   },
   "//": "Next 16 defaults to Safari 16.4+ which emits class static blocks. iPhones on iOS < 16.4 (e.g. iPhone 13 on iOS 15/16.0-16.3) crash with `SyntaxError: Unexpected token '{'`. Lowering Safari to 14 covers every iPhone from the 6s onward at the cost of a modest bundle-size bump.",
   "browserslist": [

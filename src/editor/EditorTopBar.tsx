@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { EditorAction, EditorState, getPrimaryTiles, getAllObjects } from './editorState';
 import { loadMap } from '../core/MapLoader';
+import { parseSavedMap } from '../core/SaveSchema';
 
 const GAME_MAPS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f'];
 
@@ -36,23 +37,20 @@ export default function EditorTopBar({ state, dispatch, onBeginResize }: Props) 
   const handleLoadGameMap = useCallback(async (mapId: string) => {
     if (!mapId) return;
 
-    // 1) Prefer disk-persisted version. Accept either schema: legacy
-    //    top-level `tiles` OR the new `layers[]` shape (where tiles
-    //    live inside the first tile-kind layer). Without the layers
-    //    branch this filter rejected every modern save and silently
-    //    fell through to the compiled-map fallback below — and the
-    //    next auto-save tick wrote that compiled fallback over the
-    //    disk file, stripping layers and resetting object scales.
-    //    Same bug existed on the editor's mount-time disk-load and
-    //    localStorage-load; both fixed in EditorCanvas.tsx.
+    // 1) Prefer disk-persisted version. All schema/version checks
+    //    funnel through `parseSavedMap` so the four load sites can't
+    //    drift out of sync (the f1/f2/pokemon corruption pattern).
     try {
       const res = await fetch(`/api/maps/${encodeURIComponent(mapId)}`);
       if (res.ok) {
         const data = await res.json();
-        const hasContent = Array.isArray(data?.tiles) || Array.isArray(data?.layers);
-        if (data && hasContent && data.width && data.height) {
-          applyMapData(data, mapId);
+        const parsed = parseSavedMap(data);
+        if (parsed.ok) {
+          applyMapData(parsed.map, mapId);
           return;
+        }
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[editor] dropdown load: rejected', mapId, '—', parsed.error);
         }
       }
     } catch { /* fall through */ }
@@ -94,9 +92,9 @@ export default function EditorTopBar({ state, dispatch, onBeginResize }: Props) 
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = JSON.parse(reader.result as string);
-        const hasContent = Array.isArray(data?.tiles) || Array.isArray(data?.layers);
-        if (hasContent && data.width && data.height) {
+        const parsed = parseSavedMap(JSON.parse(reader.result as string));
+        if (parsed.ok) {
+          const data = parsed.map;
           dispatch({
             type: 'IMPORT_MAP',
             tiles: data.tiles ?? [],
@@ -109,7 +107,7 @@ export default function EditorTopBar({ state, dispatch, onBeginResize }: Props) 
           if (data.id) dispatch({ type: 'SET_MAP_NAME', name: data.id });
           if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });
         } else {
-          alert('Invalid map JSON: missing both tiles and layers, or missing dimensions');
+          alert(`Invalid map JSON: ${parsed.error}`);
         }
       } catch {
         alert('Invalid map JSON file');

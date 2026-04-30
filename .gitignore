@@ -48,3 +48,10 @@ public/assets/me
 docs
 
 moderninteriors-win
+
+# Editor save-backup rotation + atomic-write tmp files
+# (data/<id>.json.bak, .json.bak1, .json.bak2, .json.tmp).
+# The .json files themselves are committed source of truth;
+# the siblings are local-only crash-recovery copies.
+data/*.json.bak*
+data/*.json.tmp
