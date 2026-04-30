@@ -45,7 +45,7 @@ export const PLAYER_LAYER_ID = "props";
  *  - `'me-char-01'` — Modern Interiors premade character #1 (16×32)
  */
 // My notes: the ones looks fine: 04,07,08,
-export const PLAYER_SPRITE_PREFIX = "me-char-10";
+export const PLAYER_SPRITE_PREFIX = "me-char-07";
 
 /** Sprite keys whose sortY should be heavily decremented so they render BEHIND
  * other entities (player walks "on" them). Used for floor decor (rugs) and
