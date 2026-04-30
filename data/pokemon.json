@@ -12844,7 +12844,7 @@
               "offsetX": -16,
               "offsetY": -13,
               "width": 32,
-              "height": 16
+              "height": 14
             },
             "incomingSpawnId": "outdoor-b"
           }
@@ -14070,7 +14070,7 @@
           "collisionBox": {
             "offsetX": -32,
             "offsetY": -46,
-            "width": 59,
+            "width": 63,
             "height": 32
           },
           "scale": 1,

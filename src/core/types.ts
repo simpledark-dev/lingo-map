@@ -149,6 +149,14 @@ export interface Trigger {
   type: 'door' | 'interact';
   targetMapId?: string;
   targetSpawnId?: string;
+  /** If true, this door trigger only fires while the up key is held.
+   *  Set on dynamic (entity-derived) door triggers so the player has
+   *  to actively press into the building/staircase, instead of every
+   *  lateral slide across the trigger box accidentally firing it.
+   *  Hand-coded map triggers (e.g. interior exit doors that fire on
+   *  walk-down) leave this `undefined`/`false` and keep firing from
+   *  any direction. */
+  requiresUpKey?: boolean;
 }
 
 // ── Layered map content (Tiled-style) ─────────────────────────────────────

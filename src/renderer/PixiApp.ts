@@ -21,7 +21,7 @@ import { getTexture, loadAssets, loadCharacterAtlas, loadPackSingle } from './As
 const CAR_COLLISIONS_KEY = 'editor:car-collisions';
 void CAR_COLLISIONS_KEY;
 import { loadAutoTileset } from './AutoTileset';
-import { InputAdapter } from './InputAdapter';
+import { InputAdapter, NPC_TAP_HALF_W, NPC_TAP_TOP, NPC_TAP_BOTTOM } from './InputAdapter';
 import { RenderSystem } from './RenderSystem';
 import { DebugOverlay } from './DebugOverlay';
 import { TapFeedback } from './TapFeedback';
@@ -60,6 +60,7 @@ export class PixiApp {
    * coloured rect, and each car's look-ahead box renders in a different
    * shade so you can see what the obstacle test is actually checking. */
   private debugShowCollisions = false;
+  private debugShowTapZones = false;
   private debugKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   /** Frame counter for the path/target "give up" guard. Each tick the
    * player is in path/target mode but didn't actually move (collision
@@ -156,12 +157,23 @@ export class PixiApp {
     // doesn't have keyboard focus — matching the user's expectation
     // that pressing the key from anywhere on the page just works.
     this.debugKeydownHandler = (e: KeyboardEvent) => {
-      // Backquote / backtick — distinct enough from gameplay keys.
+      // Backquote / backtick — toggle collision boxes.
       if (e.code === 'Backquote') {
         this.debugShowCollisions = !this.debugShowCollisions;
         if (!this.debugShowCollisions) this.renderSystem?.clearDebugCollisions();
         if (process.env.NODE_ENV === 'development') {
           console.log(`[PixiApp] collision-box debug overlay: ${this.debugShowCollisions ? 'ON' : 'OFF'}`);
+        }
+      }
+      // T — toggle the NPC tap-zone overlay so we can SEE exactly
+      // where a tap will register as "talk to NPC". Drawn in cyan
+      // (distinct from green collision boxes) so they don't blur
+      // together when both overlays are on.
+      if (e.code === 'KeyT') {
+        this.debugShowTapZones = !this.debugShowTapZones;
+        if (!this.debugShowTapZones) this.renderSystem?.clearDebugCollisions();
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[PixiApp] NPC tap-zone overlay: ${this.debugShowTapZones ? 'ON' : 'OFF'}`);
         }
       }
     };
@@ -251,6 +263,11 @@ export class PixiApp {
           type: 'door' as const,
           targetMapId: o.transition!.targetMapId,
           targetSpawnId: o.transition!.targetSpawnId,
+          // Entity-derived door — gate on up-key press so lateral
+          // slides past the trigger box don't accidentally enter.
+          // The user is `up`-keying THIS specific door, not just
+          // happening to be inside its rectangle.
+          requiresUpKey: true,
         }];
       }
       // Legacy auto-shape for entities without an explicit triggerBox
@@ -274,6 +291,7 @@ export class PixiApp {
         type: 'door' as const,
         targetMapId: o.transition!.targetMapId,
         targetSpawnId: o.transition!.targetSpawnId,
+        requiresUpKey: true,
       }];
     });
     // Spawn point: anchor on the trigger zone when one is set explicitly,
@@ -424,6 +442,22 @@ export class PixiApp {
     this.inputAdapter.cameraOffset = { ...this.gameState.camera };
     this.inputAdapter.playerPos = { x: this.gameState.player.x, y: this.gameState.player.y };
     this.inputAdapter.npcs = this.gameState.npcs;
+    // Mirror RenderSystem.updateCamera's centering math so screen→world
+    // conversion lines up on viewport-capped maps. Uncapped maps have
+    // offset (0, 0) — outdoor or any map without `maxViewTiles`.
+    if (map.maxViewTiles) {
+      const canvasW = this.app.screen.width;
+      const canvasH = this.app.screen.height;
+      const cap = getViewportWorldSize(map, this.inputAdapter.zoom, canvasW, canvasH);
+      const cappedScreenW = cap.viewW * this.inputAdapter.zoom;
+      const cappedScreenH = cap.viewH * this.inputAdapter.zoom;
+      this.inputAdapter.screenOffset = {
+        x: Math.max(0, (canvasW - cappedScreenW) / 2),
+        y: Math.max(0, (canvasH - cappedScreenH) / 2),
+      };
+    } else {
+      this.inputAdapter.screenOffset = { x: 0, y: 0 };
+    }
     const input = this.inputAdapter.getInputState();
 
     // Process commands from UI
@@ -624,11 +658,16 @@ export class PixiApp {
       }
     }
 
-    // Check door triggers
+    // Check door triggers. Building doors require the up key to be
+    // actively held — `input.up` from the live key state. Sticky
+    // `player.facing` was leaking lateral slides through; tying to
+    // the keypress is the explicit "I am trying to go up into this
+    // door" signal.
     const transition = checkDoorTriggers(
       this.gameState.player.x,
       this.gameState.player.y,
       this.gameState.player.collisionBox,
+      input.up,
       map.triggers,
       this.gameState.buildings,
     );
@@ -777,49 +816,63 @@ export class PixiApp {
       }
     }
 
-    // Collision-box debug overlay — drawn after everything else so the
-    // rects sit on top of sprites. Player + NPC AABBs in green, car
-    // bodies in red, car look-aheads in yellow. Shows exactly what the
-    // car-system obstacle test sees each frame, which is the fast way
-    // to diagnose "the car went through me" reports.
-    if (this.debugShowCollisions) {
+    // Debug overlays — drawn after everything else so the rects sit
+    // on top of sprites. Two toggles share the same draw call:
+    //   `: collision boxes (player/NPC green, cars red, look-ahead yellow)
+    //   T: NPC tap zones (cyan) — what InputAdapter actually hit-tests
+    if (this.debugShowCollisions || this.debugShowTapZones) {
       const T = map.tileSize;
       const items: Array<{ box: { left: number; top: number; right: number; bottom: number }; color: number }> = [];
-      const p = this.gameState.player;
-      items.push({
-        box: {
-          left: p.x + p.collisionBox.offsetX,
-          top: p.y + p.collisionBox.offsetY,
-          right: p.x + p.collisionBox.offsetX + p.collisionBox.width,
-          bottom: p.y + p.collisionBox.offsetY + p.collisionBox.height,
-        },
-        color: 0x00ff66,
-      });
-      for (const n of this.gameState.npcs) {
+      if (this.debugShowCollisions) {
+        const p = this.gameState.player;
         items.push({
           box: {
-            left: n.x + n.collisionBox.offsetX,
-            top: n.y + n.collisionBox.offsetY,
-            right: n.x + n.collisionBox.offsetX + n.collisionBox.width,
-            bottom: n.y + n.collisionBox.offsetY + n.collisionBox.height,
+            left: p.x + p.collisionBox.offsetX,
+            top: p.y + p.collisionBox.offsetY,
+            right: p.x + p.collisionBox.offsetX + p.collisionBox.width,
+            bottom: p.y + p.collisionBox.offsetY + p.collisionBox.height,
           },
           color: 0x00ff66,
         });
-      }
-      if (this.carSystemState) {
-        // Same override-then-fallback resolution as the simulation, so
-        // the debug rects always match what the obstacle test sees.
-        for (const car of this.carSystemState.cars) {
-          const key = spriteKeyForCar(car);
-          let box = this.carCollisionOverrides[key];
-          if (!box) {
-            const tex = getTexture(key);
-            box = tex
-              ? { offsetX: -tex.width / 2, offsetY: -tex.height / 2, width: tex.width, height: tex.height }
-              : { offsetX: -T / 2, offsetY: -T / 2, width: T, height: T };
+        for (const n of this.gameState.npcs) {
+          items.push({
+            box: {
+              left: n.x + n.collisionBox.offsetX,
+              top: n.y + n.collisionBox.offsetY,
+              right: n.x + n.collisionBox.offsetX + n.collisionBox.width,
+              bottom: n.y + n.collisionBox.offsetY + n.collisionBox.height,
+            },
+            color: 0x00ff66,
+          });
+        }
+        if (this.carSystemState) {
+          // Same override-then-fallback resolution as the simulation, so
+          // the debug rects always match what the obstacle test sees.
+          for (const car of this.carSystemState.cars) {
+            const key = spriteKeyForCar(car);
+            let box = this.carCollisionOverrides[key];
+            if (!box) {
+              const tex = getTexture(key);
+              box = tex
+                ? { offsetX: -tex.width / 2, offsetY: -tex.height / 2, width: tex.width, height: tex.height }
+                : { offsetX: -T / 2, offsetY: -T / 2, width: T, height: T };
+            }
+            items.push({ box: carAABB(car, box), color: 0xff3333 });
+            items.push({ box: lookAheadBox(car, T, box), color: 0xffcc00 });
           }
-          items.push({ box: carAABB(car, box), color: 0xff3333 });
-          items.push({ box: lookAheadBox(car, T, box), color: 0xffcc00 });
+        }
+      }
+      if (this.debugShowTapZones) {
+        for (const n of this.gameState.npcs) {
+          items.push({
+            box: {
+              left: n.x - NPC_TAP_HALF_W,
+              top: n.y - NPC_TAP_TOP,
+              right: n.x + NPC_TAP_HALF_W,
+              bottom: n.y + NPC_TAP_BOTTOM,
+            },
+            color: 0x00ccff,
+          });
         }
       }
       this.renderSystem.drawDebugCollisions(items);

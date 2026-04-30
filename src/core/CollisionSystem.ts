@@ -84,6 +84,13 @@ function collidesWithObjects(
 /**
  * Resolve player movement with axis-independent sliding.
  * Try X movement alone, then Y movement alone.
+ *
+ * NPCs are deliberately NOT in the collision set: a wandering NPC
+ * could otherwise stop on top of the player and pin them in place
+ * until the NPC's idle timer expired. Letting the player walk through
+ * NPCs costs us nothing — dialogue still gates on INTERACTION_RANGE,
+ * so "talk to NPC" works the same — and avoids the UX of the player
+ * being frozen by a stranger standing on their feet.
  */
 export function resolveMovement(
   currentX: number,
@@ -95,20 +102,17 @@ export function resolveMovement(
   objects: Entity[],
   buildings: Building[],
 ): Position {
-  // Also include NPCs as collision objects
-  const allObjects = [...objects, ...map.npcs];
-
   // Try X axis
   let newX = desiredX;
   const xBox = getWorldCollisionBox(desiredX, currentY, playerCollisionBox);
-  if (collidesWithTiles(map, xBox) || collidesWithObjects(xBox, allObjects, buildings)) {
+  if (collidesWithTiles(map, xBox) || collidesWithObjects(xBox, objects, buildings)) {
     newX = currentX;
   }
 
   // Try Y axis
   let newY = desiredY;
   const yBox = getWorldCollisionBox(newX, desiredY, playerCollisionBox);
-  if (collidesWithTiles(map, yBox) || collidesWithObjects(yBox, allObjects, buildings)) {
+  if (collidesWithTiles(map, yBox) || collidesWithObjects(yBox, objects, buildings)) {
     newY = currentY;
   }
 

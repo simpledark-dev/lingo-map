@@ -1,5 +1,19 @@
-import { InputState, Position, NPCData } from '../core/types';
-import { INTERACTION_RANGE, MIN_ZOOM, MAX_ZOOM, DEFAULT_ZOOM, ZOOM_STEP } from '../core/constants';
+import { InputState, Position, NPCData } from "../core/types";
+import {
+  INTERACTION_RANGE,
+  MIN_ZOOM,
+  MAX_ZOOM,
+  DEFAULT_ZOOM,
+  ZOOM_STEP,
+} from "../core/constants";
+
+/** NPC tap-zone half-extents around the NPC's anchor (feet at the
+ *  bottom-center of a 16w × 32h sprite). Exported so the debug
+ *  visualization renders the same rectangle that the hit-test uses —
+ *  if these drift, the overlay would lie. */
+export const NPC_TAP_HALF_W = 8;
+export const NPC_TAP_TOP = 25;
+export const NPC_TAP_BOTTOM = 0;
 
 /**
  * Browser-side input adapter. Lives in the renderer layer because it touches DOM.
@@ -13,6 +27,16 @@ export class InputAdapter {
 
   /** Camera offset needed for screen-to-world conversion. Set each frame by the game loop. */
   cameraOffset: Position = { x: 0, y: 0 };
+
+  /** Screen-pixel offset of the rendered world inside the canvas. Set
+   *  each frame from RenderSystem's viewport-cap math. On uncapped
+   *  maps this is (0, 0). On interior maps with a viewport cap, the
+   *  world view is centered inside the canvas with a black border on
+   *  the wide axis — the offset is (canvasW − cappedWorldW) / 2.
+   *  Without subtracting it from the tap position, screen→world
+   *  conversion is wrong by half the side-band width and pathfinding
+   *  receives off-map targets. */
+  screenOffset: Position = { x: 0, y: 0 };
 
   /** Player position in world coords. Set each frame for tap-near-NPC detection. */
   playerPos: Position = { x: 0, y: 0 };
@@ -29,7 +53,7 @@ export class InputAdapter {
 
   private onKeyDown = (e: KeyboardEvent) => {
     this.keys.add(e.code);
-    if (e.code === 'KeyE' || e.code === 'Space') {
+    if (e.code === "KeyE" || e.code === "Space") {
       this._interact = true;
     }
   };
@@ -73,23 +97,21 @@ export class InputAdapter {
     const screenX = e.clientX - rect.left;
     const screenY = e.clientY - rect.top;
 
-    // Screen-to-world conversion accounting for zoom
-    const worldX = screenX / this.zoom + this.cameraOffset.x;
-    const worldY = screenY / this.zoom + this.cameraOffset.y;
+    // Screen-to-world conversion accounting for zoom AND the
+    // screen-pixel offset that RenderSystem applies on viewport-capped
+    // maps (interiors). Without the offset subtraction here, taps on
+    // an interior translated to world coords roughly half the
+    // side-band off, the path-finder couldn't find a goal cell, and
+    // movement fell through to the straight-line `target` mode
+    // pointing at an off-map location — "drifts in one direction".
+    const worldX =
+      (screenX - this.screenOffset.x) / this.zoom + this.cameraOffset.x;
+    const worldY =
+      (screenY - this.screenOffset.y) / this.zoom + this.cameraOffset.y;
 
     // Check if tap is near an NPC that the player can interact with.
-    // Hit zone is the NPC's sprite AABB plus a small finger-fudge,
-    // not a 48px circle around the feet — the latter was ~3× the
-    // sprite size and triggered accidental "talk to" on every tap
-    // near an NPC, even when the user was clearly tapping ground
-    // beside them. Sprite is 16w × 32h with feet anchor, so the
-    // body sits in [x-8, x+8] horizontally and [y-32, y] vertically.
-    // Padding NPC_TAP_FUDGE on each side gives mobile fingers some
-    // slack without bleeding into the next tile over.
-    const NPC_TAP_FUDGE = 4;
-    const NPC_TAP_HALF_W = 8 + NPC_TAP_FUDGE;
-    const NPC_TAP_TOP = 32 + NPC_TAP_FUDGE;
-    const NPC_TAP_BOTTOM = NPC_TAP_FUDGE;
+    // Hit-zone half-extents are exported NPC_TAP_* constants at the
+    // top of this file so the debug-overlay renders the SAME box.
     const playerDist = (nx: number, ny: number) =>
       Math.sqrt((this.playerPos.x - nx) ** 2 + (this.playerPos.y - ny) ** 2);
 
@@ -97,8 +119,10 @@ export class InputAdapter {
       const dx = worldX - npc.x;
       const dy = worldY - npc.y;
       const inBox =
-        dx >= -NPC_TAP_HALF_W && dx <= NPC_TAP_HALF_W &&
-        dy >= -NPC_TAP_TOP && dy <= NPC_TAP_BOTTOM;
+        dx >= -NPC_TAP_HALF_W &&
+        dx <= NPC_TAP_HALF_W &&
+        dy >= -NPC_TAP_TOP &&
+        dy <= NPC_TAP_BOTTOM;
       if (inBox && playerDist(npc.x, npc.y) <= INTERACTION_RANGE) {
         this._interact = true;
         return;
@@ -153,35 +177,35 @@ export class InputAdapter {
 
   attach(canvas: HTMLCanvasElement): void {
     this.canvas = canvas;
-    window.addEventListener('keydown', this.onKeyDown);
-    window.addEventListener('keyup', this.onKeyUp);
-    canvas.addEventListener('pointerdown', this.onPointerDown);
-    canvas.addEventListener('pointermove', this.onPointerMove);
-    canvas.addEventListener('pointerup', this.onPointerUp);
-    canvas.addEventListener('pointercancel', this.onPointerUp);
-    canvas.addEventListener('wheel', this.onWheel, { passive: false });
+    window.addEventListener("keydown", this.onKeyDown);
+    window.addEventListener("keyup", this.onKeyUp);
+    canvas.addEventListener("pointerdown", this.onPointerDown);
+    canvas.addEventListener("pointermove", this.onPointerMove);
+    canvas.addEventListener("pointerup", this.onPointerUp);
+    canvas.addEventListener("pointercancel", this.onPointerUp);
+    canvas.addEventListener("wheel", this.onWheel, { passive: false });
     // Prevent default touch behavior (scroll/zoom) on the canvas
-    canvas.style.touchAction = 'none';
+    canvas.style.touchAction = "none";
   }
 
   destroy(): void {
-    window.removeEventListener('keydown', this.onKeyDown);
-    window.removeEventListener('keyup', this.onKeyUp);
+    window.removeEventListener("keydown", this.onKeyDown);
+    window.removeEventListener("keyup", this.onKeyUp);
     if (this.canvas) {
-      this.canvas.removeEventListener('pointerdown', this.onPointerDown);
-      this.canvas.removeEventListener('pointermove', this.onPointerMove);
-      this.canvas.removeEventListener('pointerup', this.onPointerUp);
-      this.canvas.removeEventListener('pointercancel', this.onPointerUp);
-      this.canvas.removeEventListener('wheel', this.onWheel);
+      this.canvas.removeEventListener("pointerdown", this.onPointerDown);
+      this.canvas.removeEventListener("pointermove", this.onPointerMove);
+      this.canvas.removeEventListener("pointerup", this.onPointerUp);
+      this.canvas.removeEventListener("pointercancel", this.onPointerUp);
+      this.canvas.removeEventListener("wheel", this.onWheel);
       this.canvas = null;
     }
   }
 
   getInputState(): InputState {
-    const up = this.keys.has('ArrowUp') || this.keys.has('KeyW');
-    const down = this.keys.has('ArrowDown') || this.keys.has('KeyS');
-    const left = this.keys.has('ArrowLeft') || this.keys.has('KeyA');
-    const right = this.keys.has('ArrowRight') || this.keys.has('KeyD');
+    const up = this.keys.has("ArrowUp") || this.keys.has("KeyW");
+    const down = this.keys.has("ArrowDown") || this.keys.has("KeyS");
+    const left = this.keys.has("ArrowLeft") || this.keys.has("KeyA");
+    const right = this.keys.has("ArrowRight") || this.keys.has("KeyD");
     const interact = this._interact;
 
     // Consume one-shot flags
