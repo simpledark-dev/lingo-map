@@ -684,7 +684,14 @@ export class PixiApp {
           npc.y = ws.currentY;
           npc.sortY = ws.currentY;
         }
-        this.renderSystem.updateNPC(ws.npcId, ws.currentX, ws.currentY);
+        this.renderSystem.updateNPC(
+          ws.npcId,
+          ws.currentX,
+          ws.currentY,
+          ws.facing,
+          ws.state === 'walking',
+          ws.walkFrame,
+        );
       }
     }
 

@@ -1,5 +1,5 @@
 import { Application, Container, Graphics, RenderTexture, Sprite, Texture } from 'pixi.js';
-import { Entity, MapData, MapLayer, PlayerState } from '../core/types';
+import { Direction, Entity, MapData, MapLayer, PlayerState } from '../core/types';
 import { PLAYER_LAYER_ID, PLAYER_SPRITE_PREFIX } from '../core/constants';
 import { getEffectiveZIndex, getLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
 import { getTexture, getTileTexture, loadPackSingle } from './AssetLoader';
@@ -288,7 +288,12 @@ export class RenderSystem {
     // before but the dependency was incidental, not desirable.
     let npcSeed = treeSeedRef.value;
     for (const npc of map.npcs) {
-      const texture = getTexture(npc.spriteKey);
+      // NPC `spriteKey` is treated as a prefix when a directional
+      // texture (`<key>-down`) exists — that's the convention for
+      // Modern-Interiors `me-char-NN` characters which animate by
+      // facing. Otherwise it's a single static texture (legacy NPCs:
+      // "npc", "npc-blue"). Default to facing down at scene mount.
+      const texture = getTexture(`${npc.spriteKey}-down`) ?? getTexture(npc.spriteKey);
       if (!texture) continue;
       const sprite = new Sprite(texture);
       sprite.anchor.set(npc.anchor.x, npc.anchor.y);
@@ -804,8 +809,20 @@ export class RenderSystem {
     this.carFallbacks.clear();
   }
 
-  /** Update an NPC sprite's position (for wandering). */
-  updateNPC(npcId: string, x: number, y: number): void {
+  /** Update an NPC sprite's position (for wandering). When the NPC's
+   *  spriteKey resolves to a directional set (`<key>-<dir>` exists),
+   *  the renderer also swaps the texture based on `facing` and the
+   *  walking-frame state — alternating idle ↔ walk1, same convention
+   *  as the player. Legacy single-texture NPCs ignore the directional
+   *  args and keep their static texture. */
+  updateNPC(
+    npcId: string,
+    x: number,
+    y: number,
+    facing?: Direction,
+    walking?: boolean,
+    walkFrame?: 0 | 1,
+  ): void {
     const sprite = this.npcSprites.get(npcId);
     if (!sprite) return;
     sprite.x = x;
@@ -818,6 +835,21 @@ export class RenderSystem {
       anim.baseX = x;
       anim.baseY = y;
     }
+    // Texture swap — only for NPCs whose spriteKey backs a directional
+    // sprite set. We probe `<key>-down` once to decide; if absent, we
+    // leave the original (legacy) texture untouched.
+    if (!facing) return;
+    const npc = this.currentMap?.npcs.find(n => n.id === npcId);
+    if (!npc) return;
+    const baseDir = getTexture(`${npc.spriteKey}-${facing}`);
+    if (!baseDir) return; // not a directional NPC — leave static texture alone
+    // Walking + the ON half of the 2-frame cycle → walk1 sprite. OFF
+    // half (or idle) → base directional sprite (same as the player).
+    const useWalk = walking === true && walkFrame === 1;
+    const tex = useWalk
+      ? (getTexture(`${npc.spriteKey}-${facing}-walk1`) ?? baseDir)
+      : baseDir;
+    sprite.texture = tex;
   }
 
   /** Update idle animations for trees and NPCs. Call once per frame. */
@@ -890,7 +922,22 @@ export class RenderSystem {
       keys.add(b.baseSpriteKey);
       if (b.roofSpriteKey) keys.add(b.roofSpriteKey);
     }
-    for (const npc of map.npcs) keys.add(npc.spriteKey);
+    for (const npc of map.npcs) {
+      // For Modern-Interiors character NPCs the spriteKey is a prefix
+      // (e.g., "me-char-04"); preload all 4 directions × (idle + walk1)
+      // so the first turn doesn't flash a missing texture. Legacy NPCs
+      // (key matches "npc"/"npc-blue") just need the bare key. Pattern
+      // gate keeps `loadAssets` from warning about non-existent
+      // `<legacy-key>-down` lookups.
+      if (/^me-char-\d{2}$/.test(npc.spriteKey)) {
+        for (const dir of ['down', 'up', 'left', 'right'] as const) {
+          keys.add(`${npc.spriteKey}-${dir}`);
+          keys.add(`${npc.spriteKey}-${dir}-walk1`);
+        }
+      } else {
+        keys.add(npc.spriteKey);
+      }
+    }
 
     for (const dir of ['down', 'up', 'left', 'right']) {
       keys.add(`${PLAYER_SPRITE_PREFIX}-${dir}`);

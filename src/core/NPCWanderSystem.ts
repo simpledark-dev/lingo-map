@@ -1,9 +1,12 @@
-import { NPCData, Position } from './types';
+import { NPCData, Position, Direction } from './types';
 
 const NPC_SPEED = 40; // pixels per second — slower than player
 const ARRIVE_THRESHOLD = 4;
 const MIN_IDLE_TIME = 2.0; // seconds
 const MAX_IDLE_TIME = 6.0;
+// Walk-anim cadence — same period the player uses (RenderSystem
+// WALK_FRAME_DURATION). Drives the idle ↔ walk1 alternation.
+const NPC_WALK_FRAME_DURATION = 0.18;
 
 export interface NPCWanderState {
   npcId: string;
@@ -16,6 +19,16 @@ export interface NPCWanderState {
   idleTimer: number; // seconds remaining in idle state
   wanderRadius: number;
   wanderBounds: { x: number; y: number; width: number; height: number } | null;
+  // Facing direction the NPC's sprite should show. Updated whenever a
+  // walk target is chosen (locked in for the walk leg). Used by the
+  // renderer to look up directional textures when the NPC's spriteKey
+  // is a Modern-Interiors character prefix; ignored for legacy
+  // single-texture NPCs.
+  facing: Direction;
+  // Tiny state machine for the 2-frame walk cycle (idle/walk1) — same
+  // shape the player uses, but per-NPC.
+  walkTimer: number;
+  walkFrame: 0 | 1;
 }
 
 // Simple seeded random per-NPC
@@ -48,6 +61,9 @@ export function initWanderStates(npcs: NPCData[]): NPCWanderState[] {
       idleTimer: MIN_IDLE_TIME + r() * (MAX_IDLE_TIME - MIN_IDLE_TIME),
       wanderRadius: npc.wanderRadius,
       wanderBounds: npc.wanderBounds ?? null,
+      facing: 'down',
+      walkTimer: 0,
+      walkFrame: 0,
     });
   }
   return states;
@@ -64,6 +80,10 @@ export function updateWanderStates(
 ): void {
   for (const s of states) {
     if (s.state === 'idle') {
+      // Reset walk-anim cycle while idling so the next walk leg starts
+      // clean on the idle frame (avoids snapping mid-step on resume).
+      s.walkTimer = 0;
+      s.walkFrame = 0;
       s.idleTimer -= delta;
       if (s.idleTimer <= 0) {
         // Pick a random walk target within wander radius/bounds
@@ -71,6 +91,15 @@ export function updateWanderStates(
         if (target) {
           s.target = target;
           s.state = 'walking';
+          // Lock the facing for this walk leg based on dominant axis.
+          // Done once at leg start (rather than per frame) so a small
+          // floating-point wobble near the target doesn't cause the
+          // NPC to flicker between facings on the last few pixels.
+          const dx = target.x - s.currentX;
+          const dy = target.y - s.currentY;
+          s.facing = Math.abs(dx) > Math.abs(dy)
+            ? (dx > 0 ? 'right' : 'left')
+            : (dy > 0 ? 'down' : 'up');
         } else {
           // Couldn't find a walkable target, reset idle
           s.idleTimer = MIN_IDLE_TIME + Math.random() * (MAX_IDLE_TIME - MIN_IDLE_TIME);
@@ -92,6 +121,12 @@ export function updateWanderStates(
         const step = Math.min(speed, dist);
         s.currentX += (dx / dist) * step;
         s.currentY += (dy / dist) * step;
+        // Advance the 2-frame walk cycle.
+        s.walkTimer += delta;
+        if (s.walkTimer >= NPC_WALK_FRAME_DURATION) {
+          s.walkTimer -= NPC_WALK_FRAME_DURATION;
+          s.walkFrame = s.walkFrame === 0 ? 1 : 0;
+        }
       }
     }
   }

@@ -160,21 +160,31 @@ const buildings: Building[] = [
   },
 ];
 
-// ── NPCs — 16×24 sprites, collision 8×6 (feet) ──
+// ── NPCs ──
+// All NPCs use Modern Interiors premade-character prefixes
+// (`me-char-NN`). The renderer derives `<prefix>-<facing>` and
+// `<prefix>-<facing>-walk1` from this — see RenderSystem.updateNPC.
+// Sprites are 16w×32h with an anchor at the feet.
+
+// Shared collision shape — feet-sized AABB centered under the sprite.
+// Same numbers we used for the legacy 16×24 NPC art; the new sheets
+// are slightly taller but their feet still occupy the bottom strip.
+const NPC_FOOT_COLLISION = { offsetX: -4, offsetY: -6, width: 8, height: 6 };
 
 const npcs: NPCData[] = [
   {
     id: "pk-npc-1",
     x: tx(20),
     y: ty(18),
-    spriteKey: "npc",
+    spriteKey: "me-char-04",
     anchor: { x: 0.5, y: 1.0 },
     sortY: ty(18),
-    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
-    name: "Neighbor",
+    collisionBox: NPC_FOOT_COLLISION,
+    name: "Mira",
     dialogue: [
-      "Welcome to our little town!",
-      "The professor's lab is just south of here.",
+      "Oh, hi there! You must be new in town.",
+      "If you head east past the path, you'll hit the Mart.",
+      "Watch the road — the cars come fast around the bend.",
     ],
     wanderRadius: 24,
   },
@@ -182,13 +192,61 @@ const npcs: NPCData[] = [
     id: "pk-npc-2",
     x: tx(44),
     y: ty(20),
-    spriteKey: "npc-blue",
+    spriteKey: "me-char-07",
     anchor: { x: 0.5, y: 1.0 },
     sortY: ty(20),
-    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
-    name: "Shopkeeper",
-    dialogue: ["The Mart has everything you need!", "Come visit us anytime."],
+    collisionBox: NPC_FOOT_COLLISION,
+    name: "Hank",
+    dialogue: [
+      "Mart's been in my family three generations.",
+      "Anything you need, we've got it. Probably.",
+    ],
     wanderRadius: 16,
+  },
+  {
+    id: "pk-npc-3",
+    x: tx(30),
+    y: ty(34),
+    spriteKey: "me-char-12",
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(34),
+    collisionBox: NPC_FOOT_COLLISION,
+    name: "Riku",
+    dialogue: [
+      "I'm waiting for the next showing at the cinema.",
+      "They're playing the old monster movies tonight!",
+    ],
+    wanderRadius: 32,
+  },
+  {
+    id: "pk-npc-4",
+    x: tx(8),
+    y: ty(42),
+    spriteKey: "me-char-09",
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(42),
+    collisionBox: NPC_FOOT_COLLISION,
+    name: "Sumi",
+    dialogue: [
+      "Morning! Long walk from the south gate, huh?",
+      "Try the bakery while it's still warm.",
+    ],
+    wanderRadius: 24,
+  },
+  {
+    id: "pk-npc-5",
+    x: tx(26),
+    y: ty(28),
+    spriteKey: "me-char-14",
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(28),
+    collisionBox: NPC_FOOT_COLLISION,
+    name: "Kit",
+    dialogue: [
+      "Hey, hey! Wanna race to that tree?",
+      "...okay, fine, you win. You're fast.",
+    ],
+    wanderRadius: 40,
   },
 ];
 

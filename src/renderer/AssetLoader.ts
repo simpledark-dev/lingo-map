@@ -114,22 +114,11 @@ const spriteManifest: Record<string, string> = {
   'player-right': `${ASSET_BASE}player-right.png`,
   'player-right-walk1': `${ASSET_BASE}player-right-walk1.png`,
   'player-right-walk2': `${ASSET_BASE}player-right-walk2.png`,
-  // Modern Interiors premade character #1 — temporary alt skin for the
-  // player. Activated via PLAYER_SPRITE_PREFIX in src/core/constants.ts.
-  // Frames sliced from the gitignored pack at moderninteriors-win/...
-  // by scripts/slice-char-01.mjs.
-  'me-char-01-down': `${ASSET_BASE}me-char-01-down.png`,
-  'me-char-01-down-walk1': `${ASSET_BASE}me-char-01-down-walk1.png`,
-  'me-char-01-down-walk2': `${ASSET_BASE}me-char-01-down-walk2.png`,
-  'me-char-01-up': `${ASSET_BASE}me-char-01-up.png`,
-  'me-char-01-up-walk1': `${ASSET_BASE}me-char-01-up-walk1.png`,
-  'me-char-01-up-walk2': `${ASSET_BASE}me-char-01-up-walk2.png`,
-  'me-char-01-left': `${ASSET_BASE}me-char-01-left.png`,
-  'me-char-01-left-walk1': `${ASSET_BASE}me-char-01-left-walk1.png`,
-  'me-char-01-left-walk2': `${ASSET_BASE}me-char-01-left-walk2.png`,
-  'me-char-01-right': `${ASSET_BASE}me-char-01-right.png`,
-  'me-char-01-right-walk1': `${ASSET_BASE}me-char-01-right-walk1.png`,
-  'me-char-01-right-walk2': `${ASSET_BASE}me-char-01-right-walk2.png`,
+  // Modern Interiors premade characters #01–#20 are appended below
+  // (see ME_CHAR_COUNT loop) — used as alt player skins via
+  // PLAYER_SPRITE_PREFIX, and as NPC spriteKeys in map data. Frames
+  // are sliced from the gitignored pack by
+  // scripts/slice-premade-characters.mjs.
   // Objects
   'tree': `${ASSET_BASE}tree.png`,
   'rock': `${ASSET_BASE}rock.png`,
@@ -198,6 +187,21 @@ const spriteManifest: Record<string, string> = {
   'signpost': `${ASSET_BASE}signpost.png`,
   'bush': `${ASSET_BASE}bush.png`,
 };
+
+// Modern Interiors premade characters: 20 sheets × 4 directions ×
+// (idle + walk1 + walk2) = 240 entries. Generated rather than listed
+// out so adding a new character is just dropping its sliced PNGs in.
+const ME_CHAR_COUNT = 20;
+const ME_CHAR_DIRS = ['down', 'up', 'left', 'right'] as const;
+for (let n = 1; n <= ME_CHAR_COUNT; n++) {
+  const id = String(n).padStart(2, '0');
+  for (const dir of ME_CHAR_DIRS) {
+    const base = `me-char-${id}-${dir}`;
+    spriteManifest[base] = `${ASSET_BASE}${base}.png`;
+    spriteManifest[`${base}-walk1`] = `${ASSET_BASE}${base}-walk1.png`;
+    spriteManifest[`${base}-walk2`] = `${ASSET_BASE}${base}-walk2.png`;
+  }
+}
 
 
 const textureCache = new Map<string, Texture>();
