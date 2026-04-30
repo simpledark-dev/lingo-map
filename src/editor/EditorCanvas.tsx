@@ -164,11 +164,17 @@ function initFromGameMap(): ReturnType<typeof createInitialState> {
       const raw = localStorage.getItem(`editor-map:${mapId}`);
       if (raw) {
         const saved = JSON.parse(raw);
-        if (saved?.tiles && saved.width && saved.height) {
+        // Accept both schemas: legacy top-level `tiles` and the new
+        // `layers[]` shape (where tiles live inside the first
+        // tile-kind layer). Same fix as the disk-load effect below;
+        // before this, new-format localStorage saves were rejected
+        // and the editor fell through to the compiled map fallback.
+        const hasContent = Array.isArray(saved?.tiles) || Array.isArray(saved?.layers);
+        if (saved && hasContent && saved.width && saved.height) {
           const base = createInitialState(saved.width, saved.height);
           return {
             ...base,
-            layers: buildImportedLayers(saved.layers, saved.tiles, saved.objects || [], saved.width, saved.height),
+            layers: buildImportedLayers(saved.layers, saved.tiles ?? [], saved.objects || [], saved.width, saved.height),
             buildings: saved.buildings || [],
             mapWidth: saved.width,
             mapHeight: saved.height,
@@ -354,7 +360,17 @@ export default function EditorCanvas() {
     fetch(`/api/maps/${encodeURIComponent(mapId)}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (cancelled || !data?.tiles || !data.width || !data.height) return;
+        // Accept either schema: legacy top-level `tiles` OR the new
+        // `layers[]` shape (where tiles live inside the first
+        // tile-kind layer). The previous filter ONLY accepted legacy,
+        // so opening an interior map saved in the new format failed
+        // to import — diskLoadedRef still flipped true in .finally(),
+        // and the very next auto-save effect tick wrote the editor's
+        // default state (loaded from compiled fallback) over the disk
+        // file, stripping layers and resetting object scales. Opening
+        // f1/f2 in the editor was thus destroying them every time.
+        const hasContent = Array.isArray(data?.tiles) || Array.isArray(data?.layers);
+        if (cancelled || !data || !hasContent || !data.width || !data.height) return;
         // Deduplicate object IDs — older saves can contain collisions (a
         // module-level counter that reset on refresh used to hand out repeat
         // IDs). Selecting/resizing one object used to affect all duplicates.
@@ -363,7 +379,7 @@ export default function EditorCanvas() {
           if (!seenIds.has(o.id)) { seenIds.add(o.id); return o; }
           return { ...o, id: generateObjectId() };
         });
-        dispatch({ type: 'IMPORT_MAP', tiles: data.tiles, objects, buildings: data.buildings || [], width: data.width, height: data.height, layers: data.layers });
+        dispatch({ type: 'IMPORT_MAP', tiles: data.tiles ?? [], objects, buildings: data.buildings || [], width: data.width, height: data.height, layers: data.layers });
         if (data.id) dispatch({ type: 'SET_MAP_NAME', name: data.id });
         if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });
       })

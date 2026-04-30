@@ -15,10 +15,14 @@ interface Props {
 export default function EditorTopBar({ state, dispatch, onBeginResize }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const applyMapData = useCallback((data: { id?: string; tiles: unknown; objects?: unknown[]; buildings?: unknown[]; width: number; height: number; tileSize?: number; layers?: unknown[] }, fallbackId: string) => {
+  const applyMapData = useCallback((data: { id?: string; tiles?: unknown; objects?: unknown[]; buildings?: unknown[]; width: number; height: number; tileSize?: number; layers?: unknown[] }, fallbackId: string) => {
     dispatch({
       type: 'IMPORT_MAP',
-      tiles: data.tiles as never,
+      // tiles may be absent on new-format saves where tile content
+      // lives inside layers[]. buildImportedLayers takes the layers
+      // path when available and ignores `tiles`; fallback to []
+      // so the legacy code path doesn't NPE if it's reached.
+      tiles: (data.tiles as never) ?? ([] as never),
       objects: (data.objects as never[]) || [],
       buildings: (data.buildings as never[]) || [],
       width: data.width,
@@ -32,12 +36,21 @@ export default function EditorTopBar({ state, dispatch, onBeginResize }: Props) 
   const handleLoadGameMap = useCallback(async (mapId: string) => {
     if (!mapId) return;
 
-    // 1) Prefer disk-persisted version
+    // 1) Prefer disk-persisted version. Accept either schema: legacy
+    //    top-level `tiles` OR the new `layers[]` shape (where tiles
+    //    live inside the first tile-kind layer). Without the layers
+    //    branch this filter rejected every modern save and silently
+    //    fell through to the compiled-map fallback below — and the
+    //    next auto-save tick wrote that compiled fallback over the
+    //    disk file, stripping layers and resetting object scales.
+    //    Same bug existed on the editor's mount-time disk-load and
+    //    localStorage-load; both fixed in EditorCanvas.tsx.
     try {
       const res = await fetch(`/api/maps/${encodeURIComponent(mapId)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data?.tiles && data.width && data.height) {
+        const hasContent = Array.isArray(data?.tiles) || Array.isArray(data?.layers);
+        if (data && hasContent && data.width && data.height) {
           applyMapData(data, mapId);
           return;
         }
@@ -82,17 +95,21 @@ export default function EditorTopBar({ state, dispatch, onBeginResize }: Props) 
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result as string);
-        if (data.tiles && data.width && data.height) {
+        const hasContent = Array.isArray(data?.tiles) || Array.isArray(data?.layers);
+        if (hasContent && data.width && data.height) {
           dispatch({
             type: 'IMPORT_MAP',
-            tiles: data.tiles,
+            tiles: data.tiles ?? [],
             objects: data.objects || [],
             buildings: data.buildings || [],
             width: data.width,
             height: data.height,
+            layers: data.layers,
           });
           if (data.id) dispatch({ type: 'SET_MAP_NAME', name: data.id });
           if (data.tileSize) dispatch({ type: 'SET_TILE_SIZE', tileSize: data.tileSize });
+        } else {
+          alert('Invalid map JSON: missing both tiles and layers, or missing dimensions');
         }
       } catch {
         alert('Invalid map JSON file');
