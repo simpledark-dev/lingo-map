@@ -1,6 +1,6 @@
 import { Application, Container, Graphics, RenderTexture, Sprite, Texture } from 'pixi.js';
 import { Entity, MapData, MapLayer, PlayerState } from '../core/types';
-import { PLAYER_LAYER_ID } from '../core/constants';
+import { PLAYER_LAYER_ID, PLAYER_SPRITE_PREFIX } from '../core/constants';
 import { getEffectiveZIndex, getLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
 import { getTexture, getTileTexture, loadPackSingle } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
@@ -893,9 +893,9 @@ export class RenderSystem {
     for (const npc of map.npcs) keys.add(npc.spriteKey);
 
     for (const dir of ['down', 'up', 'left', 'right']) {
-      keys.add(`player-${dir}`);
-      keys.add(`player-${dir}-walk1`);
-      keys.add(`player-${dir}-walk2`);
+      keys.add(`${PLAYER_SPRITE_PREFIX}-${dir}`);
+      keys.add(`${PLAYER_SPRITE_PREFIX}-${dir}-walk1`);
+      keys.add(`${PLAYER_SPRITE_PREFIX}-${dir}-walk2`);
     }
     // NOTE: car sprite keys deliberately omitted here. Adding 40
     // pack-single fetches to the blocking `await loadAssets(...)` was

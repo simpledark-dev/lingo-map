@@ -114,6 +114,22 @@ const spriteManifest: Record<string, string> = {
   'player-right': `${ASSET_BASE}player-right.png`,
   'player-right-walk1': `${ASSET_BASE}player-right-walk1.png`,
   'player-right-walk2': `${ASSET_BASE}player-right-walk2.png`,
+  // Modern Interiors premade character #1 — temporary alt skin for the
+  // player. Activated via PLAYER_SPRITE_PREFIX in src/core/constants.ts.
+  // Frames sliced from the gitignored pack at moderninteriors-win/...
+  // by scripts/slice-char-01.mjs.
+  'me-char-01-down': `${ASSET_BASE}me-char-01-down.png`,
+  'me-char-01-down-walk1': `${ASSET_BASE}me-char-01-down-walk1.png`,
+  'me-char-01-down-walk2': `${ASSET_BASE}me-char-01-down-walk2.png`,
+  'me-char-01-up': `${ASSET_BASE}me-char-01-up.png`,
+  'me-char-01-up-walk1': `${ASSET_BASE}me-char-01-up-walk1.png`,
+  'me-char-01-up-walk2': `${ASSET_BASE}me-char-01-up-walk2.png`,
+  'me-char-01-left': `${ASSET_BASE}me-char-01-left.png`,
+  'me-char-01-left-walk1': `${ASSET_BASE}me-char-01-left-walk1.png`,
+  'me-char-01-left-walk2': `${ASSET_BASE}me-char-01-left-walk2.png`,
+  'me-char-01-right': `${ASSET_BASE}me-char-01-right.png`,
+  'me-char-01-right-walk1': `${ASSET_BASE}me-char-01-right-walk1.png`,
+  'me-char-01-right-walk2': `${ASSET_BASE}me-char-01-right-walk2.png`,
   // Objects
   'tree': `${ASSET_BASE}tree.png`,
   'rock': `${ASSET_BASE}rock.png`,

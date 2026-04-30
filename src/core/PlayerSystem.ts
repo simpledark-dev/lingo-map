@@ -1,12 +1,12 @@
 import { PlayerState, InputState, Direction, MovementMode, SpawnPoint } from './types';
-import { PLAYER_SPEED, CLICK_ARRIVE_THRESHOLD } from './constants';
+import { PLAYER_SPEED, CLICK_ARRIVE_THRESHOLD, PLAYER_SPRITE_PREFIX } from './constants';
 
 export function createPlayer(spawn: SpawnPoint): PlayerState {
   return {
     id: 'player',
     x: spawn.x,
     y: spawn.y,
-    spriteKey: `player-${spawn.facing}`,
+    spriteKey: `${PLAYER_SPRITE_PREFIX}-${spawn.facing}`,
     anchor: { x: 0.5, y: 1.0 },
     sortY: spawn.y,
     collisionBox: { offsetX: -5, offsetY: -6, width: 10, height: 6 },
@@ -117,7 +117,7 @@ export function updatePlayer(
     y: newY,
     sortY: newY,
     facing,
-    spriteKey: `player-${facing}`,
+    spriteKey: `${PLAYER_SPRITE_PREFIX}-${facing}`,
     movementMode: mode,
   };
 }

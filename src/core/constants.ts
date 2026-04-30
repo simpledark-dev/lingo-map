@@ -36,6 +36,16 @@ export const DEFAULT_LAYERS = [
 /** Layer ID where the player and NPCs render. */
 export const PLAYER_LAYER_ID = "props";
 
+/** Active player sprite skin. Each skin must register
+ *  `<prefix>-{down,up,left,right}` plus `-walk1` / `-walk2` variants in
+ *  AssetLoader. Flip to swap the player sprite without touching the
+ *  rest of the engine.
+ *
+ *  - `'player'` — original 22×30 placeholder character
+ *  - `'me-char-01'` — Modern Interiors premade character #1 (16×32)
+ */
+export const PLAYER_SPRITE_PREFIX = "me-char-01";
+
 /** Sprite keys whose sortY should be heavily decremented so they render BEHIND
  * other entities (player walks "on" them). Used for floor decor (rugs) and
  * wall-mounted decor (windows, paintings, clocks, staircase). */
