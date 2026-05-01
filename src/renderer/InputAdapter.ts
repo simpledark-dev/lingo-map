@@ -70,6 +70,7 @@ export class InputAdapter {
 
   private onPointerDown = (e: PointerEvent) => {
     if (!this.canvas) return;
+    this.suppressBrowserTouchGesture(e);
     this.canvas.setPointerCapture(e.pointerId);
 
     // Track touch for pinch detection
@@ -140,6 +141,7 @@ export class InputAdapter {
 
   private onPointerMove = (e: PointerEvent) => {
     if (!this.activeTouches.has(e.pointerId)) return;
+    this.suppressBrowserTouchGesture(e);
     this.activeTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     // Proportional pinch zoom: scale by the ratio of current finger
@@ -158,6 +160,7 @@ export class InputAdapter {
   };
 
   private onPointerUp = (e: PointerEvent) => {
+    this.suppressBrowserTouchGesture(e);
     if (this.canvas?.hasPointerCapture(e.pointerId)) {
       this.canvas.releasePointerCapture(e.pointerId);
     }
@@ -172,6 +175,16 @@ export class InputAdapter {
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
     this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom + delta));
   };
+
+  private preventDefault = (e: Event) => {
+    if (e.cancelable) e.preventDefault();
+  };
+
+  private suppressBrowserTouchGesture(e: PointerEvent): void {
+    if (e.pointerType !== "mouse" && e.cancelable) {
+      e.preventDefault();
+    }
+  }
 
   private getPinchDist(): number {
     const pts = Array.from(this.activeTouches.values());
@@ -190,8 +203,16 @@ export class InputAdapter {
     canvas.addEventListener("pointerup", this.onPointerUp);
     canvas.addEventListener("pointercancel", this.onPointerUp);
     canvas.addEventListener("wheel", this.onWheel, { passive: false });
-    // Prevent default touch behavior (scroll/zoom) on the canvas
+    canvas.addEventListener("contextmenu", this.preventDefault);
+    canvas.addEventListener("selectstart", this.preventDefault);
+    canvas.addEventListener("dragstart", this.preventDefault);
+    // Prevent default touch behavior (scroll/zoom/loupe/callout) on the canvas.
     canvas.style.touchAction = "none";
+    canvas.style.userSelect = "none";
+    canvas.style.setProperty("-webkit-user-select", "none");
+    canvas.style.setProperty("-webkit-user-drag", "none");
+    canvas.style.setProperty("-webkit-tap-highlight-color", "transparent");
+    canvas.style.setProperty("-webkit-touch-callout", "none");
   }
 
   destroy(): void {
@@ -203,6 +224,9 @@ export class InputAdapter {
       this.canvas.removeEventListener("pointerup", this.onPointerUp);
       this.canvas.removeEventListener("pointercancel", this.onPointerUp);
       this.canvas.removeEventListener("wheel", this.onWheel);
+      this.canvas.removeEventListener("contextmenu", this.preventDefault);
+      this.canvas.removeEventListener("selectstart", this.preventDefault);
+      this.canvas.removeEventListener("dragstart", this.preventDefault);
       this.canvas = null;
     }
   }

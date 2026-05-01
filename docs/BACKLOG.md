@@ -296,7 +296,7 @@ Files: [data/pokemon-house-1f.json](../data/pokemon-house-1f.json),
 
 ## BL-16: Occasional landscape black half screen
 
-## BL-17: Disable magnifying glass effect on mobile
+## BL-17: Disable magnifying glass effect on mobile/PWA
 
 ## Done
 
@@ -337,7 +337,7 @@ Files: [data/pokemon-house-1f.json](../data/pokemon-house-1f.json),
   edge-of-map + walkable-neighbour analysis at trigger creation.
   Tap-to-move now also re-targets to the trigger's approach cell with
   an appended step-into-trigger waypoint, so tapping a door zone walks
-  the player straight in instead of orbiting forever when A* picks an
+  the player straight in instead of orbiting forever when A\* picks an
   approach angle that doesn't fire the facing gate.
 - **BL-11 — Mobile virtual D-pad.** New `VirtualDPad.tsx` component:
   touch-anchored, 8-way octant snap (4 cardinals + 4 diagonals at

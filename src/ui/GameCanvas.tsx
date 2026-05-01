@@ -390,6 +390,7 @@ export default function GameCanvas() {
 
   return (
     <div
+      onContextMenu={(e) => e.preventDefault()}
       style={{
         position: 'fixed',
         inset: 0,

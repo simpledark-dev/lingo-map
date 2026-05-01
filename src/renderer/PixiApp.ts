@@ -144,6 +144,12 @@ export class PixiApp {
     canvas.style.top = '0';
     canvas.style.left = '0';
     canvas.style.zIndex = '0';
+    canvas.style.touchAction = 'none';
+    canvas.style.userSelect = 'none';
+    canvas.style.setProperty('-webkit-user-select', 'none');
+    canvas.style.setProperty('-webkit-user-drag', 'none');
+    canvas.style.setProperty('-webkit-tap-highlight-color', 'transparent');
+    canvas.style.setProperty('-webkit-touch-callout', 'none');
     container.appendChild(canvas);
 
     this.inputAdapter.attach(canvas);
