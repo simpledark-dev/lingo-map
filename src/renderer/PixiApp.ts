@@ -599,14 +599,54 @@ export class PixiApp {
     // routes around whoever's standing where right NOW (the static
     // walk grid no longer bakes NPC positions in — they wandered).
     if (input.moveTarget && this.walkGrid) {
+      // Door-trigger-aware routing. If the tap landed inside a door
+      // trigger that has a `requiresFacing` gate, plain A* might pick
+      // any walkable cell adjacent to the trigger — including ones
+      // where the final step doesn't move in the required direction.
+      // The player then orbits the building forever, the door never
+      // fires, the user taps again. Fix: rewrite the goal to be the
+      // approach cell just outside the trigger on the side opposite
+      // `requiresFacing`, then append a final waypoint that steps
+      // INTO the trigger. The motion delta on that last step sets
+      // directional intent, the door's facing gate is satisfied, the
+      // door fires.
+      const tap = input.moveTarget;
+      const triggerHit = map.triggers.find(t =>
+        t.type === 'door' &&
+        !!t.requiresFacing &&
+        tap.x >= t.x && tap.x < t.x + t.width &&
+        tap.y >= t.y && tap.y < t.y + t.height,
+      );
+
+      let goalX = tap.x;
+      let goalY = tap.y;
+      let extraWaypoint: { x: number; y: number } | null = null;
+      if (triggerHit && triggerHit.requiresFacing) {
+        const T = map.tileSize;
+        const cx = triggerHit.x + triggerHit.width / 2;
+        const cy = triggerHit.y + triggerHit.height / 2;
+        switch (triggerHit.requiresFacing) {
+          case 'up':
+            goalX = cx; goalY = triggerHit.y + triggerHit.height + T / 2; break;
+          case 'down':
+            goalX = cx; goalY = triggerHit.y - T / 2; break;
+          case 'left':
+            goalX = triggerHit.x + triggerHit.width + T / 2; goalY = cy; break;
+          case 'right':
+            goalX = triggerHit.x - T / 2; goalY = cy; break;
+        }
+        extraWaypoint = { x: cx, y: cy };
+      }
+
       const waypoints = findPath(
         this.walkGrid,
         this.gameState.player.x, this.gameState.player.y,
-        input.moveTarget.x, input.moveTarget.y,
+        goalX, goalY,
         this.gameState.npcs,
         this.gameState.player.collisionBox,
       );
       if (waypoints.length > 0) {
+        if (extraWaypoint) waypoints.push(extraWaypoint);
         // Override input — set path mode instead of straight-line target
         this.gameState.player = {
           ...this.gameState.player,
