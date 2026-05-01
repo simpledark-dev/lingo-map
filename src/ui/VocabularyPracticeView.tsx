@@ -517,6 +517,14 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
             .vp-body { padding: 10px 14px; }
             .vp-prompt-section { margin-bottom: 10px !important; text-align: center; }
             .vp-prompt-label { display: none; }
+            /* Stack word above speaker — see VocabularyTranslateView
+               for rationale. Same compact treatment. */
+            .vp-prompt-word-row {
+              display: flex !important;
+              flex-direction: column !important;
+              align-items: center !important;
+              gap: 4px !important;
+            }
             .vp-word { font-size: 22px !important; letter-spacing: 1px !important; }
             .vp-speaker { font-size: 12px !important; padding: 3px 8px !important; }
             .vp-choices {

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { DialogueState } from '../core/types';
-import { speakDialogue, cancelDialogueSpeech } from './tts';
+import { speakDialogue } from './tts';
 
 interface DialogueOverlayProps {
   dialogue: DialogueState;
@@ -49,7 +49,18 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
   useEffect(() => {
     if (!currentLine) return;
     speakDialogue(currentLine);
-    return cancelDialogueSpeech;
+    // Intentionally NO cleanup-time cancel. Calling
+    // `speechSynthesis.cancel()` on iOS Safari triggers a 1-2 second
+    // main-thread stutter while the OS speech daemon flushes its
+    // audio session — observable as "tap NPC, tap away, ~2s later
+    // the game freezes for 1s." Letting the utterance finish
+    // naturally (a few seconds of NPC voice trailing after dialogue
+    // closes) is far better UX than a hard freeze. Replacement
+    // utterances (advancing dialogue, opening a new NPC chat) still
+    // cancel + re-speak via `speakDialogue`'s own logic, which only
+    // fires when there's a NEW utterance to take over — so the
+    // engine's cleanup overhead happens behind the new audio rather
+    // than during a silent gameplay window.
   }, [currentLine, dialogue.npcId]);
 
   return (

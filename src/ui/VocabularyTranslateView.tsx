@@ -588,6 +588,16 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
             .vt-body { padding: 10px 14px; }
             .vt-prompt-section { margin-bottom: 10px !important; text-align: center; }
             .vt-prompt-label { display: none; }
+            /* Stack word above speaker — the 2-col grid below saved
+               enough vertical room that the speaker no longer needs
+               to share a row with the word. Word stays the focal
+               point, speaker reads as a small secondary affordance. */
+            .vt-prompt-word-row {
+              display: flex !important;
+              flex-direction: column !important;
+              align-items: center !important;
+              gap: 4px !important;
+            }
             .vt-word { font-size: 22px !important; letter-spacing: 1px !important; }
             .vt-speaker { font-size: 12px !important; padding: 3px 8px !important; }
             .vt-choices {
