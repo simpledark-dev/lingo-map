@@ -2,6 +2,15 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { VocabularyPack, VocabularyEntry, getExamples } from '../data/vocabularyPacks';
+import {
+  VocabProgress,
+  loadProgress,
+  saveProgress,
+  pickPromptEntry,
+  buildChoices,
+  recordAnswer,
+  recordPromptShown,
+} from '../data/vocabSelection';
 import { speakDialogue, cancelDialogueSpeech } from './tts';
 
 interface VocabularyPracticeViewProps {
@@ -48,42 +57,25 @@ interface Round {
   choices: VocabularyEntry[];
 }
 
-function pickRound(pack: VocabularyPack, previousPromptTarget?: string): Round {
-  // Avoid showing the same word twice in a row — feels fairer than
-  // pure uniform random and removes a small "did I just answer this?"
-  // confusion when the player picks correctly.
-  const pool = previousPromptTarget
-    ? pack.entries.filter((e) => e.target !== previousPromptTarget)
-    : pack.entries;
-  const prompt = pool[Math.floor(Math.random() * pool.length)];
-
-  const samePOS = pack.entries.filter(
-    (e) => e.pos === prompt.pos && e.target !== prompt.target,
-  );
-  const distractors: VocabularyEntry[] = shuffle(samePOS).slice(0, 3);
-  while (distractors.length < 3) {
-    const candidate = pack.entries[Math.floor(Math.random() * pack.entries.length)];
-    if (
-      candidate.target !== prompt.target &&
-      !distractors.some((d) => d.target === candidate.target)
-    ) {
-      distractors.push(candidate);
-    }
-  }
-  return { prompt, choices: shuffle([prompt, ...distractors]) };
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const out = arr.slice();
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
+function buildRound(pack: VocabularyPack, progress: VocabProgress): Round {
+  const prompt = pickPromptEntry(pack, progress);
+  const choices = buildChoices(pack, prompt);
+  return { prompt, choices };
 }
 
 export default function VocabularyPracticeView({ pack, npcName, onClose }: VocabularyPracticeViewProps) {
-  const [round, setRound] = useState<Round>(() => pickRound(pack));
+  const [progress, setProgress] = useState<VocabProgress>(() => loadProgress(pack.id));
+  const [round, setRound] = useState<Round>(() => buildRound(pack, progress));
+  // Stamp the first prompt into the recency buffer right away. Done
+  // in an effect (not state init) to keep init pure.
+  useEffect(() => {
+    setProgress((p) => {
+      const next = recordPromptShown(p, round.prompt.target);
+      saveProgress(pack.id, next);
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   /** When the player picks an answer, lock the buttons until either
    *  (a) the feedback hold elapses and the next round mounts (correct
    *  → auto-advance) or (b) the player taps Next (wrong → manual). */
@@ -116,11 +108,17 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
       window.clearTimeout(advanceTimerRef.current);
       advanceTimerRef.current = null;
     }
-    setRound(pickRound(pack, round.prompt.target));
+    setProgress((p) => {
+      const nextRound = buildRound(pack, p);
+      const stamped = recordPromptShown(p, nextRound.prompt.target);
+      saveProgress(pack.id, stamped);
+      setRound(nextRound);
+      return stamped;
+    });
     setSelectedTarget(null);
     setWaitingOnNext(false);
     setShowDetails(false);
-  }, [pack, round.prompt.target]);
+  }, [pack]);
 
   const handlePick = useCallback(
     (chosen: VocabularyEntry) => {
@@ -131,6 +129,13 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
         correct: s.correct + (isCorrect ? 1 : 0),
         wrong: s.wrong + (isCorrect ? 0 : 1),
       }));
+      // Update per-word memory state — the picker uses this on the
+      // next round (wrong-queue + recency-aware).
+      setProgress((p) => {
+        const updated = recordAnswer(p, round.prompt.target, isCorrect);
+        saveProgress(pack.id, updated);
+        return updated;
+      });
       if (isCorrect) {
         advanceTimerRef.current = window.setTimeout(() => {
           advanceToNextRound();
@@ -139,7 +144,7 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
         setWaitingOnNext(true);
       }
     },
-    [round.prompt.target, selectedTarget, advanceToNextRound],
+    [pack, round.prompt.target, selectedTarget, advanceToNextRound],
   );
 
   const handleSpeak = useCallback(() => {

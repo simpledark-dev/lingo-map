@@ -22,6 +22,15 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { VocabularyPack, VocabularyEntry, getExamples } from '../data/vocabularyPacks';
+import {
+  VocabProgress,
+  loadProgress,
+  saveProgress,
+  pickPromptEntry,
+  buildChoices,
+  recordAnswer,
+  recordPromptShown,
+} from '../data/vocabSelection';
 import { speakDialogue, cancelDialogueSpeech } from './tts';
 
 interface VocabularyTranslateViewProps {
@@ -62,38 +71,39 @@ interface Round {
   choices: VocabularyEntry[];
 }
 
-function pickRound(pack: VocabularyPack, previousPromptTarget?: string): Round {
-  const pool = previousPromptTarget
-    ? pack.entries.filter((e) => e.target !== previousPromptTarget)
-    : pack.entries;
-  const prompt = pool[Math.floor(Math.random() * pool.length)];
-  const samePOS = pack.entries.filter(
-    (e) => e.pos === prompt.pos && e.target !== prompt.target,
-  );
-  const distractors: VocabularyEntry[] = shuffle(samePOS).slice(0, 3);
-  while (distractors.length < 3) {
-    const candidate = pack.entries[Math.floor(Math.random() * pack.entries.length)];
-    if (
-      candidate.target !== prompt.target &&
-      !distractors.some((d) => d.target === candidate.target)
-    ) {
-      distractors.push(candidate);
-    }
-  }
-  return { prompt, choices: shuffle([prompt, ...distractors]) };
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const out = arr.slice();
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
+/** Pick a prompt + build its 4 choices using the shared
+ *  weak-word-recovery picker. The picker takes recency, mastery
+ *  state, and the wrong-queue into account; we just compose its
+ *  two outputs into the Round shape this view consumes. */
+function buildRound(pack: VocabularyPack, progress: VocabProgress): Round {
+  const prompt = pickPromptEntry(pack, progress);
+  const choices = buildChoices(pack, prompt);
+  return { prompt, choices };
 }
 
 export default function VocabularyTranslateView({ pack, npcName, onClose }: VocabularyTranslateViewProps) {
-  const [round, setRound] = useState<Round>(() => pickRound(pack));
+  // Load persisted progress for this pack first; the picker reads
+  // it to bias toward weak words. Initialised inside useState's
+  // initializer so we only hit localStorage once per mount.
+  const [progress, setProgress] = useState<VocabProgress>(() => {
+    const initial = loadProgress(pack.id);
+    // Even before the player answers, seed the recency buffer with
+    // the first prompt so a same-pack reopen doesn't immediately
+    // serve the same word again.
+    return initial;
+  });
+  const [round, setRound] = useState<Round>(() => buildRound(pack, progress));
+  // Mark the very first prompt as shown so it lands in the recency
+  // buffer right away. Done in an effect rather than during state
+  // init to keep init pure.
+  useEffect(() => {
+    setProgress((p) => {
+      const next = recordPromptShown(p, round.prompt.target);
+      saveProgress(pack.id, next);
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [coins, setCoins] = useState(0);
   /** Last-answer delta — drives the small floating "+5 / -3" badge
@@ -128,21 +138,37 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
       window.clearTimeout(advanceTimerRef.current);
       advanceTimerRef.current = null;
     }
-    setRound(pickRound(pack, round.prompt.target));
+    setProgress((p) => {
+      // Seed the next prompt's recency BEFORE picking so the picker
+      // doesn't reuse it as one of the random choices that gets back
+      // into rotation.
+      const nextRound = buildRound(pack, p);
+      const stamped = recordPromptShown(p, nextRound.prompt.target);
+      saveProgress(pack.id, stamped);
+      setRound(nextRound);
+      return stamped;
+    });
     setSelectedTarget(null);
     setLastDelta(null);
     setWaitingOnNext(false);
     setShowDetails(false);
-  }, [pack, round.prompt.target]);
+  }, [pack]);
 
   const handlePick = useCallback(
     (chosen: VocabularyEntry) => {
-      if (selectedTarget !== null) return;
+      if (selectedTarget !== null || waitingOnNext) return;
       setSelectedTarget(chosen.target);
       const isCorrect = chosen.target === round.prompt.target;
       const delta = isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG;
       setCoins((c) => c + delta);
       setLastDelta(delta);
+      // Update the per-word memory state — this is what feeds the
+      // wrong-queue + recency-aware picker on the next round.
+      setProgress((p) => {
+        const updated = recordAnswer(p, round.prompt.target, isCorrect);
+        saveProgress(pack.id, updated);
+        return updated;
+      });
       if (isCorrect) {
         // Brisk correct flow — auto-advance.
         advanceTimerRef.current = window.setTimeout(() => {
@@ -155,8 +181,29 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
         setWaitingOnNext(true);
       }
     },
-    [round.prompt.target, selectedTarget, advanceToNextRound],
+    [pack, round.prompt.target, selectedTarget, waitingOnNext, advanceToNextRound],
   );
+
+  /** Player admits they don't know the word — better than letting
+   *  them random-guess into the wrong-queue. The progress side
+   *  treats this exactly like a wrong answer (word goes to the
+   *  queue, streak resets, comes back more often) because the
+   *  recovery loop wants to drill the unknown words. The economy
+   *  side is gentler: zero coins instead of -3, so honesty is
+   *  cheaper than a wrong guess. The study panel auto-expands —
+   *  they asked for help, they get help. */
+  const handleIDontKnow = useCallback(() => {
+    if (selectedTarget !== null || waitingOnNext) return;
+    setProgress((p) => {
+      const updated = recordAnswer(p, round.prompt.target, false);
+      saveProgress(pack.id, updated);
+      return updated;
+    });
+    setWaitingOnNext(true);
+    setShowDetails(true);
+    // No coin delta, no floating "+0" badge — keep the UI quiet so
+    // the player feels relief, not punishment.
+  }, [pack, round.prompt.target, selectedTarget, waitingOnNext]);
 
   const handleSpeak = useCallback(() => {
     cancelDialogueSpeech();

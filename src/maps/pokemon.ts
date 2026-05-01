@@ -187,7 +187,10 @@ const npcs: NPCData[] = [
     sortY: 96,
     collisionBox: NPC_FOOT_COLLISION,
     name: "Mira",
-    dialogue: ["Oh, hi there! You must be new in town.", "The Mart is just east past the path."],
+    dialogue: [
+      "Oh, hi there! You must be new in town.",
+      "The Mart is just east past the path.",
+    ],
     wanderRadius: 32,
   },
   {
@@ -199,7 +202,10 @@ const npcs: NPCData[] = [
     sortY: 96,
     collisionBox: NPC_FOOT_COLLISION,
     name: "Hank",
-    dialogue: ["Mart's been in my family three generations.", "Anything you need, we've got it."],
+    dialogue: [
+      "Mart's been in my family three generations.",
+      "Anything you need, we've got it.",
+    ],
     wanderRadius: 32,
   },
   {
@@ -211,7 +217,10 @@ const npcs: NPCData[] = [
     sortY: 96,
     collisionBox: NPC_FOOT_COLLISION,
     name: "Riku",
-    dialogue: ["I'm waiting for the next showing at the cinema.", "Old monster movies tonight!"],
+    dialogue: [
+      "I'm waiting for the next showing at the cinema.",
+      "Old monster movies tonight!",
+    ],
     wanderRadius: 32,
   },
   {
@@ -407,7 +416,7 @@ const npcs: NPCData[] = [
     // count inventory back at the shop.
     vocabularyPackId: "saba-pack-1",
     vocabularyOfferLine:
-      "Hey! You're the new translator, right? Help me drill these numbers — beats actually doing my job.",
+      "Yo the translator! Help me drill these numbers — beats actually doing my job.",
   },
   {
     id: "pk-npc-19",
