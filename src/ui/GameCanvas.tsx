@@ -35,6 +35,9 @@ export default function GameCanvas() {
   const [dialogue, setDialogue] = useState<DialogueState | null>(null);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
+  // Door-transition fade-to-black. Toggled true when a door fires;
+  // toggled back false on `sceneChange` (i.e., the new scene has loaded).
+  const [transitionFade, setTransitionFade] = useState(false);
   const [objectMultiplier] = useState(readInitialObjectMultiplier);
   const [soundOn, setSoundOn] = useState(true);
   const [viewportSize, setViewportSize] = useState<ViewportSize | null>(readViewportSize);
@@ -238,8 +241,18 @@ export default function GameCanvas() {
           case 'dialogueEnd':
             setDialogue(null);
             break;
+          case 'sceneTransitionStart':
+            setTransitionFade(true);
+            break;
           case 'sceneChange':
             setCurrentMapId(event.mapId);
+            // Brief delay before fading back in so the new scene has a
+            // tick to render its first frame under the still-opaque
+            // overlay — otherwise the fade-in reveals one frame of the
+            // PREVIOUS scene before the renderer redraws.
+            window.setTimeout(() => {
+              if (!cancelled) setTransitionFade(false);
+            }, 40);
             break;
         }
       });
@@ -463,6 +476,26 @@ export default function GameCanvas() {
           <div style={{ fontSize: 11, opacity: 0.55 }}>loading…</div>
         </div>
       )}
+
+      {/* Door-transition fade-to-black. CSS transition does the
+          animation; React just toggles the boolean. The 220ms
+          out/180ms in pair matches the FADE_OUT_MS in PixiApp so the
+          screen is fully black before `loadScene` starts and the
+          new scene appears under the overlay before the fade-in
+          starts. zIndex sits below the dialogue/UI overlay (zIndex=10)
+          but above the canvas (zIndex=0). */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: '#000',
+          opacity: transitionFade ? 1 : 0,
+          transition: transitionFade ? 'opacity 220ms ease-in' : 'opacity 180ms ease-out',
+          pointerEvents: 'none',
+          zIndex: 5,
+        }}
+      />
 
       {/* Build-version stamp — bumped manually in src/version.ts on
           every commit so a quick glance from the phone confirms whether

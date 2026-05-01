@@ -5,6 +5,10 @@ export type GameEvent =
   | { type: 'dialogueStart'; dialogue: DialogueState }
   | { type: 'dialogueAdvance'; dialogue: DialogueState }
   | { type: 'dialogueEnd' }
+  /** Fired the moment a door trigger fires, BEFORE the new map loads.
+   *  Pairs with `sceneChange` (which fires once the new scene is ready)
+   *  to drive the fade-to-black overlay in `GameCanvas`. */
+  | { type: 'sceneTransitionStart' }
   | { type: 'sceneChange'; mapId: string };
 
 type Listener = (event: GameEvent) => void;

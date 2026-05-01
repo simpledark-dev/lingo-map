@@ -798,6 +798,7 @@ export class PixiApp {
 
     if (transition) {
       this.transitioning = true;
+      this.bridge.emit({ type: 'sceneTransitionStart' });
 
       if (transition.buildingId) {
         // Entering a building — save a return spawn just below the building's door
@@ -837,9 +838,19 @@ export class PixiApp {
         this.gameState.returnMapId = null;
       }
 
-      this.loadScene(targetMapId, spawnId).then(() => {
-        this.transitioning = false;
-      });
+      // Hold the load until the fade-to-black is complete so the user
+      // sees a clean cross-cut rather than the new scene popping in
+      // mid-fade. `sceneChange` (emitted from inside `loadScene`)
+      // drives the fade-back-in on the React side, so total wall-clock
+      // time is FADE_OUT_MS + loadScene + FADE_IN_MS.
+      const FADE_OUT_MS = 220;
+      window.setTimeout(() => {
+        if (this.destroyed) return;
+        this.loadScene(targetMapId, spawnId).then(() => {
+          if (this.destroyed) return;
+          this.transitioning = false;
+        });
+      }, FADE_OUT_MS);
       return;
     }
 

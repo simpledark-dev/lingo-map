@@ -12843,7 +12843,7 @@
             "targetSpawnId": "indoor-b",
             "triggerBox": {
               "offsetX": -11,
-              "offsetY": -30,
+              "offsetY": -29,
               "width": 24,
               "height": 30
             },
