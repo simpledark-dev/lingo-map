@@ -174,6 +174,40 @@ function isCellBlockedByNpc(
   return false;
 }
 
+function isCellBlockedByWorldBoxes(
+  cx: number,
+  cy: number,
+  obstacles: WorldBox[],
+  pcb: CollisionBox
+): boolean {
+  if (obstacles.length === 0) return false;
+  const box: WorldBox = {
+    x: cx + pcb.offsetX - PATHFIND_BUFFER,
+    y: cy + pcb.offsetY - PATHFIND_BUFFER,
+    width: pcb.width + 2 * PATHFIND_BUFFER,
+    height: pcb.height + 2 * PATHFIND_BUFFER,
+  };
+  for (const obstacle of obstacles) {
+    if (obstacle.width <= 0 || obstacle.height <= 0) continue;
+    if (checkAABBOverlap(box, obstacle)) return true;
+  }
+  return false;
+}
+
+function isDynamicCellBlocked(
+  r: number,
+  c: number,
+  movingObstacles: WorldBox[],
+  playerCollisionBox: CollisionBox
+): boolean {
+  return isCellBlockedByWorldBoxes(
+    c * GRID_CELL + GRID_CELL / 2,
+    r * GRID_CELL + GRID_CELL / 2,
+    movingObstacles,
+    playerCollisionBox
+  );
+}
+
 /**
  * A* pathfinding on the walk grid.
  * Returns a list of world-space positions (waypoints), or empty if no path found.
@@ -195,7 +229,8 @@ export function findPath(
     offsetY: 0,
     width: 0,
     height: 0,
-  }
+  },
+  movingObstacles: WorldBox[] = []
 ): Position[] {
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
@@ -218,8 +253,8 @@ export function findPath(
   let goalR = er,
     goalC = ec;
   let goalRelocated = false;
-  if (!grid[goalR]?.[goalC]) {
-    const nearest = findNearestWalkable(grid, er, ec, rows, cols);
+  if (!grid[goalR]?.[goalC] || isDynamicCellBlocked(goalR, goalC, movingObstacles, playerCollisionBox)) {
+    const nearest = findNearestWalkable(grid, er, ec, rows, cols, movingObstacles, playerCollisionBox);
     if (!nearest) return [];
     goalR = nearest[0];
     goalC = nearest[1];
@@ -320,6 +355,7 @@ export function findPath(
       const nc = current.c + dc;
       if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
       if (!grid[nr][nc]) continue;
+      if (isDynamicCellBlocked(nr, nc, movingObstacles, playerCollisionBox)) continue;
 
       const nk = key(nr, nc);
       if (closed.has(nk)) continue;
@@ -418,7 +454,14 @@ function findNearestWalkable(
   r: number,
   c: number,
   rows: number,
-  cols: number
+  cols: number,
+  movingObstacles: WorldBox[] = [],
+  playerCollisionBox: CollisionBox = {
+    offsetX: 0,
+    offsetY: 0,
+    width: 0,
+    height: 0,
+  }
 ): [number, number] | null {
   for (let radius = 1; radius < 20; radius++) {
     for (let dr = -radius; dr <= radius; dr++) {
@@ -426,7 +469,14 @@ function findNearestWalkable(
         if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue;
         const nr = r + dr,
           nc = c + dc;
-        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc]) {
+        if (
+          nr >= 0 &&
+          nr < rows &&
+          nc >= 0 &&
+          nc < cols &&
+          grid[nr][nc] &&
+          !isDynamicCellBlocked(nr, nc, movingObstacles, playerCollisionBox)
+        ) {
           return [nr, nc];
         }
       }

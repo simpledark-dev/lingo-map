@@ -76,7 +76,7 @@ export function initWanderStates(npcs: NPCData[]): NPCWanderState[] {
 export function updateWanderStates(
   states: NPCWanderState[],
   delta: number,
-  isWalkable: (x: number, y: number) => boolean,
+  isWalkable: (x: number, y: number, npcId: string) => boolean,
 ): void {
   for (const s of states) {
     if (s.state === 'idle') {
@@ -119,8 +119,18 @@ export function updateWanderStates(
         // Move toward target
         const speed = NPC_SPEED * delta;
         const step = Math.min(speed, dist);
-        s.currentX += (dx / dist) * step;
-        s.currentY += (dy / dist) * step;
+        const nextX = s.currentX + (dx / dist) * step;
+        const nextY = s.currentY + (dy / dist) * step;
+        if (!isWalkable(nextX, nextY, s.npcId)) {
+          s.state = 'idle';
+          s.target = null;
+          s.idleTimer = MIN_IDLE_TIME + Math.random() * (MAX_IDLE_TIME - MIN_IDLE_TIME);
+          s.walkTimer = 0;
+          s.walkFrame = 0;
+          continue;
+        }
+        s.currentX = nextX;
+        s.currentY = nextY;
         // Advance the 2-frame walk cycle.
         s.walkTimer += delta;
         if (s.walkTimer >= NPC_WALK_FRAME_DURATION) {
@@ -132,7 +142,7 @@ export function updateWanderStates(
   }
 }
 
-function pickWanderTarget(s: NPCWanderState, isWalkable: (x: number, y: number) => boolean): Position | null {
+function pickWanderTarget(s: NPCWanderState, isWalkable: (x: number, y: number, npcId: string) => boolean): Position | null {
   // Try up to 10 random positions
   for (let attempt = 0; attempt < 10; attempt++) {
     const angle = Math.random() * Math.PI * 2;
@@ -156,7 +166,7 @@ function pickWanderTarget(s: NPCWanderState, isWalkable: (x: number, y: number) 
       ty = s.spawnY + (dy / d) * s.wanderRadius;
     }
 
-    if (isWalkable(tx, ty)) {
+    if (isWalkable(tx, ty, s.npcId)) {
       return { x: tx, y: ty };
     }
   }

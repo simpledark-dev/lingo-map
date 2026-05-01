@@ -81,6 +81,14 @@ function collidesWithObjects(
   return false;
 }
 
+function collidesWithWorldBoxes(box: WorldBox, obstacles: WorldBox[]): boolean {
+  for (const obstacle of obstacles) {
+    if (obstacle.width <= 0 || obstacle.height <= 0) continue;
+    if (checkAABBOverlap(box, obstacle)) return true;
+  }
+  return false;
+}
+
 /**
  * Resolve player movement with axis-independent sliding.
  * Try X movement alone, then Y movement alone.
@@ -101,18 +109,27 @@ export function resolveMovement(
   map: MapData,
   objects: Entity[],
   buildings: Building[],
+  movingObstacles: WorldBox[] = [],
 ): Position {
   // Try X axis
   let newX = desiredX;
   const xBox = getWorldCollisionBox(desiredX, currentY, playerCollisionBox);
-  if (collidesWithTiles(map, xBox) || collidesWithObjects(xBox, objects, buildings)) {
+  if (
+    collidesWithTiles(map, xBox) ||
+    collidesWithObjects(xBox, objects, buildings) ||
+    collidesWithWorldBoxes(xBox, movingObstacles)
+  ) {
     newX = currentX;
   }
 
   // Try Y axis
   let newY = desiredY;
   const yBox = getWorldCollisionBox(newX, desiredY, playerCollisionBox);
-  if (collidesWithTiles(map, yBox) || collidesWithObjects(yBox, objects, buildings)) {
+  if (
+    collidesWithTiles(map, yBox) ||
+    collidesWithObjects(yBox, objects, buildings) ||
+    collidesWithWorldBoxes(yBox, movingObstacles)
+  ) {
     newY = currentY;
   }
 

@@ -4,7 +4,7 @@ import { GameState, MapData, TileType } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
 import { buildStressMap, StressOptions } from '../core/MapStress';
 import { createPlayer, updatePlayer } from '../core/PlayerSystem';
-import { resolveMovement } from '../core/CollisionSystem';
+import { resolveMovement, WorldBox } from '../core/CollisionSystem';
 import { updateCamera, getViewportWorldSize } from '../core/CameraSystem';
 import { checkDoorTriggers } from '../core/TriggerSystem';
 import { checkInteraction, advanceDialogue } from '../core/InteractionSystem';
@@ -80,6 +80,39 @@ export class PixiApp {
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
   private debugOverlay: DebugOverlay | null = null;
+
+  private resolveCarCollisionBox(key: string): CarCollisionBox | null {
+    const override = this.carCollisionOverrides[key];
+    if (override) return override;
+    const tex = getTexture(key);
+    if (!tex) return null;
+    return {
+      offsetX: -tex.width / 2,
+      offsetY: -tex.height / 2,
+      width: tex.width,
+      height: tex.height,
+    };
+  }
+
+  private getCarObstacleBoxes(tileSize: number): WorldBox[] {
+    if (!this.carSystemState) return [];
+    const fallback: CarCollisionBox = {
+      offsetX: -tileSize / 2,
+      offsetY: -tileSize / 2,
+      width: tileSize,
+      height: tileSize,
+    };
+    return this.carSystemState.cars.map((car) => {
+      const box = this.resolveCarCollisionBox(spriteKeyForCar(car)) ?? fallback;
+      const aabb = carAABB(car, box);
+      return {
+        x: aabb.left,
+        y: aabb.top,
+        width: aabb.right - aabb.left,
+        height: aabb.bottom - aabb.top,
+      };
+    });
+  }
   private readonly options: PixiAppOptions;
 
   constructor(options: PixiAppOptions = {}) {
@@ -540,6 +573,7 @@ export class PixiApp {
       this.inputAdapter.screenOffset = { x: 0, y: 0 };
     }
     const input = this.inputAdapter.getInputState();
+    const carObstacleBoxes = this.getCarObstacleBoxes(map.tileSize);
 
     // Process commands from UI
     for (const cmd of this.commandQueue.drain()) {
@@ -650,6 +684,7 @@ export class PixiApp {
         goalX, goalY,
         this.gameState.npcs,
         this.gameState.player.collisionBox,
+        carObstacleBoxes,
       );
       if (waypoints.length > 0) {
         if (extraWaypoint) waypoints.push(extraWaypoint);
@@ -676,6 +711,7 @@ export class PixiApp {
       map,
       this.gameState.entities,
       this.gameState.buildings,
+      carObstacleBoxes,
     );
 
     // Capture pre-update position so the stuck guard below knows whether
@@ -742,6 +778,7 @@ export class PixiApp {
             goalX, goalY,
             this.gameState.npcs,
             this.gameState.player.collisionBox,
+            carObstacleBoxes,
           );
           if (fresh.length > 0) {
             this.gameState.player = {
@@ -870,10 +907,25 @@ export class PixiApp {
     if (this.npcWanderStates.length > 0 && this.walkGrid) {
       const grid = this.walkGrid;
       const GRID_CELL = 16;
-      updateWanderStates(this.npcWanderStates, delta, (x, y) => {
+      updateWanderStates(this.npcWanderStates, delta, (x, y, npcId) => {
         const gc = Math.floor(x / GRID_CELL);
         const gr = Math.floor(y / GRID_CELL);
-        return gr >= 0 && gr < grid.length && gc >= 0 && gc < (grid[0]?.length ?? 0) && grid[gr][gc];
+        if (gr < 0 || gr >= grid.length || gc < 0 || gc >= (grid[0]?.length ?? 0)) return false;
+        if (!grid[gr][gc]) return false;
+        const npc = this.gameState?.npcs.find(n => n.id === npcId);
+        if (!npc) return true;
+        const npcBox: WorldBox = {
+          x: x + npc.collisionBox.offsetX,
+          y: y + npc.collisionBox.offsetY,
+          width: npc.collisionBox.width,
+          height: npc.collisionBox.height,
+        };
+        return !carObstacleBoxes.some(carBox =>
+          npcBox.x < carBox.x + carBox.width &&
+          npcBox.x + npcBox.width > carBox.x &&
+          npcBox.y < carBox.y + carBox.height &&
+          npcBox.y + npcBox.height > carBox.y
+        );
       });
       // Sync NPC positions to game state and renderer
       for (const ws of this.npcWanderStates) {
@@ -930,16 +982,7 @@ export class PixiApp {
       // Returns null when both fail (texture not loaded yet); CarSystem
       // then defaults to a tile-sized box.
       const resolveCarCollision = (key: string) => {
-        const override = this.carCollisionOverrides[key];
-        if (override) return override;
-        const tex = getTexture(key);
-        if (!tex) return null;
-        return {
-          offsetX: -tex.width / 2,
-          offsetY: -tex.height / 2,
-          width: tex.width,
-          height: tex.height,
-        };
+        return this.resolveCarCollisionBox(key);
       };
       const despawned = updateCars(
         this.carSystemState,
@@ -991,13 +1034,7 @@ export class PixiApp {
           // the debug rects always match what the obstacle test sees.
           for (const car of this.carSystemState.cars) {
             const key = spriteKeyForCar(car);
-            let box = this.carCollisionOverrides[key];
-            if (!box) {
-              const tex = getTexture(key);
-              box = tex
-                ? { offsetX: -tex.width / 2, offsetY: -tex.height / 2, width: tex.width, height: tex.height }
-                : { offsetX: -T / 2, offsetY: -T / 2, width: T, height: T };
-            }
+            const box = this.resolveCarCollisionBox(key) ?? { offsetX: -T / 2, offsetY: -T / 2, width: T, height: T };
             items.push({ box: carAABB(car, box), color: 0xff3333 });
             items.push({ box: lookAheadBox(car, T, box), color: 0xffcc00 });
           }
