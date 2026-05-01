@@ -133,7 +133,16 @@ const objects: Entity[] = [
   // ── Decorations ──
   decor(tx(11),    ty(9),  'rug-large'),
   obj(tx(12),      ty(5),  'plant-pot', 14, 14),
-  decor(tx(9) + 8, ty(14), 'doormat'),
+  // Doormat doubles as the exit trigger. `outdoor-houseA-door` is the
+  // dynamic spawn registered by `pokemon`'s entity-transition pipeline
+  // next to the outdoor house entry — landing the player right at the
+  // door they came in through, the same way grocer-1f does it via its
+  // staircase. Used to live as a hardcoded `1f-exit` trigger pointing
+  // at the static `from-house` spawn (which is far from the user's
+  // editor-placed outdoor house entity, so the player teleported across
+  // the map on exit). BL-10.
+  decor(tx(9) + 8, ty(14), 'doormat',
+    { targetMapId: 'pokemon', targetSpawnId: 'outdoor-houseA-door' }),
 ];
 
 export const pokemonHouse1fMap: MapData = {
@@ -145,21 +154,14 @@ export const pokemonHouse1fMap: MapData = {
   buildings: [],
   npcs: [],
   triggers: [
-    // Exit door — sits on the bottom wall gap tiles. Player must walk all
-    // the way down to the door before the trigger fires.
-    {
-      id: '1f-exit',
-      x: 9 * T,
-      y: (H - 1) * T,
-      width: 2 * T,
-      height: T,
-      type: 'door',
-      targetMapId: 'pokemon',
-      targetSpawnId: 'from-house',
-    },
-    // Staircase trigger is now derived dynamically from the staircase decor
-    // entity above (see Entity.transition). Move the decor in the editor and
-    // the trigger zone follows automatically.
+    // Both exit and staircase triggers are derived dynamically from
+    // entities — see the doormat (exit) and wall-staircase (to 2f)
+    // decor entries above. Moving them in the editor moves the trigger
+    // zone automatically. The hardcoded `1f-exit` that used to live
+    // here pointed at the static `from-house` outdoor spawn, which
+    // overlapped and out-ranked the doormat's auto-trigger — the
+    // player ended up teleported far from the house they entered
+    // through (BL-10).
   ],
   spawnPoints: [
     { id: 'entrance', x: tx(9) + 8, y: ty(H - 3), facing: 'up' },
