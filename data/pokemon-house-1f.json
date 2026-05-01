@@ -547,7 +547,12 @@
             "height": 0
           },
           "scale": 0.16,
-          "layer": "props"
+          "layer": "props",
+          "transition": {
+            "targetMapId": "pokemon-house-2f",
+            "targetSpawnId": "from-1f",
+            "incomingSpawnId": "from-2f"
+          }
         },
         {
           "id": "obj-mo7if3c7-jez0j",

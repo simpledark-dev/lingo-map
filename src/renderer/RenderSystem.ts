@@ -159,7 +159,16 @@ export class RenderSystem {
     this.mapBoundsMask.clear();
     this.mapBoundsMask
       .rect(0, 0, map.width * map.tileSize, map.height * map.tileSize)
-      .fill({ color: 0xffffff });
+      // Black fill (was white) — the rect doubles as the visible
+      // backdrop behind tile sprites. `void` cells have no texture in
+      // `spriteManifest`, so `getTileTexture('void')` returns
+      // undefined and the cell is skipped at render time. Whatever
+      // colour this rect carries shows through those holes. White
+      // looked wrong (BL: "space outside the map is white"); black
+      // matches what `void` is meant to read as. Mask use for car
+      // sprites (`sprite.mask = mapBoundsMask`) cares only about the
+      // alpha channel, so the clip shape is unchanged.
+      .fill({ color: 0x000000 });
 
     // Iterate every tile layer in render order, drawing each non-empty cell
     // into the shared ground container. Empty cells let lower layers show
@@ -896,11 +905,28 @@ export class RenderSystem {
 
     // Tile types may be enum strings or pack refs (`me:...`). Both go through
     // the same `loadAssets` path (it routes `me:` keys to the pack loader).
+    // Virtual tile types like `floor-pattern` and `wall-brick` aren't real
+    // entries in `spriteManifest`; they resolve at render time to one of
+    // four quadrant textures based on (row,col) parity. Expand them here so
+    // the actual quadrant PNGs land in the load set — without this, a map
+    // built entirely from these patterned tiles renders empty cells (no
+    // texture in the cache) and the user sees the mapBoundsMask through
+    // the entire floor.
     const tileTypes = new Set<string>();
     for (const row of map.tiles) {
       for (const t of row) tileTypes.add(t);
     }
-    for (const t of tileTypes) keys.add(t);
+    for (const t of tileTypes) {
+      if (t === 'floor-pattern') {
+        keys.add('floor-tl'); keys.add('floor-tr');
+        keys.add('floor-bl'); keys.add('floor-br');
+      } else if (t === 'wall-brick') {
+        keys.add('wall-brick-tl'); keys.add('wall-brick-tr');
+        keys.add('wall-brick-bl'); keys.add('wall-brick-br');
+      } else {
+        keys.add(t);
+      }
+    }
 
     // Object pack-key textures lazy-load via renderObjects so the
     // long tail of decor PNG fetches doesn't block scene mount —

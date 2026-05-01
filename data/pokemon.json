@@ -12818,7 +12818,18 @@
             "height": 72
           },
           "scale": 1,
-          "layer": "props"
+          "layer": "props",
+          "transition": {
+            "targetMapId": "grocer-1f",
+            "targetSpawnId": "indoor-b",
+            "triggerBox": {
+              "offsetX": -14,
+              "offsetY": -35,
+              "width": 28,
+              "height": 36
+            },
+            "incomingSpawnId": "outdoor-b"
+          }
         },
         {
           "id": "obj-moi4o9f5-io5mn",
@@ -12837,18 +12848,7 @@
             "height": 96
           },
           "scale": 1,
-          "layer": "props",
-          "transition": {
-            "targetMapId": "grocer-1f",
-            "targetSpawnId": "indoor-b",
-            "triggerBox": {
-              "offsetX": -11,
-              "offsetY": -29,
-              "width": 24,
-              "height": 30
-            },
-            "incomingSpawnId": "outdoor-b"
-          }
+          "layer": "props"
         },
         {
           "id": "obj-moi4mr4s-6hfad",

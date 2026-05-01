@@ -186,9 +186,38 @@ Files: [src/core/CarSystem.ts](../src/core/CarSystem.ts)
 
 ---
 
+## BL-10 — Exit-from-interior sometimes spawns at the wrong place (not necessarily building, i still dont understand how) — DONE (f1 case)
+
+---
+
+## BL-11 — Add an on-screen virtual D-pad for mobile — DONE
+
+Tap-to-move and click-to-walk are fine for "go to that spot", but for
+nimble play (dodging cars, corner-cutting around buildings) the user
+wants a virtual D-pad on mobile: bottom-left corner, four arrow
+buttons, hold-to-move, finger-slide between them to change direction
+without lifting. Should feel like a Game Boy d-pad.
+
+Implementation notes:
+
+- The InputAdapter already supports keyboard `up/down/left/right`. The
+  D-pad just needs to push the same boolean flags into `InputState`.
+- Should hide on desktop (or always-show but small? play-tester
+  preference).
+- Touch-anchored: first finger anywhere in the D-pad zone becomes the
+  "up" reference, then translation chooses direction. Avoids forcing a
+  specific finger placement.
+- Don't break the existing pinch-to-zoom (which uses two-finger
+  gestures).
+
+Files: [src/renderer/InputAdapter.ts](../src/renderer/InputAdapter.ts),
+new component for the D-pad UI (probably in `src/ui/`)
+
 ## BL-12: Where is f2? why cant go to f2?
 
 ## BL-13: When tap NPC, NPC should stop moving, then character should approach it, and only then shows the dialogue. Currently when tapped, it moves to NPC, but i need to tap again to show dialogue
+
+## BL-14: when first load game in portrait, see the outside of map at the bottom, but when switch to landscape, no longer see it, then switch back to portrait, no longer see it, which is good. but we need to need to fix so that first load game in portrait doesn't show the outside of the map at the bottom (black space) — DONE
 
 ---
 

@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "id": "pokemon-house-2f",
   "width": 20,
   "height": 14,
@@ -372,7 +373,12 @@
             "height": 0
           },
           "scale": 0.17600000000000002,
-          "layer": "props"
+          "layer": "props",
+          "transition": {
+            "targetMapId": "pokemon-house-1f",
+            "targetSpawnId": "from-2f",
+            "incomingSpawnId": "from-1f"
+          }
         },
         {
           "id": "obj-10",
