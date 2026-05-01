@@ -307,6 +307,17 @@ export default function GameCanvas() {
           window.setTimeout(() => {
             if (!cancelled) setLoadingVisible(false);
           }, 400);
+          // BL-14: on iOS Safari portrait, the URL bar can collapse
+          // shortly after init resolves (visualViewport grows but no
+          // window.resize fires). The earlier mount-time resize timers
+          // all fired during init and bailed on `!initialized`. Re-fire
+          // a few resize ticks here so Pixi catches up to whatever the
+          // container is now.
+          [0, 120, 360, 800].forEach((delay) => {
+            window.setTimeout(() => {
+              if (!cancelled) pixiAppRef.current?.resize();
+            }, delay);
+          });
           // If the primary path applied just the start map, we still
           // need interior overrides — fire the background fetch. If
           // the fallback ran, /api/maps already covered everything

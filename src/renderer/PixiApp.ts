@@ -194,6 +194,20 @@ export class PixiApp {
 
     this.initialized = true;
 
+    // Re-sync the renderer to whatever the container size is RIGHT NOW.
+    // The container size that Pixi captured at `app.init({ width, height })`
+    // is from before assets loaded; on iOS Safari, the URL bar can
+    // collapse during init and the container grows without firing a
+    // `window.resize`. Pixi's `resizeTo` only listens for window resize
+    // events, and any `pixiApp.resize()` calls fired by GameCanvas during
+    // init bailed (the `!this.initialized` guard). Net effect on first
+    // portrait load: canvas + screen pinned to the smaller init size,
+    // visible as a black strip at the bottom of the world view (the
+    // BL-14 symptom). Rotating used to be the only way to fix it because
+    // rotation fires a real window.resize. This catch-up call removes
+    // the need for that detour.
+    this.app.resize();
+
     this.app.ticker.add((ticker) => {
       this.update(ticker.deltaMS / 1000);
     });
