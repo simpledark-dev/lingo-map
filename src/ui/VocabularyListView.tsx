@@ -3,12 +3,19 @@
 import { useState, useMemo } from 'react';
 import { VocabularyPack, getExamples } from '../data/vocabularyPacks';
 import { speakDialogue, cancelDialogueSpeech } from './tts';
+import VocabularyPracticeView from './VocabularyPracticeView';
 
 interface VocabularyListViewProps {
   pack: VocabularyPack;
   npcName: string;
   onClose: () => void;
 }
+
+/** The list view doubles as the parent for the practice screen — the
+ *  player swaps between "browse the dictionary" and "drill the words"
+ *  without leaving the modal. Closing the practice screen returns
+ *  here; closing the list returns to the world. */
+type Mode = 'list' | 'practice';
 
 // ── Cozy palette (kept in sync with DialogueOverlay) ──
 // Warm parchment + dark wood frame, sharp pixel borders, hard
@@ -37,13 +44,30 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
   // matches the "tap to peek, tap again to close" pattern players
   // already know from any phone-app collapsible list.
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>('list');
 
   // Pre-compute examples once per entry. Cheap (~150 string concats)
-  // but no point doing it on every render.
+  // but no point doing it on every render. MUST run on every render
+  // (i.e. before any conditional returns) — moving it below the
+  // mode-branch return triggered React's "Rendered fewer hooks than
+  // expected" error when the player toggled into practice mode.
   const entriesWithExamples = useMemo(
     () => pack.entries.map((e) => ({ entry: e, examples: getExamples(e) })),
     [pack.entries],
   );
+
+  if (mode === 'practice') {
+    return (
+      <VocabularyPracticeView
+        pack={pack}
+        npcName={npcName}
+        // Back to the dictionary, NOT all the way out to the world.
+        // The player explicitly clicked "Practice" from here, so the
+        // natural return is to the same screen.
+        onClose={() => setMode('list')}
+      />
+    );
+  }
 
   const handleSpeak = (target: string) => {
     // Cancel any prior utterance (TTS panel button mashing) so we
@@ -125,35 +149,71 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
                 {pack.theme} · {pack.entries.length} words
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                fontFamily: 'inherit',
-                fontSize: 13,
-                fontWeight: 700,
-                color: COLORS.text,
-                background: COLORS.cardRest,
-                border: `2px solid ${COLORS.cardBorder}`,
-                boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
-                padding: '6px 12px',
-                cursor: 'pointer',
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'translateY(2px)';
-                e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}`;
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = '';
-                e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = '';
-                e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`;
-              }}
-            >
-              ✕ close
-            </button>
+            {/* Header actions — Practice is the primary CTA (gold)
+                and close is the muted secondary. Putting them in
+                this order (primary right) matches every cozy-game
+                menu pattern players have already learned. */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  fontFamily: 'inherit',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: COLORS.text,
+                  background: COLORS.cardRest,
+                  border: `2px solid ${COLORS.cardBorder}`,
+                  boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
+                  padding: '6px 12px',
+                  cursor: 'pointer',
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(2px)';
+                  e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}`;
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = '';
+                  e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = '';
+                  e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`;
+                }}
+              >
+                ✕
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('practice')}
+                style={{
+                  fontFamily: 'inherit',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#fff5d6',
+                  background: COLORS.accentGold,
+                  border: `2px solid ${COLORS.accentGoldDark}`,
+                  boxShadow: `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`,
+                  padding: '6px 14px',
+                  cursor: 'pointer',
+                  letterSpacing: 0.4,
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(2px)';
+                  e.currentTarget.style.boxShadow = 'inset 1px 1px 0 0 #ffd47a';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = '';
+                  e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = '';
+                  e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`;
+                }}
+              >
+                ▶ Practice
+              </button>
+            </div>
           </div>
 
           {/* Scrollable list. Custom scrollbar styling brings the
