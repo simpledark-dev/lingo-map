@@ -149,14 +149,19 @@ export interface Trigger {
   type: 'door' | 'interact';
   targetMapId?: string;
   targetSpawnId?: string;
-  /** If true, this door trigger only fires while the up key is held.
-   *  Set on dynamic (entity-derived) door triggers so the player has
-   *  to actively press into the building/staircase, instead of every
-   *  lateral slide across the trigger box accidentally firing it.
-   *  Hand-coded map triggers (e.g. interior exit doors that fire on
-   *  walk-down) leave this `undefined`/`false` and keep firing from
-   *  any direction. */
-  requiresUpKey?: boolean;
+  /** If set, this door trigger only fires when the player is moving
+   *  in the given direction (key held or position delta this frame).
+   *  Set on dynamic (entity-derived) door triggers so lateral slides
+   *  across the trigger box don't accidentally fire it. The required
+   *  direction is auto-derived from walkable-neighbor analysis at
+   *  trigger-creation time: if exactly one side of the trigger has
+   *  walkable tiles, the player can only approach from there, and the
+   *  required facing is the opposite (e.g. walkable above → require
+   *  'down'). Falls back to 'up' when ambiguous (open ground around
+   *  the trigger), which matches the legacy outdoor-building-entry
+   *  behavior. Hand-coded map triggers leave this undefined and fire
+   *  from any direction. */
+  requiresFacing?: Direction;
 }
 
 // ── Layered map content (Tiled-style) ─────────────────────────────────────

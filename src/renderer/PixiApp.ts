@@ -262,26 +262,86 @@ export class PixiApp {
         && tile !== TileType.WATER
         && tile !== TileType.VOID;
     };
+    // Determine which direction the player must be facing to enter
+    // this door, in order of decreasing reliability:
+    //
+    // 1. Edge-of-map: if the trigger touches a map edge, the player
+    //    walks toward that edge to use the door (typical exit pattern
+    //    — the doormat sits on the bottom row to leave the house).
+    //    This works even when the interior is a single open floor
+    //    with no walls anywhere, where the walkable-neighbour
+    //    heuristic below can't pick a single direction.
+    //
+    // 2. Walkable-neighbour: if exactly one side has walkable tiles,
+    //    the player can only approach from there, so require facing
+    //    AWAY from that side (walkable above → require 'down').
+    //    Catches doors set in walls inside the map, e.g. interior
+    //    rooms split by a wall row.
+    //
+    // 3. Fall back to 'up'. Matches legacy outdoor-building entries:
+    //    the trigger sits in open grass with walkable on every side,
+    //    auto-detection has nothing to grip on, and the historical
+    //    rule (BL-08) is "approach from south, face up".
+    const deriveRequiresFacing = (
+      tx: number, ty: number, tw: number, th: number,
+    ): 'up' | 'down' | 'left' | 'right' => {
+      const col0 = Math.floor(tx / T);
+      const col1 = Math.floor((tx + Math.max(1, tw) - 1) / T);
+      const row0 = Math.floor(ty / T);
+      const row1 = Math.floor((ty + Math.max(1, th) - 1) / T);
+
+      // (1) Edge of map.
+      if (row1 >= baseMap.height - 1) return 'down';
+      if (row0 <= 0) return 'up';
+      if (col1 >= baseMap.width - 1) return 'right';
+      if (col0 <= 0) return 'left';
+
+      // (2) Walkable neighbours.
+      const tileAt = (r: number, c: number): string | null => (
+        r >= 0 && r < baseMap.height && c >= 0 && c < baseMap.width
+          ? baseMap.tiles[r][c]
+          : null
+      );
+      const sideWalkable = (r0: number, r1: number, c0: number, c1: number): boolean => {
+        for (let r = r0; r <= r1; r++) {
+          for (let c = c0; c <= c1; c++) {
+            const t = tileAt(r, c);
+            if (t && isWalkableTile(t)) return true;
+          }
+        }
+        return false;
+      };
+      const north = sideWalkable(row0 - 1, row0 - 1, col0, col1);
+      const south = sideWalkable(row1 + 1, row1 + 1, col0, col1);
+      const west = sideWalkable(row0, row1, col0 - 1, col0 - 1);
+      const east = sideWalkable(row0, row1, col1 + 1, col1 + 1);
+      const sides: Array<['up' | 'down' | 'left' | 'right', boolean]> = [
+        ['up', south], ['down', north], ['left', east], ['right', west],
+      ];
+      const walkable = sides.filter(([, ok]) => ok);
+      if (walkable.length === 1) return walkable[0][0];
+
+      // (3) Fall back.
+      return 'up';
+    };
+
     const dynamicTriggers = transitionEntities.flatMap((o, i) => {
       // Explicit trigger rectangle (set by the editor's Door section)
       // takes precedence over the legacy auto-derivation. Offsets are
       // relative to the entity's x/y, same convention as collisionBox.
       const tb = o.transition!.triggerBox;
       if (tb && tb.width > 0 && tb.height > 0) {
+        const x = o.x + tb.offsetX;
+        const y = o.y + tb.offsetY;
         return [{
           id: `auto-${o.id}-${i}`,
-          x: o.x + tb.offsetX,
-          y: o.y + tb.offsetY,
+          x, y,
           width: tb.width,
           height: tb.height,
           type: 'door' as const,
           targetMapId: o.transition!.targetMapId,
           targetSpawnId: o.transition!.targetSpawnId,
-          // Entity-derived door — gate on up-key press so lateral
-          // slides past the trigger box don't accidentally enter.
-          // The user is `up`-keying THIS specific door, not just
-          // happening to be inside its rectangle.
-          requiresUpKey: true,
+          requiresFacing: deriveRequiresFacing(x, y, tb.width, tb.height),
         }];
       }
       // Legacy auto-shape for entities without an explicit triggerBox
@@ -296,16 +356,17 @@ export class PixiApp {
         return isWalkableTile(baseMap.tiles[feetRow][col]);
       });
       if (walkableCols.length === 0) return [];
+      const x = Math.min(...walkableCols) * T;
+      const y = feetRow * T;
+      const width = (Math.max(...walkableCols) - Math.min(...walkableCols) + 1) * T;
+      const height = T;
       return [{
         id: `auto-${o.id}-${i}`,
-        x: Math.min(...walkableCols) * T,
-        y: feetRow * T,
-        width: (Math.max(...walkableCols) - Math.min(...walkableCols) + 1) * T,
-        height: T,
+        x, y, width, height,
         type: 'door' as const,
         targetMapId: o.transition!.targetMapId,
         targetSpawnId: o.transition!.targetSpawnId,
-        requiresUpKey: true,
+        requiresFacing: deriveRequiresFacing(x, y, width, height),
       }];
     });
     // Spawn point: anchor on the trigger zone when one is set explicitly,
@@ -672,20 +733,25 @@ export class PixiApp {
       }
     }
 
-    // Check door triggers. Building doors are gated on "user is
-    // steering up": either the up key is held (keyboard), OR the
-    // player's y decreased this tick (tap-walk approaching the door
-    // from below). Pure motion-based gating avoids the sticky-facing
-    // bug that fired doors during lateral slides, and pure key-based
-    // gating broke mobile entirely (no keys ever held). The combined
-    // gate covers both inputs cleanly.
-    const MOVE_UP_EPS = 0.01;
-    const movingUp = this.gameState.player.y < prevY - MOVE_UP_EPS;
+    // Check door triggers. Direction-gated doors fire only when the
+    // player is moving that way THIS frame: either the matching arrow
+    // key is held (keyboard), OR the player's position changed in
+    // that direction (tap-walk). Pure motion-based gating avoids the
+    // sticky-facing bug that fired doors during lateral slides, and
+    // pure key-based gating broke mobile entirely (no keys ever held).
+    // The combined gate covers both inputs cleanly.
+    const MOVE_EPS = 0.01;
+    const intent = {
+      up: input.up || this.gameState.player.y < prevY - MOVE_EPS,
+      down: input.down || this.gameState.player.y > prevY + MOVE_EPS,
+      left: input.left || this.gameState.player.x < prevX - MOVE_EPS,
+      right: input.right || this.gameState.player.x > prevX + MOVE_EPS,
+    };
     const transition = checkDoorTriggers(
       this.gameState.player.x,
       this.gameState.player.y,
       this.gameState.player.collisionBox,
-      input.up || movingUp,
+      intent,
       map.triggers,
       this.gameState.buildings,
     );
