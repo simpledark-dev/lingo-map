@@ -12,6 +12,10 @@ type Props = {
 /** Diameter of the on-screen pad in CSS pixels. Tweak to taste —
  *  arrow positions are all derived from this so they stay aligned. */
 const PAD_SIZE = 122;
+/** Distance from the left and bottom viewport edges in CSS pixels.
+ *  Increase these to move the pad right/up; decrease to move left/down. */
+const PAD_LEFT = 36;
+const PAD_BOTTOM = 44;
 const DEAD_ZONE = 6;
 // Octant boundary at 22.5°: anything closer to the axis than tan(22.5°)
 // snaps to a single cardinal; everything else snaps to a diagonal pair.
@@ -122,8 +126,8 @@ export default function VirtualDPad({ onChange }: Props) {
       onContextMenu={(e) => e.preventDefault()}
       style={{
         position: 'absolute',
-        left: 16,
-        bottom: 24,
+        left: PAD_LEFT,
+        bottom: PAD_BOTTOM,
         width: PAD_SIZE,
         height: PAD_SIZE,
         pointerEvents: 'auto',

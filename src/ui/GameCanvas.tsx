@@ -16,8 +16,17 @@ type ViewportSize = { width: number; height: number };
 function readViewportSize(): ViewportSize | null {
   if (typeof window === 'undefined') return null;
   const vv = window.visualViewport;
-  const width = Math.round(vv?.width ?? window.innerWidth);
-  const height = Math.round(vv?.height ?? window.innerHeight);
+  const doc = document.documentElement;
+  const width = Math.round(Math.max(
+    vv?.width ?? 0,
+    window.innerWidth || 0,
+    doc.clientWidth || 0,
+  ));
+  const height = Math.round(Math.max(
+    vv?.height ?? 0,
+    window.innerHeight || 0,
+    doc.clientHeight || 0,
+  ));
   if (width <= 0 || height <= 0) return null;
   return { width, height };
 }
@@ -49,6 +58,17 @@ export default function GameCanvas() {
   const [loading, setLoading] = useState(true);
   const [loadingVisible, setLoadingVisible] = useState(true);
 
+  const syncViewportSize = useCallback(() => {
+    const next = readViewportSize();
+    if (!next) return null;
+    setViewportSize((prev) => (
+      prev && prev.width === next.width && prev.height === next.height
+        ? prev
+        : next
+    ));
+    return next;
+  }, []);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -57,13 +77,7 @@ export default function GameCanvas() {
 
     const applySize = () => {
       frame = 0;
-      const next = readViewportSize();
-      if (!next) return;
-      setViewportSize((prev) => (
-        prev && prev.width === next.width && prev.height === next.height
-          ? prev
-          : next
-      ));
+      syncViewportSize();
     };
 
     const scheduleSizeSync = () => {
@@ -95,7 +109,7 @@ export default function GameCanvas() {
       window.visualViewport?.removeEventListener('scroll', scheduleSizeSync);
       window.screen.orientation?.removeEventListener?.('change', scheduleSizeSync);
     };
-  }, []);
+  }, [syncViewportSize]);
 
   useEffect(() => {
     if (!viewportSize) return;
@@ -324,11 +338,16 @@ export default function GameCanvas() {
           // shortly after init resolves (visualViewport grows but no
           // window.resize fires). The earlier mount-time resize timers
           // all fired during init and bailed on `!initialized`. Re-fire
-          // a few resize ticks here so Pixi catches up to whatever the
-          // container is now.
-          [0, 120, 360, 800].forEach((delay) => {
+          // a few viewport + resize ticks here so both the React fixed
+          // container and Pixi catch up to whatever the visible viewport
+          // is after the loading overlay disappears.
+          [0, 120, 360, 800, 1400].forEach((delay) => {
             window.setTimeout(() => {
-              if (!cancelled) pixiAppRef.current?.resize();
+              if (cancelled) return;
+              syncViewportSize();
+              window.requestAnimationFrame(() => {
+                if (!cancelled) pixiAppRef.current?.resize();
+              });
             }, delay);
           });
           // If the primary path applied just the start map, we still
@@ -347,7 +366,7 @@ export default function GameCanvas() {
         pixiAppRef.current = null;
       }
     };
-  }, [objectMultiplier]);
+  }, [objectMultiplier, syncViewportSize]);
 
   const handleAdvanceDialogue = useCallback(() => {
     const app = pixiAppRef.current;
