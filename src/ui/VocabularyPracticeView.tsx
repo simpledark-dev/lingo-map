@@ -230,12 +230,22 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
             </PixelButton>
           </div>
 
-          {/* Word card. `key` on the prompt's target makes React remount
-              this subtree on every new round, which retriggers the
-              fade-in keyframe — gives the round a clean swap-in feel. */}
-          <div style={{ padding: '20px 16px' }}>
+          {/* Body. Layout adapts via media queries below — portrait
+              uses the centered stack, landscape collapses prompt onto
+              one row + 2-column choice grid so nothing overflows.
+              `key` on the prompt-target wrapper retriggers fade-in on
+              every new round. */}
+          <div
+            className="vp-body"
+            style={{
+              padding: '20px 16px',
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
             <div
               key={round.prompt.target}
+              className="vp-prompt-section"
               style={{
                 animation: 'lingoMapPracticeFadeIn 280ms ease-out',
                 textAlign: 'center',
@@ -243,6 +253,7 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
               }}
             >
               <div
+                className="vp-prompt-label"
                 style={{
                   color: COLORS.hintText,
                   fontSize: 11,
@@ -253,36 +264,42 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
               >
                 What does this mean?
               </div>
-              {/* Prompt word. Tappable AFTER a wrong answer so the
-                  player can pull up the details panel; before that
-                  it's decorative (tapping during the active question
-                  would be a free hint). The dotted underline + cursor
-                  change cue affordance only when actually tappable. */}
+              {/* Prompt word + speaker — inline, with media query
+                  collapsing them onto one row in landscape. */}
               <div
-                onClick={promptIsTappable ? () => setShowDetails((d) => !d) : undefined}
+                className="vp-prompt-word-row"
                 style={{
-                  color: COLORS.text,
-                  fontSize: 32,
-                  fontWeight: 700,
-                  letterSpacing: 1.5,
-                  lineHeight: 1.1,
-                  marginBottom: 10,
-                  textShadow: `1px 1px 0 ${COLORS.parchmentShadow}`,
-                  cursor: promptIsTappable ? 'pointer' : 'default',
-                  display: 'inline-block',
-                  borderBottom: promptIsTappable
-                    ? `2px dashed ${showDetails ? COLORS.accentGoldDark : COLORS.hintText}`
-                    : '2px dashed transparent',
-                  paddingBottom: 2,
-                  transition: 'border-color 180ms',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
                 }}
-                title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
               >
-                {round.prompt.target}
-              </div>
-              <div>
+                <span
+                  className="vp-word"
+                  onClick={promptIsTappable ? () => setShowDetails((d) => !d) : undefined}
+                  style={{
+                    color: COLORS.text,
+                    fontSize: 32,
+                    fontWeight: 700,
+                    letterSpacing: 1.5,
+                    lineHeight: 1.1,
+                    textShadow: `1px 1px 0 ${COLORS.parchmentShadow}`,
+                    cursor: promptIsTappable ? 'pointer' : 'default',
+                    borderBottom: promptIsTappable
+                      ? `2px dashed ${showDetails ? COLORS.accentGoldDark : COLORS.hintText}`
+                      : '2px dashed transparent',
+                    paddingBottom: 2,
+                    transition: 'border-color 180ms',
+                  }}
+                  title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
+                >
+                  {round.prompt.target}
+                </span>
                 <button
                   type="button"
+                  className="vp-speaker"
                   aria-label={`Pronounce ${round.prompt.target}`}
                   onClick={handleSpeak}
                   style={{
@@ -301,8 +318,12 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
               </div>
             </div>
 
-            {/* Choices */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Choices stay visible UNTIL the player expands the
+                details panel (only possible after a wrong answer).
+                When details are open the choices hide so the meaning
+                sits in the same vertical slot — no scroll needed. */}
+            {!showDetails ? (
+            <div className="vp-choices" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {round.choices.map((choice, i) => {
                 const isSelected = selectedTarget === choice.target;
                 const isCorrectChoice = choice.target === round.prompt.target;
@@ -357,16 +378,12 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
                 );
               })}
             </div>
+            ) : null}
 
-            {/* Wrong-answer study panel. Only renders while the round
-                is frozen waiting on Next. The hint nudges the player
-                toward the tappable prompt; once they expand details,
-                meaning + examples appear inline. Same shape as the
-                Translate view's panel — by design, since the only
-                difference between practice and translate is the
-                stakes layer at the top, not the study experience. */}
+            {/* Wrong-answer study panel — replaces choices when
+                expanded so the meaning stays in the visible area. */}
             {waitingOnNext ? (
-              <div style={{ marginTop: 14 }}>
+              <div style={{ marginTop: showDetails ? 0 : 14 }}>
                 {!showDetails ? (
                   <div
                     style={{
@@ -382,6 +399,7 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
                   </div>
                 ) : (
                   <div
+                    className="vp-details"
                     style={{
                       background: COLORS.parchmentLight,
                       border: `2px solid ${COLORS.cardBorder}`,
@@ -491,6 +509,24 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
           @keyframes lingoMapPracticeHintPulse {
             0%, 100% { opacity: 0.55; }
             50%       { opacity: 1; }
+          }
+
+          /* ── Landscape / short-viewport layout — same fix as
+             VocabularyTranslateView. Activates at ≤540px height. */
+          @media (max-height: 540px) {
+            .vp-body { padding: 10px 14px; }
+            .vp-prompt-section { margin-bottom: 10px !important; text-align: center; }
+            .vp-prompt-label { display: none; }
+            .vp-word { font-size: 22px !important; letter-spacing: 1px !important; }
+            .vp-speaker { font-size: 12px !important; padding: 3px 8px !important; }
+            .vp-choices {
+              display: grid !important;
+              grid-template-columns: 1fr 1fr;
+              gap: 6px !important;
+            }
+            .vp-choices > button { padding: 8px 10px !important; font-size: 13px !important; }
+            .vp-details { padding: 8px 10px !important; }
+            .vp-details > div { font-size: 12px !important; }
           }
         `}</style>
       </div>

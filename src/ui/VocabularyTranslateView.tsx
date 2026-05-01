@@ -285,10 +285,24 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
             </div>
           </div>
 
-          {/* Word card */}
-          <div style={{ padding: '20px 16px' }}>
+          {/* Body. NOT scrollable by design — layout adapts to the
+              viewport via media queries below so everything fits in
+              landscape. Compact rules collapse the prompt onto one
+              line ("What does this mean? grano 🔊") and lay choices
+              in a 2-column grid. When the wrong-answer study panel
+              opens, it REPLACES the choices block (not adds to it)
+              so the meaning never sits below the fold. */}
+          <div
+            className="vt-body"
+            style={{
+              padding: '20px 16px',
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
             <div
               key={round.prompt.target}
+              className="vt-prompt-section"
               style={{
                 animation: 'lingoMapTranslateFadeIn 280ms ease-out',
                 textAlign: 'center',
@@ -296,6 +310,7 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
               }}
             >
               <div
+                className="vt-prompt-label"
                 style={{
                   color: COLORS.hintText,
                   fontSize: 11,
@@ -306,36 +321,46 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
               >
                 What does this mean?
               </div>
-              {/* Prompt word. Tappable AFTER a wrong answer so the
-                  player can pull up the details panel — before that
-                  it's just decorative (and tapping would be free
-                  hints). The dotted underline + cursor change cue
-                  affordance only when actually tappable. */}
+              {/* Prompt word + speaker. In portrait the speaker sits
+                  beneath the word; in landscape the media query
+                  collapses both onto one row to save vertical space.
+                  The word stays tappable AFTER a wrong answer so the
+                  player can pull up the study panel — before that
+                  it's decorative (tapping would be a free hint). */}
               <div
-                onClick={promptIsTappable ? () => setShowDetails((d) => !d) : undefined}
+                className="vt-prompt-word-row"
                 style={{
-                  color: COLORS.text,
-                  fontSize: 32,
-                  fontWeight: 700,
-                  letterSpacing: 1.5,
-                  lineHeight: 1.1,
-                  marginBottom: 10,
-                  textShadow: `1px 1px 0 ${COLORS.parchmentShadow}`,
-                  cursor: promptIsTappable ? 'pointer' : 'default',
-                  display: 'inline-block',
-                  borderBottom: promptIsTappable
-                    ? `2px dashed ${showDetails ? COLORS.accentGoldDark : COLORS.hintText}`
-                    : '2px dashed transparent',
-                  paddingBottom: 2,
-                  transition: 'border-color 180ms',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
                 }}
-                title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
               >
-                {round.prompt.target}
-              </div>
-              <div>
+                <span
+                  className="vt-word"
+                  onClick={promptIsTappable ? () => setShowDetails((d) => !d) : undefined}
+                  style={{
+                    color: COLORS.text,
+                    fontSize: 32,
+                    fontWeight: 700,
+                    letterSpacing: 1.5,
+                    lineHeight: 1.1,
+                    textShadow: `1px 1px 0 ${COLORS.parchmentShadow}`,
+                    cursor: promptIsTappable ? 'pointer' : 'default',
+                    borderBottom: promptIsTappable
+                      ? `2px dashed ${showDetails ? COLORS.accentGoldDark : COLORS.hintText}`
+                      : '2px dashed transparent',
+                    paddingBottom: 2,
+                    transition: 'border-color 180ms',
+                  }}
+                  title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
+                >
+                  {round.prompt.target}
+                </span>
                 <button
                   type="button"
+                  className="vt-speaker"
                   aria-label={`Pronounce ${round.prompt.target}`}
                   onClick={handleSpeak}
                   style={{
@@ -354,7 +379,14 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Choices stay visible UNTIL the player expands the
+                details panel (only possible after a wrong answer).
+                When details are open the choices are hidden so the
+                meaning sits in the same vertical slot — the player
+                doesn't have to scroll past frozen choices to read
+                what the word means. */}
+            {!showDetails ? (
+            <div className="vt-choices" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {round.choices.map((choice, i) => {
                 const isSelected = selectedTarget === choice.target;
                 const isCorrectChoice = choice.target === round.prompt.target;
@@ -402,13 +434,16 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
                 );
               })}
             </div>
+            ) : null}
 
-            {/* Wrong-answer study panel. Only renders when the round
-                is frozen waiting on Next. The hint nudges the player
-                toward the tappable prompt; once they expand details,
-                meaning + examples appear inline. */}
+            {/* Wrong-answer study panel. Two states:
+                  – wrong + details collapsed: pulsing hint
+                  – wrong + details expanded: meaning + examples
+                    (replaces the choices block above so the panel
+                    sits in the same vertical slot, no scrolling).
+                Both show the Next button at the bottom. */}
             {waitingOnNext ? (
-              <div style={{ marginTop: 14 }}>
+              <div style={{ marginTop: showDetails ? 0 : 14 }}>
                 {!showDetails ? (
                   <div
                     style={{
@@ -424,6 +459,7 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
                   </div>
                 ) : (
                   <div
+                    className="vt-details"
                     style={{
                       background: COLORS.parchmentLight,
                       border: `2px solid ${COLORS.cardBorder}`,
@@ -538,6 +574,30 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
           @keyframes lingoMapTranslateHintPulse {
             0%, 100% { opacity: 0.55; }
             50%       { opacity: 1; }
+          }
+
+          /* ── Landscape / short-viewport layout ──
+             Triggered when the modal can't comfortably fit its
+             portrait stack (≤ 540px viewport height). The prompt
+             collapses onto one inline row, choices become a 2-column
+             grid, and paddings/font sizes tighten so the whole
+             question + answer set fits inside ~370 px without
+             scrolling. Above this breakpoint the original portrait
+             layout (centered word + 4-row choices) is kept. */
+          @media (max-height: 540px) {
+            .vt-body { padding: 10px 14px; }
+            .vt-prompt-section { margin-bottom: 10px !important; text-align: center; }
+            .vt-prompt-label { display: none; }
+            .vt-word { font-size: 22px !important; letter-spacing: 1px !important; }
+            .vt-speaker { font-size: 12px !important; padding: 3px 8px !important; }
+            .vt-choices {
+              display: grid !important;
+              grid-template-columns: 1fr 1fr;
+              gap: 6px !important;
+            }
+            .vt-choices > button { padding: 8px 10px !important; font-size: 13px !important; }
+            .vt-details { padding: 8px 10px !important; }
+            .vt-details > div { font-size: 12px !important; }
           }
         `}</style>
       </div>

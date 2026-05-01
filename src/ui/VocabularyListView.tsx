@@ -226,6 +226,20 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
               padding: '8px 10px 12px',
               flex: 1,
               minHeight: 0,
+              // iOS-specific scroll hints. Without these iOS Safari
+              // sometimes refuses to recognise an absolutely-positioned
+              // overflow region as scrollable — the user reports the
+              // word list "completely freezing" on certain pages,
+              // matching that behaviour. `pan-y` keeps tap-to-expand
+              // working while permitting vertical drag. The legacy
+              // `-webkit-overflow-scrolling` is harmless on modern
+              // iOS and unblocks momentum on the few older builds
+              // still out there. `overscroll-behavior: contain` stops
+              // a runaway scroll from triggering pull-to-refresh on
+              // the underlying page.
+              touchAction: 'pan-y',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
             }}
           >
             {entriesWithExamples.map(({ entry, examples }) => {
