@@ -80,7 +80,12 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
    *  (a) the feedback hold elapses and the next round mounts (correct
    *  → auto-advance) or (b) the player taps Next (wrong → manual). */
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
-  const [score, setScore] = useState({ correct: 0, wrong: 0 });
+  /** `skipped` tracks "I don't know" picks separately from wrong
+   *  guesses so the player can see how many they bailed on vs how
+   *  many they actually missed. Both go to the wrong-queue on the
+   *  progress side, but the surface counter keeps the categories
+   *  honest. */
+  const [score, setScore] = useState({ correct: 0, wrong: 0, skipped: 0 });
   /** When the player gets a round wrong we DON'T auto-advance — they
    *  need a beat to absorb the correction. Setting this flag flips
    *  the round into a "study" state: prompt becomes tappable for the
@@ -122,10 +127,11 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
 
   const handlePick = useCallback(
     (chosen: VocabularyEntry) => {
-      if (selectedTarget !== null) return;
+      if (selectedTarget !== null || waitingOnNext) return;
       setSelectedTarget(chosen.target);
       const isCorrect = chosen.target === round.prompt.target;
       setScore((s) => ({
+        ...s,
         correct: s.correct + (isCorrect ? 1 : 0),
         wrong: s.wrong + (isCorrect ? 0 : 1),
       }));
@@ -144,8 +150,24 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
         setWaitingOnNext(true);
       }
     },
-    [pack, round.prompt.target, selectedTarget, advanceToNextRound],
+    [pack, round.prompt.target, selectedTarget, waitingOnNext, advanceToNextRound],
   );
+
+  /** Player admits they don't know the word — same as wrong on the
+   *  progress side (word goes to the queue, streak resets) but
+   *  tracked separately in the score so honesty is visible.
+   *  Auto-expands the study panel; they asked for help, give help. */
+  const handleIDontKnow = useCallback(() => {
+    if (selectedTarget !== null || waitingOnNext) return;
+    setProgress((p) => {
+      const updated = recordAnswer(p, round.prompt.target, false);
+      saveProgress(pack.id, updated);
+      return updated;
+    });
+    setScore((s) => ({ ...s, skipped: s.skipped + 1 }));
+    setWaitingOnNext(true);
+    setShowDetails(true);
+  }, [pack, round.prompt.target, selectedTarget, waitingOnNext]);
 
   const handleSpeak = useCallback(() => {
     cancelDialogueSpeech();
@@ -228,6 +250,11 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
                 <span style={{ color: COLORS.wrong }}>
                   ✗ <strong>{score.wrong}</strong>
                 </span>
+                {score.skipped > 0 ? (
+                  <span style={{ color: COLORS.hintText }}>
+                    🤷 <strong>{score.skipped}</strong>
+                  </span>
+                ) : null}
               </div>
             </div>
             <PixelButton onClick={onClose} small>
@@ -383,6 +410,41 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
                 );
               })}
             </div>
+            ) : null}
+
+            {/* "I don't know" — bail option, lower-stakes than a
+                wrong guess. Routed to the same wrong-queue pathway
+                so the word still comes back for review, but tracked
+                separately in the score so honesty is visible. */}
+            {!waitingOnNext && selectedTarget === null ? (
+              <button
+                type="button"
+                onClick={handleIDontKnow}
+                style={{
+                  marginTop: 12,
+                  width: '100%',
+                  fontFamily: 'inherit',
+                  fontSize: 12,
+                  background: 'transparent',
+                  border: `1px dashed ${COLORS.cardBorder}`,
+                  color: COLORS.hintText,
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  letterSpacing: 0.3,
+                  transition: 'background 120ms, color 120ms',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = COLORS.parchmentLight;
+                  e.currentTarget.style.color = COLORS.text;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = COLORS.hintText;
+                }}
+              >
+                🤷 I don&apos;t know — show me
+              </button>
             ) : null}
 
             {/* Wrong-answer study panel — replaces choices when

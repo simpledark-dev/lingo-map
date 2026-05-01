@@ -483,6 +483,42 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
             </div>
             ) : null}
 
+            {/* "I don't know" — bail option. Lower penalty than a
+                wrong guess so honest players aren't pushed toward
+                random clicking. Only visible during the active
+                question; hidden once an answer is locked or the
+                round is in study mode. */}
+            {!waitingOnNext && selectedTarget === null ? (
+              <button
+                type="button"
+                onClick={handleIDontKnow}
+                style={{
+                  marginTop: 12,
+                  width: '100%',
+                  fontFamily: 'inherit',
+                  fontSize: 12,
+                  background: 'transparent',
+                  border: `1px dashed ${COLORS.cardBorder}`,
+                  color: COLORS.hintText,
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  letterSpacing: 0.3,
+                  transition: 'background 120ms, color 120ms',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = COLORS.parchmentLight;
+                  e.currentTarget.style.color = COLORS.text;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = COLORS.hintText;
+                }}
+              >
+                🤷 I don&apos;t know — show me
+              </button>
+            ) : null}
+
             {/* Wrong-answer study panel. Two states:
                   – wrong + details collapsed: pulsing hint
                   – wrong + details expanded: meaning + examples
