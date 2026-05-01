@@ -48,6 +48,11 @@ export function checkInteraction(
             label: `2. Let me look them over first (${wordCount})`,
             hint: "Browse the list, hear how they sound, practice freely — no coins on the line.",
           },
+          {
+            id: "decline",
+            label: "3. Sorry, not right now",
+            hint: "Maybe another time.",
+          },
         ],
       };
     }

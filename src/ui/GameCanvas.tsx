@@ -8,6 +8,7 @@ import { DialogueState, MapData, GameState } from '../core/types';
 import { GameEvent } from '../core/GameBridge';
 import DialogueOverlay from './DialogueOverlay';
 import VocabularyListView from './VocabularyListView';
+import VocabularyTranslateView from './VocabularyTranslateView';
 import { getVocabularyPack } from '../data/vocabularyPacks';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
@@ -50,6 +51,12 @@ export default function GameCanvas() {
    *  dialogue closes; the list takes over until the player closes
    *  it via the back button or the dim background. */
   const [vocabularyView, setVocabularyView] = useState<{ packId: string; npcName: string } | null>(null);
+  /** Same shape, but for the for-money translation work session. The
+   *  player gets here by accepting the offer (option 1), then picking
+   *  the only-enabled mode in the follow-up dialogue (text-recognition,
+   *  for now). Mirrors `vocabularyView` so we can swap views without
+   *  the world rendering on top of either. */
+  const [translateView, setTranslateView] = useState<{ packId: string; npcName: string } | null>(null);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
   // Door-transition fade-to-black. Toggled true when a door fires;
@@ -384,23 +391,86 @@ export default function GameCanvas() {
 
   /** Route the dialogue's option-button clicks. The DialogueOverlay
    *  reports the option id; here we decide what to actually do.
-   *   - 'view' → close the dialogue and pop the vocabulary list
-   *   - 'help' → reserved for the quizzing flow (not built yet)
-   *   - anything else → just close the dialogue (graceful fallback) */
+   *
+   *  Two-step flow for the translator job:
+   *   - 'help'    → push a follow-up dialogue letting the player pick
+   *                 a translation mode (only the text-recognition mode
+   *                 is enabled for v1; the others render with a SOON
+   *                 badge and a `disabled` flag).
+   *   - 'mode-read' → start the for-money translation session.
+   *   - 'view'    → close dialogue, pop the vocabulary list (mock
+   *                 practice flow).
+   *   - 'decline' → close dialogue, end the conversation cleanly.
+   *
+   *  Anything we don't recognise just dismisses the dialogue so the
+   *  player isn't stuck on a button we forgot to wire. */
   const handleSelectDialogueOption = useCallback((optionId: string) => {
     if (!dialogue) return;
-    if (optionId === 'view' && dialogue.vocabularyPackId) {
-      setVocabularyView({ packId: dialogue.vocabularyPackId, npcName: dialogue.npcName });
+    const packId = dialogue.vocabularyPackId;
+
+    if (optionId === 'view' && packId) {
+      setVocabularyView({ packId, npcName: dialogue.npcName });
       setDialogue(null);
       return;
     }
-    // Unknown option (or 'help' until the quiz screen lands) — just
-    // dismiss so the player isn't stuck on a dialog they can't act on.
+    if (optionId === 'decline') {
+      setDialogue(null);
+      return;
+    }
+    if (optionId === 'help' && packId) {
+      // Step 2: pick the translation mode. Only `mode-read` is wired
+      // up — the other three render disabled with a "SOON" badge so
+      // the player can see the full menu coming.
+      setDialogue({
+        npcId: dialogue.npcId,
+        npcName: dialogue.npcName,
+        lines: ['Great! How would you like to translate them?'],
+        currentLine: 0,
+        vocabularyPackId: packId,
+        vocabularyWordCount: dialogue.vocabularyWordCount,
+        options: [
+          {
+            id: 'mode-read',
+            label: '1. Read & translate',
+            hint: 'See each word in writing, pick its meaning.',
+          },
+          {
+            id: 'mode-listen',
+            label: '2. Listen & translate',
+            hint: 'Hear each word spoken, pick its meaning.',
+            disabled: true,
+          },
+          {
+            id: 'mode-write',
+            label: '3. Write from meaning',
+            hint: 'See the meaning, type the word.',
+            disabled: true,
+          },
+          {
+            id: 'mode-speak',
+            label: '4. Speak from meaning',
+            hint: 'See the meaning, say the word out loud.',
+            disabled: true,
+          },
+        ],
+      });
+      return;
+    }
+    if (optionId === 'mode-read' && packId) {
+      setTranslateView({ packId, npcName: dialogue.npcName });
+      setDialogue(null);
+      return;
+    }
+    // Fallback for unknown ids — dismiss rather than silently swallow.
     setDialogue(null);
   }, [dialogue]);
 
   const handleCloseVocabularyView = useCallback(() => {
     setVocabularyView(null);
+  }, []);
+
+  const handleCloseTranslateView = useCallback(() => {
+    setTranslateView(null);
   }, []);
 
   const handleOpenMinimap = useCallback(() => {
@@ -637,6 +707,20 @@ export default function GameCanvas() {
                 pack={pack}
                 npcName={vocabularyView.npcName}
                 onClose={handleCloseVocabularyView}
+              />
+            </div>
+          );
+        })()}
+
+        {translateView && (() => {
+          const pack = getVocabularyPack(translateView.packId);
+          if (!pack) return null;
+          return (
+            <div style={{ pointerEvents: 'auto' }}>
+              <VocabularyTranslateView
+                pack={pack}
+                npcName={translateView.npcName}
+                onClose={handleCloseTranslateView}
               />
             </div>
           );

@@ -123,55 +123,84 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
 
           {hasOptions ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-              {dialogue.options!.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  // stopPropagation keeps the outer parchment's click
-                  // handler from also firing (which would advance the
-                  // dialogue when no options are present). Then forward
-                  // the option id up to whoever owns the dialogue state
-                  // so they can route to the right next screen.
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectOption?.(opt.id);
-                  }}
-                  style={{
-                    textAlign: 'left',
-                    padding: '8px 12px',
-                    background: COLORS.optionRest,
-                    border: `2px solid ${COLORS.optionBorder}`,
-                    boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.optionBorder}`,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    color: COLORS.text,
-                    transition: 'transform 80ms ease-out, background 120ms',
-                  }}
-                  onMouseDown={(e) => {
-                    e.currentTarget.style.transform = 'translateY(2px)';
-                    e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}`;
-                  }}
-                  onMouseUp={(e) => {
-                    e.currentTarget.style.transform = '';
-                    e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.optionBorder}`;
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = COLORS.optionHover;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = COLORS.optionRest;
-                    e.currentTarget.style.transform = '';
-                    e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.optionBorder}`;
-                  }}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>{opt.label}</div>
-                  {opt.hint ? (
-                    <div style={{ fontSize: 11, color: COLORS.hintText, marginTop: 3, lineHeight: 1.4 }}>
-                      {opt.hint}
+              {dialogue.options!.map((opt) => {
+                const isDisabled = !!opt.disabled;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    disabled={isDisabled}
+                    aria-disabled={isDisabled}
+                    // stopPropagation keeps the outer parchment's click
+                    // handler from also firing (which would advance the
+                    // dialogue when no options are present). Disabled
+                    // options short-circuit before forwarding so the
+                    // parent never sees a click for a not-yet-built mode.
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isDisabled) return;
+                      onSelectOption?.(opt.id);
+                    }}
+                    style={{
+                      textAlign: 'left',
+                      padding: '8px 12px',
+                      background: COLORS.optionRest,
+                      border: `2px solid ${COLORS.optionBorder}`,
+                      boxShadow: isDisabled
+                        ? 'none'
+                        : `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.optionBorder}`,
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit',
+                      color: COLORS.text,
+                      opacity: isDisabled ? 0.55 : 1,
+                      transition: 'transform 80ms ease-out, background 120ms',
+                    }}
+                    onMouseDown={(e) => {
+                      if (isDisabled) return;
+                      e.currentTarget.style.transform = 'translateY(2px)';
+                      e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}`;
+                    }}
+                    onMouseUp={(e) => {
+                      if (isDisabled) return;
+                      e.currentTarget.style.transform = '';
+                      e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.optionBorder}`;
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isDisabled) return;
+                      e.currentTarget.style.background = COLORS.optionHover;
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isDisabled) return;
+                      e.currentTarget.style.background = COLORS.optionRest;
+                      e.currentTarget.style.transform = '';
+                      e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.optionBorder}`;
+                    }}
+                  >
+                    <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>{opt.label}</span>
+                      {isDisabled ? (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            background: COLORS.hintText,
+                            color: COLORS.parchmentLight,
+                            padding: '1px 6px',
+                            letterSpacing: 1,
+                            fontWeight: 700,
+                          }}
+                        >
+                          SOON
+                        </span>
+                      ) : null}
                     </div>
-                  ) : null}
-                </button>
-              ))}
+                    {opt.hint ? (
+                      <div style={{ fontSize: 11, color: COLORS.hintText, marginTop: 3, lineHeight: 1.4 }}>
+                        {opt.hint}
+                      </div>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             // Continue indicator — tiny pixel triangle bouncing at the

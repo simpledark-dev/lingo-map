@@ -304,6 +304,10 @@ export interface DialogueOption {
   label: string;
   /** Optional short helper text rendered beneath the button. */
   hint?: string;
+  /** When true, the button renders muted + ignores clicks. Used for
+   *  modes/branches that aren't shipped yet so players can see what's
+   *  coming. The overlay tags these visually with a "SOON" badge. */
+  disabled?: boolean;
 }
 
 export interface GameState {
