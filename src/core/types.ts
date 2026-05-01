@@ -100,6 +100,12 @@ export interface NPCData {
    *  the pack as a dictionary or to start a paid quizzing session.
    *  Without this field the NPC does the standard line-by-line chat. */
   vocabularyPackId?: string;
+  /** Flavored opener for the translator-job dialog. Falls back to a
+   *  generic line ("Hey! You're the translator, right? …") when the
+   *  NPC has a vocab pack but doesn't override this. Lets each NPC
+   *  pitch the work in their own voice — keeps the recurring dialog
+   *  from feeling copy-pasted across every NPC the player meets. */
+  vocabularyOfferLine?: string;
 }
 
 // ── Map ──

@@ -375,6 +375,8 @@ const npcs: NPCData[] = [
     // `src/data/vocabularyPacks.ts` for the 150-word pack contents
     // and `src/ui/DialogueOverlay.tsx` for the offer dialog UI.
     vocabularyPackId: "mira-pack-1",
+    vocabularyOfferLine:
+      "Oh — translator, right? Quick, while I wait on this delivery — help me with these words?",
   },
   {
     id: "pk-npc-17",
@@ -399,6 +401,13 @@ const npcs: NPCData[] = [
     name: "Saba",
     dialogue: ["I should be at work but the weather is too nice."],
     wanderRadius: 32,
+    // Numbers 1-20 pack — see `SABA_PACK` in vocabularyPacks.ts.
+    // The offer line leans into Saba's "skipping work" character
+    // beat: she'd literally rather drill numbers with you than
+    // count inventory back at the shop.
+    vocabularyPackId: "saba-pack-1",
+    vocabularyOfferLine:
+      "Hey! You're the new translator, right? Help me drill these numbers — beats actually doing my job.",
   },
   {
     id: "pk-npc-19",

@@ -232,9 +232,40 @@ export const MIRA_PACK: VocabularyPack = {
   ],
 };
 
+/**
+ * Saba's pack — numbers 1 through 20. Reuses the ten number entries
+ * from Mira's pack and tacks on 11-20 with the same phonological
+ * shape. Tight theme so it serves as a focused "drill numbers"
+ * session, the kind a player goes back to repeatedly until the count
+ * sequence sticks.
+ */
+export const SABA_PACK: VocabularyPack = {
+  id: 'saba-pack-1',
+  theme: 'Numbers 1-20',
+  entries: [
+    // 1-10 — pulled directly from Mira's pack so any future
+    // re-spelling there propagates here automatically.
+    ...MIRA_PACK.entries.filter((e) => e.pos === 'number'),
+    // 11-20 — new. Same CV/CVC shape, intentionally distinct from
+    // 1-10 by more than one letter so similar-sounding pairs don't
+    // sabotage early recognition.
+    { target: 'naltu',  english: 'eleven',    pos: 'number' },
+    { target: 'bonta',  english: 'twelve',    pos: 'number' },
+    { target: 'silvu',  english: 'thirteen',  pos: 'number' },
+    { target: 'frenta', english: 'fourteen',  pos: 'number' },
+    { target: 'demni',  english: 'fifteen',   pos: 'number' },
+    { target: 'vorhi',  english: 'sixteen',   pos: 'number' },
+    { target: 'undri',  english: 'seventeen', pos: 'number' },
+    { target: 'kembo',  english: 'eighteen',  pos: 'number' },
+    { target: 'milto',  english: 'nineteen',  pos: 'number' },
+    { target: 'opasu',  english: 'twenty',    pos: 'number' },
+  ],
+};
+
 /** All packs keyed by id. NPCs reference packs via `vocabularyPackId`. */
 export const VOCABULARY_PACKS: Record<string, VocabularyPack> = {
   [MIRA_PACK.id]: MIRA_PACK,
+  [SABA_PACK.id]: SABA_PACK,
 };
 
 export function getVocabularyPack(id: string): VocabularyPack | undefined {

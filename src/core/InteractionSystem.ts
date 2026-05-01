@@ -28,12 +28,16 @@ export function checkInteraction(
     if (npc.vocabularyPackId) {
       const pack = getVocabularyPack(npc.vocabularyPackId);
       const wordCount = pack?.entries.length ?? 0;
+      // Prefer the NPC's own offer line so each character pitches the
+      // job in their own voice. Falls back to a generic line for any
+      // NPC that's been given a pack but no line yet.
+      const offerLine =
+        npc.vocabularyOfferLine ??
+        "Hey! You're the new translator in town, right? I'm really struggling with these words. Can you help me?";
       return {
         npcId: npc.id,
         npcName: npc.name,
-        lines: [
-          "Hey! You are the new translator in town, right? I'm really struggling with these words. Can you help me?",
-        ],
+        lines: [offerLine],
         currentLine: 0,
         vocabularyPackId: npc.vocabularyPackId,
         vocabularyWordCount: wordCount,
