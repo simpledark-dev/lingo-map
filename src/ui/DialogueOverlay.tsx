@@ -7,6 +7,11 @@ import { speakDialogue, cancelDialogueSpeech } from './tts';
 interface DialogueOverlayProps {
   dialogue: DialogueState;
   onAdvance: () => void;
+  /** Fires when the player taps one of the prompt's option buttons.
+   *  Receives the option's stable id (e.g. 'view', 'help'). The
+   *  overlay just reports the selection up to whoever owns the
+   *  dialogue state — it doesn't decide what happens. */
+  onSelectOption?: (optionId: string) => void;
 }
 
 // ── Cozy pixel-art palette ──
@@ -31,7 +36,7 @@ const COLORS = {
   hintText: '#7b5530',
 };
 
-export default function DialogueOverlay({ dialogue, onAdvance }: DialogueOverlayProps) {
+export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }: DialogueOverlayProps) {
   const isLastLine = dialogue.currentLine >= dialogue.lines.length - 1;
   const currentLine = dialogue.lines[dialogue.currentLine] ?? '';
   // When `options` is set the dialogue is a static prompt with choice
@@ -122,11 +127,15 @@ export default function DialogueOverlay({ dialogue, onAdvance }: DialogueOverlay
                 <button
                   key={opt.id}
                   type="button"
-                  // Non-functional in v1 — buttons render so the flow is
-                  // visible but clicking is a no-op until the underlying
-                  // quiz/dictionary screens exist. stopPropagation keeps
-                  // the outer parchment from advancing the dialogue.
-                  onClick={(e) => e.stopPropagation()}
+                  // stopPropagation keeps the outer parchment's click
+                  // handler from also firing (which would advance the
+                  // dialogue when no options are present). Then forward
+                  // the option id up to whoever owns the dialogue state
+                  // so they can route to the right next screen.
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectOption?.(opt.id);
+                  }}
                   style={{
                     textAlign: 'left',
                     padding: '8px 12px',

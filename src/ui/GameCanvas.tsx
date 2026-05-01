@@ -7,6 +7,8 @@ import { PixiApp } from '../renderer/PixiApp';
 import { DialogueState, MapData, GameState } from '../core/types';
 import { GameEvent } from '../core/GameBridge';
 import DialogueOverlay from './DialogueOverlay';
+import VocabularyListView from './VocabularyListView';
+import { getVocabularyPack } from '../data/vocabularyPacks';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
@@ -42,6 +44,12 @@ export default function GameCanvas() {
   const pixiAppRef = useRef<PixiApp | null>(null);
   const soundOnRef = useRef(true);
   const [dialogue, setDialogue] = useState<DialogueState | null>(null);
+  /** When the player picks "Let me look them over first" from a
+   *  translator-offer dialogue, we capture the pack id + the NPC's
+   *  name here and render `VocabularyListView` over the world. The
+   *  dialogue closes; the list takes over until the player closes
+   *  it via the back button or the dim background. */
+  const [vocabularyView, setVocabularyView] = useState<{ packId: string; npcName: string } | null>(null);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
   // Door-transition fade-to-black. Toggled true when a door fires;
@@ -374,6 +382,27 @@ export default function GameCanvas() {
     app.commandQueue.push({ type: 'ADVANCE_DIALOGUE' });
   }, []);
 
+  /** Route the dialogue's option-button clicks. The DialogueOverlay
+   *  reports the option id; here we decide what to actually do.
+   *   - 'view' → close the dialogue and pop the vocabulary list
+   *   - 'help' → reserved for the quizzing flow (not built yet)
+   *   - anything else → just close the dialogue (graceful fallback) */
+  const handleSelectDialogueOption = useCallback((optionId: string) => {
+    if (!dialogue) return;
+    if (optionId === 'view' && dialogue.vocabularyPackId) {
+      setVocabularyView({ packId: dialogue.vocabularyPackId, npcName: dialogue.npcName });
+      setDialogue(null);
+      return;
+    }
+    // Unknown option (or 'help' until the quiz screen lands) — just
+    // dismiss so the player isn't stuck on a dialog they can't act on.
+    setDialogue(null);
+  }, [dialogue]);
+
+  const handleCloseVocabularyView = useCallback(() => {
+    setVocabularyView(null);
+  }, []);
+
   const handleOpenMinimap = useCallback(() => {
     const app = pixiAppRef.current;
     if (!app) return;
@@ -594,9 +623,24 @@ export default function GameCanvas() {
             <DialogueOverlay
               dialogue={dialogue}
               onAdvance={handleAdvanceDialogue}
+              onSelectOption={handleSelectDialogueOption}
             />
           </div>
         )}
+
+        {vocabularyView && (() => {
+          const pack = getVocabularyPack(vocabularyView.packId);
+          if (!pack) return null;
+          return (
+            <div style={{ pointerEvents: 'auto' }}>
+              <VocabularyListView
+                pack={pack}
+                npcName={vocabularyView.npcName}
+                onClose={handleCloseVocabularyView}
+              />
+            </div>
+          );
+        })()}
 
         {minimapData && (
           <div style={{ pointerEvents: 'auto' }}>

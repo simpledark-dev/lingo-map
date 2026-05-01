@@ -240,3 +240,80 @@ export const VOCABULARY_PACKS: Record<string, VocabularyPack> = {
 export function getVocabularyPack(id: string): VocabularyPack | undefined {
   return VOCABULARY_PACKS[id];
 }
+
+/**
+ * Synthesize two example "code-switched" sentences for a vocabulary
+ * entry — English grammar with the target word inserted where the
+ * meaning would go. e.g. for `dog → grano`: "I see a grano."
+ *
+ * Templated by part-of-speech rather than hand-authored per word: at
+ * 150 words × 2 examples each that's already 300 strings, and at 3000
+ * (the v1 target) it's 6000. Pre-computing per word is fine if we
+ * ever want richer/curated sentences, but for the dictionary preview
+ * UI a templated guess is enough — the goal is to show the word
+ * landing in a recognisable English structure, not to teach grammar.
+ *
+ * For verbs: the english is `"to <verb>"` (e.g. `"to run"`); we use
+ * the bare target form so the slot reads naturally as `"I like to
+ * keska"` — the "to" is already in the template.
+ */
+export function getExamples(entry: VocabularyEntry): [string, string] {
+  const t = entry.target;
+  switch (entry.pos) {
+    case 'noun':
+      return [
+        `This is a nice ${t}.`,
+        `I want to buy a ${t}.`,
+      ];
+    case 'verb':
+      return [
+        `I like to ${t} every day.`,
+        `She wants to ${t} tomorrow.`,
+      ];
+    case 'adjective':
+      return [
+        `The dog is very ${t}.`,
+        `What a ${t} day!`,
+      ];
+    case 'pronoun':
+      return [
+        `${t} is here right now.`,
+        `Did you see ${t}?`,
+      ];
+    case 'preposition':
+      return [
+        `The cat is ${t} the table.`,
+        `She walked ${t} the store.`,
+      ];
+    case 'conjunction':
+      return [
+        `I went home ${t} I was tired.`,
+        `She ran ${t} he walked.`,
+      ];
+    case 'question':
+      return [
+        `${t} did you say?`,
+        `I don't know ${t} to do.`,
+      ];
+    case 'number':
+      return [
+        `I have ${t} cats.`,
+        `She is ${t} years old.`,
+      ];
+    case 'time':
+      return [
+        `${t} is going to be a busy day.`,
+        `I'll see you ${t}.`,
+      ];
+    case 'greeting':
+      return [
+        `She said ${t} and walked away.`,
+        `${t}, my friend!`,
+      ];
+    default:
+      return [
+        `Here is the word: ${t}.`,
+        `Try using ${t} in a sentence.`,
+      ];
+  }
+}
