@@ -48,16 +48,31 @@ export interface VocabProgress {
   /** Last N prompts shown, oldest first. Used to bias new picks
    *  away from recent prompts — keeps conversations feeling varied. */
   recentUsed: string[];
+  /** Hysteresis flag for queue-saturation mode. When the queue
+   *  reaches QUEUE_ONLY_ENTER_AT (5), this flips on and the picker
+   *  stops sampling new words entirely — every pick comes from the
+   *  queue until enough graduate that the queue shrinks back to
+   *  QUEUE_ONLY_EXIT_AT (3). Without this, the player could be
+   *  pulled away from a backlog of struggling words by random
+   *  fresh introductions and the queue would never drain. */
+  queueOnlyMode: boolean;
 }
 
 const WRONG_QUEUE_CAP = 10;
 const RECENT_BUFFER_SIZE = 10;
 const GRADUATION_STREAK = 5;
+/** Queue size that flips queueOnlyMode ON. The player has 5 active
+ *  weak words; further new vocab would just dilute review. */
+const QUEUE_ONLY_ENTER_AT = 5;
+/** Queue size that flips queueOnlyMode OFF. Has to be < ENTER_AT to
+ *  give hysteresis — without a gap the mode would flicker on every
+ *  graduate-then-miss cycle. Threshold is "≤ 3" per the design. */
+const QUEUE_ONLY_EXIT_AT = 3;
 
 const STORAGE_PREFIX = 'vocab-progress:';
 
 export function createInitialProgress(): VocabProgress {
-  return { byWord: {}, wrongQueue: [], recentUsed: [] };
+  return { byWord: {}, wrongQueue: [], recentUsed: [], queueOnlyMode: false };
 }
 
 /** Read the saved progress for a pack from localStorage, or return
@@ -78,7 +93,12 @@ export function loadProgress(packId: string): VocabProgress {
     ) {
       return createInitialProgress();
     }
-    return parsed as VocabProgress;
+    // Default queueOnlyMode for back-compat with progress files
+    // saved before this field existed.
+    return {
+      ...parsed,
+      queueOnlyMode: parsed.queueOnlyMode === true,
+    } as VocabProgress;
   } catch {
     return createInitialProgress();
   }
@@ -95,13 +115,20 @@ export function saveProgress(packId: string, progress: VocabProgress): void {
 }
 
 /** Probability that the next pick comes from the wrong-queue, given
- *  how many words are currently in it. Mirrors the design doc:
- *   1-2 → 50%, 3-4 → 70%, 5+ → 90%, empty → 0. */
-function queuePriority(queueSize: number): number {
+ *  how many words are currently in it AND whether queue-only mode is
+ *  latched on. Tiered:
+ *    queueOnlyMode (queue ≥ 5 sometime in past, hasn't dropped to ≤3) → 1.0
+ *    1-2 in queue → 0.5
+ *    3-4 in queue → 0.7
+ *    5+   in queue → triggers queueOnlyMode anyway, but if somehow the
+ *                    flag isn't set we still hit 0.9 here.
+ *    empty → 0. */
+function queuePriority(queueSize: number, queueOnlyMode: boolean): number {
+  if (queueSize === 0) return 0;
+  if (queueOnlyMode) return 1;
   if (queueSize >= 5) return 0.9;
   if (queueSize >= 3) return 0.7;
-  if (queueSize >= 1) return 0.5;
-  return 0;
+  return 0.5;
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -132,7 +159,7 @@ export function pickPromptEntry(
   progress: VocabProgress,
 ): VocabularyEntry {
   const queueSize = progress.wrongQueue.length;
-  if (queueSize > 0 && Math.random() < queuePriority(queueSize)) {
+  if (queueSize > 0 && Math.random() < queuePriority(queueSize, progress.queueOnlyMode)) {
     const target = progress.wrongQueue[Math.floor(Math.random() * queueSize)];
     const entry = pack.entries.find((e) => e.target === target);
     if (entry) return entry;
@@ -251,7 +278,17 @@ export function recordAnswer(
     recentUsed.splice(0, recentUsed.length - RECENT_BUFFER_SIZE);
   }
 
-  return { byWord, wrongQueue, recentUsed };
+  // Hysteresis update — queue-only mode latches ON at ≥5 weak words
+  // and OFF at ≤3. Sizes between 3 and 5 (i.e. exactly 4) keep the
+  // current state; that's the band that prevents flicker.
+  let queueOnlyMode = progress.queueOnlyMode;
+  if (wrongQueue.length >= QUEUE_ONLY_ENTER_AT) {
+    queueOnlyMode = true;
+  } else if (wrongQueue.length <= QUEUE_ONLY_EXIT_AT) {
+    queueOnlyMode = false;
+  }
+
+  return { byWord, wrongQueue, recentUsed, queueOnlyMode };
 }
 
 /** Track that the player saw a prompt without answering yet — used
