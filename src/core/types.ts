@@ -94,6 +94,12 @@ export interface NPCData {
   wanderRadius?: number;
   /** Optional rectangular area the NPC is confined to (world pixels). */
   wanderBounds?: { x: number; y: number; width: number; height: number };
+  /** If set, the NPC owns a vocabulary pack (lookup id in
+   *  `src/data/vocabularyPacks.ts`). On interaction the player gets a
+   *  "translator offer" dialog instead of plain chat: option to view
+   *  the pack as a dictionary or to start a paid quizzing session.
+   *  Without this field the NPC does the standard line-by-line chat. */
+  vocabularyPackId?: string;
 }
 
 // ── Map ──
@@ -277,6 +283,27 @@ export interface DialogueState {
   npcName: string;
   lines: string[];
   currentLine: number;
+  /** Optional inline choice prompt shown beneath the current line.
+   *  When set, the dialogue overlay renders the options as buttons and
+   *  the line itself is treated as the prompt. Used for the
+   *  "translator job" offer dialog and any future branching UI; the
+   *  buttons are non-functional in v1, just visual. */
+  options?: DialogueOption[];
+  /** Optional context for translator-offer dialogs: which pack the
+   *  NPC owns and how many words are in it. Currently informational
+   *  only — used to compose the prompt text and the "view dictionary"
+   *  / "help translate" buttons. */
+  vocabularyPackId?: string;
+  vocabularyWordCount?: number;
+}
+
+export interface DialogueOption {
+  /** Stable id, used by the UI to react when a button is selected. */
+  id: string;
+  /** Visible button text. */
+  label: string;
+  /** Optional short helper text rendered beneath the button. */
+  hint?: string;
 }
 
 export interface GameState {

@@ -369,6 +369,12 @@ const npcs: NPCData[] = [
     name: "Cleo",
     dialogue: ["Waiting on a delivery. They said before noon."],
     wanderRadius: 32,
+    // First NPC wired into the translator-job loop. Cleo is the
+    // closest NPC to the player's default spawn (4, 40), so she's
+    // the natural "first encounter" for a new player. See
+    // `src/data/vocabularyPacks.ts` for the 150-word pack contents
+    // and `src/ui/DialogueOverlay.tsx` for the offer dialog UI.
+    vocabularyPackId: "mira-pack-1",
   },
   {
     id: "pk-npc-17",
