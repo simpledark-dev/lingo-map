@@ -9,7 +9,9 @@ type Props = {
   onChange: (dir: Dir | null) => void;
 };
 
-const PAD_SIZE = 132;
+/** Diameter of the on-screen pad in CSS pixels. Tweak to taste —
+ *  arrow positions are all derived from this so they stay aligned. */
+const PAD_SIZE = 116;
 const DEAD_ZONE = 6;
 // Octant boundary at 22.5°: anything closer to the axis than tan(22.5°)
 // snaps to a single cardinal; everything else snaps to a diagonal pair.
