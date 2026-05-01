@@ -298,6 +298,8 @@ Files: [data/pokemon-house-1f.json](../data/pokemon-house-1f.json),
 
 ## BL-17: Disable magnifying glass effect on mobile/PWA
 
+## BL-18L It is possible that NPC/character get stuck forever with the cars. Cases that i see were: main character got stuck next to a car and cannot move. Another case NPC also got stuck and cannot move
+
 ## Done
 
 - **BL-04 — Interior tap-to-move broken.** `RenderSystem.updateCamera`

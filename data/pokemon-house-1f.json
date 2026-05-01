@@ -436,10 +436,10 @@
           },
           "sortY": 184.32031250000003,
           "collisionBox": {
-            "offsetX": -22,
-            "offsetY": -28,
-            "width": 44,
-            "height": 28
+            "offsetX": -28,
+            "offsetY": -43,
+            "width": 56,
+            "height": 40
           },
           "scale": 0.17600000000000002,
           "layer": "props"
@@ -565,10 +565,10 @@
           },
           "sortY": 105.46996210886566,
           "collisionBox": {
-            "offsetX": -14,
-            "offsetY": -14,
-            "width": 28,
-            "height": 14
+            "offsetX": -30,
+            "offsetY": -38,
+            "width": 59,
+            "height": 38
           },
           "scale": 1,
           "layer": "props"
@@ -584,10 +584,10 @@
           },
           "sortY": 95.27455357142856,
           "collisionBox": {
-            "offsetX": -14,
-            "offsetY": -14,
-            "width": 28,
-            "height": 14
+            "offsetX": -32,
+            "offsetY": -27,
+            "width": 64,
+            "height": 27
           },
           "scale": 0.13860000000000003,
           "layer": "props"
@@ -603,10 +603,10 @@
           },
           "sortY": 95.78934151785714,
           "collisionBox": {
-            "offsetX": -7,
-            "offsetY": -14,
-            "width": 14,
-            "height": 14
+            "offsetX": -15,
+            "offsetY": -46,
+            "width": 30,
+            "height": 46
           },
           "scale": 0.13,
           "layer": "props"

@@ -391,10 +391,10 @@
           },
           "sortY": 138.27187499999997,
           "collisionBox": {
-            "offsetX": -14,
-            "offsetY": -14,
-            "width": 28,
-            "height": 14
+            "offsetX": -35,
+            "offsetY": -72,
+            "width": 68,
+            "height": 70
           },
           "scale": 0.15,
           "layer": "props"
@@ -448,10 +448,10 @@
           },
           "sortY": 112.16093750000002,
           "collisionBox": {
-            "offsetX": -14,
-            "offsetY": -12,
-            "width": 28,
-            "height": 12
+            "offsetX": -24,
+            "offsetY": -21,
+            "width": 48,
+            "height": 18
           },
           "scale": 0.17,
           "layer": "props"
@@ -486,10 +486,10 @@
           },
           "sortY": 101.71614583333334,
           "collisionBox": {
-            "offsetX": -7,
-            "offsetY": -8,
-            "width": 14,
-            "height": 8
+            "offsetX": -12,
+            "offsetY": -21,
+            "width": 27,
+            "height": 19
           },
           "scale": 0.16,
           "layer": "props"
@@ -505,10 +505,10 @@
           },
           "sortY": 224,
           "collisionBox": {
-            "offsetX": -5,
-            "offsetY": -6,
-            "width": 10,
-            "height": 6
+            "offsetX": -27,
+            "offsetY": -23,
+            "width": 55,
+            "height": 23
           },
           "scale": 0.15400000000000003,
           "layer": "props"
@@ -544,9 +544,9 @@
           "sortY": 216.871875,
           "collisionBox": {
             "offsetX": -6,
-            "offsetY": -6,
+            "offsetY": -12,
             "width": 12,
-            "height": 6
+            "height": 12
           },
           "scale": 0.14,
           "layer": "props"

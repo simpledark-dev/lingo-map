@@ -14,7 +14,7 @@ type Props = {
 const PAD_SIZE = 122;
 /** Distance from the left and bottom viewport edges in CSS pixels.
  *  Increase these to move the pad right/up; decrease to move left/down. */
-const PAD_LEFT = 36;
+const PAD_LEFT = 56;
 const PAD_BOTTOM = 44;
 const DEAD_ZONE = 6;
 // Octant boundary at 22.5°: anything closer to the axis than tan(22.5°)
