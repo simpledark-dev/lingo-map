@@ -12842,10 +12842,10 @@
             "targetMapId": "grocer-1f",
             "targetSpawnId": "indoor-b",
             "triggerBox": {
-              "offsetX": -16,
-              "offsetY": -13,
-              "width": 32,
-              "height": 14
+              "offsetX": -11,
+              "offsetY": -30,
+              "width": 24,
+              "height": 30
             },
             "incomingSpawnId": "outdoor-b"
           }
@@ -12873,9 +12873,9 @@
             "targetSpawnId": "entrance",
             "triggerBox": {
               "offsetX": -35,
-              "offsetY": -13,
+              "offsetY": -30,
               "width": 24,
-              "height": 14
+              "height": 31
             },
             "incomingSpawnId": "outdoor-houseA-door"
           }

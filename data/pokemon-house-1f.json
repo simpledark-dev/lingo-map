@@ -1,22 +1,12 @@
 {
+  "version": 2,
   "id": "pokemon-house-1f",
   "width": 20,
   "height": 16,
   "tileSize": 16,
   "buildings": [],
   "npcs": [],
-  "triggers": [
-    {
-      "id": "1f-exit",
-      "x": 144,
-      "y": 240,
-      "width": 32,
-      "height": 16,
-      "type": "door",
-      "targetMapId": "pokemon",
-      "targetSpawnId": "from-house"
-    }
-  ],
+  "triggers": [],
   "spawnPoints": [
     {
       "id": "entrance",
