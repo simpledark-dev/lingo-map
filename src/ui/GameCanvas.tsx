@@ -10,7 +10,7 @@ import DialogueOverlay from './DialogueOverlay';
 import VocabularyListView from './VocabularyListView';
 import VocabularyTranslateView from './VocabularyTranslateView';
 import { getVocabularyPack } from '../data/vocabularyPacks';
-import { useWalletBalance } from '../data/wallet';
+import { useWalletBalance, formatBalance } from '../data/wallet';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
@@ -639,19 +639,19 @@ export default function GameCanvas() {
 
       {/* UI overlay — always on top of canvas */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }}>
-        {/* Top-left wallet HUD — coin balance, persistent across
+        {/* Top-left wallet HUD — dollar balance, persistent across
             reloads. Subscribes via useWalletBalance so vocab views
-            don't have to call back up here. Static display, no
-            interaction yet. */}
+            don't have to call back up here. Inset from the corner so
+            it's clear of iOS notch / status bar drift. */}
         <div
           style={{
             position: 'absolute',
-            top: 8,
-            left: 8,
+            top: 20,
+            left: 20,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            padding: '6px 10px',
+            gap: 4,
+            padding: '7px 12px',
             background: 'rgba(0, 0, 0, 0.55)',
             border: '1px solid rgba(217, 164, 41, 0.6)',
             borderRadius: 999,
@@ -663,10 +663,9 @@ export default function GameCanvas() {
             userSelect: 'none',
             pointerEvents: 'none',
           }}
-          aria-label={`Coins: ${walletBalance}`}
+          aria-label={`Balance: ${formatBalance(walletBalance)}`}
         >
-          <span style={{ fontSize: 14, lineHeight: 1 }} aria-hidden>🪙</span>
-          <span style={{ minWidth: 16, textAlign: 'right' }}>{walletBalance}</span>
+          <span style={{ minWidth: 50, textAlign: 'right' }}>{formatBalance(walletBalance)}</span>
         </div>
 
         {/* Top-right icon group */}
