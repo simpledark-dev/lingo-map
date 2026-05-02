@@ -11,6 +11,12 @@ import {
   recordAnswer,
   recordPromptShown,
 } from '../data/vocabSelection';
+import {
+  REWARD_PER_CORRECT,
+  PENALTY_PER_WRONG,
+  PENALTY_PER_IDK,
+  addBalance,
+} from '../data/wallet';
 import { speakDialogue, cancelDialogueSpeech } from './tts';
 
 interface VocabularyPracticeViewProps {
@@ -135,6 +141,10 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
         correct: s.correct + (isCorrect ? 1 : 0),
         wrong: s.wrong + (isCorrect ? 0 : 1),
       }));
+      // Same wallet impact as the translate view — practice answers
+      // also feed the persistent balance so the player has one
+      // unified "I'm getting better" number.
+      addBalance(isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG);
       // Update per-word memory state — the picker uses this on the
       // next round (wrong-queue + recency-aware).
       setProgress((p) => {
@@ -164,6 +174,7 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
       saveProgress(pack.id, updated);
       return updated;
     });
+    addBalance(-PENALTY_PER_IDK);
     setScore((s) => ({ ...s, skipped: s.skipped + 1 }));
     setWaitingOnNext(true);
     setShowDetails(true);
