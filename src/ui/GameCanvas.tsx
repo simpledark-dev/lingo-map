@@ -53,11 +53,12 @@ export default function GameCanvas() {
    *  it via the back button or the dim background. */
   const [vocabularyView, setVocabularyView] = useState<{ packId: string; npcName: string } | null>(null);
   /** Same shape, but for the for-money translation work session. The
-   *  player gets here by accepting the offer (option 1), then picking
-   *  the only-enabled mode in the follow-up dialogue (text-recognition,
-   *  for now). Mirrors `vocabularyView` so we can swap views without
-   *  the world rendering on top of either. */
-  const [translateView, setTranslateView] = useState<{ packId: string; npcName: string } | null>(null);
+   *  player gets here by accepting the offer (option 1) then picking
+   *  one of the mode buttons. `mode` distinguishes the recognition
+   *  surface — `read` shows the target word as text, `listen` hides
+   *  it and the player has to identify by audio alone. Same picker,
+   *  same wallet, same wrong-queue underneath. */
+  const [translateView, setTranslateView] = useState<{ packId: string; npcName: string; mode: 'read' | 'listen' } | null>(null);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
   // Door-transition fade-to-black. Toggled true when a door fires;
@@ -440,7 +441,6 @@ export default function GameCanvas() {
             id: 'mode-listen',
             label: '2. Listen & translate',
             hint: 'Hear each word spoken, pick its meaning.',
-            disabled: true,
           },
           {
             id: 'mode-write',
@@ -459,7 +459,12 @@ export default function GameCanvas() {
       return;
     }
     if (optionId === 'mode-read' && packId) {
-      setTranslateView({ packId, npcName: dialogue.npcName });
+      setTranslateView({ packId, npcName: dialogue.npcName, mode: 'read' });
+      setDialogue(null);
+      return;
+    }
+    if (optionId === 'mode-listen' && packId) {
+      setTranslateView({ packId, npcName: dialogue.npcName, mode: 'listen' });
       setDialogue(null);
       return;
     }
@@ -751,6 +756,7 @@ export default function GameCanvas() {
               <VocabularyTranslateView
                 pack={pack}
                 npcName={translateView.npcName}
+                mode={translateView.mode}
                 onClose={handleCloseTranslateView}
               />
             </div>

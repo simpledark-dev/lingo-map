@@ -140,6 +140,19 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
+/** Filter to entries the pack can actually play audio for. When the
+ *  pack declares an `audio` map, missing entries fall back to TTS —
+ *  but TTS is unreliable on some setups (stuck Chrome subprocess,
+ *  iOS audio-session contention), so a word with no recording can
+ *  end up effectively silent for the player. Skip those at selection
+ *  time rather than letting the player get stranded mid-round.
+ *  Packs with no `audio` map at all (e.g. Mira) rely entirely on TTS
+ *  by design, so this filter is a no-op there. */
+function playableEntries(pack: VocabularyPack): VocabularyEntry[] {
+  if (!pack.audio) return pack.entries;
+  return pack.entries.filter((e) => pack.audio?.[e.target]);
+}
+
 /** Pick the prompt for the next round.
  *
  *  Order of operations:
@@ -158,18 +171,23 @@ export function pickPromptEntry(
   pack: VocabularyPack,
   progress: VocabProgress,
 ): VocabularyEntry {
+  const playable = playableEntries(pack);
+  const playableSet = new Set(playable.map((e) => e.target));
   const queueSize = progress.wrongQueue.length;
-  if (queueSize > 0 && Math.random() < queuePriority(queueSize, progress.queueOnlyMode)) {
-    const target = progress.wrongQueue[Math.floor(Math.random() * queueSize)];
-    const entry = pack.entries.find((e) => e.target === target);
+  const playableQueue = progress.wrongQueue.filter((t) => playableSet.has(t));
+  if (
+    playableQueue.length > 0 &&
+    Math.random() < queuePriority(queueSize, progress.queueOnlyMode)
+  ) {
+    const target = playableQueue[Math.floor(Math.random() * playableQueue.length)];
+    const entry = playable.find((e) => e.target === target);
     if (entry) return entry;
-    // Queue is referencing a word that's no longer in the pack.
-    // Treat it as a fall-through and pick normally.
+    // Fall through — shouldn't hit, but keeps us safe if state drifts.
   }
 
   const recent = new Set(progress.recentUsed);
-  const fresh = pack.entries.filter((e) => !recent.has(e.target));
-  const pool = fresh.length > 0 ? fresh : pack.entries;
+  const fresh = playable.filter((e) => !recent.has(e.target));
+  const pool = fresh.length > 0 ? fresh : playable;
 
   // Build sorted-by-seenCount list, ascending. Tie-break randomly
   // within each seenCount bucket so we don't always pick the same

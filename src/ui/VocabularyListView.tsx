@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { VocabularyPack, getExamples } from '../data/vocabularyPacks';
-import { speakDialogue, cancelDialogueSpeech } from './tts';
+import { cancelDialogueSpeech } from './tts';
+import { speakVocabWord } from './wordSpeak';
 import VocabularyPracticeView from './VocabularyPracticeView';
 
 interface VocabularyListViewProps {
@@ -73,7 +74,7 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
     // Cancel any prior utterance (TTS panel button mashing) so we
     // don't queue a backlog.
     cancelDialogueSpeech();
-    speakDialogue(target);
+    speakVocabWord(pack, target);
   };
 
   return (

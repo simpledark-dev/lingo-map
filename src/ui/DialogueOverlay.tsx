@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { DialogueState } from '../core/types';
 import { speakDialogue } from './tts';
 
@@ -88,22 +88,43 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
     onAdvance();
   }, [isFullyRevealed, hasOptions, currentLine.length, onAdvance]);
 
+  // Track the currently-playing pre-recorded clip so a line change
+  // (advance, or a new NPC chat starting) can pause the previous
+  // one. We don't pause on dismiss — same UX rationale as the TTS
+  // path: letting the audio trail naturally feels less abrupt than
+  // a hard cut, and there's no iOS-freeze cost like there is with
+  // speechSynthesis.cancel().
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     if (!currentLine) return;
-    speakDialogue(currentLine);
-    // Intentionally NO cleanup-time cancel. Calling
+    if (dialogue.audioUrl) {
+      // Pre-recorded voice line — play the asset and skip TTS so the
+      // browser doesn't speak over it.
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      const audio = new Audio(dialogue.audioUrl);
+      audioRef.current = audio;
+      // Some mobile browsers reject autoplay before any user
+      // interaction. The dialog only opens after a tap, so we
+      // should always have a recent gesture, but swallow rejections
+      // anyway — silent failure is better than an unhandled promise.
+      audio.play().catch(() => { /* ignore */ });
+    } else {
+      speakDialogue(currentLine);
+    }
+    // Intentionally NO cleanup-time cancel for either path. Calling
     // `speechSynthesis.cancel()` on iOS Safari triggers a 1-2 second
     // main-thread stutter while the OS speech daemon flushes its
     // audio session — observable as "tap NPC, tap away, ~2s later
-    // the game freezes for 1s." Letting the utterance finish
-    // naturally (a few seconds of NPC voice trailing after dialogue
-    // closes) is far better UX than a hard freeze. Replacement
-    // utterances (advancing dialogue, opening a new NPC chat) still
-    // cancel + re-speak via `speakDialogue`'s own logic, which only
-    // fires when there's a NEW utterance to take over — so the
-    // engine's cleanup overhead happens behind the new audio rather
-    // than during a silent gameplay window.
-  }, [currentLine, dialogue.npcId]);
+    // the game freezes for 1s." For the MP3 path the cost would be
+    // smaller but the UX is the same: letting the line finish
+    // naturally feels less abrupt than a hard cut, and replacement
+    // utterances (advancing dialogue, opening a new NPC chat) take
+    // over via the line-change branch above.
+  }, [currentLine, dialogue.npcId, dialogue.audioUrl]);
 
   return (
     <div

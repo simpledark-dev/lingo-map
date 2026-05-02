@@ -34,6 +34,12 @@ export interface VocabularyPack {
   /** Free-form theme label shown in the dictionary view. */
   theme: string;
   entries: VocabularyEntry[];
+  /** Optional target → audio URL map. Words listed here play the
+   *  recorded MP3 when the speaker icon (or auto-speak in listen
+   *  mode) fires; words NOT listed fall back to `speechSynthesis`.
+   *  Per-pack so different decks can share a folder convention
+   *  without imposing a global one. Lookup is by `entry.target`. */
+  audio?: Record<string, string>;
 }
 
 /**
@@ -260,6 +266,36 @@ export const SABA_PACK: VocabularyPack = {
     { target: 'milto',  english: 'nineteen',  pos: 'number' },
     { target: 'opasu',  english: 'twenty',    pos: 'number' },
   ],
+  // Recorded mp3s in /public/assets/audio/numbers/ — one per
+  // target word, named `<target>.mp3`. Entries without an audio
+  // URL are skipped by the selection picker so the player never
+  // lands on a word they can't hear (TTS is too unreliable as a
+  // fallback in practice — stuck Chrome subprocess, iOS audio-
+  // session contention). Listed here as a map of target → URL
+  // rather than auto-derived so a missing file is a typed
+  // absence, not a 404 surprise.
+  audio: {
+    ena:    '/assets/audio/numbers/ena.mp3',
+    dura:   '/assets/audio/numbers/dura.mp3',
+    solva:  '/assets/audio/numbers/solva.mp3',
+    mekta:  '/assets/audio/numbers/mekta.mp3',
+    galpi:  '/assets/audio/numbers/galpi.mp3',
+    tumo:   '/assets/audio/numbers/tumo.mp3',
+    resta:  '/assets/audio/numbers/resta.mp3',
+    jolen:  '/assets/audio/numbers/jolen.mp3',
+    kavu:   '/assets/audio/numbers/kavu.mp3',
+    ponek:  '/assets/audio/numbers/ponek.mp3',
+    naltu:  '/assets/audio/numbers/naltu.mp3',
+    bonta:  '/assets/audio/numbers/bonta.mp3',
+    silvu:  '/assets/audio/numbers/silvu.mp3',
+    frenta: '/assets/audio/numbers/frenta.mp3',
+    demni:  '/assets/audio/numbers/demni.mp3',
+    vorhi:  '/assets/audio/numbers/vorhi.mp3',
+    undri:  '/assets/audio/numbers/undri.mp3',
+    kembo:  '/assets/audio/numbers/kembo.mp3',
+    milto:  '/assets/audio/numbers/milto.mp3',
+    opasu:  '/assets/audio/numbers/opasu.mp3',
+  },
 };
 
 /** All packs keyed by id. NPCs reference packs via `vocabularyPackId`. */

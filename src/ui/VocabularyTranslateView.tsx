@@ -40,11 +40,23 @@ import {
   formatBalance,
   formatDelta,
 } from '../data/wallet';
-import { speakDialogue, cancelDialogueSpeech } from './tts';
+import { cancelDialogueSpeech } from './tts';
+import { speakVocabWord } from './wordSpeak';
+import { playSfx, SFX } from './sfx';
 
 interface VocabularyTranslateViewProps {
   pack: VocabularyPack;
   npcName: string;
+  /** Recognition surface for this session.
+   *   - 'read'   → target word shown as text + speaker (default)
+   *   - 'listen' → target word HIDDEN; player has to identify by
+   *                audio alone (the speak-on-mount + a tappable
+   *                replay button are the only cues). The wrong-
+   *                answer study panel still reveals the spelling
+   *                when the player misses or admits "I don't know"
+   *                — the test is about recognition under TTS, not
+   *                about hiding the answer forever. */
+  mode?: 'read' | 'listen';
   onClose: () => void;
 }
 
@@ -71,8 +83,6 @@ const COLORS = {
   coinGoldDark: '#9a6e16',
 };
 
-const FEEDBACK_HOLD_MS = 1100;
-
 interface Round {
   prompt: VocabularyEntry;
   choices: VocabularyEntry[];
@@ -88,7 +98,8 @@ function buildRound(pack: VocabularyPack, progress: VocabProgress): Round {
   return { prompt, choices };
 }
 
-export default function VocabularyTranslateView({ pack, npcName, onClose }: VocabularyTranslateViewProps) {
+export default function VocabularyTranslateView({ pack, npcName, mode = 'read', onClose }: VocabularyTranslateViewProps) {
+  const isListenMode = mode === 'listen';
   // Load persisted progress for this pack first; the picker reads
   // it to bias toward weak words. Initialised inside useState's
   // initializer so we only hit localStorage once per mount.
@@ -128,9 +139,21 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
   const advanceTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    speakDialogue(round.prompt.target);
+    // Auto-speak the prompt ONLY in listen mode — the audio is the
+    // prompt itself there. In read mode the word is on screen and
+    // the speaker button is opt-in; auto-speaking competes with
+    // the perfect.mp3 chime for the iOS audio session and we'd see
+    // either the TTS or the chime randomly dropped. Cleanest fix:
+    // don't kick TTS automatically when the player can just read.
+    //
+    // Depend on the `round` object reference (not `round.prompt.target`)
+    // so back-to-back rounds with the same target still re-fire the
+    // auto-speak. Using the target string as the dep meant two milto
+    // rounds in a row produced a silent second one.
+    if (!isListenMode) return;
+    speakVocabWord(pack, round.prompt.target);
     return cancelDialogueSpeech;
-  }, [round.prompt.target]);
+  }, [pack, round, isListenMode]);
 
   useEffect(() => {
     return () => {
@@ -176,19 +199,21 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
         saveProgress(pack.id, updated);
         return updated;
       });
+      // Both correct and wrong pause for the player. Chime fires on
+      // correct, green/red flash either way. Player can tap the
+      // prompt (the word in read mode, the dots in listen mode) to
+      // expand meaning + examples; Next button advances when ready.
+      // We deliberately DON'T auto-expand details on listen mode —
+      // the player chose right (or wants to inspect their wrong
+      // answer first); the choice list stays visible so they can
+      // see the green ✓ exactly the way read mode does. The IDK
+      // path is the only one that auto-expands.
       if (isCorrect) {
-        // Brisk correct flow — auto-advance.
-        advanceTimerRef.current = window.setTimeout(() => {
-          advanceToNextRound();
-        }, FEEDBACK_HOLD_MS);
-      } else {
-        // Wrong — freeze the round, surface the Next button, let the
-        // player tap the prompt to peek at meaning + examples before
-        // they choose to move on.
-        setWaitingOnNext(true);
+        playSfx(SFX.CORRECT);
       }
+      setWaitingOnNext(true);
     },
-    [pack, round.prompt.target, selectedTarget, waitingOnNext, advanceToNextRound],
+    [pack, round.prompt.target, selectedTarget, waitingOnNext],
   );
 
   /** Player admits they don't know the word — better than letting
@@ -215,8 +240,8 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
 
   const handleSpeak = useCallback(() => {
     cancelDialogueSpeech();
-    speakDialogue(round.prompt.target);
-  }, [round.prompt.target]);
+    speakVocabWord(pack, round.prompt.target);
+  }, [pack, round.prompt.target]);
 
   // The prompt word is tappable to peek at details ONLY after an
   // answer has been picked. Before that, tapping it during the
@@ -291,7 +316,7 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
                 Translating for {npcName}
               </div>
               <div style={{ color: COLORS.text, fontSize: 11, opacity: 0.8 }}>
-                Read the word, pick its meaning.
+                {isListenMode ? 'Listen and pick the meaning.' : 'Read the word, pick its meaning.'}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -373,14 +398,15 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
                   marginBottom: 8,
                 }}
               >
-                What does this mean?
+                {isListenMode ? 'Listen carefully — what did you hear?' : 'What does this mean?'}
               </div>
-              {/* Prompt word + speaker. In portrait the speaker sits
-                  beneath the word; in landscape the media query
-                  collapses both onto one row to save vertical space.
-                  The word stays tappable AFTER a wrong answer so the
-                  player can pull up the study panel — before that
-                  it's decorative (tapping would be a free hint). */}
+              {/* Prompt area. In `read` mode we render the target word
+                  as text with the speaker button beside it. In `listen`
+                  mode we hide the spelling entirely — the player has
+                  to identify the word from audio alone. The wrong-
+                  answer study panel still reveals the spelling later
+                  so the test is "can you recognise this when spoken",
+                  not "guess a word the game is hiding forever". */}
               <div
                 className="vt-prompt-word-row"
                 style={{
@@ -391,27 +417,55 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
                   justifyContent: 'center',
                 }}
               >
-                <span
-                  className="vt-word"
-                  onClick={promptIsTappable ? () => setShowDetails((d) => !d) : undefined}
-                  style={{
-                    color: COLORS.text,
-                    fontSize: 32,
-                    fontWeight: 700,
-                    letterSpacing: 1.5,
-                    lineHeight: 1.1,
-                    textShadow: `1px 1px 0 ${COLORS.parchmentShadow}`,
-                    cursor: promptIsTappable ? 'pointer' : 'default',
-                    borderBottom: promptIsTappable
-                      ? `2px dashed ${showDetails ? COLORS.accentGoldDark : COLORS.hintText}`
-                      : '2px dashed transparent',
-                    paddingBottom: 2,
-                    transition: 'border-color 180ms',
-                  }}
-                  title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
-                >
-                  {round.prompt.target}
-                </span>
+                {isListenMode ? (
+                  // Listen mode: a chunky waveform-glyph placeholder
+                  // keeps the prompt visually anchored where the word
+                  // would normally be. Tappable AFTER an answer (same
+                  // affordance as the word in read mode) so the
+                  // player can pull up meaning + examples.
+                  <span
+                    className="vt-word"
+                    onClick={promptIsTappable ? () => setShowDetails((d) => !d) : undefined}
+                    style={{
+                      color: showDetails ? COLORS.accentGoldDark : COLORS.accentGoldDark,
+                      fontSize: 30,
+                      letterSpacing: 6,
+                      lineHeight: 1.1,
+                      paddingBottom: 2,
+                      cursor: promptIsTappable ? 'pointer' : 'default',
+                      borderBottom: promptIsTappable
+                        ? `2px dashed ${showDetails ? COLORS.accentGoldDark : COLORS.hintText}`
+                        : '2px dashed transparent',
+                      transition: 'border-color 180ms',
+                      display: 'inline-block',
+                    }}
+                    title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
+                  >
+                    ◌◌◌
+                  </span>
+                ) : (
+                  <span
+                    className="vt-word"
+                    onClick={promptIsTappable ? () => setShowDetails((d) => !d) : undefined}
+                    style={{
+                      color: COLORS.text,
+                      fontSize: 32,
+                      fontWeight: 700,
+                      letterSpacing: 1.5,
+                      lineHeight: 1.1,
+                      textShadow: `1px 1px 0 ${COLORS.parchmentShadow}`,
+                      cursor: promptIsTappable ? 'pointer' : 'default',
+                      borderBottom: promptIsTappable
+                        ? `2px dashed ${showDetails ? COLORS.accentGoldDark : COLORS.hintText}`
+                        : '2px dashed transparent',
+                      paddingBottom: 2,
+                      transition: 'border-color 180ms',
+                    }}
+                    title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
+                  >
+                    {round.prompt.target}
+                  </span>
+                )}
                 <button
                   type="button"
                   className="vt-speaker"
@@ -419,16 +473,21 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
                   onClick={handleSpeak}
                   style={{
                     fontFamily: 'inherit',
-                    fontSize: 13,
+                    // In listen mode the speaker is the player's only
+                    // affordance for replaying the word, so make it
+                    // bigger + more inviting. Read mode keeps the
+                    // small secondary-affordance look.
+                    fontSize: isListenMode ? 15 : 13,
+                    fontWeight: isListenMode ? 700 : 400,
                     background: COLORS.speakerBg,
                     border: `2px solid ${COLORS.cardBorder}`,
                     boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
-                    padding: '4px 10px',
+                    padding: isListenMode ? '8px 16px' : '4px 10px',
                     cursor: 'pointer',
                     color: COLORS.text,
                   }}
                 >
-                  🔊 hear it
+                  🔊 {isListenMode ? 'hear again' : 'hear it'}
                 </button>
               </div>
             </div>
@@ -637,7 +696,9 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
                     e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`;
                   }}
                 >
-                  Got it — Next ▶
+                  {selectedTarget !== null && selectedTarget === round.prompt.target
+                    ? 'Nice! Next ▶'
+                    : 'Got it — Next ▶'}
                 </button>
               </div>
             ) : null}

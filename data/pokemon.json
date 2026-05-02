@@ -361,7 +361,9 @@
       "dialogue": [
         "Waiting on a delivery. They said before noon."
       ],
-      "wanderRadius": 32
+      "wanderRadius": 32,
+      "vocabularyPackId": "mira-pack-1",
+      "vocabularyOfferLine": "Oh — translator, right? Quick, while I wait on this delivery — help me with these words?"
     },
     {
       "id": "pk-npc-17",
@@ -405,7 +407,10 @@
       "dialogue": [
         "I should be at work but the weather is too nice."
       ],
-      "wanderRadius": 32
+      "wanderRadius": 32,
+      "vocabularyPackId": "saba-pack-1",
+      "vocabularyOfferLine": "Yo the translator! Help me drill these numbers please.",
+      "vocabularyOfferAudio": "/assets/audio/saba_utterance.mp3"
     },
     {
       "id": "pk-npc-19",

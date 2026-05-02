@@ -416,7 +416,10 @@ const npcs: NPCData[] = [
     // count inventory back at the shop.
     vocabularyPackId: "saba-pack-1",
     vocabularyOfferLine:
-      "Yo the translator! Help me drill these numbers — beats actually doing my job.",
+      "Yo the translator! Help me drill these numbers please.",
+    // Pre-recorded voice line — plays instead of TTS when the offer
+    // dialog opens. The text above still appears on-screen as usual.
+    vocabularyOfferAudio: "/assets/audio/saba_utterance.mp3",
   },
   {
     id: "pk-npc-19",

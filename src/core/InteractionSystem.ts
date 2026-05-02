@@ -41,6 +41,7 @@ export function checkInteraction(
         currentLine: 0,
         vocabularyPackId: npc.vocabularyPackId,
         vocabularyWordCount: wordCount,
+        audioUrl: npc.vocabularyOfferAudio,
         options: [
           {
             id: "help",

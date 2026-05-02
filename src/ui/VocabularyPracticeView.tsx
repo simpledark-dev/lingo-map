@@ -17,7 +17,9 @@ import {
   PENALTY_PER_IDK,
   addBalance,
 } from '../data/wallet';
-import { speakDialogue, cancelDialogueSpeech } from './tts';
+import { cancelDialogueSpeech } from './tts';
+import { speakVocabWord } from './wordSpeak';
+import { playSfx, SFX } from './sfx';
 
 interface VocabularyPracticeViewProps {
   pack: VocabularyPack;
@@ -48,10 +50,6 @@ const COLORS = {
   wrongBg: '#e6a99c',
 };
 
-// How long to hold the colored feedback before auto-advancing. Long
-// enough that the player has time to read the right answer when they
-// missed, short enough that the practice loop stays brisk.
-const FEEDBACK_HOLD_MS = 1100;
 
 interface Round {
   /** The word the player is being quizzed on. */
@@ -101,10 +99,13 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
   const [showDetails, setShowDetails] = useState(false);
   const advanceTimerRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    speakDialogue(round.prompt.target);
-    return cancelDialogueSpeech;
-  }, [round.prompt.target]);
+  // Practice is read-mode only (no listen/audio variant), so we do
+  // NOT auto-speak the prompt — auto-TTS competes with the
+  // perfect.mp3 chime for the iOS audio session and either could
+  // drop randomly. The player can still hear the word via the
+  // "🔊 hear it" button beside the prompt; that path goes through
+  // a fresh user gesture and works reliably.
+  // (Translate's listen mode keeps auto-TTS; see that file.)
 
   useEffect(() => {
     return () => {
@@ -152,15 +153,16 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
         saveProgress(pack.id, updated);
         return updated;
       });
+      // Correct AND wrong now both pause for the player. Same
+      // rationale as VocabularyTranslateView — sometimes you guess
+      // right but want to confirm by checking meaning + examples,
+      // and the manual Next button gives that breathing room.
       if (isCorrect) {
-        advanceTimerRef.current = window.setTimeout(() => {
-          advanceToNextRound();
-        }, FEEDBACK_HOLD_MS);
-      } else {
-        setWaitingOnNext(true);
+        playSfx(SFX.CORRECT);
       }
+      setWaitingOnNext(true);
     },
-    [pack, round.prompt.target, selectedTarget, waitingOnNext, advanceToNextRound],
+    [pack, round.prompt.target, selectedTarget, waitingOnNext],
   );
 
   /** Player admits they don't know the word — same as wrong on the
@@ -182,8 +184,8 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
 
   const handleSpeak = useCallback(() => {
     cancelDialogueSpeech();
-    speakDialogue(round.prompt.target);
-  }, [round.prompt.target]);
+    speakVocabWord(pack, round.prompt.target);
+  }, [pack, round.prompt.target]);
 
   const promptIsTappable = waitingOnNext;
   const examples = getExamples(round.prompt);
@@ -565,7 +567,9 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
                     e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`;
                   }}
                 >
-                  Got it — Next ▶
+                  {selectedTarget !== null && selectedTarget === round.prompt.target
+                    ? 'Nice! Next ▶'
+                    : 'Got it — Next ▶'}
                 </button>
               </div>
             ) : null}
