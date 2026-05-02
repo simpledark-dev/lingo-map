@@ -66,16 +66,32 @@ function getCached(url: string): HTMLAudioElement | null {
   return el ?? null;
 }
 
+/** AbortError fires when a `pause()` call interrupts a still-pending
+ *  `play()` promise — e.g. user taps "hear again" before the previous
+ *  fire settled, or the round-change auto-speak runs while the prior
+ *  round's audio is still loading. It's INTENTIONAL cancellation, not
+ *  a failure: the replacement `play()` we just kicked off is healthy.
+ *  Treating it as an error caused the cache-eviction-and-TTS-fallback
+ *  cascade where rapid taps left every fire silent for a few rounds. */
+function isAbortError(err: unknown): boolean {
+  return (
+    typeof err === 'object'
+    && err !== null
+    && 'name' in err
+    && (err as { name: unknown }).name === 'AbortError'
+  );
+}
+
 /** Speak the given target word. If the pack has a recorded MP3 for
  *  that target, plays the recording; otherwise falls through to TTS.
- *  All failures fall back to TTS so the player always hears
+ *  Real failures fall back to TTS so the player always hears
  *  something — better a robotic voice than silence.
  *
- *  When `play()` rejects, we evict the cached element so the NEXT
- *  call rebuilds from scratch. Without this the bad-state element
- *  would silently fail every subsequent fire, even after the
- *  underlying issue (transient audio-session block on iOS, momentary
- *  network glitch on first load, etc.) has cleared. */
+ *  When `play()` rejects with a non-Abort error, we evict the cached
+ *  element so the NEXT call rebuilds from scratch. Without this the
+ *  bad-state element would silently fail every subsequent fire, even
+ *  after the underlying issue (transient audio-session block on iOS,
+ *  momentary network glitch on first load, etc.) has cleared. */
 export function speakVocabWord(pack: VocabularyPack, target: string): void {
   const url = pack.audio?.[target];
   if (!url) {
@@ -93,13 +109,18 @@ export function speakVocabWord(pack: VocabularyPack, target: string): void {
     const p = el.play();
     if (p && typeof p.then === 'function') {
       p.catch((err: unknown) => {
+        // Pause-while-loading aborts the prior play; the NEW play we
+        // just kicked off is fine. Don't evict, don't speak — the
+        // replacement will speak. (AbortError can fire on the prior
+        // promise even from this same call's pause(); that's still a
+        // benign racey case.)
+        if (isAbortError(err)) return;
         // Evict only if this exact instance is still in the cache —
         // a later call may already have replaced it.
         if (audioCache.get(url) === el) {
           audioCache.delete(url);
         }
         if (typeof console !== 'undefined') {
-          // eslint-disable-next-line no-console
           console.warn('[wordSpeak] play rejected, evicted + falling back to TTS:', target, err);
         }
         speakDialogue(target);
@@ -110,7 +131,6 @@ export function speakVocabWord(pack: VocabularyPack, target: string): void {
       audioCache.delete(url);
     }
     if (typeof console !== 'undefined') {
-      // eslint-disable-next-line no-console
       console.warn('[wordSpeak] threw, evicted + falling back to TTS:', target, err);
     }
     speakDialogue(target);
