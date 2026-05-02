@@ -10,6 +10,7 @@ import DialogueOverlay from './DialogueOverlay';
 import VocabularyListView from './VocabularyListView';
 import VocabularyTranslateView from './VocabularyTranslateView';
 import { getVocabularyPack } from '../data/vocabularyPacks';
+import { useWalletBalance } from '../data/wallet';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
@@ -72,6 +73,7 @@ export default function GameCanvas() {
   // unmounting the overlay.
   const [loading, setLoading] = useState(true);
   const [loadingVisible, setLoadingVisible] = useState(true);
+  const walletBalance = useWalletBalance();
 
   const syncViewportSize = useCallback(() => {
     const next = readViewportSize();
@@ -637,6 +639,36 @@ export default function GameCanvas() {
 
       {/* UI overlay — always on top of canvas */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }}>
+        {/* Top-left wallet HUD — coin balance, persistent across
+            reloads. Subscribes via useWalletBalance so vocab views
+            don't have to call back up here. Static display, no
+            interaction yet. */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 10px',
+            background: 'rgba(0, 0, 0, 0.55)',
+            border: '1px solid rgba(217, 164, 41, 0.6)',
+            borderRadius: 999,
+            fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
+            fontSize: 13,
+            fontWeight: 700,
+            color: '#fbe9b8',
+            textShadow: '0 1px 0 rgba(0,0,0,0.6)',
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+          aria-label={`Coins: ${walletBalance}`}
+        >
+          <span style={{ fontSize: 14, lineHeight: 1 }} aria-hidden>🪙</span>
+          <span style={{ minWidth: 16, textAlign: 'right' }}>{walletBalance}</span>
+        </div>
+
         {/* Top-right icon group */}
         <div
           style={{

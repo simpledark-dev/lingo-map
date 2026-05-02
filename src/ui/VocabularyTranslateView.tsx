@@ -31,6 +31,13 @@ import {
   recordAnswer,
   recordPromptShown,
 } from '../data/vocabSelection';
+import {
+  REWARD_PER_CORRECT,
+  PENALTY_PER_WRONG,
+  PENALTY_PER_IDK,
+  addBalance,
+  useWalletBalance,
+} from '../data/wallet';
 import { speakDialogue, cancelDialogueSpeech } from './tts';
 
 interface VocabularyTranslateViewProps {
@@ -63,8 +70,6 @@ const COLORS = {
 };
 
 const FEEDBACK_HOLD_MS = 1100;
-const REWARD_PER_CORRECT = 5;
-const PENALTY_PER_WRONG = 3;
 
 interface Round {
   prompt: VocabularyEntry;
@@ -105,7 +110,7 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
-  const [coins, setCoins] = useState(0);
+  const coins = useWalletBalance();
   /** Last-answer delta — drives the small floating "+5 / -3" badge
    *  near the coin counter so the player gets a visceral hit on each
    *  answer instead of just watching the number tick. Cleared on the
@@ -160,7 +165,7 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
       setSelectedTarget(chosen.target);
       const isCorrect = chosen.target === round.prompt.target;
       const delta = isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG;
-      setCoins((c) => c + delta);
+      addBalance(delta);
       setLastDelta(delta);
       // Update the per-word memory state — this is what feeds the
       // wrong-queue + recency-aware picker on the next round.
@@ -189,9 +194,10 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
    *  treats this exactly like a wrong answer (word goes to the
    *  queue, streak resets, comes back more often) because the
    *  recovery loop wants to drill the unknown words. The economy
-   *  side is gentler: zero coins instead of -3, so honesty is
-   *  cheaper than a wrong guess. The study panel auto-expands —
-   *  they asked for help, they get help. */
+   *  side bites a little (-PENALTY_PER_IDK) so honesty isn't
+   *  free, but markedly less than a wrong guess so it's still the
+   *  rational choice when the player has no idea. The study panel
+   *  auto-expands — they asked for help, they get help. */
   const handleIDontKnow = useCallback(() => {
     if (selectedTarget !== null || waitingOnNext) return;
     setProgress((p) => {
@@ -199,10 +205,10 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
       saveProgress(pack.id, updated);
       return updated;
     });
+    addBalance(-PENALTY_PER_IDK);
+    setLastDelta(-PENALTY_PER_IDK);
     setWaitingOnNext(true);
     setShowDetails(true);
-    // No coin delta, no floating "+0" badge — keep the UI quiet so
-    // the player feels relief, not punishment.
   }, [pack, round.prompt.target, selectedTarget, waitingOnNext]);
 
   const handleSpeak = useCallback(() => {
