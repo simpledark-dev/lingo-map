@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { DialogueState } from '../core/types';
 import { speakDialogue } from './tts';
+import { playAudioUrl } from './audioEngine';
 
 interface DialogueOverlayProps {
   dialogue: DialogueState;
@@ -88,30 +89,16 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
     onAdvance();
   }, [isFullyRevealed, hasOptions, currentLine.length, onAdvance]);
 
-  // Track the currently-playing pre-recorded clip so a line change
-  // (advance, or a new NPC chat starting) can pause the previous
-  // one. We don't pause on dismiss — same UX rationale as the TTS
-  // path: letting the audio trail naturally feels less abrupt than
-  // a hard cut, and there's no iOS-freeze cost like there is with
-  // speechSynthesis.cancel().
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   useEffect(() => {
     if (!currentLine) return;
     if (dialogue.audioUrl) {
-      // Pre-recorded voice line — play the asset and skip TTS so the
-      // browser doesn't speak over it.
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      const audio = new Audio(dialogue.audioUrl);
-      audioRef.current = audio;
-      // Some mobile browsers reject autoplay before any user
-      // interaction. The dialog only opens after a tap, so we
-      // should always have a recent gesture, but swallow rejections
-      // anyway — silent failure is better than an unhandled promise.
-      audio.play().catch(() => { /* ignore */ });
+      // Pre-recorded voice line — play the asset via the shared Web
+      // Audio engine and skip TTS so the browser doesn't speak over
+      // it. The engine cleanly cuts off any prior fire of the same
+      // URL (so a line change replaces, not stacks). It returns a
+      // promise but we don't need to await — the next render will
+      // queue or replace as needed.
+      void playAudioUrl(dialogue.audioUrl);
     } else {
       speakDialogue(currentLine);
     }
