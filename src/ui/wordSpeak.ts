@@ -45,17 +45,21 @@ function buildAudio(url: string): HTMLAudioElement | null {
 }
 
 /** Get-or-create the cached element for `url`, evicting any stuck-
- *  state instance first. Stuck states we observe in the wild:
- *   – `el.error` set after a decode/network failure: no amount of
- *     `pause(); currentTime = 0; play()` recovers, every subsequent
- *     play returns a rejected promise. The user-visible symptom is
- *     "tap hear-again forever, no sound." Drop and rebuild.
- *   – `readyState === HAVE_NOTHING` long after construction: the
- *     element never managed to start loading (rare, but seen on
- *     iOS Safari after the page was backgrounded). Same fix. */
+ *  state instance first. Stuck state: `el.error` set after a decode/
+ *  network failure — no amount of `pause(); currentTime = 0; play()`
+ *  recovers, every subsequent play rejects. User-visible symptom is
+ *  "tap hear-again forever, no sound." Drop and rebuild.
+ *
+ *  We deliberately do NOT evict on `readyState === 0`. A freshly
+ *  built element starts at readyState 0; if the user fires another
+ *  speak before the network fetch settles, evict-on-0 would tear
+ *  down the in-flight load and rebuild — restarting the fetch from
+ *  scratch. Repeat fires before any single load finishes and the
+ *  player taps several times hearing nothing. Better to let the
+ *  existing element keep loading; `play()` queues until ready. */
 function getCached(url: string): HTMLAudioElement | null {
   let el = audioCache.get(url);
-  if (el && (el.error || el.readyState === 0 /* HAVE_NOTHING */)) {
+  if (el && el.error) {
     audioCache.delete(url);
     el = undefined;
   }
