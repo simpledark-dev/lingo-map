@@ -37,6 +37,8 @@ import {
   PENALTY_PER_IDK,
   addBalance,
   useWalletBalance,
+  formatBalance,
+  formatDelta,
 } from '../data/wallet';
 import { speakDialogue, cancelDialogueSpeech } from './tts';
 
@@ -309,8 +311,7 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
                   gap: 6,
                 }}
               >
-                <span style={{ color: COLORS.coinGold }}>●</span>
-                <span>{coins}</span>
+                <span>{formatBalance(coins)}</span>
                 {/* Floating delta — fades up + out on each answer. The
                     `key={lastDelta}` retriggers the animation even if
                     the value is the same as the previous one. */}
@@ -328,7 +329,7 @@ export default function VocabularyTranslateView({ pack, npcName, onClose }: Voca
                       pointerEvents: 'none',
                     }}
                   >
-                    {lastDelta > 0 ? `+${lastDelta}` : `${lastDelta}`}
+                    {formatDelta(lastDelta)}
                   </span>
                 ) : null}
               </div>
