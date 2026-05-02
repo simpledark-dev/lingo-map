@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { DialogueState } from '../core/types';
 import { speakDialogue } from './tts';
 
@@ -13,6 +13,11 @@ interface DialogueOverlayProps {
    *  dialogue state — it doesn't decide what happens. */
   onSelectOption?: (optionId: string) => void;
 }
+
+/** Milliseconds between revealed characters during the typewriter
+ *  pass. ~22ms ≈ 45 chars/sec — brisk but still legibly per-letter
+ *  in JRPG style. Tap on the dialogue box snaps the rest in. */
+const TYPEWRITER_INTERVAL_MS = 22;
 
 // ── Cozy pixel-art palette ──
 // Warm parchment background + dark wood-brown frame + amber accents.
@@ -46,6 +51,43 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
   // could read it.
   const hasOptions = !!dialogue.options && dialogue.options.length > 0;
 
+  // Typewriter reveal state — number of characters of `currentLine`
+  // currently visible. Resets to 0 whenever the line changes so each
+  // line plays its own pass; tapping the box mid-pass snaps to full.
+  const [revealedCount, setRevealedCount] = useState(0);
+  const isFullyRevealed = revealedCount >= currentLine.length;
+  const visibleText = currentLine.slice(0, revealedCount);
+
+  useEffect(() => {
+    setRevealedCount(0);
+    if (!currentLine) return;
+    let i = 0;
+    const tick = () => {
+      i += 1;
+      setRevealedCount(i);
+      if (i < currentLine.length) {
+        timer = window.setTimeout(tick, TYPEWRITER_INTERVAL_MS);
+      }
+    };
+    let timer = window.setTimeout(tick, TYPEWRITER_INTERVAL_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [currentLine, dialogue.npcId]);
+
+  // Tap on the parchment: if still typing, fast-forward; if revealed
+  // and the dialogue is a sequence (no options), advance to next
+  // line; if it's a prompt with options, ignore (player picks via the
+  // option buttons, which stopPropagation themselves).
+  const handleBoxClick = useCallback(() => {
+    if (!isFullyRevealed) {
+      setRevealedCount(currentLine.length);
+      return;
+    }
+    if (hasOptions) return;
+    onAdvance();
+  }, [isFullyRevealed, hasOptions, currentLine.length, onAdvance]);
+
   useEffect(() => {
     if (!currentLine) return;
     speakDialogue(currentLine);
@@ -72,7 +114,7 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
         right: 16,
         zIndex: 50,
       }}
-      onClick={hasOptions ? undefined : onAdvance}
+      onClick={handleBoxClick}
     >
       {/* Outer frame: dark wood with hard drop-shadow for "weight". */}
       <div
@@ -119,7 +161,10 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
           </div>
 
           {/* Body text. Bumped line-height for cozy reading; brown ink
-              against parchment. */}
+              against parchment. The hidden remainder span reserves the
+              full final height during typewriter reveal so the box
+              doesn't grow line-by-line as text appears — that'd make
+              the surrounding layout flicker. */}
           <div
             style={{
               color: COLORS.text,
@@ -129,10 +174,19 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
               whiteSpace: 'pre-wrap',
             }}
           >
-            {currentLine}
+            {visibleText}
+            {!isFullyRevealed ? (
+              <span aria-hidden style={{ visibility: 'hidden' }}>
+                {currentLine.slice(revealedCount)}
+              </span>
+            ) : null}
           </div>
 
-          {hasOptions ? (
+          {/* Options stay hidden until the line finishes typing — the
+              player shouldn't be able to pick before they've read the
+              prompt. Same idea for the "tap to continue" indicator
+              below. */}
+          {hasOptions && isFullyRevealed ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
               {dialogue.options!.map((opt) => {
                 const isDisabled = !!opt.disabled;
@@ -213,9 +267,11 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
                 );
               })}
             </div>
-          ) : (
+          ) : !hasOptions && isFullyRevealed ? (
             // Continue indicator — tiny pixel triangle bouncing at the
             // bottom-right, the standard JRPG "more text below" cue.
+            // Hidden during the typewriter pass; otherwise the player
+            // sees "tap to continue" before they've read the line.
             <div
               style={{
                 color: COLORS.accentGoldDark,
@@ -227,7 +283,7 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
             >
               {isLastLine ? '▼ tap to close' : '▼ tap to continue'}
             </div>
-          )}
+          ) : null}
         </div>
 
         <style>{`
