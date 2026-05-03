@@ -14,7 +14,9 @@ import { getVocabularyPack } from '../data/vocabularyPacks';
 import { useWalletBalance, formatBalance } from '../data/wallet';
 import { hasItem, consumeItem, useInventory } from '../data/inventory';
 import { getItem } from '../data/items';
-import { hasFlag, setFlag, FLAGS } from '../data/eventFlags';
+import { startQuest, completeQuest, getQuestStatus } from '../data/quests';
+import QuestToast from './QuestToast';
+import QuestLog from './QuestLog';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
@@ -39,31 +41,34 @@ function readViewportSize(): ViewportSize | null {
   return { width, height };
 }
 
-/** Compose the child NPC's dialogue based on current quest state.
- *
- *  Three-state machine driven by inventory + event flags:
- *    1. Never asked → Mim asks for a sandwich, sets the
- *       CHILD_ASKED_FOR_SANDWICH flag so future visits skip the ask.
- *    2. Asked, no sandwich → Mim nags. No options.
- *    3. Asked, has sandwich in inventory → "Give it" option appears.
- *    4. Already fed → casual line, quest considered done. */
+/** Compose the child NPC's dialogue based on the current quest's
+ *  status + inventory. Slice 2 promotes the previous flag-driven
+ *  state machine to the quest module — same four branches:
+ *    1. Quest inactive → Mim asks; we `startQuest` so future
+ *       visits skip the ask AND the toast fires.
+ *    2. Active, no sandwich → Mim nags, no options.
+ *    3. Active, has sandwich → "Give it" option appears. (The
+ *       option handler is what actually completes the quest, so a
+ *       player who opens this dialogue and walks away keeps the
+ *       quest active rather than auto-finishing it on view.)
+ *    4. Completed → casual thank-you line. */
 function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
-  const fed = hasFlag(FLAGS.CHILD_FED);
-  const asked = hasFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
+  const status = getQuestStatus('child-sandwich');
   const haveSandwich = hasItem('sandwich');
-  if (fed) {
+  if (status === 'completed') {
     return {
       ...stub,
       lines: ['Thanks for the sandwich earlier! I love you, dad.'],
     };
   }
-  if (!asked) {
-    setFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
+  if (status === 'inactive') {
+    startQuest('child-sandwich');
     return {
       ...stub,
       lines: ["I'm hungry… can you go to the Mart and grab me a sandwich? Please?"],
     };
   }
+  // status === 'active'
   if (haveSandwich) {
     return {
       ...stub,
@@ -109,6 +114,8 @@ export default function GameCanvas() {
    *  the catalog lives in `src/data/items.ts` and is shared across
    *  every shop. Null = closed. */
   const [shopView, setShopView] = useState<{ shopName: string } | null>(null);
+  /** Quest log modal — opened via the HUD scroll button. */
+  const [questLogOpen, setQuestLogOpen] = useState(false);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
   // Door-transition fade-to-black. Toggled true when a door fires;
@@ -557,7 +564,7 @@ export default function GameCanvas() {
     // stale snapshot from when the menu rendered.
     if (optionId === 'child-give-sandwich') {
       if (consumeItem('sandwich', 1)) {
-        setFlag(FLAGS.CHILD_FED);
+        completeQuest('child-sandwich');
         setDialogue({
           npcId: dialogue.npcId,
           npcName: dialogue.npcName,
@@ -967,6 +974,22 @@ export default function GameCanvas() {
               </svg>
             </button>
           )}
+
+          {/* Quest log — opens the modal listing active + completed
+              quests. Always visible so the player can re-read the
+              objective whenever they want. */}
+          <button
+            onClick={() => setQuestLogOpen(true)}
+            style={btnStyle}
+            aria-label="Open quest log"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="2" width="14" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+              <line x1="6" y1="6" x2="14" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="6" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="6" y1="14" x2="11" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
 
         {dialogue && (
@@ -1016,6 +1039,19 @@ export default function GameCanvas() {
             />
           </div>
         )}
+
+        {questLogOpen && (
+          <div style={{ pointerEvents: 'auto' }}>
+            <QuestLog onClose={() => setQuestLogOpen(false)} />
+          </div>
+        )}
+
+        {/* Quest toast — fixed-positioned at the top, subscribes to
+            quest transitions on its own, no props. Always rendered
+            so it picks up events from any source (dialogue, future
+            world triggers). pointer-events: none on the wrapper so
+            it never blocks the canvas. */}
+        <QuestToast />
 
         {minimapData && (
           <div style={{ pointerEvents: 'auto' }}>
