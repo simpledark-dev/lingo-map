@@ -14,9 +14,11 @@ import { getVocabularyPack } from '../data/vocabularyPacks';
 import { useWalletBalance, formatBalance } from '../data/wallet';
 import { hasItem, consumeItem, useInventory } from '../data/inventory';
 import { getItem } from '../data/items';
+import { useEnergy, getMaxEnergy } from '../data/energy';
 import { startQuest, completeQuest, getQuestStatus } from '../data/quests';
 import QuestToast from './QuestToast';
 import QuestLog from './QuestLog';
+import InventoryView from './InventoryView';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
@@ -116,6 +118,9 @@ export default function GameCanvas() {
   const [shopView, setShopView] = useState<{ shopName: string } | null>(null);
   /** Quest log modal — opened via the HUD scroll button. */
   const [questLogOpen, setQuestLogOpen] = useState(false);
+  /** Inventory modal — opens via the HUD bag pill. Lets the player
+   *  eat held food items (which restores energy). */
+  const [inventoryOpen, setInventoryOpen] = useState(false);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
   // Door-transition fade-to-black. Toggled true when a door fires;
@@ -132,6 +137,8 @@ export default function GameCanvas() {
   const [loading, setLoading] = useState(true);
   const [loadingVisible, setLoadingVisible] = useState(true);
   const walletBalance = useWalletBalance();
+  const energy = useEnergy();
+  const energyMax = getMaxEnergy();
   const inventory = useInventory();
   // Visible inventory rows, sorted alphabetically by item name for
   // a stable order across renders. Filtered to known catalog ids so
@@ -837,10 +844,11 @@ export default function GameCanvas() {
 
       {/* UI overlay — always on top of canvas */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }}>
-        {/* Top-left wallet HUD — dollar balance, persistent across
-            reloads. Subscribes via useWalletBalance so vocab views
-            don't have to call back up here. Inset from the corner so
-            it's clear of iOS notch / status bar drift. */}
+        {/* Top-left HUD pill row — wallet + energy side-by-side.
+            Wrapped in a flex container at top:40, left:30 so adding
+            future pills (focus, hunger, whatever) stays a single
+            child append. Subscribes via useWalletBalance / useEnergy
+            so vocab views don't have to call back up here. */}
         <div
           style={{
             position: 'absolute',
@@ -848,37 +856,74 @@ export default function GameCanvas() {
             left: 30,
             display: 'flex',
             alignItems: 'center',
-            gap: 0,
-            padding: '6px 14px',
-            background: 'rgba(0, 0, 0, 0.55)',
-            border: '1px solid rgba(217, 164, 41, 0.6)',
-            borderRadius: 999,
-            fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
-            fontSize: 13,
-            fontWeight: 700,
-            color: '#fbe9b8',
-            textShadow: '0 1px 0 rgba(0,0,0,0.6)',
-            userSelect: 'none',
-            pointerEvents: 'none',
+            gap: 8,
           }}
-          aria-label={`Balance: ${formatBalance(walletBalance)}`}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#fbbf24' }}>
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
-            <path d="M12 18V6"></path>
-          </svg>
-          <span style={{ minWidth: 46, textAlign: 'right' }}>{formatBalance(walletBalance)}</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0,
+              padding: '6px 14px',
+              background: 'rgba(0, 0, 0, 0.55)',
+              border: '1px solid rgba(217, 164, 41, 0.6)',
+              borderRadius: 999,
+              fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#fbe9b8',
+              textShadow: '0 1px 0 rgba(0,0,0,0.6)',
+              userSelect: 'none',
+              pointerEvents: 'none',
+            }}
+            aria-label={`Balance: ${formatBalance(walletBalance)}`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#fbbf24' }}>
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+              <path d="M12 18V6"></path>
+            </svg>
+            <span style={{ minWidth: 46, textAlign: 'right' }}>{formatBalance(walletBalance)}</span>
+          </div>
+
+          {/* Energy pill — lights up against the wallet at full,
+              dims as it drains. Tinted accent (cyan-ish) keeps it
+              visually distinct from the wallet's amber. */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '6px 12px',
+              background: 'rgba(0, 0, 0, 0.55)',
+              border: '1px solid rgba(96, 165, 199, 0.55)',
+              borderRadius: 999,
+              fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#dff1ff',
+              textShadow: '0 1px 0 rgba(0,0,0,0.6)',
+              userSelect: 'none',
+              pointerEvents: 'none',
+              opacity: energy === 0 ? 0.55 : 1,
+            }}
+            aria-label={`Energy: ${energy} of ${energyMax}`}
+            title={energy === 0 ? 'Out of energy — eat something to keep working.' : `Energy ${energy}/${energyMax}`}
+          >
+            <span style={{ fontSize: 14, lineHeight: 1, color: '#7ec8ee' }}>⚡</span>
+            <span>{energy}/{energyMax}</span>
+          </div>
         </div>
 
-        {/* Inventory HUD — sits right under the wallet pill, one
-            chip per held item with its emoji icon and a ×N counter
-            (counter omitted when the player only has one). Hides
-            entirely when the inventory is empty so the corner stays
-            clean for new players. Same pointer-events: none style as
-            the wallet pill — these are read-only HUD elements. */}
+        {/* Inventory HUD — sits right under the wallet/energy row,
+            one chip per held item with its emoji icon and a ×N
+            counter. Tappable: opens the inventory modal where the
+            player can eat held food to refill energy. Hides
+            entirely when empty so the corner stays clean for new
+            players. */}
         {inventoryRows.length > 0 && (
-          <div
+          <button
+            onClick={() => setInventoryOpen(true)}
             style={{
               position: 'absolute',
               top: 76,
@@ -896,9 +941,11 @@ export default function GameCanvas() {
               color: '#fbe9b8',
               textShadow: '0 1px 0 rgba(0,0,0,0.6)',
               userSelect: 'none',
-              pointerEvents: 'none',
+              pointerEvents: 'auto',
+              cursor: 'pointer',
             }}
-            aria-label={`Inventory: ${inventoryRows.map((r) => `${r.count} ${r.def.name}`).join(', ')}`}
+            aria-label={`Inventory (tap to open): ${inventoryRows.map((r) => `${r.count} ${r.def.name}`).join(', ')}`}
+            title="Open bag"
           >
             {inventoryRows.map((row) => (
               // Each chip gets its own outlined pill so neighbouring
@@ -922,7 +969,7 @@ export default function GameCanvas() {
                 <span style={{ fontSize: 11 }}>×{row.count}</span>
               </span>
             ))}
-          </div>
+          </button>
         )}
 
         {/* Top-right icon group */}
@@ -1043,6 +1090,12 @@ export default function GameCanvas() {
         {questLogOpen && (
           <div style={{ pointerEvents: 'auto' }}>
             <QuestLog onClose={() => setQuestLogOpen(false)} />
+          </div>
+        )}
+
+        {inventoryOpen && (
+          <div style={{ pointerEvents: 'auto' }}>
+            <InventoryView onClose={() => setInventoryOpen(false)} />
           </div>
         )}
 

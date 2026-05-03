@@ -43,6 +43,7 @@ import {
 import { cancelDialogueSpeech } from './tts';
 import { speakVocabWord } from './wordSpeak';
 import { playSfx, SFX } from './sfx';
+import { consumeEnergy } from '../data/energy';
 
 interface VocabularyTranslateViewProps {
   pack: VocabularyPack;
@@ -137,6 +138,26 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
   const [waitingOnNext, setWaitingOnNext] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const advanceTimerRef = useRef<number | null>(null);
+  /** True when the player ran out of energy. Replaces the round
+   *  UI with a "go eat something" overlay; the player closes the
+   *  view and uses the Bag pill to refill before coming back.
+   *  Energy is consumed once per round (the very first round on
+   *  mount, then once per advance). */
+  const [outOfEnergy, setOutOfEnergy] = useState(false);
+  /** Pay the energy cost for the FIRST round exactly once. Mount
+   *  effect rather than a useState initializer so the side-effect
+   *  doesn't hide inside React-internal init flow. If the player
+   *  doesn't have any energy, flip the overlay immediately and
+   *  the round UI never gets a chance to render. */
+  const initialEnergyConsumedRef = useRef(false);
+  useEffect(() => {
+    if (initialEnergyConsumedRef.current) return;
+    initialEnergyConsumedRef.current = true;
+    if (!consumeEnergy(1)) {
+      setOutOfEnergy(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Auto-speak the prompt ONLY in listen mode — the audio is the
@@ -167,6 +188,20 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
     if (advanceTimerRef.current !== null) {
       window.clearTimeout(advanceTimerRef.current);
       advanceTimerRef.current = null;
+    }
+    // Pay 1 energy to start the next round. If the player can't
+    // afford it, freeze the view on the out-of-energy overlay
+    // instead of rolling a fresh prompt — they have to leave, eat,
+    // and come back. We still clear the per-round transient state
+    // (selection, delta, study panel) so the overlay isn't sitting
+    // on top of the previous round's "+3 / -2" badge.
+    if (!consumeEnergy(1)) {
+      setOutOfEnergy(true);
+      setSelectedTarget(null);
+      setLastDelta(null);
+      setWaitingOnNext(false);
+      setShowDetails(false);
+      return;
     }
     setProgress((p) => {
       // Seed the next prompt's recency BEFORE picking so the picker
@@ -248,6 +283,69 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
   // active question would be a free hint, which defeats the test.
   const promptIsTappable = waitingOnNext;
   const examples = getExamples(round.prompt);
+
+  // Out-of-energy short-circuit: replace the round UI with a
+  // simple parchment notice + Close. The player goes back to the
+  // map, opens the bag, eats, and re-enters this view (which will
+  // re-run the mount-effect that pays for the first round).
+  if (outOfEnergy) {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 60,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0,0,0,0.5)',
+          padding: 16,
+        }}
+        onClick={onClose}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: COLORS.parchment,
+            border: `3px solid ${COLORS.cardBorder}`,
+            borderRadius: 8,
+            boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
+            padding: 20,
+            width: '100%',
+            maxWidth: 360,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            textAlign: 'center',
+            color: COLORS.text,
+          }}
+        >
+          <div style={{ fontSize: 38, lineHeight: 1 }}>⚡</div>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Out of energy</div>
+          <div style={{ fontSize: 12, color: COLORS.hintText, lineHeight: 1.45 }}>
+            You&apos;re too tired to keep working. Open your <strong>Bag</strong> and eat
+            something to refill, then come back to {npcName}.
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: COLORS.accentGold,
+              color: '#fdf6e0',
+              border: `2px solid ${COLORS.cardBorder}`,
+              borderRadius: 4,
+              padding: '8px 14px',
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              cursor: 'pointer',
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

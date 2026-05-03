@@ -19,6 +19,12 @@ export interface ItemDef {
    *  works directly). Free items can use 0; the shop UI hides the
    *  buy button on those by convention. */
   priceCents: number;
+  /** Energy restored when the player eats this item from inventory.
+   *  Tuned around ~3¢-per-energy so a perfect translator breaks even
+   *  on food cost — see `energy.ts` and the slice 3 design notes.
+   *  Items without an energy value (e.g. future quest-only items)
+   *  can omit this; the inventory UI hides the Eat button on those. */
+  energy?: number;
   /** Short flavor line shown beneath the name in the shop list.
    *  Optional — items without one render with just the name. */
   description?: string;
@@ -30,6 +36,7 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Sandwich',
     icon: '🥪',
     priceCents: 30,
+    energy: 10,
     description: 'Soft bread, cheese, a slice of something. Lunchbox classic.',
   },
   onigiri: {
@@ -37,6 +44,7 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Onigiri',
     icon: '🍙',
     priceCents: 25,
+    energy: 8,
     description: 'Triangle of warm rice with a salty surprise inside.',
   },
   apple: {
@@ -44,6 +52,7 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Apple',
     icon: '🍎',
     priceCents: 12,
+    energy: 4,
     description: 'Crisp, tart, polished on a sleeve before the bite.',
   },
   donut: {
@@ -51,6 +60,7 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Donut',
     icon: '🍩',
     priceCents: 18,
+    energy: 6,
     description: 'Glazed ring of dubious nutritional value. Worth it.',
   },
   milk: {
@@ -58,6 +68,7 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Milk',
     icon: '🥛',
     priceCents: 20,
+    energy: 7,
     description: 'Cold carton, slightly damp on the outside.',
   },
   cookie: {
@@ -65,6 +76,7 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Cookie',
     icon: '🍪',
     priceCents: 8,
+    energy: 3,
     description: 'Chocolate-chip. The cheap, reliable comfort.',
   },
 };

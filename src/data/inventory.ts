@@ -11,6 +11,8 @@
  * without pre-checking.
  */
 import { useEffect, useState } from 'react';
+import { getItem } from './items';
+import { restoreEnergy } from './energy';
 
 const STORAGE_KEY = 'lingo-inventory:v1';
 
@@ -102,6 +104,21 @@ export function consumeItem(id: string, count = 1): boolean {
   else delete next[id];
   write(next);
   emit();
+  return true;
+}
+
+/** Eat one of the item: removes it from inventory and restores
+ *  energy by the item's `energy` value. Returns true on success,
+ *  false if the player didn't have the item or it isn't edible
+ *  (no `energy` field — quest-only items, future tools, etc.).
+ *  The two state mutations are independent (consume + restore) so
+ *  a hypothetical mid-call energy module failure can't leave the
+ *  player short an item with no benefit; consume is checked first. */
+export function eatItem(id: string): boolean {
+  const def = getItem(id);
+  if (!def || !def.energy || def.energy <= 0) return false;
+  if (!consumeItem(id, 1)) return false;
+  restoreEnergy(def.energy);
   return true;
 }
 
