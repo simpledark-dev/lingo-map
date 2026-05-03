@@ -119,6 +119,18 @@ export interface NPCData {
    *  voice every line in the game. Falls back to TTS-on-text when
    *  unset. */
   vocabularyOfferAudio?: string;
+  /** Marks the NPC as a shopkeeper. Interaction shows a 2-button
+   *  offer ("Browse" / "Leave") instead of a plain chat; the React
+   *  layer routes "Browse" to a ShopView modal listing buyable
+   *  items. The string value is the display name shown in the
+   *  shop modal header (e.g. "Mart"). */
+  shopName?: string;
+  /** Routes the NPC's interaction to a React-side handler instead
+   *  of the generic chat. Used for quest NPCs whose lines depend on
+   *  inventory / event-flag state at interaction time — content the
+   *  pure InteractionSystem can't compute without breaking layering.
+   *  Slice 1 supports `'child-sandwich'`. */
+  dialogueKind?: 'child-sandwich';
 }
 
 // ── Map ──
@@ -326,6 +338,11 @@ export interface DialogueState {
    *  text through `speechSynthesis`. Lets specific NPCs ship a
    *  voiced opener while every other NPC keeps the cheap TTS path. */
   audioUrl?: string;
+  /** Marker that the React layer should rewrite the dialogue based
+   *  on game state (inventory / event flags). Mirrors
+   *  `NPCData.dialogueKind`; the engine just hands the marker off,
+   *  it doesn't interpret the value. */
+  dialogueKind?: 'child-sandwich';
 }
 
 export interface DialogueOption {

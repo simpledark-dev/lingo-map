@@ -25,6 +25,37 @@ export function checkInteraction(
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > INTERACTION_RANGE) continue;
 
+    // Shopkeeper short-circuit: 2-option offer that the React layer
+    // routes to ShopView. Reuses the dialogue-options infra rather
+    // than introducing a separate "shop interaction" event type.
+    if (npc.shopName) {
+      return {
+        npcId: npc.id,
+        npcName: npc.name,
+        lines: [`Welcome to ${npc.shopName}! Want to take a look?`],
+        currentLine: 0,
+        options: [
+          { id: 'shop-browse', label: 'Browse items' },
+          { id: 'shop-leave', label: 'Maybe later' },
+        ],
+      };
+    }
+
+    // Quest NPC short-circuit: emits a dialogue with a `dialogueKind`
+    // marker, and the React layer rewrites the lines based on
+    // current inventory / flag state. The static lines below are a
+    // safe fallback if React doesn't override (e.g. during init
+    // before the listener is attached).
+    if (npc.dialogueKind) {
+      return {
+        npcId: npc.id,
+        npcName: npc.name,
+        lines: [npc.dialogue[0] ?? '...'],
+        currentLine: 0,
+        dialogueKind: npc.dialogueKind,
+      };
+    }
+
     if (npc.vocabularyPackId) {
       const pack = getVocabularyPack(npc.vocabularyPackId);
       const wordCount = pack?.entries.length ?? 0;

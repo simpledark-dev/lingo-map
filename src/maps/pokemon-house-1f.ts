@@ -200,6 +200,25 @@ const npcs: NPCData[] = [
     vocabularyOfferLine:
       "Translator! Help me drill these everyday verbs — eat, sleep, that kind of thing.",
   },
+  // Child NPC — placeholder sprite key (user will swap for the real
+  // child sprite). `dialogueKind: 'child-sandwich'` routes this
+  // NPC's interaction through GameCanvas's React-side handler so
+  // the lines branch on inventory + event-flag state (asked /
+  // bought / fed). The fallback line below only shows if the React
+  // listener isn't wired — leaving it generic ("Hi.") so it isn't
+  // misleading when the override isn't applied.
+  {
+    id: "1f-npc-child",
+    x: tx(7),
+    y: ty(12),
+    spriteKey: "me-char-12",
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(12),
+    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
+    name: "Mim",
+    dialogue: ["Hi!"],
+    dialogueKind: "child-sandwich",
+  },
 ];
 
 export const pokemonHouse1fMap: MapData = {

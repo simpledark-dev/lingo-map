@@ -9,8 +9,12 @@ import { GameEvent } from '../core/GameBridge';
 import DialogueOverlay from './DialogueOverlay';
 import VocabularyListView from './VocabularyListView';
 import VocabularyTranslateView from './VocabularyTranslateView';
+import ShopView from './ShopView';
 import { getVocabularyPack } from '../data/vocabularyPacks';
 import { useWalletBalance, formatBalance } from '../data/wallet';
+import { hasItem, consumeItem, useInventory } from '../data/inventory';
+import { getItem } from '../data/items';
+import { hasFlag, setFlag, FLAGS } from '../data/eventFlags';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
@@ -33,6 +37,47 @@ function readViewportSize(): ViewportSize | null {
   ));
   if (width <= 0 || height <= 0) return null;
   return { width, height };
+}
+
+/** Compose the child NPC's dialogue based on current quest state.
+ *
+ *  Three-state machine driven by inventory + event flags:
+ *    1. Never asked → Mim asks for a sandwich, sets the
+ *       CHILD_ASKED_FOR_SANDWICH flag so future visits skip the ask.
+ *    2. Asked, no sandwich → Mim nags. No options.
+ *    3. Asked, has sandwich in inventory → "Give it" option appears.
+ *    4. Already fed → casual line, quest considered done. */
+function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
+  const fed = hasFlag(FLAGS.CHILD_FED);
+  const asked = hasFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
+  const haveSandwich = hasItem('sandwich');
+  if (fed) {
+    return {
+      ...stub,
+      lines: ['Thanks for the sandwich earlier! I love you, dad.'],
+    };
+  }
+  if (!asked) {
+    setFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
+    return {
+      ...stub,
+      lines: ["I'm hungry… can you go to the Mart and grab me a sandwich? Please?"],
+    };
+  }
+  if (haveSandwich) {
+    return {
+      ...stub,
+      lines: ['Did you get my sandwich?'],
+      options: [
+        { id: 'child-give-sandwich', label: 'Give the sandwich 🥪' },
+        { id: 'child-decline', label: 'Not yet' },
+      ],
+    };
+  }
+  return {
+    ...stub,
+    lines: ['Huh? Where? You didn’t buy it…'],
+  };
 }
 
 function readInitialObjectMultiplier(): number {
@@ -59,6 +104,11 @@ export default function GameCanvas() {
    *  it and the player has to identify by audio alone. Same picker,
    *  same wallet, same wrong-queue underneath. */
   const [translateView, setTranslateView] = useState<{ packId: string; npcName: string; mode: 'read' | 'listen' } | null>(null);
+  /** Shop modal state — opened when the player selects "Browse" on
+   *  a shopkeeper's offer dialogue. Carries only the display name;
+   *  the catalog lives in `src/data/items.ts` and is shared across
+   *  every shop. Null = closed. */
+  const [shopView, setShopView] = useState<{ shopName: string } | null>(null);
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
   // Door-transition fade-to-black. Toggled true when a door fires;
@@ -75,6 +125,15 @@ export default function GameCanvas() {
   const [loading, setLoading] = useState(true);
   const [loadingVisible, setLoadingVisible] = useState(true);
   const walletBalance = useWalletBalance();
+  const inventory = useInventory();
+  // Visible inventory rows, sorted alphabetically by item name for
+  // a stable order across renders. Filtered to known catalog ids so
+  // a stale localStorage entry from a removed item doesn't render
+  // as a "?" chip.
+  const inventoryRows = Object.entries(inventory)
+    .map(([id, count]) => ({ id, count, def: getItem(id) }))
+    .filter((r): r is { id: string; count: number; def: NonNullable<ReturnType<typeof getItem>> } => !!r.def)
+    .sort((a, b) => a.def.name.localeCompare(b.def.name));
 
   const syncViewportSize = useCallback(() => {
     const next = readViewportSize();
@@ -287,7 +346,16 @@ export default function GameCanvas() {
         switch (event.type) {
           case 'dialogueStart':
           case 'dialogueAdvance':
-            setDialogue(event.dialogue);
+            // Quest-NPC interception: when the engine flags a dialogue
+            // with `dialogueKind`, rewrite its lines + options here so
+            // they reflect inventory + event-flag state at interaction
+            // time. Keeps the engine layer pure (no localStorage reads
+            // in src/core).
+            if (event.dialogue.dialogueKind === 'child-sandwich') {
+              setDialogue(buildChildSandwichDialogue(event.dialogue));
+            } else {
+              setDialogue(event.dialogue);
+            }
             break;
           case 'dialogueEnd':
             setDialogue(null);
@@ -466,6 +534,44 @@ export default function GameCanvas() {
       return;
     }
     if (optionId === 'decline') {
+      setDialogue(null);
+      return;
+    }
+    // Shopkeeper routes — Browse pops the shop modal, Maybe later
+    // closes the dialogue cleanly.
+    if (optionId === 'shop-browse') {
+      const shopName = dialogue.npcName || 'Shop';
+      setShopView({ shopName });
+      setDialogue(null);
+      return;
+    }
+    if (optionId === 'shop-leave') {
+      setDialogue(null);
+      return;
+    }
+    // Child quest routes — give-the-sandwich consumes the item,
+    // sets CHILD_FED, and pushes a thank-you reply (single line, no
+    // options). Decline just closes; the dialogue can be reopened
+    // later to give the sandwich. Inventory and flags are read
+    // fresh each branch so the click reflects current state, not a
+    // stale snapshot from when the menu rendered.
+    if (optionId === 'child-give-sandwich') {
+      if (consumeItem('sandwich', 1)) {
+        setFlag(FLAGS.CHILD_FED);
+        setDialogue({
+          npcId: dialogue.npcId,
+          npcName: dialogue.npcName,
+          lines: ['Yes! Thank you, dad!'],
+          currentLine: 0,
+        });
+      } else {
+        // Lost the sandwich between menu render and click (shouldn't
+        // happen in normal play, but guard so we never crash).
+        setDialogue(null);
+      }
+      return;
+    }
+    if (optionId === 'child-decline') {
       setDialogue(null);
       return;
     }
@@ -758,6 +864,60 @@ export default function GameCanvas() {
           <span style={{ minWidth: 46, textAlign: 'right' }}>{formatBalance(walletBalance)}</span>
         </div>
 
+        {/* Inventory HUD — sits right under the wallet pill, one
+            chip per held item with its emoji icon and a ×N counter
+            (counter omitted when the player only has one). Hides
+            entirely when the inventory is empty so the corner stays
+            clean for new players. Same pointer-events: none style as
+            the wallet pill — these are read-only HUD elements. */}
+        {inventoryRows.length > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 76,
+              left: 30,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 10px',
+              background: 'rgba(0, 0, 0, 0.55)',
+              border: '1px solid rgba(217, 164, 41, 0.6)',
+              borderRadius: 999,
+              fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#fbe9b8',
+              textShadow: '0 1px 0 rgba(0,0,0,0.6)',
+              userSelect: 'none',
+              pointerEvents: 'none',
+            }}
+            aria-label={`Inventory: ${inventoryRows.map((r) => `${r.count} ${r.def.name}`).join(', ')}`}
+          >
+            {inventoryRows.map((row) => (
+              // Each chip gets its own outlined pill so neighbouring
+              // items don't visually merge into "(apple sandwich) ×2".
+              // The ×N counter renders even at count 1 (always
+              // shows what belongs to which icon, no ambiguity).
+              <span
+                key={row.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  padding: '2px 7px',
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  border: '1px solid rgba(217, 164, 41, 0.45)',
+                  borderRadius: 999,
+                }}
+                title={`${row.def.name} ×${row.count}`}
+              >
+                <span style={{ fontSize: 14, lineHeight: 1 }}>{row.def.icon}</span>
+                <span style={{ fontSize: 11 }}>×{row.count}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Top-right icon group */}
         <div
           style={{
@@ -847,6 +1007,15 @@ export default function GameCanvas() {
             </div>
           );
         })()}
+
+        {shopView && (
+          <div style={{ pointerEvents: 'auto' }}>
+            <ShopView
+              shopName={shopView.shopName}
+              onClose={() => setShopView(null)}
+            />
+          </div>
+        )}
 
         {minimapData && (
           <div style={{ pointerEvents: 'auto' }}>

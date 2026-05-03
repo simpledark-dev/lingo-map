@@ -1,5 +1,5 @@
-import { MapData, TileType, Entity } from '../core/types';
-import { INTERIOR_VIEW_TILES } from '../core/constants';
+import { MapData, TileType, Entity, NPCData } from "../core/types";
+import { INTERIOR_VIEW_TILES } from "../core/constants";
 
 // ══════════════════════════════════════════════════════════════
 // GROCER — GROUND FLOOR  14×10 tiles @ 16px
@@ -40,13 +40,30 @@ function makeTiles(): TileType[][] {
 }
 
 let nextId = 0;
-function tx(col: number) { return col * T + T / 2; }
-function ty(row: number) { return (row + 1) * T; }
+function tx(col: number) {
+  return col * T + T / 2;
+}
+function ty(row: number) {
+  return (row + 1) * T;
+}
 
-function decor(x: number, y: number, key: string, transition?: { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string }): Entity {
+function decor(
+  x: number,
+  y: number,
+  key: string,
+  transition?: {
+    targetMapId: string;
+    targetSpawnId: string;
+    incomingSpawnId?: string;
+  }
+): Entity {
   return {
-    id: `grocer-1f-${++nextId}`, x, y, spriteKey: key,
-    anchor: { x: 0.5, y: 1.0 }, sortY: y - 1000,
+    id: `grocer-1f-${++nextId}`,
+    x,
+    y,
+    spriteKey: key,
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: y - 1000,
     collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 },
     transition,
   };
@@ -62,7 +79,7 @@ const objects: Entity[] = [
   decor(
     tx(STAIR_COL_L) + T / 2,
     ty(STAIR_ROW),
-    'wall-staircase',
+    "wall-staircase",
     // - targetMapId / targetSpawnId: placeholder — when the player entered
     //   from a building, PixiApp stores a dynamic `exit-<buildingId>` spawn
     //   and overrides targetSpawnId on exit. Only used if the player somehow
@@ -71,24 +88,51 @@ const objects: Entity[] = [
     //   whichever staircase the user places, so entering from the outdoor
     //   Grocer lands the player right next to the staircase regardless of
     //   where in the interior the user placed it.
-    { targetMapId: 'pokemon', targetSpawnId: 'from-house', incomingSpawnId: 'entrance' },
+    {
+      targetMapId: "pokemon",
+      targetSpawnId: "from-house",
+      incomingSpawnId: "entrance",
+    }
   ),
 ];
 
+// Stationary shopkeeper next to the food stand. `shopName` flips
+// the InteractionSystem into the shop-offer flow ("Browse" /
+// "Maybe later"); the React layer handles the Browse option by
+// opening ShopView. User-placed food-row entities in the editor
+// will sit nearby; the shopkeeper position can be moved later
+// once we have a real food-counter sprite to anchor on.
+const npcs: NPCData[] = [
+  {
+    id: "grocer-1f-npc-shopkeeper",
+    x: tx(15) + T / 2,
+    y: ty(6),
+    spriteKey: "me-char-15",
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(6),
+    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
+    name: "Shopkeeper",
+    dialogue: ["Welcome!"],
+    shopName: "Mart",
+  },
+];
+
 export const grocer1fMap: MapData = {
-  id: 'grocer-1f',
-  width: W, height: H, tileSize: T,
+  id: "grocer-1f",
+  width: W,
+  height: H,
+  tileSize: T,
   // Cap the on-screen view so large interiors scroll instead of fitting the
   // whole room on one screen.
   maxViewTiles: INTERIOR_VIEW_TILES,
   tiles: makeTiles(),
   objects,
   buildings: [],
-  npcs: [],
+  npcs,
   triggers: [],
   spawnPoints: [
     // 'entrance' is where the player lands when entering through the door
     // on the outdoor Grocer building. Placed in the middle of the room.
-    { id: 'entrance', x: tx(STAIR_COL_L) + T / 2, y: ty(H - 2), facing: 'up' },
+    { id: "entrance", x: tx(STAIR_COL_L) + T / 2, y: ty(H - 2), facing: "up" },
   ],
 };
