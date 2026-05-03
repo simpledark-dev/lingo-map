@@ -147,6 +147,14 @@ const spriteManifest: Record<string, string> = {
   'wall-brick-bl': `${ASSET_BASE}wall-brick-bl.webp`,
   'wall-brick-br': `${ASSET_BASE}wall-brick-br.webp`,
   'food-row': `${ASSET_BASE}food-row.webp`,
+  // Edge-of-map directional arrows — placed in the editor at map
+  // borders, pointing toward unbuilt districts. Their `Entity.transition`
+  // carries a `lockedTitle` instead of a real `targetMapId`, so the
+  // engine pops a placeholder dialogue instead of loading a scene.
+  'edge-arrow-east':  `${ASSET_BASE}edge-arrow-east.webp`,
+  'edge-arrow-south': `${ASSET_BASE}edge-arrow-south.webp`,
+  'edge-arrow-west':  `${ASSET_BASE}edge-arrow-west.webp`,
+  'edge-arrow-north': `${ASSET_BASE}edge-arrow-north.webp`,
   'mart-base': `${ASSET_BASE}mart-base.webp`,
   'mart-roof': `${ASSET_BASE}mart-roof.webp`,
   'lab-base': `${ASSET_BASE}lab-base.webp`,

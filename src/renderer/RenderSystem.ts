@@ -101,6 +101,12 @@ export class RenderSystem {
   // Animation data — renderer-only, does not affect gameplay
   private treeAnims = new Map<string, AnimData>();
   private npcAnims = new Map<string, AnimData>();
+  /** Edge-of-map district arrow bob — `id → { baseY, phase }`. Pure
+   *  cosmetic: a 2px sine wave on Y to signal the arrow is tappable.
+   *  Registered when an entity with a `edge-arrow-*` spriteKey lands
+   *  on the entity layer (NOT the floor layer — that one bakes into
+   *  a static texture and won't animate). */
+  private arrowAnims = new Map<string, { baseY: number; phase: number }>();
   animationsEnabled = true;
 
   // Player walk animation state
@@ -215,6 +221,7 @@ export class RenderSystem {
     this.occludingObjectSprites.clear();
     this.treeAnims.clear();
     this.npcAnims.clear();
+    this.arrowAnims.clear();
 
     const layers = getLayers(map);
 
@@ -364,6 +371,19 @@ export class RenderSystem {
     const visH = texture.height * scale;
     if (visW >= MIN_OCCLUDER_WIDTH && visH >= MIN_OCCLUDER_HEIGHT) {
       this.occludingObjectSprites.set(obj.id, sprite);
+    }
+    // Edge-arrow bob — registers any entity whose spriteKey starts
+    // with `edge-arrow-` provided it landed in the entity layer (the
+    // floor layer bakes into a static RT and would freeze the bob).
+    // Phase derived from the entity id so two arrows side-by-side
+    // bob out of sync, which reads as more "alive."
+    if (obj.spriteKey?.startsWith('edge-arrow-') && obj.layer !== 'floor') {
+      let h = 0;
+      for (let i = 0; i < obj.id.length; i++) h = ((h * 31) + obj.id.charCodeAt(i)) | 0;
+      this.arrowAnims.set(obj.id, {
+        baseY: obj.y,
+        phase: ((h % 1000) / 1000) * Math.PI * 2,
+      });
     }
     // Tree anim — only fires for the literal 'tree' placeholder sprite
     // key, so lazy-loaded pack-key objects never hit this branch.
@@ -872,6 +892,17 @@ export class RenderSystem {
       const t = time * anim.speed + anim.phase;
       sprite.rotation = Math.sin(t) * anim.rotAmount;
       sprite.x = anim.baseX + Math.sin(t * 0.7) * anim.swayAmount;
+    }
+
+    // District-arrow bob — pure cosmetic vertical sine. ~2px swing,
+    // ~0.5 Hz so it reads as a friendly "tap me" cue rather than a
+    // distracting flicker. Independent of the tree anim params.
+    const ARROW_SPEED = 3.2; // rad/sec
+    const ARROW_AMP = 2;     // pixels
+    for (const [id, anim] of this.arrowAnims) {
+      const sprite = this.objectSprites.get(id);
+      if (!sprite) continue;
+      sprite.y = anim.baseY + Math.sin(time * ARROW_SPEED + anim.phase) * ARROW_AMP;
     }
 
     // NPC idle bob — disabled temporarily

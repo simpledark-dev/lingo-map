@@ -46,6 +46,12 @@ export class PixiApp {
   private transitioning = false;
   private initialized = false;
   private destroyed = false;
+  /** Title of the most-recently-fired locked transition. Set when the
+   *  engine pops the "locked district" dialogue; cleared the first
+   *  tick the player isn't overlapping any locked trigger. Prevents
+   *  the dialogue from spamming every tick while the player stands
+   *  on the arrow. */
+  private lastLockedTitle: string | null = null;
   private walkGrid: boolean[][] | null = null;
   private npcWanderStates: NPCWanderState[] = [];
   private tapFeedback: TapFeedback | null = null;
@@ -381,6 +387,7 @@ export class PixiApp {
           targetMapId: o.transition!.targetMapId,
           targetSpawnId: o.transition!.targetSpawnId,
           requiresFacing: deriveRequiresFacing(x, y, tb.width, tb.height),
+          lockedTitle: o.transition!.lockedTitle,
         }];
       }
       // Legacy auto-shape for entities without an explicit triggerBox
@@ -406,6 +413,7 @@ export class PixiApp {
         targetMapId: o.transition!.targetMapId,
         targetSpawnId: o.transition!.targetSpawnId,
         requiresFacing: deriveRequiresFacing(x, y, width, height),
+        lockedTitle: o.transition!.lockedTitle,
       }];
     });
     // Spawn point: anchor on the trigger zone when one is set explicitly,
@@ -839,7 +847,22 @@ export class PixiApp {
       this.gameState.buildings,
     );
 
-    if (transition) {
+    if (transition?.lockedTitle) {
+      // Gated transition: emit a placeholder dialogue and don't load.
+      // Suppress while the player keeps overlapping the same locked
+      // trigger (`lastLockedTitle`) so the dialogue doesn't fire
+      // every tick. Cleared on the first tick the player isn't on
+      // any locked trigger — see the `transition === null` branch
+      // further down.
+      if (this.lastLockedTitle !== transition.lockedTitle) {
+        this.lastLockedTitle = transition.lockedTitle;
+        this.bridge.emit({ type: 'lockedTransition', title: transition.lockedTitle });
+      }
+    } else if (transition === null) {
+      this.lastLockedTitle = null;
+    }
+
+    if (transition && !transition.lockedTitle) {
       this.transitioning = true;
       this.bridge.emit({ type: 'sceneTransitionStart' });
 

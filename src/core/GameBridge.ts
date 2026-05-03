@@ -9,7 +9,13 @@ export type GameEvent =
    *  Pairs with `sceneChange` (which fires once the new scene is ready)
    *  to drive the fade-to-black overlay in `GameCanvas`. */
   | { type: 'sceneTransitionStart' }
-  | { type: 'sceneChange'; mapId: string };
+  | { type: 'sceneChange'; mapId: string }
+  /** Player walked onto a transition arrow whose target district
+   *  isn't built/unlocked yet. Carries the locked-title so the UI
+   *  can show a placeholder ("You must reach <title> to visit this
+   *  district."). Fires once per overlap; player must step off the
+   *  trigger before another one will fire. */
+  | { type: 'lockedTransition'; title: string };
 
 type Listener = (event: GameEvent) => void;
 

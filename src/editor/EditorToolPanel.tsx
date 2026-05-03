@@ -1061,6 +1061,33 @@ function DoorEditor({
             />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 10, color: '#888' }}>
+            Locked title <span style={{ color: '#555' }}>(optional, gates the door)</span>
+            <input
+              type="text"
+              value={t.lockedTitle ?? ''}
+              onChange={e => {
+                const v = e.target.value;
+                const next = { ...t };
+                // Empty input strips the field so the door behaves like a
+                // normal scene-change. Any non-empty title flips the door
+                // into the placeholder-dialogue mode (engine doesn't load
+                // the target map; UI shows "You must reach <title>…").
+                if (v.trim()) next.lockedTitle = v;
+                else delete next.lockedTitle;
+                setT(next);
+              }}
+              placeholder="e.g. Bronze Translator"
+              style={inputStyle}
+            />
+            <span style={{ color: '#666', fontSize: 9, lineHeight: 1.4 }}>
+              When set, walking onto the trigger pops a placeholder dialogue
+              ({'"'}You must reach &lt;title&gt; to visit this district.{'"'})
+              and the target map is NOT loaded. Use for edge-of-map district
+              arrows that point at unbuilt content. Strip the title once the
+              target ships.
+            </span>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 10, color: '#888' }}>
             Incoming spawn id <span style={{ color: '#555' }}>(optional)</span>
             <input
               type="text"

@@ -41,6 +41,13 @@ export const OBJECT_DEFAULTS: Record<string, ObjectDefault> = {
   // editor scale — covers the base of the shelf; scale it in the selection
   // panel and the collision will need a manual bump if you size it up.
   'food-row':           { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: -30, offsetY: -20, width: 60, height: 20 } },
+  // Edge-of-map district arrows. No collision (player walks ONTO
+  // them so the door trigger fires); marked as decor so they sit
+  // beneath the player rather than depth-sorting in front.
+  'edge-arrow-north':   { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
+  'edge-arrow-south':   { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
+  'edge-arrow-east':    { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
+  'edge-arrow-west':    { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
 };
 
 export interface BuildingDefault {
@@ -212,6 +219,15 @@ export const OBJECT_CATEGORIES = [
     label: 'Shop',
     items: [
       { key: 'food-row', label: 'Food Shelf', path: '/assets/placeholder/food-row.png' },
+    ],
+  },
+  {
+    label: 'District Arrows',
+    items: [
+      { key: 'edge-arrow-north', label: 'Arrow ↑', path: '/assets/placeholder/edge-arrow-north.png' },
+      { key: 'edge-arrow-south', label: 'Arrow ↓', path: '/assets/placeholder/edge-arrow-south.png' },
+      { key: 'edge-arrow-east',  label: 'Arrow →', path: '/assets/placeholder/edge-arrow-east.png' },
+      { key: 'edge-arrow-west',  label: 'Arrow ←', path: '/assets/placeholder/edge-arrow-west.png' },
     ],
   },
   {

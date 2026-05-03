@@ -11940,7 +11940,7 @@
       "name": "Decor",
       "kind": "object",
       "visible": true,
-      "locked": true,
+      "locked": false,
       "objects": [
         {
           "id": "obj-moh684e8-xg2fh",
@@ -12264,6 +12264,66 @@
           },
           "scale": 1,
           "layer": "decor-low"
+        },
+        {
+          "id": "obj-mopr1zkt-f2rjn",
+          "x": 744,
+          "y": 352,
+          "spriteKey": "edge-arrow-east",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": -648,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "decor-low",
+          "transition": {
+            "targetMapId": "pokemon",
+            "targetSpawnId": "entrance",
+            "triggerBox": {
+              "offsetX": -16,
+              "offsetY": -16,
+              "width": 32,
+              "height": 16
+            },
+            "lockedTitle": "\"Bronze Translator\""
+          }
+        },
+        {
+          "id": "obj-mopr4gra-6j9rv",
+          "x": 744,
+          "y": 736,
+          "spriteKey": "edge-arrow-east",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": -264,
+          "collisionBox": {
+            "offsetX": 0,
+            "offsetY": 0,
+            "width": 0,
+            "height": 0
+          },
+          "scale": 1,
+          "layer": "decor-low",
+          "transition": {
+            "targetMapId": "pokemon",
+            "targetSpawnId": "entrance",
+            "triggerBox": {
+              "offsetX": -16,
+              "offsetY": -16,
+              "width": 32,
+              "height": 16
+            },
+            "lockedTitle": "\"Bronze Translator\""
+          }
         }
       ]
     },

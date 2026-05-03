@@ -305,6 +305,21 @@ export default function GameCanvas() {
               if (!cancelled) setTransitionFade(false);
             }, 40);
             break;
+          case 'lockedTransition':
+            // Edge-of-map district arrow whose target isn't built yet.
+            // Surface a no-NPC placeholder dialogue so the player knows
+            // the arrow is intentional, not a bug. Reuses the dialogue
+            // overlay infra rather than introducing a separate "system
+            // notice" UI component.
+            setDialogue({
+              npcId: 'locked-district',
+              npcName: '',
+              lines: [
+                `You must reach ${event.title} to visit this district.`,
+              ],
+              currentLine: 0,
+            });
+            break;
         }
       });
       return pixiApp.init(containerRef.current).catch((err) => {
@@ -413,10 +428,18 @@ export default function GameCanvas() {
   }, [objectMultiplier, syncViewportSize]);
 
   const handleAdvanceDialogue = useCallback(() => {
+    // Locked-district dialogues are React-only — the engine never
+    // knew they opened, so its ADVANCE_DIALOGUE command would no-op.
+    // Dismiss directly here. Any future synthetic / engine-bypass
+    // dialogue should branch on its npcId the same way.
+    if (dialogue?.npcId === 'locked-district') {
+      setDialogue(null);
+      return;
+    }
     const app = pixiAppRef.current;
     if (!app) return;
     app.commandQueue.push({ type: 'ADVANCE_DIALOGUE' });
-  }, []);
+  }, [dialogue]);
 
   /** Route the dialogue's option-button clicks. The DialogueOverlay
    *  reports the option id; here we decide what to actually do.

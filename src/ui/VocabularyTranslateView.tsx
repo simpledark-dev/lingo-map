@@ -633,7 +633,22 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                       <span style={{ color: COLORS.hintText, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                         {round.prompt.pos}
                       </span>
-                      <span style={{ color: COLORS.text, fontSize: 14 }}>
+                      <span
+                        style={{
+                          color: COLORS.text,
+                          fontSize: 14,
+                          // Palpitate the meaning when the panel reveals so
+                          // the player's eye is pulled to it rather than to
+                          // the target word or POS tag (which they already
+                          // saw). `display: inline-block` is required for
+                          // transforms to apply to an inline span; the
+                          // heartbeat runs once on mount via the panel's
+                          // own fade-in re-mount.
+                          display: 'inline-block',
+                          transformOrigin: 'left center',
+                          animation: 'lingoMapTranslateMeaningPalpitate 1100ms ease-out',
+                        }}
+                      >
                         — {round.prompt.english}
                       </span>
                     </div>
@@ -725,6 +740,19 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           @keyframes lingoMapTranslateHintPulse {
             0%, 100% { opacity: 0.55; }
             50%       { opacity: 1; }
+          }
+          /* Heartbeat-style emphasis on the revealed meaning. Two
+             quick beats then settle, so the player's eye lands on
+             the meaning rather than scanning the whole panel. Runs
+             once per show — not infinite — because sustained pulse
+             on persistent UI is more distracting than helpful. */
+          @keyframes lingoMapTranslateMeaningPalpitate {
+            0%   { transform: scale(1); }
+            15%  { transform: scale(1.18); }
+            30%  { transform: scale(1); }
+            45%  { transform: scale(1.12); }
+            60%  { transform: scale(1); }
+            100% { transform: scale(1); }
           }
 
           /* ── Landscape / short-viewport layout ──

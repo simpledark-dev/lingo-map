@@ -6,6 +6,12 @@ export interface TransitionEvent {
   targetSpawnId: string;
   /** The building ID that was entered, if triggered by a building door. */
   buildingId?: string;
+  /** When set, this transition is GATED — the engine should NOT load
+   *  the target map; instead it should surface a placeholder dialogue
+   *  ("You must reach <lockedTitle> to visit this district.") and
+   *  bounce the player back. Plumbed through from
+   *  `Trigger.lockedTitle` / `Entity.transition.lockedTitle`. */
+  lockedTitle?: string;
 }
 
 export type DirectionalIntent = Record<Direction, boolean>;
@@ -52,6 +58,7 @@ export function checkDoorTriggers(
       return {
         targetMapId: trigger.targetMapId,
         targetSpawnId: trigger.targetSpawnId,
+        lockedTitle: trigger.lockedTitle,
       };
     }
   }

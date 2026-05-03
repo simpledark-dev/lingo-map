@@ -55,6 +55,14 @@ export interface Entity {
     targetSpawnId: string;
     incomingSpawnId?: string;
     triggerBox?: CollisionBox;
+    /** When set, the transition is GATED — instead of loading the
+     *  target map, walking onto the trigger pops a placeholder
+     *  dialogue (`You must reach <lockedTitle> to visit this
+     *  district.`). Used for edge-of-map district arrows pointing at
+     *  unbuilt content: the arrow exists in the world but the player
+     *  can't actually leave yet. Strip this field once the target
+     *  district ships and the arrow becomes a real exit. */
+    lockedTitle?: string;
   };
 }
 
@@ -179,6 +187,13 @@ export interface Trigger {
    *  behavior. Hand-coded map triggers leave this undefined and fire
    *  from any direction. */
   requiresFacing?: Direction;
+  /** Gating: when set, walking onto this trigger DOES NOT load the
+   *  target map. Instead the engine surfaces a placeholder dialogue
+   *  ("You must reach <lockedTitle> to visit this district.") and
+   *  bounces the player back. Used for edge-of-map district arrows
+   *  pointing at unbuilt content. Plumbed through from
+   *  `Entity.transition.lockedTitle`. */
+  lockedTitle?: string;
 }
 
 // ── Layered map content (Tiled-style) ─────────────────────────────────────
