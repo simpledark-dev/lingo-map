@@ -519,8 +519,18 @@ export default function GameCanvas() {
       style={{
         position: 'fixed',
         inset: 0,
-        width: viewportSize ? `${viewportSize.width}px` : '100vw',
-        height: viewportSize ? `${viewportSize.height}px` : '100dvh',
+        // Trust CSS for the outer container — `100dvh` is the dynamic
+        // viewport height that updates correctly across iOS URL-bar
+        // collapse / status-bar resizing without us having to chase
+        // visualViewport from JS. The earlier `${viewportSize.height}px`
+        // approach raced iOS at boot and could leave a too-short
+        // container for the first paint (BL-14: black strip at the
+        // bottom on first portrait load that only cleared after a
+        // rotation). The viewportSize state still exists below — used
+        // only as a change-trigger to call pixiApp.resize() so Pixi's
+        // internal buffer follows the container.
+        width: '100vw',
+        height: '100dvh',
         overflow: 'hidden',
         // Suppress browser text-selection / long-press selection /
         // tap-highlight on the game viewport. Without these, users
