@@ -1,5 +1,5 @@
-import { MapData, TileType, Entity } from '../core/types';
-import { INTERIOR_VIEW_TILES } from '../core/constants';
+import { MapData, TileType, Entity, NPCData } from "../core/types";
+import { INTERIOR_VIEW_TILES } from "../core/constants";
 
 // ══════════════════════════════════════════════════════════════
 // POKEMON HOUSE — GROUND FLOOR (1F)  20×16 tiles @ 16px
@@ -31,7 +31,7 @@ const FW = TileType.FLOOR_WOOD;
 //   WWWWWWWW[FF]WWWWWWWW    ← bottom: exit gap at cols 9-10
 //
 const ALCOVE_COL = 14; // wall step-in starts at this column
-const ALCOVE_ROW = 5;  // alcove wall extends down to this row
+const ALCOVE_ROW = 5; // alcove wall extends down to this row
 const V = TileType.VOID; // nothing renders — black canvas background shows through
 
 function makeTiles(): TileType[][] {
@@ -45,8 +45,7 @@ function makeTiles(): TileType[][] {
       // the wall's perpendicular side face (sells the L-shape depth).
       if (row <= 2 && col === ALCOVE_COL) {
         r.push(WI);
-      }
-      else if (row <= 2 && col > ALCOVE_COL) {
+      } else if (row <= 2 && col > ALCOVE_COL) {
         r.push(V);
       }
       // ── Room border walls ──
@@ -73,7 +72,7 @@ function makeTiles(): TileType[][] {
       }
       // Bottom row: wall except exit gap at cols 9-10
       else if (row === H - 1) {
-        r.push((col === 9 || col === 10) ? FW : WI);
+        r.push(col === 9 || col === 10 ? FW : WI);
       }
       // Everything else: wood floor
       else {
@@ -86,20 +85,52 @@ function makeTiles(): TileType[][] {
 }
 
 let nextId = 0;
-function tx(col: number) { return col * T + T / 2; }
-function ty(row: number) { return (row + 1) * T; }
+function tx(col: number) {
+  return col * T + T / 2;
+}
+function ty(row: number) {
+  return (row + 1) * T;
+}
 
-function obj(x: number, y: number, key: string, cw: number, ch: number): Entity {
+function obj(
+  x: number,
+  y: number,
+  key: string,
+  cw: number,
+  ch: number
+): Entity {
   return {
-    id: `1f-${++nextId}`, x, y, spriteKey: key,
-    anchor: { x: 0.5, y: 1.0 }, sortY: y,
-    collisionBox: { offsetX: -Math.floor(cw / 2), offsetY: -ch, width: cw, height: ch },
+    id: `1f-${++nextId}`,
+    x,
+    y,
+    spriteKey: key,
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: y,
+    collisionBox: {
+      offsetX: -Math.floor(cw / 2),
+      offsetY: -ch,
+      width: cw,
+      height: ch,
+    },
   };
 }
-function decor(x: number, y: number, key: string, transition?: { targetMapId: string; targetSpawnId: string; incomingSpawnId?: string }): Entity {
+function decor(
+  x: number,
+  y: number,
+  key: string,
+  transition?: {
+    targetMapId: string;
+    targetSpawnId: string;
+    incomingSpawnId?: string;
+  }
+): Entity {
   return {
-    id: `1f-${++nextId}`, x, y, spriteKey: key,
-    anchor: { x: 0.5, y: 1.0 }, sortY: y - 1000,
+    id: `1f-${++nextId}`,
+    x,
+    y,
+    spriteKey: key,
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: y - 1000,
     collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 },
     transition,
   };
@@ -107,32 +138,35 @@ function decor(x: number, y: number, key: string, transition?: { targetMapId: st
 
 const objects: Entity[] = [
   // ── Wall-mounted decor (on wall row 1) ──
-  decor(tx(4),       ty(1), 'wall-window-double'),
-  decor(tx(9),       ty(1), 'wall-clock'),
-  decor(tx(14),      ty(1), 'wall-window-double'),
+  decor(tx(4), ty(1), "wall-window-double"),
+  decor(tx(9), ty(1), "wall-clock"),
+  decor(tx(14), ty(1), "wall-window-double"),
 
   // ── Staircase decor — wherever this entity sits, the engine generates a
   // dynamic trigger zone at its bottom row. Move the decor in the editor and
   // the entrance follows. ──
-  decor(tx(17) + 8,  ty(ALCOVE_ROW), 'wall-staircase',
-    { targetMapId: 'pokemon-house-2f', targetSpawnId: 'from-1f', incomingSpawnId: 'from-2f' }),
+  decor(tx(17) + 8, ty(ALCOVE_ROW), "wall-staircase", {
+    targetMapId: "pokemon-house-2f",
+    targetSpawnId: "from-1f",
+    incomingSpawnId: "from-2f",
+  }),
 
   // ── Kitchen strip (row 3, against north wall) ──
-  obj(tx(1),      ty(4), 'fridge',          14, 14),
-  obj(tx(3),      ty(4), 'sink-counter',    28, 14),
-  obj(tx(5) + 8,  ty(4), 'drawer-cabinet',  28, 14),
-  obj(tx(8),      ty(4), 'tv',              28, 14),
+  obj(tx(1), ty(4), "fridge", 14, 14),
+  obj(tx(3), ty(4), "sink-counter", 28, 14),
+  obj(tx(5) + 8, ty(4), "drawer-cabinet", 28, 14),
+  obj(tx(8), ty(4), "tv", 28, 14),
 
   // ── Dining area (bottom-left) ──
-  obj(tx(4),      ty(10), 'dining-table-small', 44, 28),
-  obj(tx(2),      ty(9),  'chair', 12, 12),
-  obj(tx(6),      ty(9),  'chair', 12, 12),
-  obj(tx(2),      ty(11), 'chair', 12, 12),
-  obj(tx(6),      ty(11), 'chair', 12, 12),
+  obj(tx(4), ty(10), "dining-table-small", 44, 28),
+  obj(tx(2), ty(9), "chair", 12, 12),
+  obj(tx(6), ty(9), "chair", 12, 12),
+  obj(tx(2), ty(11), "chair", 12, 12),
+  obj(tx(6), ty(11), "chair", 12, 12),
 
   // ── Decorations ──
-  decor(tx(11),    ty(9),  'rug-large'),
-  obj(tx(12),      ty(5),  'plant-pot', 14, 14),
+  decor(tx(11), ty(9), "rug-large"),
+  obj(tx(12), ty(5), "plant-pot", 14, 14),
   // Doormat doubles as the exit trigger. `outdoor-houseA-door` is the
   // dynamic spawn registered by `pokemon`'s entity-transition pipeline
   // next to the outdoor house entry — landing the player right at the
@@ -141,18 +175,43 @@ const objects: Entity[] = [
   // at the static `from-house` spawn (which is far from the user's
   // editor-placed outdoor house entity, so the player teleported across
   // the map on exit). BL-10.
-  decor(tx(9) + 8, ty(14), 'doormat',
-    { targetMapId: 'pokemon', targetSpawnId: 'outdoor-houseA-door' }),
+  decor(tx(9) + 8, ty(14), "doormat", {
+    targetMapId: "pokemon",
+    targetSpawnId: "outdoor-houseA-door",
+  }),
+];
+
+// Stationary NPC standing on the open floor between the rug and the
+// bottom-right wall. Omitting `wanderRadius` is what keeps Pio
+// rooted to the spot — the wander system explicitly excludes NPCs
+// without a positive radius (see `NPCWanderSystem.initialize`).
+const npcs: NPCData[] = [
+  {
+    id: "1f-npc-pio",
+    x: tx(15),
+    y: ty(12),
+    spriteKey: "me-char-11",
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(12),
+    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
+    name: "Pio",
+    dialogue: ["Just hanging around the house. Ask me about everyday verbs?"],
+    vocabularyPackId: "pio-pack-1",
+    vocabularyOfferLine:
+      "Translator! Help me drill these everyday verbs — eat, sleep, that kind of thing.",
+  },
 ];
 
 export const pokemonHouse1fMap: MapData = {
-  id: 'pokemon-house-1f',
-  width: W, height: H, tileSize: T,
+  id: "pokemon-house-1f",
+  width: W,
+  height: H,
+  tileSize: T,
   maxViewTiles: INTERIOR_VIEW_TILES,
   tiles: makeTiles(),
   objects,
   buildings: [],
-  npcs: [],
+  npcs,
   triggers: [
     // Both exit and staircase triggers are derived dynamically from
     // entities — see the doormat (exit) and wall-staircase (to 2f)
@@ -164,7 +223,7 @@ export const pokemonHouse1fMap: MapData = {
     // through (BL-10).
   ],
   spawnPoints: [
-    { id: 'entrance', x: tx(9) + 8, y: ty(H - 3), facing: 'up' },
-    { id: 'from-2f',  x: tx(17), y: ty(7), facing: 'down' },
+    { id: "entrance", x: tx(9) + 8, y: ty(H - 3), facing: "up" },
+    { id: "from-2f", x: tx(17), y: ty(7), facing: "down" },
   ],
 };

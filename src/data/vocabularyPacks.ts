@@ -298,10 +298,29 @@ export const SABA_PACK: VocabularyPack = {
   },
 };
 
+/**
+ * Pio's pack — five everyday-life verbs, themed around the room
+ * the NPC stands in (Pokemon house 1F: kitchen/dining/bedroom). All
+ * five reuse Mira's verb entries so the player sees the same Lingo
+ * spelling consistently across NPCs (no "is it `mufra` or `nomra`?
+ * depends on who I'm talking to" friction). No `audio` map yet —
+ * the picker treats absence-of-audio-map as "all entries are
+ * playable via TTS fallback" (see `playableEntries` in
+ * `vocabSelection.ts`).
+ */
+export const PIO_PACK: VocabularyPack = {
+  id: 'pio-pack-1',
+  theme: 'Daily verbs',
+  entries: MIRA_PACK.entries.filter((e) =>
+    ['mufra', 'naren', 'solpi', 'demba', 'palba'].includes(e.target),
+  ),
+};
+
 /** All packs keyed by id. NPCs reference packs via `vocabularyPackId`. */
 export const VOCABULARY_PACKS: Record<string, VocabularyPack> = {
   [MIRA_PACK.id]: MIRA_PACK,
   [SABA_PACK.id]: SABA_PACK,
+  [PIO_PACK.id]: PIO_PACK,
 };
 
 export function getVocabularyPack(id: string): VocabularyPack | undefined {

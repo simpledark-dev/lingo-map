@@ -708,12 +708,12 @@ export default function GameCanvas() {
         <div
           style={{
             position: 'absolute',
-            top: 20,
-            left: 20,
+            top: 40,
+            left: 30,
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            padding: '7px 12px',
+            gap: 0,
+            padding: '6px 14px',
             background: 'rgba(0, 0, 0, 0.55)',
             border: '1px solid rgba(217, 164, 41, 0.6)',
             borderRadius: 999,
@@ -727,7 +727,12 @@ export default function GameCanvas() {
           }}
           aria-label={`Balance: ${formatBalance(walletBalance)}`}
         >
-          <span style={{ minWidth: 50, textAlign: 'right' }}>{formatBalance(walletBalance)}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#fbbf24' }}>
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+            <path d="M12 18V6"></path>
+          </svg>
+          <span style={{ minWidth: 46, textAlign: 'right' }}>{formatBalance(walletBalance)}</span>
         </div>
 
         {/* Top-right icon group */}

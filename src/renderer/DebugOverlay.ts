@@ -8,6 +8,9 @@ export class DebugOverlay {
   private el: HTMLDivElement;
   private frameTimes: number[] = [];
   private lastTime = performance.now();
+  private collapsed = true;
+  private lastFps = 0;
+  private lastAvgMs = 0;
 
   // Stats fed externally each frame
   totalObjects = 0;
@@ -26,12 +29,35 @@ export class DebugOverlay {
       fontFamily: 'monospace',
       fontSize: '12px',
       lineHeight: '1.5',
-      pointerEvents: 'none',
+      pointerEvents: 'auto',
+      cursor: 'pointer',
       zIndex: '9999',
       borderRadius: '4px',
       whiteSpace: 'pre',
+      userSelect: 'none',
     });
+
+    this.el.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this.collapsed = !this.collapsed;
+      this.forceUpdateText();
+    });
+
     container.appendChild(this.el);
+  }
+
+  private forceUpdateText() {
+    if (this.collapsed) {
+      this.el.textContent = `[+] Debug (${this.lastFps.toFixed(0)} fps)`;
+    } else {
+      this.el.textContent =
+        `[-] Debug\n` +
+        `FPS: ${this.lastFps.toFixed(0)}\n` +
+        `Frame: ${this.lastAvgMs.toFixed(1)} ms\n` +
+        `Zoom: ${this.zoomLevel.toFixed(1)}x\n` +
+        `Objects: ${this.totalObjects}\n` +
+        `Sprites: ${this.renderedSprites}`;
+    }
   }
 
   update(): void {
@@ -44,15 +70,10 @@ export class DebugOverlay {
       this.frameTimes.shift();
     }
 
-    const avgMs = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
-    const fps = avgMs > 0 ? 1000 / avgMs : 0;
+    this.lastAvgMs = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
+    this.lastFps = this.lastAvgMs > 0 ? 1000 / this.lastAvgMs : 0;
 
-    this.el.textContent =
-      `FPS: ${fps.toFixed(0)}\n` +
-      `Frame: ${avgMs.toFixed(1)} ms\n` +
-      `Zoom: ${this.zoomLevel.toFixed(1)}x\n` +
-      `Objects: ${this.totalObjects}\n` +
-      `Sprites: ${this.renderedSprites}`;
+    this.forceUpdateText();
   }
 
   destroy(): void {
