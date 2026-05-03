@@ -140,6 +140,25 @@ export default function GameCanvas() {
     };
   }, [viewportSize]);
 
+  // Pixi 8's `resizeTo: container` only listens to window.resize,
+  // NOT to the container element itself. On iOS Safari the visible
+  // viewport (and thus our 100dvh outer + its inset:0 child) grows
+  // when the URL bar auto-collapses, but no window.resize event
+  // fires — so Pixi stays pinned to its init-time height while the
+  // CSS container is taller, leaving body bg showing through as a
+  // black strip at the bottom (BL-14 again, more subtle than the
+  // pixel-sizing variant). A ResizeObserver on the container
+  // catches the dvh-driven changes that window.resize misses.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      pixiAppRef.current?.resize();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
