@@ -382,6 +382,13 @@ export default function GameCanvas() {
             window.setTimeout(() => {
               if (cancelled) return;
               syncViewportSize();
+              // Belt-and-suspenders: dispatch a synthetic window
+              // resize so Pixi's own `resizeTo: container` listener
+              // also re-reads the container, in case our explicit
+              // pixiApp.resize() somehow no-ops on iOS. This is the
+              // programmatic equivalent of a device rotation —
+              // which was the only known workaround before.
+              try { window.dispatchEvent(new Event('resize')); } catch { /* ignore */ }
               window.requestAnimationFrame(() => {
                 if (!cancelled) pixiAppRef.current?.resize();
               });
@@ -563,8 +570,29 @@ export default function GameCanvas() {
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {/* PixiJS canvas mounts here */}
-      <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+      {/* PixiJS canvas mounts here. The inline `<style>` forces the
+          canvas DOM child to fill the container regardless of what
+          Pixi's autoDensity sizing wrote into canvas.style — that's
+          the actual mechanism that hides the iOS "black strip at
+          bottom" bug. Pixi's internal screen size may briefly lag
+          (we still resize it via the ResizeObserver and the catch-up
+          timers), but the canvas pixels are stretched/sampled to
+          fill the container so nothing visible drops to body bg.
+          For nearest-neighbor pixel art this just means ~1px of
+          temporary upscale — invisible compared to a black gap. */}
+      <div
+        ref={containerRef}
+        className="lingo-pixi-host"
+        style={{ position: 'absolute', inset: 0 }}
+      >
+        <style>{`
+          .lingo-pixi-host > canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block !important;
+          }
+        `}</style>
+      </div>
 
       {/* Boot loading overlay — sits above the canvas while assets
           load and the first scene mounts. Pixi's first frame can flash
