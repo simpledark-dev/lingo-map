@@ -129,8 +129,9 @@ export interface NPCData {
    *  of the generic chat. Used for quest NPCs whose lines depend on
    *  inventory / event-flag state at interaction time — content the
    *  pure InteractionSystem can't compute without breaking layering.
-   *  Slice 1 supports `'child-sandwich'`. */
-  dialogueKind?: 'child-sandwich';
+   *  Slice 1 supports `'child-sandwich'`; slice 3.5 adds `'lender'`
+   *  for Theo's borrow/repay menu. */
+  dialogueKind?: 'child-sandwich' | 'lender';
 }
 
 // ── Map ──
@@ -339,12 +340,18 @@ export interface DialogueState {
    *  voiced opener while every other NPC keeps the cheap TTS path. */
   audioUrl?: string;
   /** Marker that the React layer should rewrite the dialogue based
-   *  on game state (inventory / event flags). Mirrors
+   *  on game state (inventory / event flags / debt). Mirrors
    *  `NPCData.dialogueKind`; the engine just hands the marker off,
    *  it doesn't interpret the value. */
-  dialogueKind?: 'child-sandwich';
+  dialogueKind?: 'child-sandwich' | 'lender';
 }
 
+/** Decoupled from `disabled`: a disabled option only dims the row.
+ *  `comingSoon: true` adds the "SOON" badge, signalling the
+ *  feature is planned but unbuilt. Used for translator modes
+ *  (Write/Speak/Recall) that the player will get later. Borrow /
+ *  Repay use `disabled` without `comingSoon` so they read as "not
+ *  available right now" instead of "coming in a future patch". */
 export interface DialogueOption {
   /** Stable id, used by the UI to react when a button is selected. */
   id: string;
@@ -352,10 +359,18 @@ export interface DialogueOption {
   label: string;
   /** Optional short helper text rendered beneath the button. */
   hint?: string;
-  /** When true, the button renders muted + ignores clicks. Used for
-   *  modes/branches that aren't shipped yet so players can see what's
-   *  coming. The overlay tags these visually with a "SOON" badge. */
+  /** When true, the button renders muted + ignores clicks. The
+   *  generic disabled state (no badge) means "not available right
+   *  now" — e.g. Repay when you have no money, Borrow when at the
+   *  cap. Pair with `comingSoon: true` to add the SOON badge for
+   *  features that are planned but unbuilt. */
   disabled?: boolean;
+  /** Adds a "SOON" badge to the option, signalling planned-but-
+   *  unshipped functionality. Implies `disabled` for click
+   *  behaviour but is logically distinct — the SOON badge would
+   *  be misleading on transient states like "no money to repay
+   *  with right now." */
+  comingSoon?: boolean;
 }
 
 export interface GameState {

@@ -430,8 +430,11 @@ const npcs: NPCData[] = [
     sortY: 752,
     collisionBox: NPC_FOOT_COLLISION,
     name: "Theo",
-    dialogue: ["I dropped my coffee earlier. Don't step in it."],
+    // Stub line; the React layer overrides via `dialogueKind: 'lender'`
+    // to compose a Borrow/Repay menu from current debt + balance.
+    dialogue: ["Need a hand? I lend small."],
     wanderRadius: 32,
+    dialogueKind: "lender",
   },
   {
     id: "pk-npc-20",

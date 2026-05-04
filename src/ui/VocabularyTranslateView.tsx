@@ -144,6 +144,18 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
    *  Energy is consumed once per round (the very first round on
    *  mount, then once per advance). */
   const [outOfEnergy, setOutOfEnergy] = useState(false);
+  /** Per-session ledger of every answered round in this view —
+   *  one entry per pick / IDK. Drives the end-of-session summary
+   *  (success rate + top-missed words). Reset is implicit: a new
+   *  view mount starts a fresh log. */
+  type RoundOutcome = 'correct' | 'wrong' | 'idk';
+  const [sessionLog, setSessionLog] = useState<
+    Array<{ target: string; english: string; outcome: RoundOutcome }>
+  >([]);
+  /** Player tapped "End session" — flip into the summary screen
+   *  instead of immediately closing so they can see how the
+   *  session went before returning to the map. */
+  const [sessionEnded, setSessionEnded] = useState(false);
   /** Pay the energy cost for the FIRST round exactly once. Mount
    *  effect rather than a useState initializer so the side-effect
    *  doesn't hide inside React-internal init flow. If the player
@@ -246,9 +258,17 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       if (isCorrect) {
         playSfx(SFX.CORRECT);
       }
+      setSessionLog((log) => [
+        ...log,
+        {
+          target: round.prompt.target,
+          english: round.prompt.english,
+          outcome: isCorrect ? 'correct' : 'wrong',
+        },
+      ]);
       setWaitingOnNext(true);
     },
-    [pack, round.prompt.target, selectedTarget, waitingOnNext],
+    [pack, round.prompt.target, round.prompt.english, selectedTarget, waitingOnNext],
   );
 
   /** Player admits they don't know the word — better than letting
@@ -269,9 +289,17 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
     });
     addBalance(-PENALTY_PER_IDK);
     setLastDelta(-PENALTY_PER_IDK);
+    setSessionLog((log) => [
+      ...log,
+      {
+        target: round.prompt.target,
+        english: round.prompt.english,
+        outcome: 'idk',
+      },
+    ]);
     setWaitingOnNext(true);
     setShowDetails(true);
-  }, [pack, round.prompt.target, selectedTarget, waitingOnNext]);
+  }, [pack, round.prompt.target, round.prompt.english, selectedTarget, waitingOnNext]);
 
   const handleSpeak = useCallback(() => {
     cancelDialogueSpeech();
@@ -283,6 +311,216 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
   // active question would be a free hint, which defeats the test.
   const promptIsTappable = waitingOnNext;
   const examples = getExamples(round.prompt);
+
+  // Session-end short-circuit: tally up the per-round log and
+  // render a summary card. Buckets by target so the missed-words
+  // list reflects how many times each word bit the player, not
+  // how many total wrongs there were. Sorted by miss count desc,
+  // capped at 5 so the panel stays compact on mobile.
+  if (sessionEnded) {
+    const total = sessionLog.length;
+    const correct = sessionLog.filter((r) => r.outcome === 'correct').length;
+    const wrong = sessionLog.filter((r) => r.outcome === 'wrong').length;
+    const idk = sessionLog.filter((r) => r.outcome === 'idk').length;
+    const successRate = total === 0 ? 0 : Math.round((correct / total) * 100);
+    // Per-session net wallet delta — derived from sessionLog +
+    // the wallet rate constants rather than a snapshot diff so
+    // mid-session borrows/repays/shop purchases don't pollute the
+    // "earned this session" number.
+    const sessionEarned = correct * REWARD_PER_CORRECT;
+    const sessionLost = wrong * PENALTY_PER_WRONG + idk * PENALTY_PER_IDK;
+    const sessionNet = sessionEarned - sessionLost;
+    const missesByTarget = new Map<string, { english: string; count: number }>();
+    for (const r of sessionLog) {
+      if (r.outcome === 'correct') continue;
+      const prev = missesByTarget.get(r.target);
+      if (prev) prev.count += 1;
+      else missesByTarget.set(r.target, { english: r.english, count: 1 });
+    }
+    const topMissed = Array.from(missesByTarget.entries())
+      .map(([target, v]) => ({ target, english: v.english, count: v.count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 60,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0,0,0,0.5)',
+          padding: 16,
+        }}
+        onClick={onClose}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: COLORS.parchment,
+            border: `3px solid ${COLORS.cardBorder}`,
+            borderRadius: 8,
+            boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
+            padding: 18,
+            width: '100%',
+            maxWidth: 380,
+            maxHeight: '90dvh',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            color: COLORS.text,
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.hintText, fontWeight: 700 }}>
+              Session Summary
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>
+              {npcName}
+            </div>
+          </div>
+
+          {total === 0 ? (
+            <div style={{ fontSize: 12, color: COLORS.hintText, textAlign: 'center', padding: '12px 4px', fontStyle: 'italic' }}>
+              No rounds answered. Come back when you&apos;re ready.
+            </div>
+          ) : (
+            <>
+              {/* Big rate + tally row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div
+                    style={{
+                      fontSize: 32,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      color: successRate >= 80 ? COLORS.correct : successRate >= 50 ? COLORS.accentGoldDark : COLORS.wrong,
+                    }}
+                  >
+                    {successRate}%
+                  </div>
+                  <div style={{ fontSize: 10, color: COLORS.hintText, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    Success
+                  </div>
+                </div>
+                <div style={{ width: 1, alignSelf: 'stretch', background: COLORS.cardBorder, opacity: 0.4 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
+                  <div><span style={{ color: COLORS.correct, fontWeight: 700 }}>✓</span> {correct} correct</div>
+                  <div><span style={{ color: COLORS.wrong, fontWeight: 700 }}>✕</span> {wrong} wrong</div>
+                  {idk > 0 && (
+                    <div><span style={{ fontWeight: 700 }}>🤷</span> {idk} skipped</div>
+                  )}
+                  <div style={{ color: COLORS.hintText, marginTop: 2 }}>{total} total</div>
+                </div>
+              </div>
+
+              {/* Money summary — earned vs lost vs net for the
+                  session. Computed from the round log + wallet
+                  constants so mid-session borrows / shop purchases
+                  don't bleed into "what you actually made working." */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  background: COLORS.parchmentLight,
+                  border: `2px solid ${COLORS.cardBorder}`,
+                  borderRadius: 4,
+                  padding: '8px 12px',
+                  fontSize: 12,
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+                  <div>
+                    <span style={{ color: COLORS.correct, fontWeight: 700 }}>+{formatBalance(sessionEarned)}</span>
+                    <span style={{ color: COLORS.hintText, marginLeft: 6 }}>earned</span>
+                  </div>
+                  {sessionLost > 0 && (
+                    <div>
+                      <span style={{ color: COLORS.wrong, fontWeight: 700 }}>-{formatBalance(sessionLost)}</span>
+                      <span style={{ color: COLORS.hintText, marginLeft: 6 }}>lost</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ width: 1, alignSelf: 'stretch', background: COLORS.cardBorder, opacity: 0.4 }} />
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 10, color: COLORS.hintText, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    Net
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 700,
+                      color: sessionNet > 0 ? COLORS.correct : sessionNet < 0 ? COLORS.wrong : COLORS.text,
+                    }}
+                  >
+                    {formatDelta(sessionNet)}
+                  </div>
+                </div>
+              </div>
+
+              {topMissed.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.wrong, fontWeight: 700 }}>
+                    Words to review
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
+                    {topMissed.map((m) => (
+                      <div
+                        key={m.target}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: 8,
+                          background: COLORS.cardRest,
+                          border: `2px solid ${COLORS.cardBorder}`,
+                          borderRadius: 4,
+                          padding: '6px 10px',
+                          fontSize: 13,
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, color: COLORS.text }}>{m.target}</span>
+                        <span style={{ color: COLORS.hintText, fontSize: 11 }}>— {m.english}</span>
+                        <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: COLORS.wrong }}>
+                          ×{m.count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {topMissed.length === 0 && (
+                <div style={{ fontSize: 12, color: COLORS.correct, textAlign: 'center', fontStyle: 'italic' }}>
+                  Clean session — no words missed. Nicely done.
+                </div>
+              )}
+            </>
+          )}
+
+          <button
+            onClick={onClose}
+            style={{
+              background: COLORS.accentGold,
+              color: '#fdf6e0',
+              border: `2px solid ${COLORS.cardBorder}`,
+              borderRadius: 4,
+              padding: '8px 14px',
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              cursor: 'pointer',
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Out-of-energy short-circuit: replace the round UI with a
   // simple parchment notice + Close. The player goes back to the
@@ -456,8 +694,8 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   </span>
                 ) : null}
               </div>
-              <PixelButton onClick={onClose} small>
-                ✕ close
+              <PixelButton onClick={() => setSessionEnded(true)} small>
+                End ▶
               </PixelButton>
             </div>
           </div>

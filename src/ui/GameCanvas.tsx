@@ -11,10 +11,19 @@ import VocabularyListView from './VocabularyListView';
 import VocabularyTranslateView from './VocabularyTranslateView';
 import ShopView from './ShopView';
 import { getVocabularyPack } from '../data/vocabularyPacks';
-import { useWalletBalance, formatBalance } from '../data/wallet';
+import { useWalletBalance, formatBalance, getBalance } from '../data/wallet';
 import { hasItem, consumeItem, useInventory } from '../data/inventory';
 import { getItem } from '../data/items';
 import { useEnergy, getMaxEnergy } from '../data/energy';
+import {
+  borrowFromTheo,
+  repayMax,
+  getDebt,
+  useDebt,
+  canBorrow,
+  BORROW_INCREMENT_CENTS,
+  MAX_DEBT_CENTS,
+} from '../data/debt';
 import { startQuest, completeQuest, getQuestStatus } from '../data/quests';
 import QuestToast from './QuestToast';
 import QuestLog from './QuestLog';
@@ -87,6 +96,52 @@ function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
   };
 }
 
+/** Compose Theo's dialogue based on current debt + balance.
+ *
+ *  Three states:
+ *    1. No debt, no balance → friendly opener + Borrow option.
+ *    2. Outstanding debt → ledger line ("You owe Theo $X.XX") +
+ *       Borrow (disabled at cap) + Repay (disabled if balance == 0).
+ *    3. Just repaid in full → "we're square" follow-up. Driven by
+ *       the option handler, not this builder. */
+function buildLenderDialogue(stub: DialogueState): DialogueState {
+  const debt = getDebt();
+  const balance = getBalance();
+  const lines = debt > 0
+    ? [`You owe me ${formatBalance(debt)}. Need more, or are you here to pay up?`]
+    : ['Need a hand? I can spot you five at a time, up to twenty.'];
+  const canPay = debt > 0 && balance > 0;
+  const repayAmount = Math.min(balance, debt);
+  const options: DialogueState['options'] = [
+    {
+      id: 'lender-borrow',
+      label: `Borrow ${formatBalance(BORROW_INCREMENT_CENTS)}`,
+      hint: canBorrow()
+        ? `Owed after: ${formatBalance(debt + BORROW_INCREMENT_CENTS)} (cap ${formatBalance(MAX_DEBT_CENTS)})`
+        : `You\u2019re maxed out — pay some back first.`,
+      disabled: !canBorrow(),
+    },
+    {
+      id: 'lender-repay',
+      label: canPay
+        ? `Repay ${formatBalance(repayAmount)}`
+        : 'Repay',
+      hint: canPay
+        ? `Pays everything you can right now.`
+        : debt === 0
+          ? `Nothing to repay.`
+          : `You don\u2019t have any cash on you.`,
+      disabled: !canPay,
+    },
+    { id: 'lender-leave', label: 'Maybe later' },
+  ];
+  return {
+    ...stub,
+    lines,
+    options,
+  };
+}
+
 function readInitialObjectMultiplier(): number {
   if (typeof window === 'undefined') return 1;
   const value = Number(window.location.search ? new URLSearchParams(window.location.search).get('objects') : null);
@@ -137,6 +192,7 @@ export default function GameCanvas() {
   const [loading, setLoading] = useState(true);
   const [loadingVisible, setLoadingVisible] = useState(true);
   const walletBalance = useWalletBalance();
+  const debt = useDebt();
   const energy = useEnergy();
   const energyMax = getMaxEnergy();
   const inventory = useInventory();
@@ -367,6 +423,8 @@ export default function GameCanvas() {
             // in src/core).
             if (event.dialogue.dialogueKind === 'child-sandwich') {
               setDialogue(buildChildSandwichDialogue(event.dialogue));
+            } else if (event.dialogue.dialogueKind === 'lender') {
+              setDialogue(buildLenderDialogue(event.dialogue));
             } else {
               setDialogue(event.dialogue);
             }
@@ -589,6 +647,36 @@ export default function GameCanvas() {
       setDialogue(null);
       return;
     }
+    // Theo's lender flow — Borrow adds $5 to balance + debt, Repay
+    // pays as much as possible (min(balance, debt)), Leave just
+    // closes. After each mutation we re-render Theo's dialogue
+    // from fresh state so the ledger line and button-disabled
+    // states stay accurate without closing-and-reopening.
+    if (optionId === 'lender-borrow') {
+      borrowFromTheo();
+      setDialogue(buildLenderDialogue(dialogue));
+      return;
+    }
+    if (optionId === 'lender-repay') {
+      const paid = repayMax();
+      if (paid > 0 && getDebt() === 0) {
+        // Square — show a closing line instead of the menu so the
+        // moment lands. Player can re-engage to borrow again.
+        setDialogue({
+          npcId: dialogue.npcId,
+          npcName: dialogue.npcName,
+          lines: [`Paid in full — we're square. ${formatBalance(paid)} settled.`],
+          currentLine: 0,
+        });
+      } else {
+        setDialogue(buildLenderDialogue(dialogue));
+      }
+      return;
+    }
+    if (optionId === 'lender-leave') {
+      setDialogue(null);
+      return;
+    }
     if (optionId === 'help' && packId) {
       // Step 2: pick the translation mode. Only `mode-read` is wired
       // up — the other three render disabled with a "SOON" badge so
@@ -615,13 +703,13 @@ export default function GameCanvas() {
             id: 'mode-write',
             label: '3. Write from meaning',
             hint: 'See the meaning, type the word.',
-            disabled: true,
+            comingSoon: true,
           },
           {
             id: 'mode-speak',
             label: '4. Speak from meaning',
             hint: 'See the meaning, say the word out loud.',
-            disabled: true,
+            comingSoon: true,
           },
         ],
       });
@@ -885,6 +973,38 @@ export default function GameCanvas() {
             </svg>
             <span style={{ minWidth: 46, textAlign: 'right' }}>{formatBalance(walletBalance)}</span>
           </div>
+
+          {/* Debt pill — appears only while the player owes Theo
+              money. Red border + minus-prefixed amount makes the
+              negative-money state obvious without making the wallet
+              pill itself ambiguous. Hides automatically when debt
+              hits 0 (e.g. after Repay) so a debt-free player sees a
+              clean wallet. */}
+          {debt > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '6px 12px',
+                background: 'rgba(0, 0, 0, 0.55)',
+                border: '1px solid rgba(220, 90, 90, 0.65)',
+                borderRadius: 999,
+                fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
+                fontSize: 13,
+                fontWeight: 700,
+                color: '#ffb1b1',
+                textShadow: '0 1px 0 rgba(0,0,0,0.6)',
+                userSelect: 'none',
+                pointerEvents: 'none',
+              }}
+              aria-label={`Debt to Theo: ${formatBalance(debt)}`}
+              title={`You owe Theo ${formatBalance(debt)}`}
+            >
+              <span style={{ fontSize: 14, lineHeight: 1, color: '#ff8b8b' }}>📜</span>
+              <span>-{formatBalance(debt)}</span>
+            </div>
+          )}
 
           {/* Energy pill — lights up against the wallet at full,
               dims as it drains. Tinted accent (cyan-ish) keeps it

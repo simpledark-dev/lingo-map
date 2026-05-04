@@ -197,7 +197,8 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
           {hasOptions && isFullyRevealed ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
               {dialogue.options!.map((opt) => {
-                const isDisabled = !!opt.disabled;
+                const isDisabled = !!opt.disabled || !!opt.comingSoon;
+                const showSoonBadge = !!opt.comingSoon;
                 return (
                   <button
                     key={opt.id}
@@ -251,7 +252,7 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
                   >
                     <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span>{opt.label}</span>
-                      {isDisabled ? (
+                      {showSoonBadge ? (
                         <span
                           style={{
                             fontSize: 9,
