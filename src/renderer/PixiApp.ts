@@ -622,6 +622,7 @@ export class PixiApp {
     const carObstacleBoxes = this.getCarObstacleBoxes(map.tileSize);
 
     // Process commands from UI
+    let dialogueClosedThisFrame = false;
     for (const cmd of this.commandQueue.drain()) {
       if (cmd.type === 'ADVANCE_DIALOGUE' && this.gameState.activeDialogue) {
         const next = advanceDialogue(this.gameState.activeDialogue);
@@ -630,12 +631,30 @@ export class PixiApp {
           this.bridge.emit({ type: 'dialogueAdvance', dialogue: next });
         } else {
           this.gameState.activeDialogue = null;
+          this.inputAdapter.clearTransientInput({ suppressInteractUntilRelease: true });
+          dialogueClosedThisFrame = true;
           this.bridge.emit({ type: 'dialogueEnd' });
         }
       } else if (cmd.type === 'CLOSE_DIALOGUE') {
         this.gameState.activeDialogue = null;
+        this.inputAdapter.clearTransientInput({ suppressInteractUntilRelease: true });
+        dialogueClosedThisFrame = true;
         this.bridge.emit({ type: 'dialogueEnd' });
       }
+    }
+
+    if (dialogueClosedThisFrame) {
+      // The input snapshot above was taken before the UI command was
+      // drained. Do not let that same stale interact/moveTarget start
+      // another NPC interaction or movement on the close frame.
+      const capAfterDialogue = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capAfterDialogue);
+      this.renderSystem.updatePlayer(this.gameState.player, delta);
+      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom, map.maxViewTiles ? capAfterDialogue : undefined);
+      this.renderSystem.updateAnimations(performance.now() / 1000);
+      if (this.tapFeedback) this.tapFeedback.update(delta);
+      if (this.debugOverlay) this.debugOverlay.update();
+      return;
     }
 
     // Handle dialogue state
@@ -648,6 +667,7 @@ export class PixiApp {
           this.bridge.emit({ type: 'dialogueAdvance', dialogue: next });
         } else {
           this.gameState.activeDialogue = null;
+          this.inputAdapter.clearTransientInput({ suppressInteractUntilRelease: true });
           this.bridge.emit({ type: 'dialogueEnd' });
         }
       }

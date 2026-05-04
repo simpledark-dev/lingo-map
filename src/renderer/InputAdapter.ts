@@ -23,6 +23,7 @@ export class InputAdapter {
   private keys: Set<string> = new Set();
   private _moveTarget: Position | null = null;
   private _interact: boolean = false;
+  private suppressInteractUntilRelease: boolean = false;
   private canvas: HTMLCanvasElement | null = null;
 
   /** Camera offset needed for screen-to-world conversion. Set each frame by the game loop. */
@@ -57,15 +58,30 @@ export class InputAdapter {
   private activeTouches = new Map<number, { x: number; y: number }>();
   private lastPinchDist: number | null = null;
 
+  private isInteractKey(code: string): boolean {
+    return code === "KeyE" || code === "Space";
+  }
+
   private onKeyDown = (e: KeyboardEvent) => {
     this.keys.add(e.code);
-    if (e.code === "KeyE" || e.code === "Space") {
+    if (
+      this.isInteractKey(e.code) &&
+      !e.repeat &&
+      !this.suppressInteractUntilRelease
+    ) {
       this._interact = true;
     }
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
     this.keys.delete(e.code);
+    if (
+      this.isInteractKey(e.code) &&
+      !this.keys.has("KeyE") &&
+      !this.keys.has("Space")
+    ) {
+      this.suppressInteractUntilRelease = false;
+    }
   };
 
   private onPointerDown = (e: PointerEvent) => {
@@ -247,6 +263,21 @@ export class InputAdapter {
     // tap position even though they grabbed the d-pad to redirect.
     if (dir && (dir.up || dir.down || dir.left || dir.right)) {
       this._moveTarget = null;
+    }
+  }
+
+  /** Clear one-frame inputs after UI flows consume them. Dialogue
+   *  close uses `suppressInteractUntilRelease` so the same held
+   *  Space/E key cannot immediately reopen the NPC dialogue before
+   *  keyboard movement resumes. */
+  clearTransientInput(options: { suppressInteractUntilRelease?: boolean } = {}): void {
+    this._interact = false;
+    this._moveTarget = null;
+    if (
+      options.suppressInteractUntilRelease &&
+      (this.keys.has("KeyE") || this.keys.has("Space"))
+    ) {
+      this.suppressInteractUntilRelease = true;
     }
   }
 

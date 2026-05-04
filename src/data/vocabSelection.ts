@@ -33,6 +33,15 @@ export interface WordState {
   seenCount: number;
   streak: number;
   inWrongQueue: boolean;
+  /** Lifetime correct count for this word. Distinct from `streak`
+   *  because `streak` resets on a wrong answer; `correctCount`
+   *  monotonically grows with every correct pick. Drives the
+   *  per-word stats view's "Most correct" / "Worst ratio" sorts. */
+  correctCount: number;
+  /** Lifetime wrong count, including IDK admissions (those go to
+   *  the wrong-queue too, so they count as misses for the stats
+   *  view's purposes). */
+  wrongCount: number;
 }
 
 export interface VocabProgress {
@@ -94,9 +103,23 @@ export function loadProgress(packId: string): VocabProgress {
       return createInitialProgress();
     }
     // Default queueOnlyMode for back-compat with progress files
-    // saved before this field existed.
+    // saved before this field existed. Same back-fill for
+    // correctCount / wrongCount, added when the per-word stats
+    // view shipped — pre-existing saves know seenCount + streak
+    // but never tracked the lifetime tallies.
+    const byWord: Record<string, WordState> = {};
+    for (const [target, raw] of Object.entries(parsed.byWord as Record<string, Partial<WordState>>)) {
+      const seenCount = typeof raw?.seenCount === 'number' ? raw.seenCount : 0;
+      const streak = typeof raw?.streak === 'number' ? raw.streak : 0;
+      const inWrongQueue = raw?.inWrongQueue === true;
+      const correctCount = typeof raw?.correctCount === 'number' ? raw.correctCount : 0;
+      const wrongCount = typeof raw?.wrongCount === 'number' ? raw.wrongCount : 0;
+      byWord[target] = { seenCount, streak, inWrongQueue, correctCount, wrongCount };
+    }
     return {
-      ...parsed,
+      byWord,
+      wrongQueue: parsed.wrongQueue,
+      recentUsed: parsed.recentUsed,
       queueOnlyMode: parsed.queueOnlyMode === true,
     } as VocabProgress;
   } catch {
@@ -265,6 +288,8 @@ export function recordAnswer(
     seenCount: (prev?.seenCount ?? 0) + 1,
     streak: correct ? (prev?.streak ?? 0) + 1 : 0,
     inWrongQueue: prev?.inWrongQueue ?? false,
+    correctCount: (prev?.correctCount ?? 0) + (correct ? 1 : 0),
+    wrongCount: (prev?.wrongCount ?? 0) + (correct ? 0 : 1),
   };
 
   const byWord: Record<string, WordState> = { ...progress.byWord, [target]: next };

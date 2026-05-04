@@ -31,6 +31,7 @@ import InventoryView from './InventoryView';
 import IntroCutscene from './IntroCutscene';
 import IntroHintBanner from './IntroHintBanner';
 import SettingsView from './SettingsView';
+import WordStatsView from './WordStatsView';
 import { hasFlag, FLAGS } from '../data/eventFlags';
 import { getPlayerName, clearProfile } from '../data/profile';
 import { clearFlag } from '../data/eventFlags';
@@ -238,6 +239,9 @@ export default function GameCanvas() {
    *  Reset-game action; future settings (volume, accessibility,
    *  dev toggles) live here too. */
   const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Word-stats modal — opens via the HUD chart button. Aggregates
+   *  per-pack progress into a global view with filter pills. */
+  const [wordStatsOpen, setWordStatsOpen] = useState(false);
   /** Intro cutscene state. Active on a fresh save (no cutscene-seen
    *  flag); the cutscene component flips it false on completion.
    *  PixiApp init is gated on this so the world doesn't spin up
@@ -735,6 +739,11 @@ export default function GameCanvas() {
     app.commandQueue.push({ type: 'ADVANCE_DIALOGUE' });
   }, [dialogue]);
 
+  const closeDialogueEverywhere = useCallback(() => {
+    setDialogue(null);
+    pixiAppRef.current?.commandQueue.push({ type: 'CLOSE_DIALOGUE' });
+  }, []);
+
   /** Route the dialogue's option-button clicks. The DialogueOverlay
    *  reports the option id; here we decide what to actually do.
    *
@@ -756,11 +765,11 @@ export default function GameCanvas() {
 
     if (optionId === 'view' && packId) {
       setVocabularyView({ packId, npcName: dialogue.npcName });
-      setDialogue(null);
+      closeDialogueEverywhere();
       return;
     }
     if (optionId === 'decline') {
-      setDialogue(null);
+      closeDialogueEverywhere();
       return;
     }
     // Shopkeeper routes — Browse pops the shop modal, Maybe later
@@ -768,11 +777,11 @@ export default function GameCanvas() {
     if (optionId === 'shop-browse') {
       const shopName = dialogue.npcName || 'Shop';
       setShopView({ shopName });
-      setDialogue(null);
+      closeDialogueEverywhere();
       return;
     }
     if (optionId === 'shop-leave') {
-      setDialogue(null);
+      closeDialogueEverywhere();
       return;
     }
     // Child quest routes — give-the-sandwich consumes the item,
@@ -793,12 +802,12 @@ export default function GameCanvas() {
       } else {
         // Lost the sandwich between menu render and click (shouldn't
         // happen in normal play, but guard so we never crash).
-        setDialogue(null);
+        closeDialogueEverywhere();
       }
       return;
     }
     if (optionId === 'child-decline') {
-      setDialogue(null);
+      closeDialogueEverywhere();
       return;
     }
     // Theo's lender flow — Borrow adds $5 to balance + debt, Repay
@@ -828,7 +837,7 @@ export default function GameCanvas() {
       return;
     }
     if (optionId === 'lender-leave') {
-      setDialogue(null);
+      closeDialogueEverywhere();
       return;
     }
     // CEO's intro hire flow — both options complete the tutorial
@@ -893,17 +902,17 @@ export default function GameCanvas() {
     }
     if (optionId === 'mode-read' && packId) {
       setTranslateView({ packId, npcName: dialogue.npcName, mode: 'read' });
-      setDialogue(null);
+      closeDialogueEverywhere();
       return;
     }
     if (optionId === 'mode-listen' && packId) {
       setTranslateView({ packId, npcName: dialogue.npcName, mode: 'listen' });
-      setDialogue(null);
+      closeDialogueEverywhere();
       return;
     }
     // Fallback for unknown ids — dismiss rather than silently swallow.
-    setDialogue(null);
-  }, [dialogue]);
+    closeDialogueEverywhere();
+  }, [dialogue, closeDialogueEverywhere]);
 
   const handleCloseVocabularyView = useCallback(() => {
     setVocabularyView(null);
@@ -1239,6 +1248,21 @@ export default function GameCanvas() {
             </svg>
           </button>
 
+          {/* Word stats — chart icon. Sits between the quest log
+              and settings since it's progress-data, not destructive. */}
+          <button
+            onClick={() => setWordStatsOpen(true)}
+            style={btnStyle}
+            aria-label="Open word stats"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="17" x2="17" y2="17" />
+              <rect x="4" y="11" width="2.5" height="5" fill="currentColor" stroke="none" />
+              <rect x="8.75" y="7" width="2.5" height="9" fill="currentColor" stroke="none" />
+              <rect x="13.5" y="4" width="2.5" height="12" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
+
           {/* Settings — gear icon. Houses the destructive Reset-game
               action; placed last in the group so it's visually the
               "outermost" affordance. */}
@@ -1311,6 +1335,12 @@ export default function GameCanvas() {
         {inventoryOpen && (
           <div style={{ pointerEvents: 'auto' }}>
             <InventoryView onClose={() => setInventoryOpen(false)} />
+          </div>
+        )}
+
+        {wordStatsOpen && (
+          <div style={{ pointerEvents: 'auto' }}>
+            <WordStatsView onClose={() => setWordStatsOpen(false)} />
           </div>
         )}
 
