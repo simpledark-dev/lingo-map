@@ -17,6 +17,7 @@ import { WORLD_SAVE_STORAGE_KEY } from './worldSave';
  *  `STORAGE_KEY` constants in each persistence module. */
 const STORAGE_KEYS = [
   'lingo-wallet:balance',
+  'lingo-wallet:lifetime-earned',
   'lingo-inventory:v1',
   'lingo-energy:v1',
   'lingo-debt:v1',

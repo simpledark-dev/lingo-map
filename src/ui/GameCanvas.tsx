@@ -11,10 +11,10 @@ import VocabularyListView from './VocabularyListView';
 import VocabularyTranslateView from './VocabularyTranslateView';
 import ShopView from './ShopView';
 import { getVocabularyPack } from '../data/vocabularyPacks';
-import { useWalletBalance, formatBalance, getBalance } from '../data/wallet';
+import { useWalletBalance, formatBalance, getBalance, getLifetimeEarnings, addBalance } from '../data/wallet';
 import { hasItem, consumeItem, useInventory } from '../data/inventory';
 import { getItem } from '../data/items';
-import { useEnergy, getMaxEnergy } from '../data/energy';
+import { useEnergy, getMaxEnergy, restoreEnergy } from '../data/energy';
 import {
   borrowFromTheo,
   repayMax,
@@ -168,45 +168,94 @@ function buildLenderDialogue(stub: DialogueState): DialogueState {
   };
 }
 
-/** Compose the CEO's intro dialogue. While the intro tutorial
- *  quest is active, this is a scripted hire scene with two answer
- *  options that both lead to the same outcome (`completeQuest` in
- *  the option handler) — the choice is flavor, not branching. After
- *  the quest is completed, fall through to the engine's static
- *  line so subsequent visits feel like normal NPC chat. */
+/** Cents the player must earn (translation work only — penalties
+ *  + borrows don't count) before the CEO will hand over the first
+ *  paycheck. */
+export const FIRST_PAYCHECK_THRESHOLD_CENTS = 500;
+/** Bonus paid on top of the cents already earned when the
+ *  first-paycheck quest is claimed. Small enough to feel like
+ *  flavor, not an exploit. */
+export const FIRST_PAYCHECK_BONUS_CENTS = 100;
+
+/** Compose the CEO's dialogue. Three states stack on top of the
+ *  base "come back when you're ready for your first contract" line:
+ *    1. intro-translator-job ACTIVE → scripted hire scene (choice
+ *       is flavor, both branches complete the quest).
+ *    2. intro completed AND first-paycheck ACTIVE AND lifetime <
+ *       threshold → "you're not there yet, kid" check-in.
+ *    3. intro completed AND first-paycheck ACTIVE AND lifetime ≥
+ *       threshold → "claim your paycheck" option (handler pays the
+ *       bonus + completes the quest).
+ *  Anything else falls through to the engine's static line. */
 function buildCeoIntroDialogue(stub: DialogueState): DialogueState {
-  const status = getQuestStatus('intro-translator-job');
-  if (status !== 'active') {
-    // Quest already completed (or somehow skipped) — let the
-    // engine's static line stand.
-    return stub;
-  }
+  const introStatus = getQuestStatus('intro-translator-job');
   const playerName = getPlayerName() ?? 'you';
-  return {
-    ...stub,
-    lines: [
-      `${playerName}, was it? Sit. Sit.`,
-      "Says here you're fluent in our tongue. That right?",
-    ],
-    options: [
-      {
-        id: 'ceo-intro-confident',
-        label: 'Completely fluent.',
-        hint: '(A bold lie.)',
-      },
-      {
-        id: 'ceo-intro-honest',
-        label: 'Mostly… working on it.',
-        hint: '(Honest enough.)',
-      },
-    ],
-  };
+
+  if (introStatus === 'active') {
+    return {
+      ...stub,
+      lines: [
+        `${playerName}, was it? Sit. Sit.`,
+        "Says here you're fluent in our tongue. That right?",
+      ],
+      options: [
+        {
+          id: 'ceo-intro-confident',
+          label: 'Completely fluent.',
+          hint: '(A bold lie.)',
+        },
+        {
+          id: 'ceo-intro-honest',
+          label: 'Mostly… working on it.',
+          hint: '(Honest enough.)',
+        },
+      ],
+    };
+  }
+
+  const paycheckStatus = getQuestStatus('first-paycheck');
+  if (paycheckStatus === 'active') {
+    const earned = getLifetimeEarnings();
+    if (earned >= FIRST_PAYCHECK_THRESHOLD_CENTS) {
+      return {
+        ...stub,
+        lines: [
+          `${playerName}! Word is you've cleared ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} translating. That's a real paycheck.`,
+          `Here — bonus of ${formatBalance(FIRST_PAYCHECK_BONUS_CENTS)} for showing up. Don't blow it all at the Mart.`,
+        ],
+        options: [
+          {
+            id: 'ceo-paycheck-claim',
+            label: `Claim ${formatBalance(FIRST_PAYCHECK_BONUS_CENTS)} bonus`,
+            hint: 'You earned it.',
+          },
+          { id: 'ceo-paycheck-decline', label: 'Maybe later' },
+        ],
+      };
+    }
+    return {
+      ...stub,
+      lines: [
+        `Translating going alright, ${playerName}? You're at ${formatBalance(earned)} so far.`,
+        `Hit ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} earned and there's a bonus waiting for you on top of what you've already pocketed.`,
+      ],
+    };
+  }
+
+  // Quest done (or never started) — fall back to the engine's line.
+  return stub;
 }
 
 function readInitialObjectMultiplier(): number {
   if (typeof window === 'undefined') return 1;
   const value = Number(window.location.search ? new URLSearchParams(window.location.search).get('objects') : null);
   return normalizeObjectMultiplier(value);
+}
+
+function isTextEntryTarget(target: EventTarget | null): boolean {
+  if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
+  const tag = target.tagName.toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable;
 }
 
 export default function GameCanvas() {
@@ -403,6 +452,22 @@ export default function GameCanvas() {
     }
     soundOnRef.current = soundOn;
   }, [soundOn]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleCheatKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || isTextEntryTarget(e.target)) return;
+      if (e.code === 'KeyO') {
+        e.preventDefault();
+        addBalance(500);
+      } else if (e.code === 'KeyP') {
+        e.preventDefault();
+        restoreEnergy(10);
+      }
+    };
+    window.addEventListener('keydown', handleCheatKey);
+    return () => window.removeEventListener('keydown', handleCheatKey);
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current || pixiAppRef.current) return;
@@ -872,15 +937,41 @@ export default function GameCanvas() {
           ? "Confidence. Good. Don't make me regret this."
           : "Mostly's enough. Honest answer too. Start today.";
       completeQuest('intro-translator-job');
+      // Chain the next milestone — the paycheck quest auto-starts
+      // here so the player has a concrete short-term goal the moment
+      // the tutorial closes. Toast fires from `startQuest`, landing
+      // back-to-back with the intro-complete toast.
+      startQuest('first-paycheck');
       setDialogue({
         npcId: dialogue.npcId,
         npcName: dialogue.npcName,
         lines: [
           closer,
           "Way it works: people in town need help with words. You translate. They pay. I get a cut. Off you go.",
+          `Earn ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} translating and come back — there's a bonus waiting on top.`,
         ],
         currentLine: 0,
       });
+      return;
+    }
+    // First-paycheck claim — pays the bonus + completes the quest.
+    // Decline lets the player walk away (claim again next visit).
+    if (optionId === 'ceo-paycheck-claim') {
+      addBalance(FIRST_PAYCHECK_BONUS_CENTS);
+      completeQuest('first-paycheck');
+      setDialogue({
+        npcId: dialogue.npcId,
+        npcName: dialogue.npcName,
+        lines: [
+          `There you go — ${formatBalance(FIRST_PAYCHECK_BONUS_CENTS)} bonus. Family eats tonight.`,
+          `Keep at it. Town's got plenty more words that need translating.`,
+        ],
+        currentLine: 0,
+      });
+      return;
+    }
+    if (optionId === 'ceo-paycheck-decline') {
+      setDialogue(null);
       return;
     }
     if (optionId === 'help' && packId) {
@@ -898,17 +989,22 @@ export default function GameCanvas() {
           {
             id: 'mode-read',
             label: '1. Read & translate',
-            hint: 'See each word in writing, pick its meaning.',
+            // Cost suffix on every paid mode so the player always
+            // sees the entry fee before they tap. Practice is exempt
+            // (and accessed via the dictionary view) so it stays
+            // unannotated. Session-cost, not per-round — same fee
+            // whether they drill 5 words or 50.
+            hint: 'See each word in writing, pick its meaning. · Costs 1 ⚡',
           },
           {
             id: 'mode-listen',
             label: '2. Listen & translate',
-            hint: 'Hear each word spoken, pick its meaning.',
+            hint: 'Hear each word spoken, pick its meaning. · Costs 1 ⚡',
           },
           {
             id: 'mode-write',
             label: '3. Write from meaning',
-            hint: 'See the meaning, type the word.',
+            hint: 'See the meaning, type the word. · Costs 1 ⚡',
           },
           {
             id: 'mode-speak',

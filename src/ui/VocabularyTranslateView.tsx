@@ -36,6 +36,7 @@ import {
   PENALTY_PER_WRONG,
   PENALTY_PER_IDK,
   addBalance,
+  creditEarnings,
   useWalletBalance,
   formatBalance,
   formatDelta,
@@ -151,11 +152,14 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
    *  instead of immediately closing so they can see how the
    *  session went before returning to the map. */
   const [sessionEnded, setSessionEnded] = useState(false);
-  /** Pay the energy cost for the FIRST round exactly once. Mount
-   *  effect rather than a useState initializer so the side-effect
-   *  doesn't hide inside React-internal init flow. If the player
-   *  doesn't have any energy, flip the overlay immediately and
-   *  the round UI never gets a chance to render. */
+  /** Energy is charged ONCE per session. Opening the view costs 1
+   *  energy regardless of how many rounds the player drills, so a
+   *  session is the unit of work and the player can chain rounds
+   *  freely once they've paid the entry fee. Mount effect rather
+   *  than a useState initializer so the side-effect doesn't hide
+   *  inside React-internal init flow. If the player doesn't have
+   *  any energy, flip the overlay immediately and the round UI
+   *  never gets a chance to render. */
   const initialEnergyConsumedRef = useRef(false);
   useEffect(() => {
     if (initialEnergyConsumedRef.current) return;
@@ -196,20 +200,12 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       window.clearTimeout(advanceTimerRef.current);
       advanceTimerRef.current = null;
     }
-    // Pay 1 energy to start the next round. If the player can't
-    // afford it, freeze the view on the out-of-energy overlay
-    // instead of rolling a fresh prompt — they have to leave, eat,
-    // and come back. We still clear the per-round transient state
-    // (selection, delta, study panel) so the overlay isn't sitting
-    // on top of the previous round's "+3 / -2" badge.
-    if (!consumeEnergy(1)) {
-      setOutOfEnergy(true);
-      setSelectedTarget(null);
-      setLastDelta(null);
-      setWaitingOnNext(false);
-      setShowDetails(false);
-      return;
-    }
+    // Energy is charged ONCE on session entry (see the mount
+    // effect that calls `consumeEnergy(1)`). Per-round advances
+    // are free — a session is the unit of work, not the round.
+    // The player can drill as many words as they like once the
+    // session has started, and "out of energy" is only ever a
+    // mount-time gate.
     setProgress((p) => {
       // Seed the next prompt's recency BEFORE picking so the picker
       // doesn't reuse it as one of the random choices that gets back
@@ -242,7 +238,12 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       if (!guess) return; // empty submit — ignore
       const isCorrect = guess === round.prompt.target.toLowerCase();
       const delta = isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG;
-      addBalance(delta);
+      // Positive reward routes through `creditEarnings` so it
+      // counts toward the lifetime-earned milestone (first-paycheck
+      // quest etc.); penalties stay as plain balance changes —
+      // losing money doesn't un-earn what you already made.
+      if (isCorrect) creditEarnings(delta);
+      else addBalance(delta);
       setLastDelta(delta);
       setWriteOutcome(isCorrect ? 'correct' : 'wrong');
       setProgress((p) => {
@@ -279,7 +280,8 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       setSelectedTarget(chosen.target);
       const isCorrect = chosen.target === round.prompt.target;
       const delta = isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG;
-      addBalance(delta);
+      if (isCorrect) creditEarnings(delta);
+      else addBalance(delta);
       setLastDelta(delta);
       // Update the per-word memory state — this is what feeds the
       // wrong-queue + recency-aware picker on the next round.

@@ -65,6 +65,13 @@ export const QUESTS: Record<string, QuestDef> = {
     // before the cutscene runs would spoil it.
     completedSummary: 'You bluffed your way into a translator gig. The work begins now.',
   },
+  'first-paycheck': {
+    id: 'first-paycheck',
+    title: 'Earn Your First Paycheck',
+    objective: 'Earn $5.00 from translation work, then come back to the CEO for your first paycheck.',
+    availableHint: 'The CEO promised a paycheck once you\u2019ve earned your stripes — keep translating.',
+    completedSummary: 'You earned your first paycheck. The CEO threw in a small bonus on top.',
+  },
 };
 
 export function getQuestDef(id: string): QuestDef | undefined {

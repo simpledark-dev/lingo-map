@@ -16,6 +16,7 @@ import {
   PENALTY_PER_WRONG,
   PENALTY_PER_IDK,
   addBalance,
+  creditEarnings,
 } from '../data/wallet';
 import { cancelDialogueSpeech } from './tts';
 import { speakVocabWord } from './wordSpeak';
@@ -151,7 +152,11 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
         correct: s.correct + (isCorrect ? 1 : 0),
         wrong: s.wrong + (isCorrect ? 0 : 1),
       }));
-      addBalance(isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG);
+      // Positive reward routes through `creditEarnings` so the
+      // first-paycheck milestone counts practice rounds too.
+      // Penalties stay on plain addBalance.
+      if (isCorrect) creditEarnings(REWARD_PER_CORRECT);
+      else addBalance(-PENALTY_PER_WRONG);
       setWriteOutcome(isCorrect ? 'correct' : 'wrong');
       setProgress((p) => {
         const updated = recordAnswer(p, round.prompt.target, isCorrect);
@@ -183,8 +188,11 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
       }));
       // Same wallet impact as the translate view — practice answers
       // also feed the persistent balance so the player has one
-      // unified "I'm getting better" number.
-      addBalance(isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG);
+      // unified "I'm getting better" number. Correct rewards route
+      // through `creditEarnings` so they count toward lifetime-earned
+      // milestones (first-paycheck quest, future achievements).
+      if (isCorrect) creditEarnings(REWARD_PER_CORRECT);
+      else addBalance(-PENALTY_PER_WRONG);
       // Update per-word memory state — the picker uses this on the
       // next round (wrong-queue + recency-aware).
       setProgress((p) => {

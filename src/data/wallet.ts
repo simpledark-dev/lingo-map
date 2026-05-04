@@ -19,6 +19,12 @@
 import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'lingo-wallet:balance';
+/** Separate counter for cents EARNED via translation work (correct
+ *  answers only — not the starter, not borrowing, not quest bonuses).
+ *  Drives the `first-paycheck` quest and any future "X earned this
+ *  way" milestones. Lives in its own key so penalties / shop spends
+ *  / debt repayment don't reset the milestone. */
+const LIFETIME_EARNED_KEY = 'lingo-wallet:lifetime-earned';
 const STARTING_BALANCE_CENTS = 200;
 
 /** Cents earned for a correct vocabulary answer. ($0.03) */
@@ -33,6 +39,14 @@ export const PENALTY_PER_IDK = 1;
 type Listener = (balance: number) => void;
 const listeners = new Set<Listener>();
 let cached: number | null = null;
+
+/** Lifetime-earnings cache + listener set. Mirrors the balance
+ *  pub/sub pattern — module-level so non-React callers (the
+ *  first-paycheck watcher, any future RemoteTrigger flows) can
+ *  read/subscribe without hooking. */
+type EarningsListener = (lifetime: number) => void;
+const earningsListeners = new Set<EarningsListener>();
+let earningsCached: number | null = null;
 
 function read(): number {
   if (cached !== null) return cached;
@@ -77,6 +91,68 @@ export function addBalance(delta: number): number {
   write(next);
   for (const l of listeners) l(next);
   return next;
+}
+
+function readEarnings(): number {
+  if (earningsCached !== null) return earningsCached;
+  if (typeof window === 'undefined') {
+    earningsCached = 0;
+    return earningsCached;
+  }
+  try {
+    const raw = window.localStorage.getItem(LIFETIME_EARNED_KEY);
+    const parsed = raw ? Number(raw) : 0;
+    earningsCached = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+  } catch {
+    earningsCached = 0;
+  }
+  return earningsCached;
+}
+
+function writeEarnings(value: number): void {
+  earningsCached = value;
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LIFETIME_EARNED_KEY, String(value));
+  } catch { /* silent */ }
+}
+
+/** Lifetime cents earned via translation work. Distinct from
+ *  current balance: spending, penalties, and debt never reduce
+ *  this number. */
+export function getLifetimeEarnings(): number {
+  return readEarnings();
+}
+
+/** Add cents to the wallet AND record them as translation
+ *  earnings. Use this anywhere a correct-answer reward is paid;
+ *  use plain `addBalance` for borrowing, quest bonuses, shop
+ *  refunds, and other non-earned credits. Negative amounts are
+ *  rejected — earnings are monotonic. */
+export function creditEarnings(cents: number): number {
+  if (cents <= 0) return getBalance();
+  const nextLifetime = readEarnings() + cents;
+  writeEarnings(nextLifetime);
+  for (const l of earningsListeners) l(nextLifetime);
+  return addBalance(cents);
+}
+
+export function subscribeEarnings(listener: EarningsListener): () => void {
+  earningsListeners.add(listener);
+  return () => {
+    earningsListeners.delete(listener);
+  };
+}
+
+/** React hook for lifetime earnings. Same shape as
+ *  `useWalletBalance`. */
+export function useLifetimeEarnings(): number {
+  const [v, setV] = useState<number>(() => getLifetimeEarnings());
+  useEffect(() => {
+    setV(getLifetimeEarnings());
+    return subscribeEarnings(setV);
+  }, []);
+  return v;
 }
 
 export function subscribeBalance(listener: Listener): () => void {
