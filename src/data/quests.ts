@@ -21,10 +21,21 @@
  * works for any future quest source (NPC, trigger, scripted event).
  */
 import { useEffect, useState } from 'react';
+import { hasFlag, FLAGS } from './eventFlags';
 
 const STORAGE_KEY = 'lingo-quests:v1';
 
 export type QuestStatus = 'inactive' | 'active' | 'completed';
+
+/** Cents the player must earn (translation work only — penalties +
+ *  borrows don't count) before the CEO will hand over the first
+ *  paycheck. Lives here next to the quest catalog rather than in
+ *  GameCanvas so the QuestHud can read it without pulling in a
+ *  circular import. */
+export const FIRST_PAYCHECK_THRESHOLD_CENTS = 500;
+/** Bonus paid on top of the cents already earned when the
+ *  first-paycheck quest is claimed. */
+export const FIRST_PAYCHECK_BONUS_CENTS = 100;
 
 export interface QuestDef {
   id: string;
@@ -32,8 +43,19 @@ export interface QuestDef {
    *  toast. Keep under ~28 chars for the toast to fit on mobile. */
   title: string;
   /** What the player needs to do to clear this quest. Shown in the
-   *  log while the quest is active. */
+   *  log while the quest is active. Static fallback — for quests
+   *  whose text changes as the player progresses through sub-
+   *  stages, also set `computeObjective` and treat this as the
+   *  initial / "before-anything-happens" copy. */
   objective: string;
+  /** Optional dynamic-objective hook. Returns the current objective
+   *  string given live game state (event flags, inventory, etc.).
+   *  Called on each render of the quest log, so keep it cheap and
+   *  pure. Skipped when undefined — the static `objective` field
+   *  is shown instead. Lets a quest like child-sandwich say
+   *  "Mim wanted to talk to you. Head home." pre-conversation and
+   *  "Buy a sandwich at the Mart…" after Mim has actually asked. */
+  computeObjective?: () => string;
   /** Hint shown in the log BEFORE the quest is started — points
    *  the player at the NPC or location that triggers it. Lets
    *  players plan the next thing to do without first stumbling on
@@ -42,6 +64,44 @@ export interface QuestDef {
   /** Wrap-up shown in the log after the quest is completed. Falls
    *  back to "Completed." when omitted. */
   completedSummary?: string;
+  /** IDs of quests that must be in `'completed'` state before this
+   *  quest is allowed to appear anywhere a player can see it
+   *  (Available tier in the log, etc.). Inactive quests with
+   *  unmet prereqs are treated as fully hidden — the player
+   *  shouldn't even know they exist yet. Empty / omitted = no
+   *  prereq, the quest is gated only by `availableHint`. */
+  requiresCompleted?: string[];
+}
+
+/** Resolve a quest's currently-displayed objective string. Calls
+ *  the optional `computeObjective` hook if present, else returns
+ *  the static `objective`. Centralised so call sites (log, future
+ *  HUD subtitle, etc.) don't have to know whether a particular
+ *  quest opted into dynamic copy. */
+export function getObjective(quest: QuestDef): string {
+  return quest.computeObjective ? quest.computeObjective() : quest.objective;
+}
+
+/** True when every quest id in `prereqs` is currently `'completed'`.
+ *  Empty list / `undefined` short-circuits to true so quests
+ *  without a prereq stay always-eligible. Caller passes a snapshot
+ *  of the status map to keep this pure / cheap to call inside React
+ *  filters. */
+export function arePrereqsMet(
+  prereqs: string[] | undefined,
+  statuses: StatusMap,
+): boolean {
+  if (!prereqs || prereqs.length === 0) return true;
+  return prereqs.every((id) => statuses[id] === 'completed');
+}
+
+/** Convenience: `inactive` quest that has an `availableHint` AND
+ *  has all prereqs satisfied — i.e. would render under the
+ *  "Available" tier in the quest log / HUD. */
+export function isAvailable(quest: QuestDef, statuses: StatusMap): boolean {
+  if (statuses[quest.id]) return false;
+  if (!quest.availableHint) return false;
+  return arePrereqsMet(quest.requiresCompleted, statuses);
 }
 
 /** Catalog of all quests in the game. New entries register here;
@@ -52,9 +112,27 @@ export const QUESTS: Record<string, QuestDef> = {
   'child-sandwich': {
     id: 'child-sandwich',
     title: 'A Sandwich for Mim',
-    objective: 'Mim is hungry. Buy a sandwich at the Mart and bring it home.',
-    availableHint: 'Talk to Mim at home — she might want something.',
+    // Static fallback — only shown if `computeObjective` is somehow
+    // skipped (e.g. unit-test reading the def directly).
+    objective: 'Mim wanted to talk to you. Head home.',
+    // Two-stage objective: pre-Mim-ask vs post-Mim-ask. Keeps the
+    // quest log faithful to what the PLAYER currently knows
+    // (Mim hasn't said anything yet → "go home and find out") vs
+    // what they're acting on (Mim asked → "buy a sandwich").
+    // Stage flips when CHILD_ASKED_FOR_SANDWICH is set inside
+    // Mim's dialogue handler.
+    computeObjective: () =>
+      hasFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH)
+        ? 'Buy a sandwich at the Mart and bring it home.'
+        : 'Mim wanted to talk to you. Head home.',
     completedSummary: 'You brought Mim a sandwich. They were thrilled.',
+    // Auto-chained after the first paycheck — the player has the
+    // money + the workflow muscle memory by then, and Mim's request
+    // closes the loop on "you came to the city to feed your kid".
+    // No `availableHint` is intentional: the chain auto-starts via
+    // GameCanvas's catch-up effect, so the quest skips the
+    // Available tier entirely and lands directly in In Progress.
+    requiresCompleted: ['first-paycheck'],
   },
   'intro-translator-job': {
     id: 'intro-translator-job',
@@ -68,9 +146,18 @@ export const QUESTS: Record<string, QuestDef> = {
   'first-paycheck': {
     id: 'first-paycheck',
     title: 'Earn Your First Paycheck',
-    objective: 'Earn $5.00 from translation work, then come back to the CEO for your first paycheck.',
+    // Concrete, action-first objective. Calls out (1) WHERE to
+    // find work (vocabulary NPCs in town with translation
+    // offers), (2) WHAT to earn ($5.00), (3) WHO to return to
+    // (the office CEO) so a player coming back after a break
+    // doesn't have to guess.
+    objective: 'Talk to vocabulary NPCs around town and accept their translator offers. Earn $5.00 from correct answers, then return to the CEO at the office for your bonus.',
     availableHint: 'The CEO promised a paycheck once you\u2019ve earned your stripes — keep translating.',
     completedSummary: 'You earned your first paycheck. The CEO threw in a small bonus on top.',
+    // Auto-starts as soon as the intro is done (see GameCanvas's
+    // catch-up effect), but prereq is set anyway so a stale save
+    // mid-intro doesn't accidentally surface this in Available.
+    requiresCompleted: ['intro-translator-job'],
   },
 };
 

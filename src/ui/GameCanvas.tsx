@@ -24,15 +24,22 @@ import {
   BORROW_INCREMENT_CENTS,
   MAX_DEBT_CENTS,
 } from '../data/debt';
-import { startQuest, completeQuest, getQuestStatus, useQuestStatuses } from '../data/quests';
+import {
+  startQuest,
+  completeQuest,
+  getQuestStatus,
+  useQuestStatuses,
+  FIRST_PAYCHECK_THRESHOLD_CENTS,
+  FIRST_PAYCHECK_BONUS_CENTS,
+} from '../data/quests';
 import QuestToast from './QuestToast';
 import QuestLog from './QuestLog';
 import InventoryView from './InventoryView';
 import IntroCutscene from './IntroCutscene';
-import IntroHintBanner from './IntroHintBanner';
+import QuestHud from './QuestHud';
 import SettingsView from './SettingsView';
 import WordStatsView from './WordStatsView';
-import { hasFlag, FLAGS } from '../data/eventFlags';
+import { hasFlag, setFlag, FLAGS } from '../data/eventFlags';
 import { getPlayerName, clearProfile } from '../data/profile';
 import { clearFlag } from '../data/eventFlags';
 import Minimap from './Minimap';
@@ -99,26 +106,38 @@ function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
     };
   }
   if (status === 'inactive') {
+    // Defensive — should be unreachable now that the quest is
+    // auto-chained from first-paycheck. Kept so a dev-tool flow
+    // that skips the chain (e.g. clearing only the sandwich
+    // status) still results in a sensible Mim line + activation.
     startQuest('child-sandwich');
     return {
       ...stub,
       lines: ["I'm hungry… can you go to the Mart and grab me a sandwich? Please?"],
     };
   }
-  // status === 'active'
-  if (haveSandwich) {
+  // status === 'active'. The chain auto-starts the quest WITHOUT
+  // a Mim dialogue, so the very first visit needs to land the
+  // hungry-ask beat — flagged so subsequent returns flip to the
+  // ongoing "did you get it?" exchange. The Give option is shown
+  // both when the player has the sandwich AND when they don't:
+  // the option handler differentiates, and an inventory check at
+  // selection time lets Mim deliver the "huh? where?" line as a
+  // direct reaction to the player tapping Give without having one.
+  if (!hasFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH)) {
+    setFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
     return {
       ...stub,
-      lines: ['Did you get my sandwich?'],
-      options: [
-        { id: 'child-give-sandwich', label: 'Give the sandwich 🥪' },
-        { id: 'child-decline', label: 'Not yet' },
-      ],
+      lines: ["I'm hungry… can you go to the Mart and grab me a sandwich? Please?"],
     };
   }
   return {
     ...stub,
-    lines: ['Huh? Where? You didn’t buy it…'],
+    lines: ['Did you get my sandwich?'],
+    options: [
+      { id: 'child-give-sandwich', label: 'Give the sandwich 🥪' },
+      { id: 'child-decline', label: 'Not yet' },
+    ],
   };
 }
 
@@ -167,15 +186,6 @@ function buildLenderDialogue(stub: DialogueState): DialogueState {
     options,
   };
 }
-
-/** Cents the player must earn (translation work only — penalties
- *  + borrows don't count) before the CEO will hand over the first
- *  paycheck. */
-export const FIRST_PAYCHECK_THRESHOLD_CENTS = 500;
-/** Bonus paid on top of the cents already earned when the
- *  first-paycheck quest is claimed. Small enough to feel like
- *  flavor, not an exploit. */
-export const FIRST_PAYCHECK_BONUS_CENTS = 100;
 
 /** Compose the CEO's dialogue. Three states stack on top of the
  *  base "come back when you're ready for your first contract" line:
@@ -331,6 +341,31 @@ export default function GameCanvas() {
   const walletBalance = useWalletBalance();
   const debt = useDebt();
   const questStatuses = useQuestStatuses();
+  // Catch-up auto-starts: a save written before a quest's chain
+  // was wired (or a player who completed a parent quest in a
+  // previous version) ends up with downstream quests stuck at
+  // 'inactive'. We re-fire `startQuest` for every chain whose
+  // precondition is now met. `startQuest` is idempotent — it
+  // no-ops once the quest is active or completed — so this is
+  // safe to run on every render that quest statuses change.
+  useEffect(() => {
+    if (
+      questStatuses['intro-translator-job'] === 'completed'
+      && !questStatuses['first-paycheck']
+    ) {
+      startQuest('first-paycheck');
+    }
+    // First paycheck → sandwich for Mim. Chained so the player
+    // sees a fresh quest light up the moment they complete the
+    // paycheck closer, instead of having to walk back home and
+    // discover it via Mim's dialogue first.
+    if (
+      questStatuses['first-paycheck'] === 'completed'
+      && !questStatuses['child-sandwich']
+    ) {
+      startQuest('child-sandwich');
+    }
+  }, [questStatuses]);
   const energy = useEnergy();
   const energyMax = getMaxEnergy();
   const inventory = useInventory();
@@ -886,9 +921,16 @@ export default function GameCanvas() {
           currentLine: 0,
         });
       } else {
-        // Lost the sandwich between menu render and click (shouldn't
-        // happen in normal play, but guard so we never crash).
-        closeDialogueEverywhere();
+        // The Give option is offered regardless of inventory now;
+        // tapping it without a sandwich means Mim catches the
+        // bluff. Stay in the dialogue (no auto-close) so the
+        // player can reread before walking away.
+        setDialogue({
+          npcId: dialogue.npcId,
+          npcName: dialogue.npcName,
+          lines: ['Huh? Where? You didn’t buy it…'],
+          currentLine: 0,
+        });
       }
       return;
     }
@@ -1478,10 +1520,11 @@ export default function GameCanvas() {
             it never blocks the canvas. */}
         <QuestToast />
 
-        {/* Phase-2 nav hint — auto-hides once the intro quest is
-            completed. Sits just under the HUD pills so it doesn't
-            cover the world. */}
-        <IntroHintBanner />
+        {/* Persistent ACTIVE-quests strip. Replaces the standalone
+            IntroHintBanner since the intro quest's title alone
+            already conveys "head to the office." Tap to open the
+            full log; auto-hides when no quest is active. */}
+        <QuestHud onOpenLog={() => setQuestLogOpen(true)} />
 
         {/* Intro cutscene — full-screen overlay shown once on a
             fresh save (or after a dev reset). Blocks the world

@@ -13,6 +13,7 @@
  */
 import { useState } from 'react';
 import { resetAllGameData } from '../data/reset';
+import { creditEarnings, useLifetimeEarnings, formatBalance } from '../data/wallet';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -27,6 +28,14 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
   // tap actually wipes. A 3-second auto-cancel keeps the armed state
   // from sticking around if the player walks away.
   const [confirming, setConfirming] = useState(false);
+  // Live read so the dev "Earn $1" button label can show current
+  // lifetime earnings — saves opening the wallet pill to check.
+  const lifetime = useLifetimeEarnings();
+  // Dev cheats are only surfaced outside production builds. Keeps
+  // a player on the deployed game from accidentally tapping a
+  // "+$1" button. Next.js inlines `process.env.NODE_ENV` at build
+  // time so the whole block tree-shakes out of prod bundles.
+  const isDev = process.env.NODE_ENV !== 'production';
 
   const armReset = () => {
     setConfirming(true);
@@ -184,6 +193,75 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
             </div>
           )}
         </div>
+
+        {isDev && (
+          <>
+            <div
+              style={{
+                fontSize: 10,
+                textTransform: 'uppercase',
+                letterSpacing: 1.2,
+                fontWeight: 700,
+                color: COLORS.hintText,
+              }}
+            >
+              Dev
+            </div>
+            <div
+              style={{
+                background: COLORS.parchmentLight,
+                border: `2px dashed ${COLORS.cardBorder}`,
+                borderRadius: 6,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                color: COLORS.text,
+              }}
+            >
+              <div style={{ fontSize: 12, lineHeight: 1.4 }}>
+                Lifetime earnings: <strong>{formatBalance(lifetime)}</strong>.
+                Skip the grind while testing quest milestones.
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => creditEarnings(100)}
+                  style={{
+                    background: COLORS.cardRest,
+                    color: COLORS.text,
+                    border: `2px solid ${COLORS.cardBorder}`,
+                    borderRadius: 4,
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Earn +$1.00
+                </button>
+                <button
+                  type="button"
+                  onClick={() => creditEarnings(500)}
+                  style={{
+                    background: COLORS.cardRest,
+                    color: COLORS.text,
+                    border: `2px solid ${COLORS.cardBorder}`,
+                    borderRadius: 4,
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Earn +$5.00
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

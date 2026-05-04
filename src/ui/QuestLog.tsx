@@ -10,7 +10,7 @@
  * starting a quest mid-modal updates the list live.
  */
 import { useMemo } from 'react';
-import { QUESTS, useQuestStatuses } from '../data/quests';
+import { QUESTS, useQuestStatuses, isAvailable, getObjective } from '../data/quests';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -26,12 +26,13 @@ export default function QuestLog({ onClose }: QuestLogProps) {
     const all = Object.values(QUESTS);
     return {
       active: all.filter((q) => statuses[q.id] === 'active'),
-      // Inactive quests with an `availableHint` show up as a hint
-      // tier so the player has somewhere to look next without
-      // stumbling on the right NPC by chance. Inactive quests
-      // without a hint stay hidden — those are content the player
-      // shouldn't know exists yet.
-      available: all.filter((q) => !statuses[q.id] && q.availableHint),
+      // `isAvailable` enforces both gates: the quest needs an
+      // `availableHint` (so it's discoverable copy) AND every entry
+      // in `requiresCompleted` is already completed. A fresh save
+      // therefore sees no Available tier until the intro quest
+      // closes; subsequent quests reveal as their preconditions
+      // resolve, instead of dumping the whole tree at game start.
+      available: all.filter((q) => isAvailable(q, statuses)),
       completed: all.filter((q) => statuses[q.id] === 'completed'),
     };
   }, [statuses]);
@@ -105,7 +106,7 @@ export default function QuestLog({ onClose }: QuestLogProps) {
                 <QuestRow
                   key={q.id}
                   title={q.title}
-                  body={q.objective}
+                  body={getObjective(q)}
                   accent={COLORS.active}
                   badge="Active"
                 />
