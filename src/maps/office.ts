@@ -114,9 +114,25 @@ const objects: Entity[] = [
     { targetMapId: 'pokemon', targetSpawnId: 'from-house' }),
 ];
 
-// Empty for now — populate via editor or follow-up code edit when
-// the office's "boss/HR" NPC is designed.
-const npcs: NPCData[] = [];
+// Stationary CEO near the back of the office. Omitting `wanderRadius`
+// keeps him rooted in place so this room can act as the first job /
+// contract office once the story flow is wired.
+const npcs: NPCData[] = [
+  {
+    id: 'office-npc-ceo',
+    x: tx(10),
+    y: ty(6),
+    spriteKey: 'me-char-20',
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(6),
+    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
+    name: 'CEO',
+    dialogue: [
+      "You're the new translator? Good. The city has plenty of work for someone bold enough to try.",
+      'Come back when you are ready for your first contract.',
+    ],
+  },
+];
 
 export const officeMap: MapData = {
   id: 'office',
