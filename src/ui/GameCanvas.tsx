@@ -1131,9 +1131,9 @@ export default function GameCanvas() {
 
       {/* UI overlay — always on top of canvas */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }}>
-        {/* Top-left HUD pill row — wallet + energy side-by-side.
-            Wrapped in a flex container at top:40, left:30 so adding
-            future pills (focus, hunger, whatever) stays a single
+        {/* Top-left HUD pill row — aligned to the same top edge as
+            the top-right icon buttons. Wrapped in a flex container
+            so future pills (focus, hunger, whatever) stay a single
             child append. Subscribes via useWalletBalance / useEnergy
             so vocab views don't have to call back up here. */}
         <div

@@ -19,6 +19,7 @@
 import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'lingo-wallet:balance';
+const STARTING_BALANCE_CENTS = 200;
 
 /** Cents earned for a correct vocabulary answer. ($0.03) */
 export const REWARD_PER_CORRECT = 3;
@@ -36,15 +37,20 @@ let cached: number | null = null;
 function read(): number {
   if (cached !== null) return cached;
   if (typeof window === 'undefined') {
-    cached = 0;
+    cached = STARTING_BALANCE_CENTS;
     return cached;
   }
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? Number(raw) : 0;
-    cached = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    if (raw === null) {
+      cached = STARTING_BALANCE_CENTS;
+      window.localStorage.setItem(STORAGE_KEY, String(cached));
+      return cached;
+    }
+    const parsed = Number(raw);
+    cached = Number.isFinite(parsed) ? Math.max(0, parsed) : STARTING_BALANCE_CENTS;
   } catch {
-    cached = 0;
+    cached = STARTING_BALANCE_CENTS;
   }
   return cached;
 }

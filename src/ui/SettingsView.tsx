@@ -9,7 +9,7 @@
  *
  * Reset behaviour: wipes every persisted key the game owns, then
  * full-page reloads so all in-memory caches re-init from a clean
- * slate (cutscene plays, quests inactive, wallet at zero, etc.).
+ * slate (cutscene plays, quests inactive, wallet at the starter value, etc.).
  */
 import { useState } from 'react';
 import { resetAllGameData } from '../data/reset';

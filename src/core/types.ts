@@ -114,10 +114,10 @@ export interface NPCData {
    *  pitch the work in their own voice — keeps the recurring dialog
    *  from feeling copy-pasted across every NPC the player meets. */
   vocabularyOfferLine?: string;
-  /** URL of a pre-recorded MP3 to play in place of TTS for the offer
-   *  line. Lets us voice specific NPCs by hand without having to
-   *  voice every line in the game. Falls back to TTS-on-text when
-   *  unset. */
+  /** Legacy recorded opener metadata. Main-game NPC dialogue is
+   *  intentionally silent now because those lines are native-language
+   *  English; target-language word audio is handled by vocabulary
+   *  practice/list views instead. */
   vocabularyOfferAudio?: string;
   /** Marks the NPC as a shopkeeper. Interaction shows a 2-button
    *  offer ("Browse" / "Leave") instead of a plain chat; the React
@@ -336,10 +336,9 @@ export interface DialogueState {
    *  / "help translate" buttons. */
   vocabularyPackId?: string;
   vocabularyWordCount?: number;
-  /** Optional pre-recorded voice line (URL to an audio asset). When
-   *  set, DialogueOverlay plays this clip instead of running the
-   *  text through `speechSynthesis`. Lets specific NPCs ship a
-   *  voiced opener while every other NPC keeps the cheap TTS path. */
+  /** Legacy recorded dialogue metadata. DialogueOverlay currently
+   *  keeps NPC English lines silent; target-language word audio is
+   *  handled by vocabulary views instead. */
   audioUrl?: string;
   /** Marker that the React layer should rewrite the dialogue based
    *  on game state (inventory / event flags / debt / quest). Mirrors

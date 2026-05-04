@@ -5,7 +5,7 @@ import { WORLD_SAVE_STORAGE_KEY } from './worldSave';
  * One-call full reset for the game. Wipes every localStorage key
  * the game owns + every per-pack vocab-progress entry, so the
  * next page load behaves like a brand-new save (cutscene plays,
- * quests inactive, wallet empty, energy at the starter value, etc.).
+ * quests inactive, wallet at the starter value, energy at the starter value, etc.).
  *
  * Centralised here so future persistence modules just have to add
  * their key to `STORAGE_KEYS` (or the `vocab-progress:` prefix

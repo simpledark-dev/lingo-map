@@ -21,8 +21,8 @@ export class DebugOverlay {
     this.el = document.createElement('div');
     Object.assign(this.el.style, {
       position: 'absolute',
-      top: '4px',
-      left: '4px',
+      right: '4px',
+      bottom: '4px',
       padding: '6px 10px',
       background: 'rgba(0,0,0,0.7)',
       color: '#0f0',

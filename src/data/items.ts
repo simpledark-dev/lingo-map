@@ -3,9 +3,9 @@
  * a display name, an emoji icon (placeholder pixel-art comes later),
  * and a price in cents (matching the wallet's cents-as-int model).
  *
- * Kept tiny in slice 1 — sandwich is the only entry — so the shop
- * UI and inventory plumbing have something to render before we
- * widen the catalog.
+ * Prices track approximate U.S. convenience/grocery-store reality
+ * rather than the tiny vocab-reward loop. Learning rewards stay
+ * intentionally small; food is a meaningful savings goal.
  */
 
 export interface ItemDef {
@@ -20,8 +20,8 @@ export interface ItemDef {
    *  buy button on those by convention. */
   priceCents: number;
   /** Energy restored when the player eats this item from inventory.
-   *  Tuned around ~3¢-per-energy so a perfect translator breaks even
-   *  on food cost — see `energy.ts` and the slice 3 design notes.
+   *  Energy is gameplay stamina; price is the real-world-ish economy
+   *  sink. They are not kept at a fixed cents-per-energy ratio.
    *  Items without an energy value (e.g. future quest-only items)
    *  can omit this; the inventory UI hides the Eat button on those. */
   energy?: number;
@@ -35,7 +35,7 @@ export const ITEMS: Record<string, ItemDef> = {
     id: 'sandwich',
     name: 'Sandwich',
     icon: '🥪',
-    priceCents: 30,
+    priceCents: 599,
     energy: 10,
     description: 'Soft bread, cheese, a slice of something. Lunchbox classic.',
   },
@@ -43,7 +43,7 @@ export const ITEMS: Record<string, ItemDef> = {
     id: 'onigiri',
     name: 'Onigiri',
     icon: '🍙',
-    priceCents: 25,
+    priceCents: 299,
     energy: 8,
     description: 'Triangle of warm rice with a salty surprise inside.',
   },
@@ -51,7 +51,7 @@ export const ITEMS: Record<string, ItemDef> = {
     id: 'apple',
     name: 'Apple',
     icon: '🍎',
-    priceCents: 12,
+    priceCents: 99,
     energy: 4,
     description: 'Crisp, tart, polished on a sleeve before the bite.',
   },
@@ -59,7 +59,7 @@ export const ITEMS: Record<string, ItemDef> = {
     id: 'donut',
     name: 'Donut',
     icon: '🍩',
-    priceCents: 18,
+    priceCents: 149,
     energy: 6,
     description: 'Glazed ring of dubious nutritional value. Worth it.',
   },
@@ -67,7 +67,7 @@ export const ITEMS: Record<string, ItemDef> = {
     id: 'milk',
     name: 'Milk',
     icon: '🥛',
-    priceCents: 20,
+    priceCents: 199,
     energy: 7,
     description: 'Cold carton, slightly damp on the outside.',
   },
@@ -75,7 +75,7 @@ export const ITEMS: Record<string, ItemDef> = {
     id: 'cookie',
     name: 'Cookie',
     icon: '🍪',
-    priceCents: 8,
+    priceCents: 125,
     energy: 3,
     description: 'Chocolate-chip. The cheap, reliable comfort.',
   },

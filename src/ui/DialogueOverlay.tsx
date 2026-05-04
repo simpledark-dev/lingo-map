@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { DialogueState } from '../core/types';
-import { speakDialogue } from './tts';
-import { playAudioUrl } from './audioEngine';
 import { getDialogueTheme } from './dialogueThemes';
 
 interface DialogueOverlayProps {
@@ -70,23 +68,10 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
     onAdvance();
   }, [isFullyRevealed, hasOptions, currentLine.length, onAdvance]);
 
-  useEffect(() => {
-    if (!currentLine) return;
-    if (dialogue.audioUrl) {
-      // Pre-recorded voice line: play the asset via the shared Web
-      // Audio engine and skip TTS so the browser does not speak over
-      // it. The engine cleanly cuts off any prior fire of the same
-      // URL, so a line change replaces instead of stacking.
-      void playAudioUrl(dialogue.audioUrl);
-    } else {
-      speakDialogue(currentLine);
-    }
-    // Intentionally no cleanup-time cancel for either path. Calling
-    // `speechSynthesis.cancel()` on iOS Safari can trigger a main-
-    // thread stutter while the OS speech daemon flushes its audio
-    // session. Letting the line finish is less abrupt, and replacement
-    // utterances take over through this line-change effect.
-  }, [currentLine, dialogue.npcId, dialogue.audioUrl]);
+  // Main-game NPC dialogue is native-language English, so it stays
+  // silent. Foreign-word audio lives in the vocabulary views via
+  // `wordSpeak`, where the player is explicitly learning the target
+  // language.
 
   return (
     <div

@@ -5,9 +5,9 @@
  * regenerate on its own (slice 3 design — accuracy is the gate, not
  * real-time waiting); the player restores it by eating items
  * bought from the Mart. Run out → can't take more jobs until you
- * eat. Wallet penalties for wrongs already encode the deeper signal:
- * a perfect player breaks even on food, a sloppy one slides into
- * deficit and eventually has to borrow.
+ * eat. Food prices are intentionally closer to real U.S. prices now,
+ * so meals are a longer-term money sink rather than something a few
+ * perfect answers can immediately cover.
  *
  * Starter energy is generous on a fresh save (20 of 30 max) so the
  * very first session is friction-free. Practice mode is exempt

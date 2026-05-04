@@ -392,11 +392,13 @@ function buildHudTheme(colors: UIThemeColors, id: UIThemeId): HudTheme {
   return {
     statusRowStyle: {
       position: "absolute",
-      top: 40,
-      left: 30,
+      top: 8,
+      left: 8,
       display: "flex",
       alignItems: "center",
+      flexWrap: "wrap",
       gap: 7,
+      maxWidth: "calc(100% - 232px)",
     },
     statusPlateStyle: {
       ...plateBase,
@@ -418,8 +420,8 @@ function buildHudTheme(colors: UIThemeColors, id: UIThemeId): HudTheme {
     inventoryButtonStyle: {
       ...plateBase,
       position: "absolute",
-      top: 76,
-      left: 30,
+      top: 48,
+      left: 8,
       gap: 6,
       pointerEvents: "auto",
       cursor: "pointer",

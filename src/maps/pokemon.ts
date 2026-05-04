@@ -417,8 +417,9 @@ const npcs: NPCData[] = [
     vocabularyPackId: "saba-pack-1",
     vocabularyOfferLine:
       "Yo the translator! Help me drill these numbers please.",
-    // Pre-recorded voice line — plays instead of TTS when the offer
-    // dialog opens. The text above still appears on-screen as usual.
+    // Legacy pre-recorded voice line. Dialogue overlays are silent
+    // now; target-language audio plays inside vocab practice/list
+    // surfaces instead.
     vocabularyOfferAudio: "/assets/audio/saba_utterance.mp3",
   },
   {
