@@ -37,6 +37,11 @@ import { clearFlag } from '../data/eventFlags';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
+import { getUiTheme } from './uiThemes';
+
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
+const HUD = UI_THEME.hud;
 
 type ViewportSize = { width: number; height: number };
 
@@ -927,18 +932,7 @@ export default function GameCanvas() {
   }, []);
 
   const btnStyle: React.CSSProperties = {
-    pointerEvents: 'auto',
-    position: 'relative',
-    width: 36,
-    height: 36,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-    background: 'rgba(0,0,0,0.5)',
-    color: 'white',
-    border: 'none',
-    cursor: 'pointer',
+    ...HUD.iconButtonStyle,
   };
 
   return (
@@ -1109,35 +1103,13 @@ export default function GameCanvas() {
             child append. Subscribes via useWalletBalance / useEnergy
             so vocab views don't have to call back up here. */}
         <div
-          style={{
-            position: 'absolute',
-            top: 40,
-            left: 30,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
+          style={HUD.statusRowStyle}
         >
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0,
-              padding: '6px 14px',
-              background: 'rgba(0, 0, 0, 0.55)',
-              border: '1px solid rgba(217, 164, 41, 0.6)',
-              borderRadius: 999,
-              fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
-              fontSize: 13,
-              fontWeight: 700,
-              color: '#fbe9b8',
-              textShadow: '0 1px 0 rgba(0,0,0,0.6)',
-              userSelect: 'none',
-              pointerEvents: 'none',
-            }}
+            style={HUD.statusPlateStyle}
             aria-label={`Balance: ${formatBalance(walletBalance)}`}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#fbbf24' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="square" strokeLinejoin="miter" style={{ color: COLORS.coinGold }}>
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
               <path d="M12 18V6"></path>
@@ -1153,26 +1125,11 @@ export default function GameCanvas() {
               clean wallet. */}
           {debt > 0 && (
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '6px 12px',
-                background: 'rgba(0, 0, 0, 0.55)',
-                border: '1px solid rgba(220, 90, 90, 0.65)',
-                borderRadius: 999,
-                fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
-                fontSize: 13,
-                fontWeight: 700,
-                color: '#ffb1b1',
-                textShadow: '0 1px 0 rgba(0,0,0,0.6)',
-                userSelect: 'none',
-                pointerEvents: 'none',
-              }}
+              style={HUD.debtPlateStyle}
               aria-label={`Debt to Theo: ${formatBalance(debt)}`}
               title={`You owe Theo ${formatBalance(debt)}`}
             >
-              <span style={{ fontSize: 14, lineHeight: 1, color: '#ff8b8b' }}>📜</span>
+              <span style={{ fontSize: 13, lineHeight: 1 }}>📜</span>
               <span>-{formatBalance(debt)}</span>
             </div>
           )}
@@ -1182,26 +1139,13 @@ export default function GameCanvas() {
               visually distinct from the wallet's amber. */}
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '6px 12px',
-              background: 'rgba(0, 0, 0, 0.55)',
-              border: '1px solid rgba(96, 165, 199, 0.55)',
-              borderRadius: 999,
-              fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
-              fontSize: 13,
-              fontWeight: 700,
-              color: '#dff1ff',
-              textShadow: '0 1px 0 rgba(0,0,0,0.6)',
-              userSelect: 'none',
-              pointerEvents: 'none',
+              ...HUD.energyPlateStyle,
               opacity: energy === 0 ? 0.55 : 1,
             }}
             aria-label={`Energy: ${energy} of ${energyMax}`}
             title={energy === 0 ? 'Out of energy — eat something to keep working.' : `Energy ${energy}/${energyMax}`}
           >
-            <span style={{ fontSize: 14, lineHeight: 1, color: '#7ec8ee' }}>⚡</span>
+            <span style={{ fontSize: 13, lineHeight: 1, color: COLORS.energyAccent }}>⚡</span>
             <span>{energy}/{energyMax}</span>
           </div>
         </div>
@@ -1215,26 +1159,7 @@ export default function GameCanvas() {
         {inventoryRows.length > 0 && (
           <button
             onClick={() => setInventoryOpen(true)}
-            style={{
-              position: 'absolute',
-              top: 76,
-              left: 30,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '4px 10px',
-              background: 'rgba(0, 0, 0, 0.55)',
-              border: '1px solid rgba(217, 164, 41, 0.6)',
-              borderRadius: 999,
-              fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
-              fontSize: 13,
-              fontWeight: 700,
-              color: '#fbe9b8',
-              textShadow: '0 1px 0 rgba(0,0,0,0.6)',
-              userSelect: 'none',
-              pointerEvents: 'auto',
-              cursor: 'pointer',
-            }}
+            style={HUD.inventoryButtonStyle}
             aria-label={`Inventory (tap to open): ${inventoryRows.map((r) => `${r.count} ${r.def.name}`).join(', ')}`}
             title="Open bag"
           >
@@ -1245,15 +1170,7 @@ export default function GameCanvas() {
               // shows what belongs to which icon, no ambiguity).
               <span
                 key={row.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  padding: '2px 7px',
-                  background: 'rgba(0, 0, 0, 0.35)',
-                  border: '1px solid rgba(217, 164, 41, 0.45)',
-                  borderRadius: 999,
-                }}
+                style={HUD.inventoryChipStyle}
                 title={`${row.def.name} ×${row.count}`}
               >
                 <span style={{ fontSize: 14, lineHeight: 1 }}>{row.def.icon}</span>
@@ -1265,14 +1182,7 @@ export default function GameCanvas() {
 
         {/* Top-right icon group */}
         <div
-          style={{
-            pointerEvents: 'auto',
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            display: 'flex',
-            gap: 6,
-          }}
+          style={HUD.iconGroupStyle}
         >
           {/* Sound toggle — always visible */}
           <button

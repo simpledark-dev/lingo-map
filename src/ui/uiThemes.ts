@@ -66,11 +66,23 @@ export interface ModalTheme {
   panelStyle: CSSProperties;
 }
 
+export interface HudTheme {
+  statusRowStyle: CSSProperties;
+  statusPlateStyle: CSSProperties;
+  debtPlateStyle: CSSProperties;
+  energyPlateStyle: CSSProperties;
+  inventoryButtonStyle: CSSProperties;
+  inventoryChipStyle: CSSProperties;
+  iconGroupStyle: CSSProperties;
+  iconButtonStyle: CSSProperties;
+}
+
 export interface UITheme {
   id: UIThemeId;
   colors: UIThemeColors;
   dialogue: DialogueTheme;
   modal: ModalTheme;
+  hud: HudTheme;
 }
 
 const fontFamily =
@@ -357,11 +369,105 @@ function buildModalTheme(colors: UIThemeColors, id: UIThemeId): ModalTheme {
   };
 }
 
+function buildHudTheme(colors: UIThemeColors, id: UIThemeId): HudTheme {
+  const shadowColor = id === "classicWood" ? colors.woodShadow : "#2a1a0a";
+  const panelBackground = id === "classicWood" ? colors.cardRest : colors.parchment;
+  const plateBase: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 5,
+    padding: "5px 9px",
+    background: panelBackground,
+    border: `2px solid ${colors.cardBorder}`,
+    borderRadius: id === "classicWood" ? 0 : 4,
+    boxShadow: `inset 1px 1px 0 0 ${colors.parchmentLight}, 0 3px 0 0 ${shadowColor}`,
+    fontFamily,
+    fontSize: 12,
+    fontWeight: 700,
+    color: colors.text,
+    userSelect: "none",
+    imageRendering: "pixelated",
+  };
+
+  return {
+    statusRowStyle: {
+      position: "absolute",
+      top: 40,
+      left: 30,
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+    },
+    statusPlateStyle: {
+      ...plateBase,
+      pointerEvents: "none",
+    },
+    debtPlateStyle: {
+      ...plateBase,
+      pointerEvents: "none",
+      background: colors.warnBg,
+      border: `2px solid ${colors.wrong}`,
+      color: colors.wrong,
+    },
+    energyPlateStyle: {
+      ...plateBase,
+      pointerEvents: "none",
+      background: colors.parchmentLight,
+      border: `2px solid ${colors.energyAccent}`,
+    },
+    inventoryButtonStyle: {
+      ...plateBase,
+      position: "absolute",
+      top: 76,
+      left: 30,
+      gap: 6,
+      pointerEvents: "auto",
+      cursor: "pointer",
+    },
+    inventoryChipStyle: {
+      display: "flex",
+      alignItems: "center",
+      gap: 3,
+      padding: "2px 6px",
+      background: colors.cardRest,
+      border: `1px solid ${colors.cardBorder}`,
+      borderRadius: id === "classicWood" ? 0 : 3,
+      boxShadow: `inset 1px 1px 0 0 ${colors.parchmentLight}`,
+    },
+    iconGroupStyle: {
+      pointerEvents: "auto",
+      position: "absolute",
+      top: 8,
+      right: 8,
+      display: "flex",
+      gap: 6,
+    },
+    iconButtonStyle: {
+      pointerEvents: "auto",
+      position: "relative",
+      width: 34,
+      height: 34,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 0,
+      borderRadius: id === "classicWood" ? 0 : 4,
+      background: panelBackground,
+      color: colors.text,
+      border: `2px solid ${colors.cardBorder}`,
+      boxShadow: `inset 1px 1px 0 0 ${colors.parchmentLight}, 0 3px 0 0 ${shadowColor}`,
+      cursor: "pointer",
+      imageRendering: "pixelated",
+    },
+  };
+}
+
 const classicTheme: UITheme = {
   id: "classicWood",
   colors: classicColors,
   dialogue: buildClassicDialogue(classicColors),
   modal: buildModalTheme(classicColors, "classicWood"),
+  hud: buildHudTheme(classicColors, "classicWood"),
 };
 
 const cutsceneTheme: UITheme = {
@@ -369,6 +475,7 @@ const cutsceneTheme: UITheme = {
   colors: cutsceneColors,
   dialogue: buildCutsceneDialogue(cutsceneColors),
   modal: buildModalTheme(cutsceneColors, "cutsceneParchment"),
+  hud: buildHudTheme(cutsceneColors, "cutsceneParchment"),
 };
 
 export const UI_THEMES: Record<UIThemeId, UITheme> = {
