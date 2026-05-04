@@ -244,5 +244,10 @@ export const pokemonHouse1fMap: MapData = {
   spawnPoints: [
     { id: "entrance", x: tx(9) + 8, y: ty(H - 3), facing: "up" },
     { id: "from-2f", x: tx(17), y: ty(7), facing: "down" },
+    // Intro flow start — player spawns mid-room facing down toward
+    // the doormat exit. After Phase 1 cutscene completes, GameCanvas
+    // hands the engine this spawn instead of the outdoor default
+    // so the very first gameplay beat is "walk out of your house."
+    { id: "intro-start", x: tx(9) + 8, y: ty(8), facing: "down" },
   ],
 };

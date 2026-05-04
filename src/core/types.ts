@@ -127,11 +127,13 @@ export interface NPCData {
   shopName?: string;
   /** Routes the NPC's interaction to a React-side handler instead
    *  of the generic chat. Used for quest NPCs whose lines depend on
-   *  inventory / event-flag state at interaction time — content the
-   *  pure InteractionSystem can't compute without breaking layering.
-   *  Slice 1 supports `'child-sandwich'`; slice 3.5 adds `'lender'`
-   *  for Theo's borrow/repay menu. */
-  dialogueKind?: 'child-sandwich' | 'lender';
+   *  inventory / event-flag / quest state at interaction time —
+   *  content the pure InteractionSystem can't compute without
+   *  breaking layering. Slice 1 supports `'child-sandwich'`; slice
+   *  3.5 adds `'lender'` for Theo; the intro-cutscene flow adds
+   *  `'ceo-intro'` for the office CEO who closes the tutorial
+   *  quest. */
+  dialogueKind?: 'child-sandwich' | 'lender' | 'ceo-intro';
 }
 
 // ── Map ──
@@ -340,10 +342,10 @@ export interface DialogueState {
    *  voiced opener while every other NPC keeps the cheap TTS path. */
   audioUrl?: string;
   /** Marker that the React layer should rewrite the dialogue based
-   *  on game state (inventory / event flags / debt). Mirrors
+   *  on game state (inventory / event flags / debt / quest). Mirrors
    *  `NPCData.dialogueKind`; the engine just hands the marker off,
    *  it doesn't interpret the value. */
-  dialogueKind?: 'child-sandwich' | 'lender';
+  dialogueKind?: 'child-sandwich' | 'lender' | 'ceo-intro';
 }
 
 /** Decoupled from `disabled`: a disabled option only dims the row.

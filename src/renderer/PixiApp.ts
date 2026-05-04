@@ -30,6 +30,11 @@ import { BGMManager } from './BGMManager';
 export type PixiAppOptions = StressOptions & {
   musicEnabled?: boolean;
   startMapId?: string;
+  /** Spawn ID on the start map. Defaults to `'default'` to match
+   *  the legacy outdoor entry behavior. The intro flow overrides
+   *  this to `'intro-start'` so the player wakes up inside the
+   *  house facing the doormat. */
+  startSpawnId?: string;
 };
 
 export class PixiApp {
@@ -233,7 +238,10 @@ export class PixiApp {
     // `me-char-*` keys.
     await Promise.all([loadAutoTileset(), loadCharacterAtlas()]);
 
-    await this.loadScene(this.options.startMapId ?? 'outdoor', 'default');
+    await this.loadScene(
+      this.options.startMapId ?? 'outdoor',
+      this.options.startSpawnId ?? 'default',
+    );
 
     if (this.destroyed) return;
 
@@ -266,6 +274,36 @@ export class PixiApp {
     // actually needs (via `loadAssets` inside `loadScene`); first door
     // entry pays a small one-time cost, every subsequent entry hits
     // the SW cache (cache-first for `/assets/*`).
+  }
+
+  /** Public quest-marker hook. The React layer computes positions
+   *  (e.g. above the office building during the intro quest) and
+   *  hands them to the engine here; the renderer owns the sprite
+   *  + bob lifecycle. Idempotent — call with `[]` to clear all. */
+  setQuestMarkers(markers: Array<{ id: string; x: number; y: number; spriteKey: string }>): void {
+    if (this.destroyed || !this.renderSystem) return;
+    this.renderSystem.setQuestMarkers(markers);
+  }
+
+  /** Public teleport hook used by the intro cutscene to drop the
+   *  player at a specific spawn after the world has already booted.
+   *  Mirrors the door-trigger code path exactly — same `loadScene`
+   *  call — but is callable from outside the engine without spinning
+   *  up a synthetic transition. No-op if the engine hasn't finished
+   *  init (the cutscene's onComplete may race the boot fetch on a
+   *  fast connection); the caller is expected to await/queue rather
+   *  than retry, since loadScene mid-init would race the boot path. */
+  async teleportToScene(mapId: string, spawnId: string): Promise<void> {
+    if (this.destroyed) return;
+    // Wait briefly for init if the boot is still in flight — covers
+    // the rare case where the player blasts through the cutscene
+    // before assets finish loading.
+    const start = performance.now();
+    while (!this.initialized && !this.destroyed && performance.now() - start < 5000) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    if (!this.initialized || this.destroyed) return;
+    await this.loadScene(mapId, spawnId);
   }
 
   private async loadScene(mapId: string, spawnId: string): Promise<void> {

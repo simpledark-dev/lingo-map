@@ -103,4 +103,9 @@ export function useEventFlag(key: string): boolean {
 export const FLAGS = {
   CHILD_ASKED_FOR_SANDWICH: 'child-asked-for-sandwich',
   CHILD_FED: 'child-fed',
+  /** True once the player has finished the opening cutscene
+   *  (Phase 1 of the intro). The cutscene only renders when this
+   *  flag is missing; flipping it on is permanent unless cleared
+   *  by the dev reset path. */
+  INTRO_CUTSCENE_SEEN: 'intro-cutscene-seen',
 } as const;

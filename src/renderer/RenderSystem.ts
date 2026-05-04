@@ -2,7 +2,7 @@ import { Application, Container, Graphics, RenderTexture, Sprite, Texture } from
 import { Direction, Entity, MapData, MapLayer, PlayerState } from '../core/types';
 import { PLAYER_LAYER_ID, PLAYER_SPRITE_PREFIX } from '../core/constants';
 import { getEffectiveZIndex, getLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
-import { getTexture, getTileTexture, loadPackSingle } from './AssetLoader';
+import { getTexture, getTileTexture, loadAssets, loadPackSingle } from './AssetLoader';
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
 import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
 
@@ -107,6 +107,14 @@ export class RenderSystem {
    *  on the entity layer (NOT the floor layer — that one bakes into
    *  a static texture and won't animate). */
   private arrowAnims = new Map<string, { baseY: number; phase: number }>();
+  /** Quest markers — runtime-managed bobbing sprites attached to a
+   *  world position (typically above a quest-relevant entity). The
+   *  React layer drives lifecycle via setQuestMarkers / clearQuestMarkers
+   *  on PixiApp; the renderer just owns the sprite container + the
+   *  bob animation. Cleared on every `setMap` so a marker pointing
+   *  at the previous scene's coords doesn't bleed into the new one. */
+  private questMarkers = new Map<string, { sprite: Sprite; baseY: number; phase: number }>();
+  private questMarkerLayer: Container | null = null;
   animationsEnabled = true;
 
   // Player walk animation state
@@ -125,6 +133,10 @@ export class RenderSystem {
     this.floorContainer = new Container();
     this.entityLayer = new Container();
     this.roofLayer = new Container();
+    // Quest markers ride above roofs so the floating arrow is
+    // never occluded by a building roof or tall decor. Not depth-
+    // sorted — markers are world-space but always-on-top.
+    this.questMarkerLayer = new Container();
 
     // Entity layer uses sortableChildren for zIndex-based depth sorting.
     // floorContainer intentionally does NOT — its children are flat
@@ -137,6 +149,7 @@ export class RenderSystem {
     this.worldContainer.addChild(this.floorContainer);
     this.worldContainer.addChild(this.entityLayer);
     this.worldContainer.addChild(this.roofLayer);
+    this.worldContainer.addChild(this.questMarkerLayer);
     this.app.stage.addChild(this.worldContainer);
   }
 
@@ -222,6 +235,11 @@ export class RenderSystem {
     this.treeAnims.clear();
     this.npcAnims.clear();
     this.arrowAnims.clear();
+    // Quest markers are scene-specific (positioned in world coords
+    // of the previous map) — clear on every scene swap and let the
+    // React layer re-add for the new scene if a quest still wants
+    // them shown.
+    this.clearQuestMarkers();
 
     const layers = getLayers(map);
 
@@ -905,6 +923,16 @@ export class RenderSystem {
       sprite.y = anim.baseY + Math.sin(time * ARROW_SPEED + anim.phase) * ARROW_AMP;
     }
 
+    // Quest-marker bob — slightly more emphatic than the edge-arrow
+    // bob since these are story-critical guidance, not ambient
+    // affordances. Larger amp (4 px) and a touch slower (~2.4 rad/s)
+    // so the eye reads it as "look here!" rather than "background".
+    const Q_SPEED = 2.4;
+    const Q_AMP = 4;
+    for (const { sprite, baseY, phase } of this.questMarkers.values()) {
+      sprite.y = baseY + Math.sin(time * Q_SPEED + phase) * Q_AMP;
+    }
+
     // NPC idle bob — disabled temporarily
     // for (const [id, anim] of this.npcAnims) {
     //   const sprite = this.npcSprites.get(id);
@@ -912,6 +940,56 @@ export class RenderSystem {
     //   const t = time * anim.speed + anim.phase;
     //   sprite.y = anim.baseY + Math.sin(t) * anim.swayAmount;
     // }
+  }
+
+  /** Replace the active quest-marker set. Each marker is a 16×16
+   *  bobbing sprite anchored at world (`x`, `y`) using the given
+   *  sprite key (any registered sprite — typically `edge-arrow-south`
+   *  pointing at the building below). Existing markers are torn
+   *  down before new ones go up so the React layer can call this
+   *  liberally with idempotent results. */
+  /** Generation counter so an in-flight `loadAssets` callback for
+   *  a stale marker set doesn't apply over a newer call's results. */
+  private markerGen = 0;
+
+  setQuestMarkers(markers: Array<{ id: string; x: number; y: number; spriteKey: string }>): void {
+    if (this.destroyed) return;
+    const gen = ++this.markerGen;
+    this.clearQuestMarkers();
+    const apply = () => {
+      if (this.destroyed || this.markerGen !== gen || !this.questMarkerLayer) return;
+      for (const m of markers) {
+        const tex = getTexture(m.spriteKey);
+        if (!tex) continue;
+        const sprite = new Sprite(tex);
+        sprite.anchor.set(0.5, 1);
+        sprite.x = m.x;
+        sprite.y = m.y;
+        // Phase derived from id so two markers don't bob in lockstep.
+        let h = 0;
+        for (let i = 0; i < m.id.length; i++) h = ((h * 31) + m.id.charCodeAt(i)) | 0;
+        const phase = ((h % 1000) / 1000) * Math.PI * 2;
+        this.questMarkerLayer.addChild(sprite);
+        this.questMarkers.set(m.id, { sprite, baseY: m.y, phase });
+      }
+    };
+    // Marker sprites typically aren't on the per-scene required-asset
+    // list (no entity uses them), so we kick a lazy `loadAssets` and
+    // apply once textures resolve. Already-loaded sprites are a free
+    // no-op and `apply` runs synchronously via the resolved promise.
+    const needed = markers.map((m) => m.spriteKey).filter((k) => !getTexture(k));
+    if (needed.length === 0) {
+      apply();
+    } else {
+      loadAssets(needed).then(apply).catch(() => { /* silent */ });
+    }
+  }
+
+  clearQuestMarkers(): void {
+    for (const { sprite } of this.questMarkers.values()) {
+      sprite.destroy();
+    }
+    this.questMarkers.clear();
   }
 
   /** Get the world container for attaching overlays (e.g. tap indicators). */

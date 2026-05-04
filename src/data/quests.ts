@@ -56,6 +56,15 @@ export const QUESTS: Record<string, QuestDef> = {
     availableHint: 'Talk to Mim at home — she might want something.',
     completedSummary: 'You brought Mim a sandwich. They were thrilled.',
   },
+  'intro-translator-job': {
+    id: 'intro-translator-job',
+    title: 'Apply for the Translator Job',
+    objective: 'Walk to the translation office on Mart Street. The CEO is waiting.',
+    // No `availableHint` — this quest is auto-started by the intro
+    // cutscene rather than discovered organically; surfacing a hint
+    // before the cutscene runs would spoil it.
+    completedSummary: 'You bluffed your way into a translator gig. The work begins now.',
+  },
 };
 
 export function getQuestDef(id: string): QuestDef | undefined {

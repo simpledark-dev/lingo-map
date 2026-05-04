@@ -127,10 +127,13 @@ const npcs: NPCData[] = [
     sortY: ty(6),
     collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
     name: 'CEO',
-    dialogue: [
-      "You're the new translator? Good. The city has plenty of work for someone bold enough to try.",
-      'Come back when you are ready for your first contract.',
-    ],
+    // Stub line — the React layer overrides via `dialogueKind:
+    // 'ceo-intro'` so the lines branch on intro-quest status:
+    //   - intro-translator-job ACTIVE → scripted hire dialogue
+    //     with name personalisation, completes the quest on close.
+    //   - completed → casual repeat-line ("come back when ready").
+    dialogue: ['Come back when you are ready for your first contract.'],
+    dialogueKind: 'ceo-intro',
   },
 ];
 

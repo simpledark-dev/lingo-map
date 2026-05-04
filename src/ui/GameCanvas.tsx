@@ -24,10 +24,16 @@ import {
   BORROW_INCREMENT_CENTS,
   MAX_DEBT_CENTS,
 } from '../data/debt';
-import { startQuest, completeQuest, getQuestStatus } from '../data/quests';
+import { startQuest, completeQuest, getQuestStatus, useQuestStatuses } from '../data/quests';
 import QuestToast from './QuestToast';
 import QuestLog from './QuestLog';
 import InventoryView from './InventoryView';
+import IntroCutscene from './IntroCutscene';
+import IntroHintBanner from './IntroHintBanner';
+import SettingsView from './SettingsView';
+import { hasFlag, FLAGS } from '../data/eventFlags';
+import { getPlayerName, clearProfile } from '../data/profile';
+import { clearFlag } from '../data/eventFlags';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
@@ -65,7 +71,19 @@ function readViewportSize(): ViewportSize | null {
  *    4. Completed → casual thank-you line. */
 function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
   const status = getQuestStatus('child-sandwich');
+  const introStatus = getQuestStatus('intro-translator-job');
   const haveSandwich = hasItem('sandwich');
+  // Intro override: while the tutorial quest is active, Mim sends
+  // the player off with a "good luck" line and DOES NOT start her
+  // own quest yet. Avoids two competing toasts on the very first
+  // session and keeps the player pointed at the office.
+  if (introStatus === 'active' && status === 'inactive') {
+    const playerName = getPlayerName() ?? 'dad';
+    return {
+      ...stub,
+      lines: [`Good luck, ${playerName}! I'll wait here. Bring back something tasty?`],
+    };
+  }
   if (status === 'completed') {
     return {
       ...stub,
@@ -142,6 +160,41 @@ function buildLenderDialogue(stub: DialogueState): DialogueState {
   };
 }
 
+/** Compose the CEO's intro dialogue. While the intro tutorial
+ *  quest is active, this is a scripted hire scene with two answer
+ *  options that both lead to the same outcome (`completeQuest` in
+ *  the option handler) — the choice is flavor, not branching. After
+ *  the quest is completed, fall through to the engine's static
+ *  line so subsequent visits feel like normal NPC chat. */
+function buildCeoIntroDialogue(stub: DialogueState): DialogueState {
+  const status = getQuestStatus('intro-translator-job');
+  if (status !== 'active') {
+    // Quest already completed (or somehow skipped) — let the
+    // engine's static line stand.
+    return stub;
+  }
+  const playerName = getPlayerName() ?? 'you';
+  return {
+    ...stub,
+    lines: [
+      `${playerName}, was it? Sit. Sit.`,
+      "Says here you're fluent in our tongue. That right?",
+    ],
+    options: [
+      {
+        id: 'ceo-intro-confident',
+        label: 'Completely fluent.',
+        hint: '(A bold lie.)',
+      },
+      {
+        id: 'ceo-intro-honest',
+        label: 'Mostly… working on it.',
+        hint: '(Honest enough.)',
+      },
+    ],
+  };
+}
+
 function readInitialObjectMultiplier(): number {
   if (typeof window === 'undefined') return 1;
   const value = Number(window.location.search ? new URLSearchParams(window.location.search).get('objects') : null);
@@ -176,6 +229,29 @@ export default function GameCanvas() {
   /** Inventory modal — opens via the HUD bag pill. Lets the player
    *  eat held food items (which restores energy). */
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  /** Settings modal — opens via the HUD gear button. Hosts the
+   *  Reset-game action; future settings (volume, accessibility,
+   *  dev toggles) live here too. */
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Intro cutscene state. Active on a fresh save (no cutscene-seen
+   *  flag); the cutscene component flips it false on completion.
+   *  PixiApp init is gated on this so the world doesn't spin up
+   *  behind the cutscene; once the cutscene finishes, the engine
+   *  spawns the player at the in-house `intro-start` spawn (see
+   *  introOverrideRef below). */
+  const [cutsceneActive, setCutsceneActive] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    // Dev replay: `?intro=replay` wipes the cutscene flag + names so
+    // the cutscene fires again on this load. Strictly for testing —
+    // not surfaced in normal UI. Done in the state initializer so
+    // the flag check below sees the cleared state.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('intro') === 'replay') {
+      clearFlag(FLAGS.INTRO_CUTSCENE_SEEN);
+      clearProfile();
+    }
+    return !hasFlag(FLAGS.INTRO_CUTSCENE_SEEN);
+  });
   const [minimapData, setMinimapData] = useState<{ map: MapData; state: GameState } | null>(null);
   const [currentMapId, setCurrentMapId] = useState('outdoor');
   // Door-transition fade-to-black. Toggled true when a door fires;
@@ -193,6 +269,7 @@ export default function GameCanvas() {
   const [loadingVisible, setLoadingVisible] = useState(true);
   const walletBalance = useWalletBalance();
   const debt = useDebt();
+  const questStatuses = useQuestStatuses();
   const energy = useEnergy();
   const energyMax = getMaxEnergy();
   const inventory = useInventory();
@@ -318,12 +395,27 @@ export default function GameCanvas() {
     if (!containerRef.current || pixiAppRef.current) return;
 
     let cancelled = false;
-    // Determine start map — default to pokemon, allow ?map=<id> override
+    // Determine start map — default to pokemon, allow ?map=<id> override.
+    // The intro cutscene runs as a fullscreen overlay; while it's
+    // up the world boots in parallel BEHIND it (so the loading
+    // screen drops normally), but we boot DIRECTLY into the post-
+    // cutscene scene so the player never sees a flash of outdoor
+    // before being teleported inside.
     let startMapId = 'pokemon';
+    let startSpawnId: string | undefined;
+    if (cutsceneActive) {
+      startMapId = 'pokemon-house-1f';
+      startSpawnId = 'intro-start';
+    }
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const mapParam = params.get('map');
-      if (mapParam) startMapId = mapParam;
+      if (mapParam) {
+        // Explicit ?map= URL override beats the intro spawn — useful
+        // for jumping straight into a non-intro map during dev.
+        startMapId = mapParam;
+        startSpawnId = undefined;
+      }
     }
 
     // Fetch disk-persisted map edits, register them as overrides, then start the game.
@@ -403,6 +495,7 @@ export default function GameCanvas() {
         objectMultiplier,
         musicEnabled: soundOnRef.current,
         startMapId,
+        startSpawnId,
       });
       pixiAppRef.current = pixiApp;
       // Dev-only: expose the app on window for ad-hoc debugging from
@@ -425,6 +518,8 @@ export default function GameCanvas() {
               setDialogue(buildChildSandwichDialogue(event.dialogue));
             } else if (event.dialogue.dialogueKind === 'lender') {
               setDialogue(buildLenderDialogue(event.dialogue));
+            } else if (event.dialogue.dialogueKind === 'ceo-intro') {
+              setDialogue(buildCeoIntroDialogue(event.dialogue));
             } else {
               setDialogue(event.dialogue);
             }
@@ -567,6 +662,60 @@ export default function GameCanvas() {
     };
   }, [objectMultiplier, syncViewportSize]);
 
+  // Quest marker driver — runs whenever the player changes scene
+  // or the intro quest's status flips. Scans the active map for
+  // the entity that opens the Office (its `incomingSpawnId` is the
+  // contract — `outdoor-office`) and parks a bobbing arrow above
+  // its collision-box top. Cleared as soon as the player leaves
+  // `pokemon` or the quest hits `completed`.
+  useEffect(() => {
+    const app = pixiAppRef.current;
+    if (!app) return;
+    const introActive = questStatuses['intro-translator-job'] === 'active';
+    if (!introActive || currentMapId !== 'pokemon') {
+      app.setQuestMarkers([]);
+      return;
+    }
+    let map;
+    try { map = loadMap('pokemon'); } catch { map = null; }
+    if (!map) {
+      app.setQuestMarkers([]);
+      return;
+    }
+    type ObjLike = { id: string; x: number; y: number; collisionBox?: { offsetY: number }; transition?: { incomingSpawnId?: string } };
+    // Search both the legacy `objects` field AND any object-layers,
+    // since the editor's runtime override now writes layered data.
+    const candidates: ObjLike[] = [];
+    const layers = (map as unknown as { layers?: Array<{ kind?: string; objects?: ObjLike[] }> }).layers;
+    if (Array.isArray(layers)) {
+      for (const layer of layers) {
+        if (Array.isArray(layer.objects)) candidates.push(...layer.objects);
+      }
+    }
+    if (Array.isArray((map as unknown as { objects?: ObjLike[] }).objects)) {
+      candidates.push(...((map as unknown as { objects: ObjLike[] }).objects));
+    }
+    const officeEntity = candidates.find(
+      (o) => o.transition?.incomingSpawnId === 'outdoor-office',
+    );
+    if (!officeEntity) {
+      app.setQuestMarkers([]);
+      return;
+    }
+    // Anchor marker above the building's collision-box top, with
+    // a small gap so the chevron doesn't overlap the roofline.
+    const top = officeEntity.y + (officeEntity.collisionBox?.offsetY ?? -64);
+    app.setQuestMarkers([
+      {
+        id: 'intro-office',
+        x: officeEntity.x,
+        y: top + 60,
+        spriteKey: 'edge-arrow-south',
+      },
+    ]);
+    return () => { app.setQuestMarkers([]); };
+  }, [currentMapId, questStatuses]);
+
   const handleAdvanceDialogue = useCallback(() => {
     // Locked-district dialogues are React-only — the engine never
     // knew they opened, so its ADVANCE_DIALOGUE command would no-op.
@@ -675,6 +824,28 @@ export default function GameCanvas() {
     }
     if (optionId === 'lender-leave') {
       setDialogue(null);
+      return;
+    }
+    // CEO's intro hire flow — both options complete the tutorial
+    // quest, with mildly different parting lines for flavor. The
+    // quest-complete toast fires automatically on `completeQuest`,
+    // so the player sees the closer dialogue + the toast banner
+    // back-to-back.
+    if (optionId === 'ceo-intro-confident' || optionId === 'ceo-intro-honest') {
+      const closer =
+        optionId === 'ceo-intro-confident'
+          ? "Confidence. Good. Don't make me regret this."
+          : "Mostly's enough. Honest answer too. Start today.";
+      completeQuest('intro-translator-job');
+      setDialogue({
+        npcId: dialogue.npcId,
+        npcName: dialogue.npcName,
+        lines: [
+          closer,
+          "Way it works: people in town need help with words. You translate. They pay. I get a cut. Off you go.",
+        ],
+        currentLine: 0,
+      });
       return;
     }
     if (optionId === 'help' && packId) {
@@ -1157,6 +1328,20 @@ export default function GameCanvas() {
               <line x1="6" y1="14" x2="11" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
+
+          {/* Settings — gear icon. Houses the destructive Reset-game
+              action; placed last in the group so it's visually the
+              "outermost" affordance. */}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            style={btnStyle}
+            aria-label="Open settings"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="10" cy="10" r="2.5" />
+              <path d="M10 1.5v2.4M10 16.1v2.4M3.5 3.5l1.7 1.7M14.8 14.8l1.7 1.7M1.5 10h2.4M16.1 10h2.4M3.5 16.5l1.7-1.7M14.8 5.2l1.7-1.7" />
+            </svg>
+          </button>
         </div>
 
         {dialogue && (
@@ -1219,12 +1404,46 @@ export default function GameCanvas() {
           </div>
         )}
 
+        {settingsOpen && (
+          <div style={{ pointerEvents: 'auto' }}>
+            <SettingsView onClose={() => setSettingsOpen(false)} />
+          </div>
+        )}
+
         {/* Quest toast — fixed-positioned at the top, subscribes to
             quest transitions on its own, no props. Always rendered
             so it picks up events from any source (dialogue, future
             world triggers). pointer-events: none on the wrapper so
             it never blocks the canvas. */}
         <QuestToast />
+
+        {/* Phase-2 nav hint — auto-hides once the intro quest is
+            completed. Sits just under the HUD pills so it doesn't
+            cover the world. */}
+        <IntroHintBanner />
+
+        {/* Intro cutscene — full-screen overlay shown once on a
+            fresh save (or after a dev reset). Blocks the world
+            from booting (see init effect's `cutsceneActive` gate)
+            so the canvas can't peek through. On completion: saves
+            names to profile, sets the cutscene-seen flag, starts
+            the tutorial quest, then flips `cutsceneActive` false
+            which kicks off PixiApp boot with the in-house spawn
+            override. */}
+        {cutsceneActive && (
+          <div style={{ pointerEvents: 'auto' }}>
+            <IntroCutscene
+              onComplete={() => {
+                // No teleport needed — the engine already booted with
+                // startMapId/startSpawnId pointing inside the house
+                // (see init effect's `cutsceneActive` branch). This
+                // avoids the brief outdoor-flash that the post-cutscene
+                // teleport approach produced.
+                setCutsceneActive(false);
+              }}
+            />
+          </div>
+        )}
 
         {minimapData && (
           <div style={{ pointerEvents: 'auto' }}>
