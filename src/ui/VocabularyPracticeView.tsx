@@ -32,23 +32,18 @@ interface VocabularyPracticeViewProps {
   onClose: () => void;
 }
 
-// Cozy palette (kept in sync with DialogueOverlay + VocabularyListView).
+// Cozy palette shared with dialogue/cutscene-style modals.
 const COLORS = {
   parchment: '#fbe9b8',
   parchmentLight: '#fff5d6',
   parchmentShadow: '#e2cb88',
-  wood: '#5b3a1f',
-  woodLight: '#8b5a2b',
-  woodShadow: '#3a2410',
   text: '#3d2410',
   accentGold: '#c97f1a',
   accentGoldDark: '#8b4f10',
-  cardRest: '#f0d28a',
-  cardActive: '#fff0b8',
+  cardRest: '#fff5d6',
   cardBorder: '#6b3f1a',
   hintText: '#7b5530',
-  speakerBg: '#e8c896',
-  speakerBgActive: '#fff0b8',
+  speakerBg: '#fff5d6',
   correct: '#5d8a3a',
   correctBg: '#cde0a3',
   wrong: '#a14535',
@@ -222,10 +217,10 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: COLORS.wood,
-          border: `3px solid ${COLORS.woodShadow}`,
-          boxShadow: `0 4px 0 0 ${COLORS.woodShadow}`,
-          padding: 4,
+          background: COLORS.parchment,
+          border: `3px solid ${COLORS.cardBorder}`,
+          borderRadius: 8,
+          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
           imageRendering: 'pixelated',
           fontFamily: 'var(--font-geist-mono), ui-monospace, "Courier New", monospace',
           width: '100%',
@@ -233,13 +228,11 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
         <div
           style={{
-            background: COLORS.parchment,
-            border: `2px solid ${COLORS.woodLight}`,
-            boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}`,
             display: 'flex',
             flexDirection: 'column',
             flex: 1,
@@ -253,7 +246,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '10px 14px',
-              borderBottom: `2px solid ${COLORS.woodLight}`,
+              borderBottom: `2px solid ${COLORS.cardBorder}`,
               background: COLORS.parchmentLight,
             }}
           >

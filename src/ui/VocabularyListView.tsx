@@ -26,26 +26,20 @@ type Mode =
   | { kind: 'practice-picker' }
   | { kind: 'practice'; mode: 'read' | 'listen' };
 
-// ── Cozy palette (kept in sync with DialogueOverlay) ──
-// Warm parchment + dark wood frame, sharp pixel borders, hard
-// drop-shadows. If we add bitmap-asset frames later this CSS-only
-// version slots out cleanly.
+// Cozy palette shared with dialogue/cutscene-style modals.
 const COLORS = {
   parchment: '#fbe9b8',
   parchmentLight: '#fff5d6',
   parchmentShadow: '#e2cb88',
-  wood: '#5b3a1f',
-  woodLight: '#8b5a2b',
-  woodShadow: '#3a2410',
   text: '#3d2410',
   accentGold: '#c97f1a',
   accentGoldDark: '#8b4f10',
-  cardRest: '#f0d28a',
-  cardActive: '#fff0b8',
+  cardRest: '#fff5d6',
+  cardActive: '#fff9e6',
   cardBorder: '#6b3f1a',
   hintText: '#7b5530',
-  speakerBg: '#e8c896',
-  speakerBgActive: '#fff0b8',
+  speakerBg: '#fff5d6',
+  speakerBgActive: '#fff9e6',
 };
 
 export default function VocabularyListView({ pack, npcName, onClose }: VocabularyListViewProps) {
@@ -112,14 +106,14 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
       }}
       onClick={onClose}
     >
-      {/* Outer wood frame, same construction as DialogueOverlay. */}
+      {/* Parchment modal panel, matching the cutscene dialogue style. */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: COLORS.wood,
-          border: `3px solid ${COLORS.woodShadow}`,
-          boxShadow: `0 4px 0 0 ${COLORS.woodShadow}`,
-          padding: 4,
+          background: COLORS.parchment,
+          border: `3px solid ${COLORS.cardBorder}`,
+          borderRadius: 8,
+          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
           imageRendering: 'pixelated',
           fontFamily: 'var(--font-geist-mono), ui-monospace, "Courier New", monospace',
           width: '100%',
@@ -127,14 +121,12 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
-        {/* Inner parchment panel. Header + scrollable body. */}
+        {/* Header + scrollable body. */}
         <div
           style={{
-            background: COLORS.parchment,
-            border: `2px solid ${COLORS.woodLight}`,
-            boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}`,
             display: 'flex',
             flexDirection: 'column',
             flex: 1,
@@ -148,7 +140,7 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '10px 14px',
-              borderBottom: `2px solid ${COLORS.woodLight}`,
+              borderBottom: `2px solid ${COLORS.cardBorder}`,
               background: COLORS.parchmentLight,
             }}
           >
@@ -384,21 +376,21 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
           <style>{`
             .vocab-scroll {
               scrollbar-width: auto;
-              scrollbar-color: ${COLORS.woodLight} ${COLORS.parchmentShadow};
+              scrollbar-color: ${COLORS.cardBorder} ${COLORS.parchmentShadow};
             }
             .vocab-scroll::-webkit-scrollbar {
               width: 12px;
             }
             .vocab-scroll::-webkit-scrollbar-track {
               background: ${COLORS.parchmentShadow};
-              border-left: 2px solid ${COLORS.woodLight};
+              border-left: 2px solid ${COLORS.cardBorder};
             }
             .vocab-scroll::-webkit-scrollbar-thumb {
-              background: ${COLORS.woodLight};
-              border: 2px solid ${COLORS.woodShadow};
+              background: ${COLORS.cardBorder};
+              border: 2px solid ${COLORS.accentGoldDark};
             }
             .vocab-scroll::-webkit-scrollbar-thumb:hover {
-              background: ${COLORS.wood};
+              background: ${COLORS.accentGoldDark};
             }
           `}</style>
         </div>
