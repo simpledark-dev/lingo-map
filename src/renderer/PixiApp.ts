@@ -1,5 +1,5 @@
 import { Application, loadTextures } from 'pixi.js';
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DECOR_SPRITE_KEYS } from '../core/constants';
+import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DECOR_SPRITE_KEYS, MIN_ZOOM, MAX_ZOOM } from '../core/constants';
 import { GameState, MapData, TileType } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
 import { buildStressMap, StressOptions } from '../core/MapStress';
@@ -26,6 +26,7 @@ import { RenderSystem } from './RenderSystem';
 import { DebugOverlay } from './DebugOverlay';
 import { TapFeedback } from './TapFeedback';
 import { BGMManager } from './BGMManager';
+import { SavedWorldState, saveWorldState } from '../data/worldSave';
 
 export type PixiAppOptions = StressOptions & {
   musicEnabled?: boolean;
@@ -35,6 +36,9 @@ export type PixiAppOptions = StressOptions & {
    *  this to `'intro-start'` so the player wakes up inside the
    *  house facing the doormat. */
   startSpawnId?: string;
+  /** Exact runtime restore from the previous browser session. When present
+   *  and its map matches `startMapId`, it wins over `startSpawnId`. */
+  startWorldState?: SavedWorldState | null;
 };
 
 export class PixiApp {
@@ -73,6 +77,7 @@ export class PixiApp {
   private debugShowCollisions = false;
   private debugShowTapZones = false;
   private debugKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  private pageLifecycleHandler: (() => void) | null = null;
   /** Frame counter for the path/target "give up" guard. Each tick the
    * player is in path/target mode but didn't actually move (collision
    * blocked us, or pathfinding sent us at an obstacle), this
@@ -88,6 +93,8 @@ export class PixiApp {
    * resolver in the per-frame tick is allocation-free. Empty until the
    * fetch resolves (CarSystem falls back to a tile-sized box meanwhile). */
   private carCollisionOverrides: Record<string, CarCollisionBox> = {};
+  private lastWorldSaveAt = 0;
+  private lastWorldSaveSignature = '';
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
   private debugOverlay: DebugOverlay | null = null;
@@ -124,6 +131,43 @@ export class PixiApp {
       };
     });
   }
+
+  private persistWorldState(force = false): void {
+    if (!this.gameState) return;
+    const now = performance.now();
+    if (!force && now - this.lastWorldSaveAt < 750) return;
+
+    const player = this.gameState.player;
+    const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.inputAdapter.zoom));
+    const roundedX = Math.round(player.x * 100) / 100;
+    const roundedY = Math.round(player.y * 100) / 100;
+    const signature = [
+      this.gameState.currentMapId,
+      roundedX,
+      roundedY,
+      player.facing,
+      Math.round(zoom * 100) / 100,
+      this.gameState.returnMapId ?? '',
+      this.gameState.returnSpawnId ?? '',
+    ].join(':');
+
+    if (!force && signature === this.lastWorldSaveSignature) return;
+
+    saveWorldState({
+      version: 1,
+      mapId: this.gameState.currentMapId,
+      x: roundedX,
+      y: roundedY,
+      facing: player.facing,
+      zoom,
+      returnSpawnId: this.gameState.returnSpawnId,
+      returnMapId: this.gameState.returnMapId,
+      savedAt: Date.now(),
+    });
+    this.lastWorldSaveAt = now;
+    this.lastWorldSaveSignature = signature;
+  }
+
   private readonly options: PixiAppOptions;
 
   constructor(options: PixiAppOptions = {}) {
@@ -228,6 +272,9 @@ export class PixiApp {
       }
     };
     window.addEventListener('keydown', this.debugKeydownHandler);
+    this.pageLifecycleHandler = () => this.persistWorldState(true);
+    window.addEventListener('pagehide', this.pageLifecycleHandler);
+    document.addEventListener('visibilitychange', this.pageLifecycleHandler);
 
     // Load the grass↔water auto-tileset and the Modern-Interiors
     // character atlas in parallel before the first scene paints. Both
@@ -238,9 +285,14 @@ export class PixiApp {
     // `me-char-*` keys.
     await Promise.all([loadAutoTileset(), loadCharacterAtlas()]);
 
+    const startMapId = this.options.startMapId ?? 'pokemon';
+    const startWorldState = this.options.startWorldState?.mapId === startMapId
+      ? this.options.startWorldState
+      : null;
     await this.loadScene(
-      this.options.startMapId ?? 'outdoor',
+      startMapId,
       this.options.startSpawnId ?? 'default',
+      startWorldState,
     );
 
     if (this.destroyed) return;
@@ -306,7 +358,7 @@ export class PixiApp {
     await this.loadScene(mapId, spawnId);
   }
 
-  private async loadScene(mapId: string, spawnId: string): Promise<void> {
+  private async loadScene(mapId: string, spawnId: string, restoreState: SavedWorldState | null = null): Promise<void> {
     const rawMap = buildStressMap(loadMap(mapId), this.options);
     // Fix sortY for decor sprites that may have been saved with the wrong
     // value (older editor versions set sortY = feet position instead of
@@ -495,7 +547,20 @@ export class PixiApp {
       ? { ...baseMap, triggers: [...baseMap.triggers, ...dynamicTriggers], spawnPoints: mergedSpawns }
       : baseMap;
     this.currentMap = map;
-    const spawn = getSpawnPoint(map, spawnId);
+    const mapW = map.width * map.tileSize;
+    const mapH = map.height * map.tileSize;
+    const restore = restoreState?.mapId === mapId ? restoreState : null;
+    if (restore) {
+      this.inputAdapter.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, restore.zoom));
+    }
+    const spawn = restore
+      ? {
+          id: '__saved-player-location',
+          x: Math.max(0, Math.min(mapW, restore.x)),
+          y: Math.max(0, Math.min(mapH, restore.y)),
+          facing: restore.facing,
+        }
+      : getSpawnPoint(map, spawnId);
     const player = createPlayer(spawn);
 
     // Build the asset set for this map. Pack-tile refs (`me:<theme>/<file>`)
@@ -563,9 +628,6 @@ export class PixiApp {
       }
     }
 
-    const mapW = map.width * map.tileSize;
-    const mapH = map.height * map.tileSize;
-
     this.gameState = {
       currentMapId: mapId,
       player,
@@ -574,8 +636,8 @@ export class PixiApp {
       buildings: map.buildings,
       npcs: map.npcs,
       activeDialogue: null,
-      returnSpawnId: this.gameState?.returnSpawnId ?? null,
-      returnMapId: this.gameState?.returnMapId ?? null,
+      returnSpawnId: restore ? restore.returnSpawnId : this.gameState?.returnSpawnId ?? null,
+      returnMapId: restore ? restore.returnMapId : this.gameState?.returnMapId ?? null,
     };
 
     // Initialize tap feedback (sound + visual indicator)
@@ -590,6 +652,7 @@ export class PixiApp {
 
     this.bridge.emit({ type: 'sceneChange', mapId });
     this.bgm.onSceneChange(mapId);
+    this.persistWorldState(true);
   }
 
   private update(delta: number): void {
@@ -1147,6 +1210,8 @@ export class PixiApp {
       this.debugOverlay.zoomLevel = this.inputAdapter.zoom;
       this.debugOverlay.update();
     }
+
+    this.persistWorldState();
   }
 
   getGameState(): GameState | null {
@@ -1176,6 +1241,7 @@ export class PixiApp {
   }
 
   destroy(): void {
+    this.persistWorldState(true);
     this.destroyed = true;
     this.currentMap = null;
     this.inputAdapter.destroy();
@@ -1183,6 +1249,11 @@ export class PixiApp {
     if (this.debugKeydownHandler) {
       window.removeEventListener('keydown', this.debugKeydownHandler);
       this.debugKeydownHandler = null;
+    }
+    if (this.pageLifecycleHandler) {
+      window.removeEventListener('pagehide', this.pageLifecycleHandler);
+      document.removeEventListener('visibilitychange', this.pageLifecycleHandler);
+      this.pageLifecycleHandler = null;
     }
     if (this.tapFeedback) {
       this.tapFeedback.destroy();

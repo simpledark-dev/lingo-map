@@ -1,3 +1,6 @@
+import { SETTINGS_STORAGE_KEY } from './settings';
+import { WORLD_SAVE_STORAGE_KEY } from './worldSave';
+
 /**
  * One-call full reset for the game. Wipes every localStorage key
  * the game owns + every per-pack vocab-progress entry, so the
@@ -20,6 +23,8 @@ const STORAGE_KEYS = [
   'lingo-event-flags:v1',
   'lingo-quests:v1',
   'lingo-profile:v1',
+  WORLD_SAVE_STORAGE_KEY,
+  SETTINGS_STORAGE_KEY,
 ];
 
 /** Prefixes — every key that starts with one of these is removed.

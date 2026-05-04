@@ -39,6 +39,8 @@ import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
 import { getUiTheme } from './uiThemes';
+import { clearWorldSave, loadWorldSave } from '../data/worldSave';
+import { getMusicEnabled, setMusicEnabled as persistMusicEnabled } from '../data/settings';
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -210,7 +212,8 @@ function readInitialObjectMultiplier(): number {
 export default function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pixiAppRef = useRef<PixiApp | null>(null);
-  const soundOnRef = useRef(true);
+  const [soundOn, setSoundOn] = useState(getMusicEnabled);
+  const soundOnRef = useRef(soundOn);
   const [dialogue, setDialogue] = useState<DialogueState | null>(null);
   /** When the player picks "Let me look them over first" from a
    *  translator-offer dialogue, we capture the pack id + the NPC's
@@ -224,7 +227,7 @@ export default function GameCanvas() {
    *  surface — `read` shows the target word as text, `listen` hides
    *  it and the player has to identify by audio alone. Same picker,
    *  same wallet, same wrong-queue underneath. */
-  const [translateView, setTranslateView] = useState<{ packId: string; npcName: string; mode: 'read' | 'listen' } | null>(null);
+  const [translateView, setTranslateView] = useState<{ packId: string; npcName: string; mode: 'read' | 'listen' | 'write' } | null>(null);
   /** Shop modal state — opened when the player selects "Browse" on
    *  a shopkeeper's offer dialogue. Carries only the display name;
    *  the catalog lives in `src/data/items.ts` and is shared across
@@ -258,6 +261,7 @@ export default function GameCanvas() {
     if (params.get('intro') === 'replay') {
       clearFlag(FLAGS.INTRO_CUTSCENE_SEEN);
       clearProfile();
+      clearWorldSave();
     }
     return !hasFlag(FLAGS.INTRO_CUTSCENE_SEEN);
   });
@@ -267,7 +271,6 @@ export default function GameCanvas() {
   // toggled back false on `sceneChange` (i.e., the new scene has loaded).
   const [transitionFade, setTransitionFade] = useState(false);
   const [objectMultiplier] = useState(readInitialObjectMultiplier);
-  const [soundOn, setSoundOn] = useState(true);
   const [viewportSize, setViewportSize] = useState<ViewportSize | null>(readViewportSize);
   // `loading` covers the boot window: from mount until pixiApp.init()
   // resolves (assets loaded, first scene mounted). `loadingVisible` is
@@ -390,6 +393,7 @@ export default function GameCanvas() {
     pixiAppRef.current?.setMusicEnabled(nextSoundOn);
     soundOnRef.current = nextSoundOn;
     setSoundOn(nextSoundOn);
+    persistMusicEnabled(nextSoundOn);
   }, [soundOn]);
 
   useEffect(() => {
@@ -412,18 +416,34 @@ export default function GameCanvas() {
     // before being teleported inside.
     let startMapId = 'pokemon';
     let startSpawnId: string | undefined;
+    let startWorldState = null as ReturnType<typeof loadWorldSave>;
     if (cutsceneActive) {
       startMapId = 'pokemon-house-1f';
       startSpawnId = 'intro-start';
     }
+    let explicitMapOverride = false;
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const mapParam = params.get('map');
       if (mapParam) {
         // Explicit ?map= URL override beats the intro spawn — useful
         // for jumping straight into a non-intro map during dev.
+        explicitMapOverride = true;
         startMapId = mapParam;
         startSpawnId = undefined;
+      }
+    }
+    if (!cutsceneActive && !explicitMapOverride) {
+      const saved = loadWorldSave();
+      if (saved) {
+        try {
+          loadMap(saved.mapId);
+          startWorldState = saved;
+          startMapId = saved.mapId;
+          startSpawnId = undefined;
+        } catch {
+          clearWorldSave();
+        }
       }
     }
 
@@ -505,6 +525,7 @@ export default function GameCanvas() {
         musicEnabled: soundOnRef.current,
         startMapId,
         startSpawnId,
+        startWorldState,
       });
       pixiAppRef.current = pixiApp;
       // Dev-only: expose the app on window for ad-hoc debugging from
@@ -888,7 +909,6 @@ export default function GameCanvas() {
             id: 'mode-write',
             label: '3. Write from meaning',
             hint: 'See the meaning, type the word.',
-            comingSoon: true,
           },
           {
             id: 'mode-speak',
@@ -907,6 +927,11 @@ export default function GameCanvas() {
     }
     if (optionId === 'mode-listen' && packId) {
       setTranslateView({ packId, npcName: dialogue.npcName, mode: 'listen' });
+      closeDialogueEverywhere();
+      return;
+    }
+    if (optionId === 'mode-write' && packId) {
+      setTranslateView({ packId, npcName: dialogue.npcName, mode: 'write' });
       closeDialogueEverywhere();
       return;
     }

@@ -119,7 +119,7 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
             Reset game
           </div>
           <div style={{ fontSize: 11, lineHeight: 1.4, color: COLORS.text }}>
-            Wipes wallet, inventory, energy, debt, quests, names, and vocab progress.
+            Wipes location, wallet, inventory, energy, debt, quests, names, and vocab progress.
             The opening cutscene will play again.
             {' '}<strong>This cannot be undone.</strong>
           </div>

@@ -25,7 +25,7 @@ interface VocabularyListViewProps {
 type Mode =
   | { kind: 'list' }
   | { kind: 'practice-picker' }
-  | { kind: 'practice'; mode: 'read' | 'listen' };
+  | { kind: 'practice'; mode: 'read' | 'listen' | 'write' };
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -425,12 +425,12 @@ function PracticeModePicker({
   onCancel,
 }: {
   npcName: string;
-  onPick: (mode: 'read' | 'listen') => void;
+  onPick: (mode: 'read' | 'listen' | 'write') => void;
   onCancel: () => void;
 }) {
   const options: Array<
-    | { id: 'read' | 'listen'; label: string; hint: string; comingSoon?: false }
-    | { id: 'write' | 'speak'; label: string; hint: string; comingSoon: true }
+    | { id: 'read' | 'listen' | 'write'; label: string; hint: string; comingSoon?: false }
+    | { id: 'speak'; label: string; hint: string; comingSoon: true }
   > = [
     {
       id: 'read',
@@ -446,7 +446,6 @@ function PracticeModePicker({
       id: 'write',
       label: '3. Write from meaning',
       hint: 'See the meaning, type the word.',
-      comingSoon: true,
     },
     {
       id: 'speak',
@@ -503,7 +502,7 @@ function PracticeModePicker({
                 disabled={disabled}
                 onClick={() => {
                   if (disabled) return;
-                  onPick(opt.id as 'read' | 'listen');
+                  onPick(opt.id as 'read' | 'listen' | 'write');
                 }}
                 style={{
                   textAlign: 'left',

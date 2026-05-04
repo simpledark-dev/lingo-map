@@ -57,8 +57,15 @@ interface VocabularyTranslateViewProps {
    *                answer study panel still reveals the spelling
    *                when the player misses or admits "I don't know"
    *                — the test is about recognition under TTS, not
-   *                about hiding the answer forever. */
-  mode?: 'read' | 'listen';
+   *                about hiding the answer forever.
+   *   - 'write'  → meaning shown; player types the target word.
+   *                No speaker pre-answer (hearing the word would
+   *                defeat recall), no choice grid — just an input
+   *                + submit. Comparison is case-insensitive on
+   *                trimmed input; everything else (energy, scoring,
+   *                wrong-queue, study panel) matches the other
+   *                modes. */
+  mode?: 'read' | 'listen' | 'write';
   onClose: () => void;
 }
 
@@ -82,6 +89,7 @@ function buildRound(pack: VocabularyPack, progress: VocabProgress): Round {
 
 export default function VocabularyTranslateView({ pack, npcName, mode = 'read', onClose }: VocabularyTranslateViewProps) {
   const isListenMode = mode === 'listen';
+  const isWriteMode = mode === 'write';
   // Load persisted progress for this pack first; the picker reads
   // it to bias toward weak words. Initialised inside useState's
   // initializer so we only hit localStorage once per mount.
@@ -118,6 +126,12 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
    *  player advances at their own pace. Cleared on every round swap. */
   const [waitingOnNext, setWaitingOnNext] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  /** Write mode only — current input text. Reset between rounds. */
+  const [writeInput, setWriteInput] = useState('');
+  /** Write mode only — whether the locked-in answer matched. Drives
+   *  the input's correct/wrong border color in the post-submit
+   *  read-only state. `null` = no submission yet this round. */
+  const [writeOutcome, setWriteOutcome] = useState<'correct' | 'wrong' | null>(null);
   const advanceTimerRef = useRef<number | null>(null);
   /** True when the player ran out of energy. Replaces the round
    *  UI with a "go eat something" overlay; the player closes the
@@ -210,7 +224,54 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
     setLastDelta(null);
     setWaitingOnNext(false);
     setShowDetails(false);
+    setWriteInput('');
+    setWriteOutcome(null);
   }, [pack]);
+
+  /** Write mode submit. Trim + lowercase comparison so a typo on
+   *  capitalisation isn't punished — Lingo is plain ASCII and the
+   *  test is recall-of-spelling, not casing pedantry. We mirror
+   *  the score / wallet / wrong-queue side of `handlePick` rather
+   *  than re-routing through it because the per-round state
+   *  (selectedTarget) is shaped around choice clicks; the input
+   *  is its own affordance. */
+  const handleWriteSubmit = useCallback(
+    (raw: string) => {
+      if (waitingOnNext || writeOutcome !== null) return;
+      const guess = raw.trim().toLowerCase();
+      if (!guess) return; // empty submit — ignore
+      const isCorrect = guess === round.prompt.target.toLowerCase();
+      const delta = isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG;
+      addBalance(delta);
+      setLastDelta(delta);
+      setWriteOutcome(isCorrect ? 'correct' : 'wrong');
+      setProgress((p) => {
+        const updated = recordAnswer(p, round.prompt.target, isCorrect);
+        saveProgress(pack.id, updated);
+        return updated;
+      });
+      if (isCorrect) {
+        playSfx(SFX.CORRECT);
+      } else {
+        // Auto-expand the study panel on a wrong recall so the
+        // player sees the correct spelling next to what they wrote.
+        // (Recall mode benefits more from instant correction than
+        // the recognition modes — there's no "see the right answer
+        // highlighted in the choice grid" alternative.)
+        setShowDetails(true);
+      }
+      setSessionLog((log) => [
+        ...log,
+        {
+          target: round.prompt.target,
+          english: round.prompt.english,
+          outcome: isCorrect ? 'correct' : 'wrong',
+        },
+      ]);
+      setWaitingOnNext(true);
+    },
+    [pack, round.prompt.target, round.prompt.english, waitingOnNext, writeOutcome],
+  );
 
   const handlePick = useCallback(
     (chosen: VocabularyEntry) => {
@@ -610,7 +671,11 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                 Translating for {npcName}
               </div>
               <div style={{ color: COLORS.text, fontSize: 11, opacity: 0.8 }}>
-                {isListenMode ? 'Listen and pick the meaning.' : 'Read the word, pick its meaning.'}
+                {isWriteMode
+                  ? 'See the meaning — type the word.'
+                  : isListenMode
+                    ? 'Listen and pick the meaning.'
+                    : 'Read the word, pick its meaning.'}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -692,7 +757,11 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   marginBottom: 8,
                 }}
               >
-                {isListenMode ? 'Listen carefully — what did you hear?' : 'What does this mean?'}
+                {isWriteMode
+                  ? 'How do you write…'
+                  : isListenMode
+                    ? 'Listen carefully — what did you hear?'
+                    : 'What does this mean?'}
               </div>
               {/* Prompt area. In `read` mode we render the target word
                   as text with the speaker button beside it. In `listen`
@@ -711,7 +780,27 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   justifyContent: 'center',
                 }}
               >
-                {isListenMode ? (
+                {isWriteMode ? (
+                  // Write mode: the prompt IS the english meaning.
+                  // No speaker — hearing the target before typing
+                  // would defeat the recall test (it'd let the
+                  // player just transcribe the audio). The post-
+                  // submit study panel reveals + speaks the word.
+                  <span
+                    className="vt-word vt-write-prompt"
+                    style={{
+                      color: COLORS.text,
+                      fontSize: 26,
+                      fontWeight: 700,
+                      letterSpacing: 0.5,
+                      lineHeight: 1.2,
+                      textShadow: `1px 1px 0 ${COLORS.parchmentShadow}`,
+                      paddingBottom: 2,
+                    }}
+                  >
+                    {round.prompt.english}
+                  </span>
+                ) : isListenMode ? (
                   // Listen mode: a chunky waveform-glyph placeholder
                   // keeps the prompt visually anchored where the word
                   // would normally be. Tappable AFTER an answer (same
@@ -760,39 +849,51 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                     {round.prompt.target}
                   </span>
                 )}
-                <button
-                  type="button"
-                  className="vt-speaker"
-                  aria-label={`Pronounce ${round.prompt.target}`}
-                  onClick={handleSpeak}
-                  style={{
-                    fontFamily: 'inherit',
-                    // In listen mode the speaker is the player's only
-                    // affordance for replaying the word, so make it
-                    // bigger + more inviting. Read mode keeps the
-                    // small secondary-affordance look.
-                    fontSize: isListenMode ? 15 : 13,
-                    fontWeight: isListenMode ? 700 : 400,
-                    background: COLORS.speakerBg,
-                    border: `2px solid ${COLORS.cardBorder}`,
-                    boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
-                    padding: isListenMode ? '8px 16px' : '4px 10px',
-                    cursor: 'pointer',
-                    color: COLORS.text,
-                  }}
-                >
-                  🔊 {isListenMode ? 'hear again' : 'hear it'}
-                </button>
+                {/* Hide the speaker pre-answer in write mode —
+                    hearing the word would let the player just
+                    transcribe the audio. The study panel re-shows
+                    a hear-it button after the answer is locked. */}
+                {!(isWriteMode && !waitingOnNext) && (
+                  <button
+                    type="button"
+                    className="vt-speaker"
+                    aria-label={`Pronounce ${round.prompt.target}`}
+                    onClick={handleSpeak}
+                    style={{
+                      fontFamily: 'inherit',
+                      fontSize: isListenMode ? 15 : 13,
+                      fontWeight: isListenMode ? 700 : 400,
+                      background: COLORS.speakerBg,
+                      border: `2px solid ${COLORS.cardBorder}`,
+                      boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
+                      padding: isListenMode ? '8px 16px' : '4px 10px',
+                      cursor: 'pointer',
+                      color: COLORS.text,
+                    }}
+                  >
+                    🔊 {isListenMode ? 'hear again' : 'hear it'}
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Choices stay visible UNTIL the player expands the
-                details panel (only possible after a wrong answer).
-                When details are open the choices are hidden so the
-                meaning sits in the same vertical slot — the player
-                doesn't have to scroll past frozen choices to read
-                what the word means. */}
-            {!showDetails ? (
+            {/* Write mode replaces the 4-choice grid with a typed-
+                input form. Submitted text is compared case-
+                insensitively against the target. Outcome (correct/
+                wrong) drives the input border color + the read-only
+                lock; the wider study/details panel below still
+                opens on wrong (or via tap on the prompt) just like
+                the recognition modes. */}
+            {isWriteMode ? (
+              <WriteForm
+                target={round.prompt.target}
+                value={writeInput}
+                onChange={setWriteInput}
+                onSubmit={() => handleWriteSubmit(writeInput)}
+                outcome={writeOutcome}
+                disabled={writeOutcome !== null || waitingOnNext}
+              />
+            ) : !showDetails ? (
             <div className="vt-choices" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {round.choices.map((choice, i) => {
                 const isSelected = selectedTarget === choice.target;
@@ -1137,5 +1238,122 @@ function PixelButton({ children, onClick, small }: { children: React.ReactNode; 
     >
       {children}
     </button>
+  );
+}
+
+/** Write-mode answer surface. Self-contained so the parent's body
+ *  branch stays one line. Hits Enter OR taps Submit to lock the
+ *  answer — both routes call `onSubmit` with the trimmed value
+ *  upstream. After a submission the input flips read-only and
+ *  paints its border with the outcome color. */
+function WriteForm({
+  target,
+  value,
+  onChange,
+  onSubmit,
+  outcome,
+  disabled,
+}: {
+  target: string;
+  value: string;
+  onChange: (s: string) => void;
+  onSubmit: () => void;
+  outcome: 'correct' | 'wrong' | null;
+  disabled: boolean;
+}) {
+  const trimmed = value.trim();
+  const canSubmit = trimmed.length > 0 && !disabled;
+  const borderColor = outcome === 'correct'
+    ? COLORS.correct
+    : outcome === 'wrong'
+      ? COLORS.wrong
+      : COLORS.cardBorder;
+  const bgColor = outcome === 'correct'
+    ? COLORS.correctBg
+    : outcome === 'wrong'
+      ? COLORS.wrongBg
+      : COLORS.parchmentLight;
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!canSubmit) return;
+        onSubmit();
+      }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+    >
+      <input
+        type="text"
+        autoFocus
+        value={value}
+        readOnly={disabled}
+        spellCheck={false}
+        autoCapitalize="none"
+        autoCorrect="off"
+        autoComplete="off"
+        // 30 chars covers every Lingo target the catalog will
+        // realistically grow to without enabling a flood-paste.
+        maxLength={30}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Type the word…"
+        // Letterspacing tightens for the input vs the prompt so
+        // typed text reads as input, not as a label.
+        style={{
+          fontFamily: 'inherit',
+          fontSize: 22,
+          fontWeight: 700,
+          textAlign: 'center',
+          letterSpacing: 1,
+          padding: '12px 14px',
+          background: bgColor,
+          color: COLORS.text,
+          border: `3px solid ${borderColor}`,
+          borderRadius: 4,
+          outline: 'none',
+          // Wrong-answer shake reuses the same keyframe the choice
+          // grid uses, so the feel matches across modes.
+          animation: outcome === 'wrong' ? 'lingoMapTranslateShake 280ms ease-in-out' : undefined,
+        }}
+        aria-label={`Type the word — ${target.length} letters`}
+      />
+      {outcome === null && (
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          style={{
+            alignSelf: 'center',
+            fontFamily: 'inherit',
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#fdf6e0',
+            background: canSubmit ? COLORS.accentGold : COLORS.parchmentShadow,
+            border: `2px solid ${COLORS.accentGoldDark}`,
+            boxShadow: canSubmit
+              ? `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`
+              : 'none',
+            padding: '8px 22px',
+            letterSpacing: 0.5,
+            cursor: canSubmit ? 'pointer' : 'not-allowed',
+            opacity: canSubmit ? 1 : 0.65,
+          }}
+        >
+          Submit ▶
+        </button>
+      )}
+      {outcome !== null && (
+        <div
+          style={{
+            textAlign: 'center',
+            fontSize: 12,
+            fontWeight: 700,
+            color: outcome === 'correct' ? COLORS.correct : COLORS.wrong,
+          }}
+        >
+          {outcome === 'correct'
+            ? '✓ Nailed it'
+            : `✗ The word was “${target}”`}
+        </div>
+      )}
+    </form>
   );
 }
