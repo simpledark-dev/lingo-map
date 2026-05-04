@@ -15,8 +15,16 @@ interface VocabularyListViewProps {
 /** The list view doubles as the parent for the practice screen — the
  *  player swaps between "browse the dictionary" and "drill the words"
  *  without leaving the modal. Closing the practice screen returns
- *  here; closing the list returns to the world. */
-type Mode = 'list' | 'practice';
+ *  here; closing the list returns to the world.
+ *
+ *  Practice is parameterised by mode (read vs listen) the same way
+ *  the Translate flow is. The 'practice-picker' state is the
+ *  intermediate step where the player picks the mode before the
+ *  drill starts; mirrors translate's 4-button mode menu. */
+type Mode =
+  | { kind: 'list' }
+  | { kind: 'practice-picker' }
+  | { kind: 'practice'; mode: 'read' | 'listen' };
 
 // ── Cozy palette (kept in sync with DialogueOverlay) ──
 // Warm parchment + dark wood frame, sharp pixel borders, hard
@@ -45,7 +53,7 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
   // matches the "tap to peek, tap again to close" pattern players
   // already know from any phone-app collapsible list.
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>('list');
+  const [mode, setMode] = useState<Mode>({ kind: 'list' });
 
   // Pre-compute examples once per entry. Cheap (~150 string concats)
   // but no point doing it on every render. MUST run on every render
@@ -57,15 +65,26 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
     [pack.entries],
   );
 
-  if (mode === 'practice') {
+  if (mode.kind === 'practice') {
     return (
       <VocabularyPracticeView
         pack={pack}
         npcName={npcName}
+        mode={mode.mode}
         // Back to the dictionary, NOT all the way out to the world.
         // The player explicitly clicked "Practice" from here, so the
         // natural return is to the same screen.
-        onClose={() => setMode('list')}
+        onClose={() => setMode({ kind: 'list' })}
+      />
+    );
+  }
+
+  if (mode.kind === 'practice-picker') {
+    return (
+      <PracticeModePicker
+        npcName={npcName}
+        onPick={(picked) => setMode({ kind: 'practice', mode: picked })}
+        onCancel={() => setMode({ kind: 'list' })}
       />
     );
   }
@@ -186,7 +205,7 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
               </button>
               <button
                 type="button"
-                onClick={() => setMode('practice')}
+                onClick={() => setMode({ kind: 'practice-picker' })}
                 style={{
                   fontFamily: 'inherit',
                   fontSize: 13,
@@ -419,4 +438,162 @@ function renderSentenceWithHighlight(sentence: string, target: string) {
     }
   });
   return out;
+}
+
+/** Mode picker shown between the dictionary and the practice drill.
+ *  Mirrors the translator-job offer's mode menu (read / listen,
+ *  with write & speak as comingSoon placeholders) so the player
+ *  has the same vocabulary of options whether they're getting paid
+ *  or not. Lives inside the list view because that's where Practice
+ *  is launched from; sits in the same modal frame so navigation
+ *  feels continuous. */
+function PracticeModePicker({
+  npcName,
+  onPick,
+  onCancel,
+}: {
+  npcName: string;
+  onPick: (mode: 'read' | 'listen') => void;
+  onCancel: () => void;
+}) {
+  const options: Array<
+    | { id: 'read' | 'listen'; label: string; hint: string; comingSoon?: false }
+    | { id: 'write' | 'speak'; label: string; hint: string; comingSoon: true }
+  > = [
+    {
+      id: 'read',
+      label: '1. Read & match',
+      hint: 'See each word in writing, pick its meaning.',
+    },
+    {
+      id: 'listen',
+      label: '2. Listen & match',
+      hint: 'Hear each word spoken, pick its meaning.',
+    },
+    {
+      id: 'write',
+      label: '3. Write from meaning',
+      hint: 'See the meaning, type the word.',
+      comingSoon: true,
+    },
+    {
+      id: 'speak',
+      label: '4. Speak from meaning',
+      hint: 'See the meaning, say the word out loud.',
+      comingSoon: true,
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 60,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.5)',
+        padding: 16,
+      }}
+      onClick={onCancel}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: COLORS.parchment,
+          border: `3px solid ${COLORS.cardBorder}`,
+          borderRadius: 8,
+          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
+          padding: 18,
+          width: '100%',
+          maxWidth: 380,
+          maxHeight: '90dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          color: COLORS.text,
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.hintText, fontWeight: 700 }}>
+            Practice with {npcName}
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>
+            How would you like to practice?
+          </div>
+          <div style={{ fontSize: 11, color: COLORS.hintText, marginTop: 4, fontStyle: 'italic' }}>
+            No money on the line — drill freely.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {options.map((opt) => {
+            const disabled = opt.comingSoon === true;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  if (disabled) return;
+                  onPick(opt.id as 'read' | 'listen');
+                }}
+                style={{
+                  textAlign: 'left',
+                  background: disabled ? COLORS.parchmentLight : COLORS.cardRest,
+                  border: `2px solid ${COLORS.cardBorder}`,
+                  borderRadius: 4,
+                  padding: '10px 12px',
+                  fontFamily: 'inherit',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.6 : 1,
+                  boxShadow: disabled
+                    ? 'none'
+                    : `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>{opt.label}</span>
+                  {disabled && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        background: COLORS.hintText,
+                        color: COLORS.parchmentLight,
+                        padding: '1px 6px',
+                        letterSpacing: 1,
+                        fontWeight: 700,
+                      }}
+                    >
+                      SOON
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: COLORS.hintText, lineHeight: 1.4 }}>{opt.hint}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            background: COLORS.parchmentLight,
+            color: COLORS.text,
+            border: `2px solid ${COLORS.cardBorder}`,
+            borderRadius: 4,
+            padding: '8px 14px',
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: 0.5,
+            cursor: 'pointer',
+          }}
+        >
+          Back
+        </button>
+      </div>
+    </div>
+  );
 }

@@ -24,6 +24,11 @@ import { playSfx, SFX } from './sfx';
 interface VocabularyPracticeViewProps {
   pack: VocabularyPack;
   npcName: string;
+  /** Quiz surface — `read` shows the target word as text, `listen`
+   *  hides the spelling behind a tappable placeholder and auto-
+   *  speaks the prompt instead. Mirrors the Translate view's
+   *  mode prop so the picker can drive both. */
+  mode?: 'read' | 'listen';
   onClose: () => void;
 }
 
@@ -67,7 +72,8 @@ function buildRound(pack: VocabularyPack, progress: VocabProgress): Round {
   return { prompt, choices };
 }
 
-export default function VocabularyPracticeView({ pack, npcName, onClose }: VocabularyPracticeViewProps) {
+export default function VocabularyPracticeView({ pack, npcName, mode = 'read', onClose }: VocabularyPracticeViewProps) {
+  const isListenMode = mode === 'listen';
   const [progress, setProgress] = useState<VocabProgress>(() => loadProgress(pack.id));
   const [round, setRound] = useState<Round>(() => buildRound(pack, progress));
   // Stamp the first prompt into the recency buffer right away. Done
@@ -99,13 +105,22 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
   const [showDetails, setShowDetails] = useState(false);
   const advanceTimerRef = useRef<number | null>(null);
 
-  // Practice is read-mode only (no listen/audio variant), so we do
-  // NOT auto-speak the prompt — auto-TTS competes with the
-  // perfect.mp3 chime for the iOS audio session and either could
-  // drop randomly. The player can still hear the word via the
-  // "🔊 hear it" button beside the prompt; that path goes through
-  // a fresh user gesture and works reliably.
-  // (Translate's listen mode keeps auto-TTS; see that file.)
+  // Read mode stays silent on round mount — auto-TTS would compete
+  // with the perfect.mp3 chime for the iOS audio session and one of
+  // them would drop randomly. The "🔊 hear it" button is enough,
+  // since the word is on screen.
+  //
+  // Listen mode, by contrast, MUST auto-speak — the audio is the
+  // prompt itself; otherwise the player has nothing to go on.
+  // Same `[round]`-reference dep as the Translate view so back-to-
+  // back rounds with the same target still re-fire the speak (a
+  // string dep wouldn't change and the second utterance would be
+  // suppressed silently).
+  useEffect(() => {
+    if (!isListenMode) return;
+    speakVocabWord(pack, round.prompt.target);
+    return cancelDialogueSpeech;
+  }, [pack, round, isListenMode]);
 
   useEffect(() => {
     return () => {
@@ -307,7 +322,7 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
                   marginBottom: 8,
                 }}
               >
-                What does this mean?
+                {isListenMode ? 'Listen carefully — what did you hear?' : 'What does this mean?'}
               </div>
               {/* Prompt word + speaker — inline, with media query
                   collapsing them onto one row in landscape. */}
@@ -321,44 +336,67 @@ export default function VocabularyPracticeView({ pack, npcName, onClose }: Vocab
                   justifyContent: 'center',
                 }}
               >
-                <span
-                  className="vp-word"
-                  onClick={promptIsTappable ? () => setShowDetails((d) => !d) : undefined}
-                  style={{
-                    color: COLORS.text,
-                    fontSize: 32,
-                    fontWeight: 700,
-                    letterSpacing: 1.5,
-                    lineHeight: 1.1,
-                    textShadow: `1px 1px 0 ${COLORS.parchmentShadow}`,
-                    cursor: promptIsTappable ? 'pointer' : 'default',
-                    borderBottom: promptIsTappable
-                      ? `2px dashed ${showDetails ? COLORS.accentGoldDark : COLORS.hintText}`
-                      : '2px dashed transparent',
-                    paddingBottom: 2,
-                    transition: 'border-color 180ms',
-                  }}
-                  title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
-                >
-                  {round.prompt.target}
-                </span>
+                {isListenMode && !waitingOnNext && !showDetails ? (
+                  // Listen mode hides the spelling pre-answer so the
+                  // player has to identify by sound. Tappable after
+                  // an answer is picked (same affordance as read
+                  // mode), at which point it expands the details
+                  // panel revealing target + meaning.
+                  <span
+                    className="vp-word vp-placeholder"
+                    style={{
+                      color: COLORS.hintText,
+                      fontSize: 32,
+                      fontWeight: 700,
+                      letterSpacing: 1.5,
+                      lineHeight: 1.1,
+                      paddingBottom: 2,
+                    }}
+                    aria-label="Hidden word — listen and pick the meaning"
+                  >
+                    ◌◌◌
+                  </span>
+                ) : (
+                  <span
+                    className="vp-word"
+                    onClick={promptIsTappable ? () => setShowDetails((d) => !d) : undefined}
+                    style={{
+                      color: COLORS.text,
+                      fontSize: 32,
+                      fontWeight: 700,
+                      letterSpacing: 1.5,
+                      lineHeight: 1.1,
+                      textShadow: `1px 1px 0 ${COLORS.parchmentShadow}`,
+                      cursor: promptIsTappable ? 'pointer' : 'default',
+                      borderBottom: promptIsTappable
+                        ? `2px dashed ${showDetails ? COLORS.accentGoldDark : COLORS.hintText}`
+                        : '2px dashed transparent',
+                      paddingBottom: 2,
+                      transition: 'border-color 180ms',
+                    }}
+                    title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
+                  >
+                    {round.prompt.target}
+                  </span>
+                )}
                 <button
                   type="button"
                   className="vp-speaker"
-                  aria-label={`Pronounce ${round.prompt.target}`}
+                  aria-label={isListenMode ? 'Hear it again' : `Pronounce ${round.prompt.target}`}
                   onClick={handleSpeak}
                   style={{
                     fontFamily: 'inherit',
-                    fontSize: 13,
+                    fontSize: isListenMode ? 15 : 13,
+                    fontWeight: isListenMode ? 700 : 400,
                     background: COLORS.speakerBg,
                     border: `2px solid ${COLORS.cardBorder}`,
                     boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
-                    padding: '4px 10px',
+                    padding: isListenMode ? '8px 16px' : '4px 10px',
                     cursor: 'pointer',
                     color: COLORS.text,
                   }}
                 >
-                  🔊 hear it
+                  🔊 {isListenMode ? 'hear again' : 'hear it'}
                 </button>
               </div>
             </div>
