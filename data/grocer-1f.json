@@ -5,7 +5,30 @@
   "height": 18,
   "tileSize": 16,
   "buildings": [],
-  "npcs": [],
+  "npcs": [
+    {
+      "id": "grocer-1f-npc-shopkeeper",
+      "x": 256,
+      "y": 112,
+      "spriteKey": "me-char-15",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 112,
+      "collisionBox": {
+        "offsetX": -4,
+        "offsetY": -6,
+        "width": 8,
+        "height": 6
+      },
+      "name": "Shopkeeper",
+      "dialogue": [
+        "Welcome!"
+      ],
+      "shopName": "Mart"
+    }
+  ],
   "triggers": [],
   "spawnPoints": [
     {

@@ -4,12 +4,14 @@ import { pokemonMap } from '../maps/pokemon';
 import { pokemonHouse1fMap } from '../maps/pokemon-house-1f';
 import { pokemonHouse2fMap } from '../maps/pokemon-house-2f';
 import { grocer1fMap } from '../maps/grocer-1f';
+import { officeMap } from '../maps/office';
 
 const mapRegistry: Record<string, MapData> = {
   pokemon: normalizeMapData(pokemonMap),
   'pokemon-house-1f': normalizeMapData(pokemonHouse1fMap),
   'pokemon-house-2f': normalizeMapData(pokemonHouse2fMap),
   'grocer-1f': normalizeMapData(grocer1fMap),
+  office: normalizeMapData(officeMap),
 };
 
 export function loadMap(mapId: string): MapData {

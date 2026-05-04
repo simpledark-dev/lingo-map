@@ -12916,14 +12916,15 @@
           "scale": 1,
           "layer": "props",
           "transition": {
-            "targetMapId": "pokemon",
+            "targetMapId": "office",
             "targetSpawnId": "entrance",
             "triggerBox": {
-              "offsetX": -16,
-              "offsetY": -16,
-              "width": 32,
-              "height": 16
-            }
+              "offsetX": -12,
+              "offsetY": -31,
+              "width": 25,
+              "height": 32
+            },
+            "incomingSpawnId": "outdoor-office"
           }
         },
         {

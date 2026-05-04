@@ -31,7 +31,12 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
 
   return (
     <div style={{
-      width: 320, minWidth: 320, height: '100%', overflow: 'hidden',
+      width: 320, minWidth: 320, height: '100%',
+      // Vertical scroll only — horizontal stays clipped so the panel
+      // can never grow wider than its 320px slot. Tall asset palettes
+      // and the selection sub-section pile up easily on shorter
+      // viewports; without this the bottom rows just got cropped.
+      overflowY: 'auto', overflowX: 'hidden',
       background: '#1a1a2e', borderRight: '1px solid #333', padding: 8,
       display: 'flex', flexDirection: 'column', gap: 12,
       fontSize: 12, color: '#ccc',
@@ -970,7 +975,7 @@ function NumberRow({
  * `/api/maps` so the dropdown is synchronous and the user can wire up a
  * door even before the disk-load round-trip resolves. New maps in the
  * registry need to be added here too. */
-const TARGET_MAP_IDS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f'] as const;
+const TARGET_MAP_IDS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f', 'office'] as const;
 
 /** Door / Transition editor sub-section. When toggled on, sets
  * `entity.transition` so the runtime PixiApp auto-generates a door
