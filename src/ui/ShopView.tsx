@@ -19,21 +19,10 @@ import {
   useWalletBalance,
 } from '../data/wallet';
 import { addItem } from '../data/inventory';
+import { getUiTheme } from './uiThemes';
 
-const COLORS = {
-  parchment: '#fbe9b8',
-  parchmentLight: '#fff5d6',
-  parchmentShadow: '#e2cb88',
-  text: '#3d2410',
-  accentGold: '#c97f1a',
-  accentGoldDark: '#8b4f10',
-  cardRest: '#f0d28a',
-  cardBorder: '#6b3f1a',
-  hintText: '#7b5530',
-  buyEnabled: '#5d8a3a',
-  buyDisabled: '#9c8460',
-  coinGold: '#d9a429',
-};
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
 
 interface ShopViewProps {
   /** Display name for the modal header (e.g. "Mart"). */
@@ -72,17 +61,11 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
     >
       <div
         style={{
+          ...UI_THEME.modal.panelStyle,
           width: 'min(420px, 100%)',
           maxHeight: '90dvh',
-          background: COLORS.parchment,
-          border: `3px solid ${COLORS.cardBorder}`,
-          borderRadius: 8,
-          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
           padding: 16,
-          display: 'flex',
-          flexDirection: 'column',
           gap: 12,
-          overflow: 'hidden',
         }}
       >
         {/* Header — shop name + balance + close */}

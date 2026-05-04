@@ -13,19 +13,10 @@
  */
 import { useState } from 'react';
 import { resetAllGameData } from '../data/reset';
+import { getUiTheme } from './uiThemes';
 
-const COLORS = {
-  parchment: '#fbe9b8',
-  parchmentLight: '#fff5d6',
-  parchmentShadow: '#e2cb88',
-  text: '#3d2410',
-  cardBorder: '#6b3f1a',
-  hintText: '#7b5530',
-  warn: '#a14535',
-  warnBg: '#e6a99c',
-  accentGold: '#c97f1a',
-  accentGoldDark: '#8b4f10',
-};
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -71,17 +62,11 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
     >
       <div
         style={{
+          ...UI_THEME.modal.panelStyle,
           width: 'min(380px, 100%)',
           maxHeight: '90dvh',
-          background: COLORS.parchment,
-          border: `3px solid ${COLORS.cardBorder}`,
-          borderRadius: 8,
-          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
           padding: 18,
-          display: 'flex',
-          flexDirection: 'column',
           gap: 14,
-          color: COLORS.text,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

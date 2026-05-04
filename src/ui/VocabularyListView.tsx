@@ -5,6 +5,7 @@ import { VocabularyPack, getExamples } from '../data/vocabularyPacks';
 import { cancelDialogueSpeech } from './tts';
 import { speakVocabWord } from './wordSpeak';
 import VocabularyPracticeView from './VocabularyPracticeView';
+import { getUiTheme } from './uiThemes';
 
 interface VocabularyListViewProps {
   pack: VocabularyPack;
@@ -26,21 +27,8 @@ type Mode =
   | { kind: 'practice-picker' }
   | { kind: 'practice'; mode: 'read' | 'listen' };
 
-// Cozy palette shared with dialogue/cutscene-style modals.
-const COLORS = {
-  parchment: '#fbe9b8',
-  parchmentLight: '#fff5d6',
-  parchmentShadow: '#e2cb88',
-  text: '#3d2410',
-  accentGold: '#c97f1a',
-  accentGoldDark: '#8b4f10',
-  cardRest: '#fff5d6',
-  cardActive: '#fff9e6',
-  cardBorder: '#6b3f1a',
-  hintText: '#7b5530',
-  speakerBg: '#fff5d6',
-  speakerBgActive: '#fff9e6',
-};
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
 
 export default function VocabularyListView({ pack, npcName, onClose }: VocabularyListViewProps) {
   // Only one row expanded at a time — keeps the list short and
@@ -110,18 +98,10 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: COLORS.parchment,
-          border: `3px solid ${COLORS.cardBorder}`,
-          borderRadius: 8,
-          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
-          imageRendering: 'pixelated',
-          fontFamily: 'var(--font-geist-mono), ui-monospace, "Courier New", monospace',
+          ...UI_THEME.modal.panelStyle,
           width: '100%',
           maxWidth: 560,
           maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
         }}
       >
         {/* Header + scrollable body. */}
@@ -490,23 +470,17 @@ function PracticeModePicker({
       }}
       onClick={onCancel}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: COLORS.parchment,
-          border: `3px solid ${COLORS.cardBorder}`,
-          borderRadius: 8,
-          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
-          padding: 18,
-          width: '100%',
-          maxWidth: 380,
-          maxHeight: '90dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          color: COLORS.text,
-        }}
-      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            ...UI_THEME.modal.panelStyle,
+            padding: 18,
+            width: '100%',
+            maxWidth: 380,
+            maxHeight: '90dvh',
+            gap: 12,
+          }}
+        >
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.hintText, fontWeight: 700 }}>
             Practice with {npcName}

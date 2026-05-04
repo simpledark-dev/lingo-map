@@ -18,17 +18,12 @@ import {
   QuestTransition,
   subscribeQuestTransitions,
 } from '../data/quests';
+import { getUiTheme } from './uiThemes';
 
 const HOLD_MS = 3200;
 
-const COLORS = {
-  borderStart: '#c97f1a',
-  borderDone: '#5d8a3a',
-  bg: '#3d2410',
-  bgLight: '#5b3a1f',
-  text: '#fdf6e0',
-  accent: '#fbe9b8',
-};
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
 
 export default function QuestToast() {
   const [active, setActive] = useState<QuestTransition | null>(null);
@@ -53,7 +48,7 @@ export default function QuestToast() {
 
   const isStart = active.kind === 'started';
   const labelTop = isStart ? 'New Quest' : 'Quest Complete';
-  const accentColor = isStart ? COLORS.borderStart : COLORS.borderDone;
+  const accentColor = isStart ? COLORS.active : COLORS.done;
 
   return (
     <div
@@ -77,15 +72,15 @@ export default function QuestToast() {
         style={{
           minWidth: 240,
           maxWidth: 'min(92vw, 380px)',
-          background: COLORS.bg,
+          background: COLORS.text,
           border: `2px solid ${accentColor}`,
-          boxShadow: `inset 1px 1px 0 0 ${COLORS.bgLight}, 0 4px 0 0 #1a1008`,
+          boxShadow: `inset 1px 1px 0 0 ${COLORS.wood}, 0 4px 0 0 #1a1008`,
           borderRadius: 8,
           padding: '10px 14px',
           display: 'flex',
           alignItems: 'center',
           gap: 12,
-          color: COLORS.text,
+          color: COLORS.parchmentLight,
           fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui',
           // Slide-down + fade-in, then back up. Pure CSS so the toast
           // doesn't need a state-machine for animation phases.
@@ -113,7 +108,7 @@ export default function QuestToast() {
           >
             {labelTop}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.accent, lineHeight: 1.25 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.parchment, lineHeight: 1.25 }}>
             {active.def.title}
           </div>
         </div>

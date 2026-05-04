@@ -14,19 +14,10 @@ import { useEffect } from 'react';
 import { eatItem, useInventory } from '../data/inventory';
 import { getItem } from '../data/items';
 import { useEnergy, getMaxEnergy } from '../data/energy';
+import { getUiTheme } from './uiThemes';
 
-const COLORS = {
-  parchment: '#fbe9b8',
-  parchmentLight: '#fff5d6',
-  parchmentShadow: '#e2cb88',
-  text: '#3d2410',
-  cardRest: '#f0d28a',
-  cardBorder: '#6b3f1a',
-  hintText: '#7b5530',
-  energyAccent: '#3b87a6',
-  eatBtn: '#5d8a3a',
-  eatBtnDisabled: '#9c8460',
-};
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
 
 interface InventoryViewProps {
   onClose: () => void;
@@ -71,17 +62,11 @@ export default function InventoryView({ onClose }: InventoryViewProps) {
     >
       <div
         style={{
+          ...UI_THEME.modal.panelStyle,
           width: 'min(420px, 100%)',
           maxHeight: '90dvh',
-          background: COLORS.parchment,
-          border: `3px solid ${COLORS.cardBorder}`,
-          borderRadius: 8,
-          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
           padding: 16,
-          display: 'flex',
-          flexDirection: 'column',
           gap: 12,
-          overflow: 'hidden',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

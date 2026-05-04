@@ -27,22 +27,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { setProfile } from '../data/profile';
 import { setFlag, FLAGS } from '../data/eventFlags';
 import { startQuest } from '../data/quests';
+import { getUiTheme } from './uiThemes';
 
-// ── Cozy palette mirroring DialogueOverlay ──
-const COLORS = {
-  parchment: '#fbe9b8',
-  parchmentLight: '#fff5d6',
-  parchmentShadow: '#e2cb88',
-  wood: '#5b3a1f',
-  woodShadow: '#3a2410',
-  text: '#3d2410',
-  accentGold: '#c97f1a',
-  accentGoldDark: '#8b4f10',
-  cardBorder: '#6b3f1a',
-  hintText: '#7b5530',
-  skyTop: '#9ec7e8',
-  skyBottom: '#f6c790',
-};
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
 
 interface IntroCutsceneProps {
   /** Sprite atlas keys for the parent + child portraits. The

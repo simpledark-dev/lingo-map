@@ -11,19 +11,10 @@
  */
 import { useMemo } from 'react';
 import { QUESTS, useQuestStatuses } from '../data/quests';
+import { getUiTheme } from './uiThemes';
 
-const COLORS = {
-  parchment: '#fbe9b8',
-  parchmentLight: '#fff5d6',
-  parchmentShadow: '#e2cb88',
-  text: '#3d2410',
-  cardRest: '#f0d28a',
-  cardBorder: '#6b3f1a',
-  hintText: '#7b5530',
-  active: '#c97f1a',
-  done: '#5d8a3a',
-  available: '#6b8aa1', // muted blue — distinct from active orange
-};
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
 
 interface QuestLogProps {
   onClose: () => void;
@@ -64,17 +55,11 @@ export default function QuestLog({ onClose }: QuestLogProps) {
     >
       <div
         style={{
+          ...UI_THEME.modal.panelStyle,
           width: 'min(420px, 100%)',
           maxHeight: '90dvh',
-          background: COLORS.parchment,
-          border: `3px solid ${COLORS.cardBorder}`,
-          borderRadius: 8,
-          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
           padding: 16,
-          display: 'flex',
-          flexDirection: 'column',
           gap: 12,
-          overflow: 'hidden',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

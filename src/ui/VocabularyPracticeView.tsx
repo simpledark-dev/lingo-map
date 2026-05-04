@@ -20,6 +20,7 @@ import {
 import { cancelDialogueSpeech } from './tts';
 import { speakVocabWord } from './wordSpeak';
 import { playSfx, SFX } from './sfx';
+import { getUiTheme } from './uiThemes';
 
 interface VocabularyPracticeViewProps {
   pack: VocabularyPack;
@@ -32,24 +33,8 @@ interface VocabularyPracticeViewProps {
   onClose: () => void;
 }
 
-// Cozy palette shared with dialogue/cutscene-style modals.
-const COLORS = {
-  parchment: '#fbe9b8',
-  parchmentLight: '#fff5d6',
-  parchmentShadow: '#e2cb88',
-  text: '#3d2410',
-  accentGold: '#c97f1a',
-  accentGoldDark: '#8b4f10',
-  cardRest: '#fff5d6',
-  cardBorder: '#6b3f1a',
-  hintText: '#7b5530',
-  speakerBg: '#fff5d6',
-  correct: '#5d8a3a',
-  correctBg: '#cde0a3',
-  wrong: '#a14535',
-  wrongBg: '#e6a99c',
-};
-
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
 
 interface Round {
   /** The word the player is being quizzed on. */
@@ -217,18 +202,10 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: COLORS.parchment,
-          border: `3px solid ${COLORS.cardBorder}`,
-          borderRadius: 8,
-          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
-          imageRendering: 'pixelated',
-          fontFamily: 'var(--font-geist-mono), ui-monospace, "Courier New", monospace',
+          ...UI_THEME.modal.panelStyle,
           width: '100%',
           maxWidth: 480,
           maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
         }}
       >
         <div

@@ -44,6 +44,7 @@ import { cancelDialogueSpeech } from './tts';
 import { speakVocabWord } from './wordSpeak';
 import { playSfx, SFX } from './sfx';
 import { consumeEnergy } from '../data/energy';
+import { getUiTheme } from './uiThemes';
 
 interface VocabularyTranslateViewProps {
   pack: VocabularyPack;
@@ -61,24 +62,8 @@ interface VocabularyTranslateViewProps {
   onClose: () => void;
 }
 
-const COLORS = {
-  parchment: '#fbe9b8',
-  parchmentLight: '#fff5d6',
-  parchmentShadow: '#e2cb88',
-  text: '#3d2410',
-  accentGold: '#c97f1a',
-  accentGoldDark: '#8b4f10',
-  cardRest: '#fff5d6',
-  cardBorder: '#6b3f1a',
-  hintText: '#7b5530',
-  speakerBg: '#fff5d6',
-  correct: '#5d8a3a',
-  correctBg: '#cde0a3',
-  wrong: '#a14535',
-  wrongBg: '#e6a99c',
-  coinGold: '#d9a429',
-  coinGoldDark: '#9a6e16',
-};
+const UI_THEME = getUiTheme();
+const COLORS = UI_THEME.colors;
 
 interface Round {
   prompt: VocabularyEntry;
@@ -352,24 +337,17 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
         }}
         onClick={onClose}
       >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            background: COLORS.parchment,
-            border: `3px solid ${COLORS.cardBorder}`,
-            borderRadius: 8,
-            boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
-            padding: 18,
-            width: '100%',
-            maxWidth: 380,
-            maxHeight: '90dvh',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
-            color: COLORS.text,
-            overflow: 'hidden',
-          }}
-        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              ...UI_THEME.modal.panelStyle,
+              padding: 18,
+              width: '100%',
+              maxWidth: 380,
+              maxHeight: '90dvh',
+              gap: 14,
+            }}
+          >
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.hintText, fontWeight: 700 }}>
               Session Summary
@@ -537,23 +515,17 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
         }}
         onClick={onClose}
       >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            background: COLORS.parchment,
-            border: `3px solid ${COLORS.cardBorder}`,
-            borderRadius: 8,
-            boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
-            padding: 20,
-            width: '100%',
-            maxWidth: 360,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
-            textAlign: 'center',
-            color: COLORS.text,
-          }}
-        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              ...UI_THEME.modal.panelStyle,
+              padding: 20,
+              width: '100%',
+              maxWidth: 360,
+              gap: 14,
+              textAlign: 'center',
+            }}
+          >
           <div style={{ fontSize: 38, lineHeight: 1 }}>⚡</div>
           <div style={{ fontSize: 16, fontWeight: 700 }}>Out of energy</div>
           <div style={{ fontSize: 12, color: COLORS.hintText, lineHeight: 1.45 }}>
@@ -598,18 +570,10 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: COLORS.parchment,
-          border: `3px solid ${COLORS.cardBorder}`,
-          borderRadius: 8,
-          boxShadow: `inset 2px 2px 0 0 ${COLORS.parchmentLight}, inset -2px -2px 0 0 ${COLORS.parchmentShadow}, 0 6px 0 0 #2a1a0a`,
-          imageRendering: 'pixelated',
-          fontFamily: 'var(--font-geist-mono), ui-monospace, "Courier New", monospace',
+          ...UI_THEME.modal.panelStyle,
           width: '100%',
           maxWidth: 480,
           maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
         }}
       >
         <div
