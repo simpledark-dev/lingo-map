@@ -117,7 +117,16 @@ function QuestRow({
   return (
     <div
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (!onClick) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={onClick ? `Open quest details: ${title}` : undefined}
       title={onClick ? 'Open quest log' : undefined}
       style={{
         display: 'flex',
@@ -184,6 +193,47 @@ function QuestRow({
           }}
         >
           {progress}
+        </span>
+      )}
+      {onClick && (
+        <span
+          aria-hidden
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            color: COLORS.text,
+            background: COLORS.parchmentLight,
+            border: `1px solid ${accent}`,
+            borderRadius: 999,
+            width: 18,
+            height: 18,
+            padding: 0,
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: 0,
+            textShadow: 'none',
+            boxShadow: `inset 1px 1px 0 0 ${COLORS.parchment}`,
+          }}
+        >
+          <span
+            style={{
+              width: 13,
+              height: 13,
+              borderRadius: '50%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: accent,
+              color: '#fdf6e0',
+              fontSize: 9,
+              lineHeight: 1,
+              fontWeight: 900,
+            }}
+          >
+            i
+          </span>
         </span>
       )}
     </div>

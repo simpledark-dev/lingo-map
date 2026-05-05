@@ -31,8 +31,10 @@ export type QuestStatus = 'inactive' | 'active' | 'completed';
  *  borrows don't count) before the CEO will hand over the first
  *  paycheck. Lives here next to the quest catalog rather than in
  *  GameCanvas so the QuestHud can read it without pulling in a
- *  circular import. */
-export const FIRST_PAYCHECK_THRESHOLD_CENTS = 500;
+ *  circular import. Set to $1.00 (35 correct translations at the
+ *  current $0.03 reward, with room to absorb a few wrongs) so the
+ *  first session can plausibly close the loop. */
+export const FIRST_PAYCHECK_THRESHOLD_CENTS = 100;
 /** Bonus paid on top of the cents already earned when the
  *  first-paycheck quest is claimed. */
 export const FIRST_PAYCHECK_BONUS_CENTS = 100;
@@ -151,7 +153,7 @@ export const QUESTS: Record<string, QuestDef> = {
     // offers), (2) WHAT to earn ($5.00), (3) WHO to return to
     // (the office CEO) so a player coming back after a break
     // doesn't have to guess.
-    objective: 'Talk to vocabulary NPCs around town and accept their translator offers. Earn $5.00 from correct answers, then return to the CEO at the office for your bonus.',
+    objective: 'Find Saba (red marker on the map) — accept her translator offer to start. Earn $1.00 from correct answers, then return to the CEO at the office for your bonus.',
     availableHint: 'The CEO promised a paycheck once you\u2019ve earned your stripes — keep translating.',
     completedSummary: 'You earned your first paycheck. The CEO threw in a small bonus on top.',
     // Auto-starts as soon as the intro is done (see GameCanvas's

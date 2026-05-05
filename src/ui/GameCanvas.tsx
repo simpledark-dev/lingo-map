@@ -859,7 +859,14 @@ export default function GameCanvas() {
       return out;
     };
 
-    const markers: Array<{ id: string; x: number; y: number; spriteKey: string; label?: string }> = [];
+    const markers: Array<{
+      id: string;
+      x: number;
+      y: number;
+      spriteKey: string;
+      label?: string;
+      followNpcId?: string;
+    }> = [];
 
     // ── Story-critical: office building marker during intro ──
     const introActive = questStatuses['intro-translator-job'] === 'active';
@@ -878,6 +885,32 @@ export default function GameCanvas() {
           // sees the red blip but can't tell what it's pointing at
           // gets a one-word answer immediately.
           label: 'Office',
+        });
+      }
+    }
+
+    // ── First-paycheck: point at the starter NPC (Saba). ──
+    // Player has just been hired and doesn't yet know which NPC
+    // will hand them their first translator job; this arrow funnels
+    // them at Saba specifically so the loop closes once before they
+    // free-roam. `followNpcId` makes the marker track Saba as she
+    // wanders — without that the chevron sits at her spawn point
+    // while she walks away from it. No label by request.
+    const paycheckActive = questStatuses['first-paycheck'] === 'active';
+    if (paycheckActive && currentMapId === 'pokemon') {
+      let pokemonMap;
+      try { pokemonMap = loadMap('pokemon'); } catch { pokemonMap = null; }
+      const sabaNpc = pokemonMap?.npcs.find((n) => n.name === 'Saba');
+      if (sabaNpc) {
+        markers.push({
+          id: 'first-paycheck-saba',
+          // (x, y) are now offsets from the NPC anchor (feet) since
+          // we set `followNpcId`. -28 floats the chevron over the
+          // head sprite without colliding with the body.
+          x: 0,
+          y: -28,
+          spriteKey: 'edge-arrow-south-red',
+          followNpcId: sabaNpc.id,
         });
       }
     }

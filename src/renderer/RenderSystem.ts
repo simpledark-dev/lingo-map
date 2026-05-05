@@ -113,7 +113,31 @@ export class RenderSystem {
    *  on PixiApp; the renderer just owns the sprite container + the
    *  bob animation. Cleared on every `setMap` so a marker pointing
    *  at the previous scene's coords doesn't bleed into the new one. */
-  private questMarkers = new Map<string, { sprite: Sprite; label: Text | null; baseY: number; labelBaseY: number; phase: number }>();
+  private questMarkers = new Map<string, {
+    sprite: Sprite;
+    label: Text | null;
+    /** Constant Y baseline relative to the marker's home X — only
+     *  used when `followNpcId` is null. When the marker follows a
+     *  moving NPC, baseY is recomputed each frame from the NPC
+     *  sprite's current position so the bob still anchors at the
+     *  same offset above its head. */
+    baseY: number;
+    /** Vertical offset of the label above the sprite's top edge.
+     *  Captured once at create time so we don't have to re-read
+     *  texture height every frame. */
+    labelOffset: number;
+    phase: number;
+    /** When set, the marker tracks the NPC sprite with this id —
+     *  position updates each frame from `npcSprites`. The original
+     *  (m.x, m.y) at create time is interpreted as the OFFSET from
+     *  the NPC's anchor (typically 0, -28 for "above the head"). */
+    followNpcId: string | null;
+    /** Stored offsets relative to the followed NPC. Applied each
+     *  frame as `npcSprite.x + offsetX`, `npcSprite.y + offsetY`. */
+    offsetX: number;
+    offsetY: number;
+    labelBaseY: number;
+  }>();
   private questMarkerLayer: Container | null = null;
   animationsEnabled = true;
 
@@ -929,13 +953,33 @@ export class RenderSystem {
     // so the eye reads it as "look here!" rather than "background".
     const Q_SPEED = 2.4;
     const Q_AMP = 4;
-    for (const { sprite, label, baseY, labelBaseY, phase } of this.questMarkers.values()) {
-      const offset = Math.sin(time * Q_SPEED + phase) * Q_AMP;
-      sprite.y = baseY + offset;
-      // Label rides the same bob so it stays anchored to the
-      // sprite — labelBaseY captures the create-time gap above
-      // the sprite's top edge.
-      if (label) label.y = labelBaseY + offset;
+    for (const entry of this.questMarkers.values()) {
+      const { sprite, label, labelOffset, phase, followNpcId, offsetX, offsetY } = entry;
+      const bob = Math.sin(time * Q_SPEED + phase) * Q_AMP;
+      // For NPC-following markers, recompute the anchor from the
+      // NPC sprite each frame so the marker walks with them.
+      // Static markers fall back to the create-time `baseY`.
+      if (followNpcId) {
+        const npc = this.npcSprites.get(followNpcId);
+        if (npc) {
+          sprite.x = npc.x + offsetX;
+          const followBase = npc.y + offsetY;
+          sprite.y = followBase + bob;
+          if (label) {
+            label.x = npc.x + offsetX;
+            label.y = followBase - labelOffset + bob;
+          }
+          continue;
+        }
+        // NPC sprite missing (mid-scene-swap or eaten by a future
+        // ID change) — hide the marker rather than leaving it
+        // stuck at its last known position.
+        sprite.visible = false;
+        if (label) label.visible = false;
+        continue;
+      }
+      sprite.y = entry.baseY + bob;
+      if (label) label.y = entry.labelBaseY + bob;
     }
 
     // NPC idle bob — disabled temporarily
@@ -971,6 +1015,13 @@ export class RenderSystem {
        *  labels and adding noise to the world hurts more than it
        *  helps. Reserved for story-critical "go HERE" beats. */
       label?: string;
+      /** When set, the marker tracks the NPC sprite with this id.
+       *  The supplied (x, y) is interpreted as an OFFSET from the
+       *  NPC's anchor — `(0, -28)` parks the marker ~28 px above
+       *  the NPC's head and the marker re-anchors there every
+       *  frame as the NPC wanders. Static markers (over buildings,
+       *  doormats) leave this undefined and use absolute coords. */
+      followNpcId?: string;
     }>,
   ): void {
     if (this.destroyed) return;
@@ -983,8 +1034,16 @@ export class RenderSystem {
         if (!tex) continue;
         const sprite = new Sprite(tex);
         sprite.anchor.set(0.5, 1);
-        sprite.x = m.x;
-        sprite.y = m.y;
+        // For NPC-following markers, treat (m.x, m.y) as offsets
+        // from the NPC anchor and seed initial position from the
+        // NPC sprite — otherwise the marker flickers at (offsetX,
+        // offsetY) for one frame before the bob loop relocates it.
+        const followNpcId = m.followNpcId ?? null;
+        const followed = followNpcId ? this.npcSprites.get(followNpcId) : null;
+        const initX = followed ? followed.x + m.x : m.x;
+        const initY = followed ? followed.y + m.y : m.y;
+        sprite.x = initX;
+        sprite.y = initY;
         // Phase derived from id so two markers don't bob in lockstep.
         let h = 0;
         for (let i = 0; i < m.id.length; i++) h = ((h * 31) + m.id.charCodeAt(i)) | 0;
@@ -997,11 +1056,9 @@ export class RenderSystem {
         // is negligible. Anchor centered horizontally + bottom so
         // the label's baseline sits just above the arrow tip.
         let label: Text | null = null;
-        // Position the label above the sprite. Sprite anchor is
-        // (0.5, 1) so its top edge is roughly y - texture.height;
-        // give a 2 px gap above that so the label doesn't kiss
-        // the arrow's outline.
-        const labelBaseY = m.y - tex.height - 2;
+        // Label sits `tex.height + 2` above the sprite's bottom anchor.
+        const labelOffset = tex.height + 2;
+        const labelBaseY = initY - labelOffset;
         if (m.label) {
           label = new Text({
             text: m.label,
@@ -1015,12 +1072,22 @@ export class RenderSystem {
             },
           });
           label.anchor.set(0.5, 1);
-          label.x = m.x;
+          label.x = initX;
           label.y = labelBaseY;
           this.questMarkerLayer.addChild(label);
         }
 
-        this.questMarkers.set(m.id, { sprite, label, baseY: m.y, labelBaseY, phase });
+        this.questMarkers.set(m.id, {
+          sprite,
+          label,
+          baseY: initY,
+          labelOffset,
+          labelBaseY,
+          phase,
+          followNpcId,
+          offsetX: m.x,
+          offsetY: m.y,
+        });
       }
     };
     // Marker sprites typically aren't on the per-scene required-asset
