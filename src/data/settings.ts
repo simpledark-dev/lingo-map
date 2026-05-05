@@ -2,10 +2,12 @@ export const SETTINGS_STORAGE_KEY = 'lingo-settings:v1';
 
 export interface GameSettings {
   musicEnabled: boolean;
+  virtualDPadEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
   musicEnabled: true,
+  virtualDPadEnabled: true,
 };
 
 function normalizeSettings(value: unknown): GameSettings {
@@ -15,6 +17,9 @@ function normalizeSettings(value: unknown): GameSettings {
     musicEnabled: typeof parsed.musicEnabled === 'boolean'
       ? parsed.musicEnabled
       : DEFAULT_SETTINGS.musicEnabled,
+    virtualDPadEnabled: typeof parsed.virtualDPadEnabled === 'boolean'
+      ? parsed.virtualDPadEnabled
+      : DEFAULT_SETTINGS.virtualDPadEnabled,
   };
 }
 
@@ -48,4 +53,12 @@ export function getMusicEnabled(): boolean {
 
 export function setMusicEnabled(enabled: boolean): void {
   saveGameSettings({ musicEnabled: enabled });
+}
+
+export function getVirtualDPadEnabled(): boolean {
+  return loadGameSettings().virtualDPadEnabled;
+}
+
+export function setVirtualDPadEnabled(enabled: boolean): void {
+  saveGameSettings({ virtualDPadEnabled: enabled });
 }

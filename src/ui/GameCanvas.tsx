@@ -56,7 +56,12 @@ import VirtualDPad from './VirtualDPad';
 import { APP_VERSION } from '../version';
 import { getUiTheme } from './uiThemes';
 import { clearWorldSave, loadWorldSave } from '../data/worldSave';
-import { getMusicEnabled, setMusicEnabled as persistMusicEnabled } from '../data/settings';
+import {
+  getMusicEnabled,
+  getVirtualDPadEnabled,
+  setMusicEnabled as persistMusicEnabled,
+  setVirtualDPadEnabled as persistVirtualDPadEnabled,
+} from '../data/settings';
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -303,6 +308,7 @@ export default function GameCanvas() {
   const pixiAppRef = useRef<PixiApp | null>(null);
   const [soundOn, setSoundOn] = useState(getMusicEnabled);
   const soundOnRef = useRef(soundOn);
+  const [virtualDPadEnabled, setVirtualDPadEnabledState] = useState(getVirtualDPadEnabled);
   const [dialogue, setDialogue] = useState<DialogueState | null>(null);
   /** When the player picks "Let me look them over first" from a
    *  translator-offer dialogue, we capture the pack id + the NPC's
@@ -404,6 +410,29 @@ export default function GameCanvas() {
       && !questStatuses['child-sandwich']
     ) {
       startQuest('child-sandwich');
+    }
+    // Sandwich → tutorial chain (borrow → buy → eat). Each step
+    // teaches one piece of the survival loop. Completion of each
+    // step is fired from the relevant action handler so the
+    // start-of-next-step toast lands exactly when the player
+    // performs the just-taught action.
+    if (
+      questStatuses['child-sandwich'] === 'completed'
+      && !questStatuses['tutorial-borrow']
+    ) {
+      startQuest('tutorial-borrow');
+    }
+    if (
+      questStatuses['tutorial-borrow'] === 'completed'
+      && !questStatuses['tutorial-buy-food']
+    ) {
+      startQuest('tutorial-buy-food');
+    }
+    if (
+      questStatuses['tutorial-buy-food'] === 'completed'
+      && !questStatuses['tutorial-eat']
+    ) {
+      startQuest('tutorial-eat');
     }
   }, [questStatuses]);
   const energy = useEnergy();
@@ -519,6 +548,14 @@ export default function GameCanvas() {
     setSoundOn(nextSoundOn);
     persistMusicEnabled(nextSoundOn);
   }, [soundOn]);
+
+  const handleVirtualDPadEnabledChange = useCallback((enabled: boolean) => {
+    setVirtualDPadEnabledState(enabled);
+    persistVirtualDPadEnabled(enabled);
+    if (!enabled) {
+      pixiAppRef.current?.setVirtualDirection(null);
+    }
+  }, []);
 
   useEffect(() => {
     const app = pixiAppRef.current;
@@ -1083,6 +1120,12 @@ export default function GameCanvas() {
     // states stay accurate without closing-and-reopening.
     if (optionId === 'lender-borrow') {
       borrowFromTheo();
+      // Tutorial: a successful borrow during the borrow-quest
+      // closes it. Toast fires from `completeQuest` and the catch-
+      // up chain immediately starts `tutorial-buy-food`.
+      if (getQuestStatus('tutorial-borrow') === 'active') {
+        completeQuest('tutorial-borrow');
+      }
       setDialogue(buildLenderDialogue(dialogue));
       return;
     }
@@ -1694,7 +1737,11 @@ export default function GameCanvas() {
 
         {settingsOpen && (
           <div style={{ pointerEvents: 'auto' }}>
-            <SettingsView onClose={() => setSettingsOpen(false)} />
+            <SettingsView
+              virtualDPadEnabled={virtualDPadEnabled}
+              onVirtualDPadEnabledChange={handleVirtualDPadEnabledChange}
+              onClose={() => setSettingsOpen(false)}
+            />
           </div>
         )}
 
@@ -1747,7 +1794,7 @@ export default function GameCanvas() {
         {/* Mobile virtual D-pad — auto-hides on desktop. Suppressed
             during dialogue so the pad doesn't sit on top of the
             dialogue box and accidentally walk the player while reading. */}
-        {!dialogue && !minimapData && (
+        {virtualDPadEnabled && !dialogue && !minimapData && (
           <VirtualDPad onChange={handleDPadChange} />
         )}
       </div>

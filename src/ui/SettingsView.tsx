@@ -21,9 +21,15 @@ const COLORS = UI_THEME.colors;
 
 interface SettingsViewProps {
   onClose: () => void;
+  virtualDPadEnabled: boolean;
+  onVirtualDPadEnabledChange: (enabled: boolean) => void;
 }
 
-export default function SettingsView({ onClose }: SettingsViewProps) {
+export default function SettingsView({
+  onClose,
+  virtualDPadEnabled,
+  onVirtualDPadEnabledChange,
+}: SettingsViewProps) {
   // Two-stage confirm: first tap arms the destructive button, second
   // tap actually wipes. A 3-second auto-cancel keeps the armed state
   // from sticking around if the player walks away.
@@ -99,6 +105,53 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
             ✕
           </button>
         </div>
+
+        <div
+          style={{
+            fontSize: 10,
+            textTransform: 'uppercase',
+            letterSpacing: 1.2,
+            fontWeight: 700,
+            color: COLORS.hintText,
+          }}
+        >
+          Controls
+        </div>
+
+        <label
+          style={{
+            background: COLORS.parchmentLight,
+            border: `2px solid ${COLORS.cardBorder}`,
+            borderRadius: 6,
+            padding: '10px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            color: COLORS.text,
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 13, fontWeight: 700 }}>
+              Virtual D-pad
+            </span>
+            <span style={{ display: 'block', fontSize: 11, lineHeight: 1.4, color: COLORS.hintText, marginTop: 3 }}>
+              Show on-screen movement controls on mobile.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={virtualDPadEnabled}
+            onChange={(e) => onVirtualDPadEnabledChange(e.currentTarget.checked)}
+            style={{
+              width: 20,
+              height: 20,
+              margin: 0,
+              accentColor: COLORS.accentGoldDark,
+              cursor: 'pointer',
+            }}
+          />
+        </label>
 
         <div
           style={{

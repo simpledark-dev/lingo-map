@@ -5,7 +5,53 @@
   "height": 16,
   "tileSize": 16,
   "buildings": [],
-  "npcs": [],
+  "npcs": [
+    {
+      "id": "1f-npc-pio",
+      "x": 248,
+      "y": 208,
+      "spriteKey": "me-char-11",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 208,
+      "collisionBox": {
+        "offsetX": -4,
+        "offsetY": -6,
+        "width": 8,
+        "height": 6
+      },
+      "name": "Pio",
+      "dialogue": [
+        "Just hanging around the house. Ask me about everyday verbs?"
+      ],
+      "vocabularyPackId": "pio-pack-1",
+      "vocabularyOfferLine": "Translator! Help me drill these everyday verbs — eat, sleep, that kind of thing."
+    },
+    {
+      "id": "1f-npc-child",
+      "x": 120,
+      "y": 208,
+      "spriteKey": "me-char-12",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 208,
+      "collisionBox": {
+        "offsetX": -4,
+        "offsetY": -6,
+        "width": 8,
+        "height": 6
+      },
+      "name": "Mim",
+      "dialogue": [
+        "Hi!"
+      ],
+      "dialogueKind": "child-sandwich"
+    }
+  ],
   "triggers": [],
   "spawnPoints": [
     {
@@ -18,6 +64,12 @@
       "id": "from-2f",
       "x": 280,
       "y": 128,
+      "facing": "down"
+    },
+    {
+      "id": "intro-start",
+      "x": 160,
+      "y": 144,
       "facing": "down"
     }
   ],

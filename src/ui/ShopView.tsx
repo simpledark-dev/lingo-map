@@ -19,6 +19,7 @@ import {
   useWalletBalance,
 } from '../data/wallet';
 import { addItem } from '../data/inventory';
+import { completeQuest, getQuestStatus } from '../data/quests';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -39,6 +40,16 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
     if (balance < def.priceCents) return; // UI also disables the button — guard anyway
     addBalance(-def.priceCents);
     addItem(itemId, 1);
+    // Tutorial — first food purchase during the buy-food quest
+    // closes it. Limited to edible items (energy > 0) so a future
+    // non-food catalog entry doesn't accidentally complete the
+    // tutorial step.
+    if (
+      (def.energy ?? 0) > 0
+      && getQuestStatus('tutorial-buy-food') === 'active'
+    ) {
+      completeQuest('tutorial-buy-food');
+    }
   }, [balance]);
 
   return (

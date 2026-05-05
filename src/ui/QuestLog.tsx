@@ -10,7 +10,7 @@
  * starting a quest mid-modal updates the list live.
  */
 import { useMemo } from 'react';
-import { QUESTS, useQuestStatuses, isAvailable, getObjective } from '../data/quests';
+import { QUESTS, useQuestStatuses, isAvailable, getObjective, useCompletionOrder } from '../data/quests';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -22,8 +22,16 @@ interface QuestLogProps {
 
 export default function QuestLog({ onClose }: QuestLogProps) {
   const statuses = useQuestStatuses();
+  const completionOrder = useCompletionOrder();
   const { active, available, completed } = useMemo(() => {
     const all = Object.values(QUESTS);
+    // Pre-index completion order so the sort is O(n) per quest.
+    // Reverse mapping: id → completion sequence number. Older
+    // completions get lower numbers; we sort descending below
+    // so the most recent completion shows up at the top of the
+    // Completed section.
+    const orderIndex = new Map<string, number>();
+    completionOrder.forEach((id, i) => orderIndex.set(id, i));
     return {
       active: all.filter((q) => statuses[q.id] === 'active'),
       // `isAvailable` enforces both gates: the quest needs an
@@ -33,9 +41,15 @@ export default function QuestLog({ onClose }: QuestLogProps) {
       // closes; subsequent quests reveal as their preconditions
       // resolve, instead of dumping the whole tree at game start.
       available: all.filter((q) => isAvailable(q, statuses)),
-      completed: all.filter((q) => statuses[q.id] === 'completed'),
+      completed: all
+        .filter((q) => statuses[q.id] === 'completed')
+        // Most-recent-first. Completed quests not in the order
+        // log (legacy saves before this index existed) fall back
+        // to -1 → land at the bottom, which mirrors "the player
+        // doesn't remember exactly when these were finished."
+        .sort((a, b) => (orderIndex.get(b.id) ?? -1) - (orderIndex.get(a.id) ?? -1)),
     };
-  }, [statuses]);
+  }, [statuses, completionOrder]);
 
   return (
     <div

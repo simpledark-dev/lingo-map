@@ -232,6 +232,14 @@ export default function EditorCanvas() {
   // Paint drag state
   const isPaintingRef = useRef(false);
   const paintedCellsRef = useRef<Set<string>>(new Set());
+
+  /** Last time we saw a pointer event fire. The mouse-event
+   *  fallback handlers below skip when this is recent — that way
+   *  desktop browsers where pointer events DO work don't run the
+   *  handlers twice (once for pointerdown, once for the synthesised
+   *  mousedown that follows). When Pixi 8 swallows pointer events,
+   *  this stays old and the mouse path takes over. */
+  const lastPointerTimeRef = useRef<number>(0);
   const isPanningRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
   const spaceDownRef = useRef(false);
@@ -620,6 +628,23 @@ export default function EditorCanvas() {
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // TEMP debug — remove once editor click is confirmed working.
+    // Logs every pointer/mouse event that actually reaches the
+    // handler so we can tell whether the Pixi-event-swallowing
+    // fix is doing its job or whether something else (locked
+    // layer, missing selectedObjectKey, resize mode) is bailing
+    // before placement.
+    // eslint-disable-next-line no-console
+    console.log('[editor] handlePointerDown', {
+      button: e.button,
+      type: e.type,
+      activeTool: stateRef.current.activeTool,
+      selectedObjectKey: stateRef.current.selectedObjectKey,
+      selectedTileType: stateRef.current.selectedTileType,
+      activeLayerId: stateRef.current.activeLayerId,
+      activeLayerLocked: stateRef.current.layers.find((l) => l.id === stateRef.current.activeLayerId)?.locked,
+      resizeModeActive: !!resizeMode,
+    });
     const s = stateRef.current;
 
     // Middle mouse or space+click — pan
@@ -1496,6 +1521,93 @@ export default function EditorCanvas() {
     }
   }, []);
 
+  // Native pointer / mouse listeners on the actual canvas element.
+  // Attached in capture phase so they run BEFORE Pixi 8's
+  // EventSystem listeners (which silently swallow desktop pointer
+  // events on the canvas — same bug we hit in the game canvas,
+  // documented in src/renderer/InputAdapter.ts). React's
+  // onPointerDown on the wrapper can't see canvas events that
+  // Pixi stops mid-bubble, so the wrapper handlers are unreliable
+  // here — attach native instead.
+  useEffect(() => {
+    const wrapper = canvasContainerRef.current;
+    if (!wrapper) return;
+    let canvas: HTMLCanvasElement | null = null;
+
+    const wireUp = () => {
+      const found = wrapper.querySelector('canvas');
+      if (!found) return false;
+      canvas = found as HTMLCanvasElement;
+      // Use the SAME handlers React would have used. Capture
+      // phase + canvas-target means we run first, regardless of
+      // what Pixi installs.
+      const downHandler = (e: PointerEvent | MouseEvent) => {
+        // Only act once per click — pointerdown fires first, then
+        // mousedown. If pointerdown fired we let it through and
+        // bail on the synthesised mousedown. Stamp on each
+        // successful event.
+        if (e.type === 'mousedown' && performance.now() - lastPointerTimeRef.current < 100) return;
+        lastPointerTimeRef.current = performance.now();
+        handlePointerDown(e as unknown as React.PointerEvent);
+      };
+      const moveHandler = (e: PointerEvent | MouseEvent) => {
+        if (e.type === 'mousemove' && performance.now() - lastPointerTimeRef.current < 100) return;
+        lastPointerTimeRef.current = performance.now();
+        handlePointerMove(e as unknown as React.PointerEvent);
+      };
+      const upHandler = () => {
+        lastPointerTimeRef.current = performance.now();
+        handlePointerUp();
+      };
+      const leaveHandler = () => { handlePointerUp(); handlePointerLeave(); };
+      const ctxHandler = (e: MouseEvent) => handleContextMenu(e as unknown as React.MouseEvent);
+
+      canvas.addEventListener('pointerdown', downHandler, { capture: true });
+      canvas.addEventListener('pointermove', moveHandler, { capture: true });
+      canvas.addEventListener('pointerup', upHandler, { capture: true });
+      canvas.addEventListener('pointerleave', leaveHandler, { capture: true });
+      canvas.addEventListener('mousedown', downHandler, { capture: true });
+      canvas.addEventListener('mousemove', moveHandler, { capture: true });
+      canvas.addEventListener('mouseup', upHandler, { capture: true });
+      canvas.addEventListener('contextmenu', ctxHandler, { capture: true });
+
+      // Stash teardowns so cleanup can remove them.
+      teardownsRef.current = [
+        () => canvas?.removeEventListener('pointerdown', downHandler, { capture: true }),
+        () => canvas?.removeEventListener('pointermove', moveHandler, { capture: true }),
+        () => canvas?.removeEventListener('pointerup', upHandler, { capture: true }),
+        () => canvas?.removeEventListener('pointerleave', leaveHandler, { capture: true }),
+        () => canvas?.removeEventListener('mousedown', downHandler, { capture: true }),
+        () => canvas?.removeEventListener('mousemove', moveHandler, { capture: true }),
+        () => canvas?.removeEventListener('mouseup', upHandler, { capture: true }),
+        () => canvas?.removeEventListener('contextmenu', ctxHandler, { capture: true }),
+      ];
+      return true;
+    };
+
+    // The Pixi canvas is appended asynchronously (EditorApp.init is
+    // async). Poll briefly for it; once attached, wire listeners.
+    if (!wireUp()) {
+      const interval = window.setInterval(() => { if (wireUp()) window.clearInterval(interval); }, 50);
+      const timeout = window.setTimeout(() => window.clearInterval(interval), 5000);
+      return () => {
+        window.clearInterval(interval);
+        window.clearTimeout(timeout);
+        for (const t of teardownsRef.current) t();
+        teardownsRef.current = [];
+      };
+    }
+    return () => {
+      for (const t of teardownsRef.current) t();
+      teardownsRef.current = [];
+    };
+    // The handlers themselves are stable (useCallback). Empty deps
+    // are intentional — re-running this effect would re-attach
+    // duplicate listeners.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const teardownsRef = useRef<Array<() => void>>([]);
+
   // Wheel handler — attached as native event to prevent browser zoom
   useEffect(() => {
     const el = canvasContainerRef.current;
@@ -1764,11 +1876,14 @@ export default function EditorCanvas() {
                       : 'default'))
               : (state.activeTool === 'tile' || state.activeTool === 'eraser' ? 'crosshair' : 'default'),
           }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={() => { handlePointerUp(); handlePointerLeave(); }}
-          onContextMenu={handleContextMenu}
+          // No React-side pointer handlers here — the useEffect
+          // above attaches NATIVE listeners directly on the Pixi
+          // canvas in capture phase, which is the only reliable
+          // way to beat Pixi 8's EventSystem-stops-propagation
+          // behavior. Wrapper-level React handlers would just
+          // double-fire on browsers where Pixi DOESN'T swallow
+          // (mobile / touch) and never fire on browsers where it
+          // does (desktop). Native + capture handles both.
         />
       </div>
       {resizeMode && (

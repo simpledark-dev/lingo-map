@@ -23,6 +23,7 @@ const STORAGE_KEYS = [
   'lingo-debt:v1',
   'lingo-event-flags:v1',
   'lingo-quests:v1',
+  'lingo-quests:completion-order',
   'lingo-profile:v1',
   WORLD_SAVE_STORAGE_KEY,
   SETTINGS_STORAGE_KEY,

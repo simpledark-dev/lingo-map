@@ -13,6 +13,7 @@
 import { useEffect, useState } from 'react';
 import { getItem } from './items';
 import { restoreEnergy } from './energy';
+import { completeQuest, getQuestStatus } from './quests';
 
 const STORAGE_KEY = 'lingo-inventory:v1';
 
@@ -119,6 +120,12 @@ export function eatItem(id: string): boolean {
   if (!def || !def.energy || def.energy <= 0) return false;
   if (!consumeItem(id, 1)) return false;
   restoreEnergy(def.energy);
+  // Tutorial — eating during the eat-quest closes it. Importing
+  // the quest module here is safe: quests.ts doesn't import
+  // inventory, so no cycle.
+  if (getQuestStatus('tutorial-eat') === 'active') {
+    completeQuest('tutorial-eat');
+  }
   return true;
 }
 

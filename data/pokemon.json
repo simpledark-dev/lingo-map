@@ -491,7 +491,7 @@
       "name": "Ground",
       "kind": "tile",
       "visible": true,
-      "locked": true,
+      "locked": false,
       "tiles": [
         [
           "grass",
@@ -14884,8 +14884,8 @@
       "id": "layer-mojny5t0-2eor",
       "name": "Car Path",
       "kind": "car-path",
-      "visible": false,
-      "locked": true,
+      "visible": true,
+      "locked": false,
       "exits": {
         "17,3": [
           "e"
@@ -15597,6 +15597,9 @@
         ],
         "44,28": [
           "w"
+        ],
+        "19,31": [
+          "n"
         ]
       }
     }

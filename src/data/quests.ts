@@ -24,6 +24,12 @@ import { useEffect, useState } from 'react';
 import { hasFlag, FLAGS } from './eventFlags';
 
 const STORAGE_KEY = 'lingo-quests:v1';
+/** Append-only list of quest IDs in the order the player completed
+ *  them. The QuestLog reads this to render Completed sorted most-
+ *  recent first instead of catalog-insertion order. Stored as a
+ *  separate key so the existing status-map schema stays untouched
+ *  and back-compat reads keep working. */
+const ORDER_KEY = 'lingo-quests:completion-order';
 
 export type QuestStatus = 'inactive' | 'active' | 'completed';
 
@@ -111,6 +117,38 @@ export function isAvailable(quest: QuestDef, statuses: StatusMap): boolean {
  *  rather than passing the def around, so the catalog stays the
  *  single source of truth for quest copy. */
 export const QUESTS: Record<string, QuestDef> = {
+  // Three tiny tutorial quests teaching the borrow → buy → eat
+  // loop. Auto-chained after the sandwich so the player has just
+  // spent their starting cash and is in the right mindset for
+  // "what do I do when I'm broke?". Each completes from inside
+  // the relevant action handler (Theo's borrow, ShopView's buy,
+  // inventory.eatItem) so the trigger is unambiguous and tied to
+  // the actual interaction, not a status snapshot.
+  'tutorial-borrow': {
+    id: 'tutorial-borrow',
+    title: 'Borrow from Theo',
+    objective:
+      'Money runs out fast in this town. Find Theo on the path outside and borrow a little to keep going.',
+    completedSummary: 'You borrowed from Theo. Pay him back when you can.',
+    requiresCompleted: ['child-sandwich'],
+  },
+  'tutorial-buy-food': {
+    id: 'tutorial-buy-food',
+    title: 'Buy Food at the Mart',
+    objective:
+      'Head into the Mart and buy any food item — you\u2019ll need something to eat before you can work again.',
+    completedSummary: 'You bought a snack at the Mart. The shopkeeper appreciated the business.',
+    requiresCompleted: ['tutorial-borrow'],
+  },
+  'tutorial-eat': {
+    id: 'tutorial-eat',
+    title: 'Refill Your Energy',
+    objective:
+      'Open your Bag (the icon under the wallet) and eat what you bought to refill your energy.',
+    completedSummary:
+      'You ate to refill energy. The full loop: translate → earn → buy food → eat → keep going.',
+    requiresCompleted: ['tutorial-buy-food'],
+  },
   'child-sandwich': {
     id: 'child-sandwich',
     title: 'A Sandwich for Mim',
@@ -180,6 +218,74 @@ type TransitionListener = (event: QuestTransition) => void;
 const transitionListeners = new Set<TransitionListener>();
 
 let cached: StatusMap | null = null;
+
+/** Cached completion order — append-only list of IDs. `null` means
+ *  not-yet-loaded; first read hydrates from localStorage. */
+let orderCached: string[] | null = null;
+type OrderListener = (order: readonly string[]) => void;
+const orderListeners = new Set<OrderListener>();
+
+function readOrder(): string[] {
+  if (orderCached !== null) return orderCached;
+  if (typeof window === 'undefined') {
+    orderCached = [];
+    return orderCached;
+  }
+  try {
+    const raw = window.localStorage.getItem(ORDER_KEY);
+    if (!raw) {
+      orderCached = [];
+      return orderCached;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      orderCached = [];
+      return orderCached;
+    }
+    orderCached = parsed.filter((x): x is string => typeof x === 'string');
+  } catch {
+    orderCached = [];
+  }
+  return orderCached;
+}
+
+function writeOrder(value: string[]): void {
+  orderCached = value;
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(ORDER_KEY, JSON.stringify(value));
+  } catch { /* silent */ }
+}
+
+function emitOrder(): void {
+  const snapshot = [...readOrder()];
+  for (const l of orderListeners) l(snapshot);
+}
+
+/** Read-only snapshot of completed-quest IDs in completion order
+ *  (oldest first). Useful for sorts that want most-recent at the
+ *  top — flip the `indexOf` direction. */
+export function getCompletionOrder(): readonly string[] {
+  return readOrder();
+}
+
+export function subscribeCompletionOrder(listener: OrderListener): () => void {
+  orderListeners.add(listener);
+  return () => {
+    orderListeners.delete(listener);
+  };
+}
+
+/** React hook — re-renders when a quest is completed (and thus the
+ *  order list grows). */
+export function useCompletionOrder(): readonly string[] {
+  const [v, setV] = useState<readonly string[]>(() => readOrder());
+  useEffect(() => {
+    setV(readOrder());
+    return subscribeCompletionOrder(setV);
+  }, []);
+  return v;
+}
 
 function read(): StatusMap {
   if (cached !== null) return cached;
@@ -256,6 +362,13 @@ export function completeQuest(id: string): void {
   if (current[id] === 'completed') return;
   const next: StatusMap = { ...current, [id]: 'completed' };
   write(next);
+  // Append to completion-order so the log can sort by recency.
+  // Defensive dedupe in case of any future double-call path.
+  const order = readOrder();
+  if (!order.includes(id)) {
+    writeOrder([...order, id]);
+    emitOrder();
+  }
   emitStatuses();
   emitTransition({ kind: 'completed', def });
 }

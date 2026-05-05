@@ -115,6 +115,16 @@ export class EditorApp {
 
     if (this.destroyed) return;
 
+    // Same fix as `src/renderer/PixiApp.ts` (commit d1dcb8f). Pixi 8's
+    // stage event system silently swallows `pointerdown` on the
+    // canvas in some browser states — toggling DevTools responsive
+    // mode "fixes" it because that path uses touch. Setting the
+    // stage's eventMode to 'none' takes Pixi out of the DOM event
+    // chain so the React `onPointerDown` / `onMouseDown` handlers
+    // on the wrapper actually receive events. Without this, the
+    // editor canvas accepts no clicks on desktop normal viewport.
+    this.app.stage.eventMode = 'none';
+
     const canvas = this.app.canvas as HTMLCanvasElement;
     canvas.style.width = '100%';
     canvas.style.height = '100%';
