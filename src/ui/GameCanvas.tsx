@@ -11,7 +11,16 @@ import VocabularyListView from './VocabularyListView';
 import VocabularyTranslateView from './VocabularyTranslateView';
 import ShopView from './ShopView';
 import { getVocabularyPack } from '../data/vocabularyPacks';
-import { useWalletBalance, formatBalance, getBalance, getLifetimeEarnings, addBalance } from '../data/wallet';
+import {
+  useWalletBalance,
+  formatBalance,
+  getBalance,
+  getLifetimeEarnings,
+  addBalance,
+  REWARD_PER_CORRECT,
+  PENALTY_PER_WRONG,
+  PENALTY_PER_IDK,
+} from '../data/wallet';
 import { hasItem, consumeItem, useInventory } from '../data/inventory';
 import { getItem } from '../data/items';
 import { useEnergy, getMaxEnergy, restoreEnergy } from '../data/energy';
@@ -196,37 +205,49 @@ function buildLenderDialogue(stub: DialogueState): DialogueState {
   };
 }
 
-/** Compose the CEO's dialogue. Three states stack on top of the
- *  base "come back when you're ready for your first contract" line:
- *    1. intro-translator-job ACTIVE → scripted hire scene (choice
- *       is flavor, both branches complete the quest).
- *    2. intro completed AND first-paycheck ACTIVE AND lifetime <
- *       threshold → "you're not there yet, kid" check-in.
- *    3. intro completed AND first-paycheck ACTIVE AND lifetime ≥
- *       threshold → "claim your paycheck" option (handler pays the
- *       bonus + completes the quest).
- *  Anything else falls through to the engine's static line. */
+/** Compose the CEO's dialogue. Multi-stage during the intro quest;
+ *  collapses to status check-ins afterward.
+ *
+ *  Intro flow (each stage is its own DialogueState — option taps
+ *  push the next stage via the option handler):
+ *    Stage 1 GREETING  — CEO welcomes, player chooses to apply or
+ *                        bow out. Bowing out keeps the quest active
+ *                        so the player can return.
+ *    Stage 2 FLUENCY   — after apply. CEO asks the question,
+ *                        player picks confident / honest.
+ *    Stage 3 HIRED     — multi-line wrap-up: parting line,
+ *                        explanation of the job mechanics, exit.
+ *                        Quest completes when we ENTER this stage
+ *                        (the option handler), so the toast fires
+ *                        as the wrap-up plays. Tap-through advances
+ *                        the lines via handleAdvanceDialogue's
+ *                        ceo-intro local-advance branch.
+ *
+ *  Post-intro:
+ *    - first-paycheck active + lifetime < threshold → progress check-in
+ *    - first-paycheck active + lifetime ≥ threshold → claim button
+ *    - everything else → engine static line. */
 function buildCeoIntroDialogue(stub: DialogueState): DialogueState {
   const introStatus = getQuestStatus('intro-translator-job');
   const playerName = getPlayerName() ?? 'you';
 
   if (introStatus === 'active') {
+    // Stage 1 — greeting. Subsequent stages are pushed by option
+    // handlers (`ceo-apply`, `ceo-intro-confident`, etc.).
     return {
       ...stub,
-      lines: [
-        `${playerName}, was it? Sit. Sit.`,
-        "Says here you're fluent in our tongue. That right?",
-      ],
+      dialogueKind: 'ceo-intro',
+      lines: [`Welcome, ${playerName}. What can I do for you?`],
+      currentLine: 0,
       options: [
         {
-          id: 'ceo-intro-confident',
-          label: 'Completely fluent.',
-          hint: '(A bold lie.)',
+          id: 'ceo-apply',
+          label: 'I\u2019m here to apply for the translator job.',
         },
         {
-          id: 'ceo-intro-honest',
-          label: 'Mostly… working on it.',
-          hint: '(Honest enough.)',
+          id: 'ceo-decline-apply',
+          label: 'Ah, nothing — nevermind.',
+          hint: 'You can come back any time.',
         },
       ],
     };
@@ -801,57 +822,91 @@ export default function GameCanvas() {
     };
   }, [objectMultiplier, syncViewportSize]);
 
-  // Quest marker driver — runs whenever the player changes scene
-  // or the intro quest's status flips. Scans the active map for
-  // the entity that opens the Office (its `incomingSpawnId` is the
-  // contract — `outdoor-office`) and parks a bobbing arrow above
-  // its collision-box top. Cleared as soon as the player leaves
-  // `pokemon` or the quest hits `completed`.
+  // Quest / wayfinding marker driver. Two kinds of arrows live on
+  // this layer:
+  //   - Story-critical (red): the office during the intro tutorial.
+  //   - Wayfinding (yellow): doormats inside interiors, so the
+  //     player never has to hunt for the way out.
+  // Both run through the same `setQuestMarkers` API; the renderer
+  // doesn't care about their semantics, only their world position.
   useEffect(() => {
     const app = pixiAppRef.current;
     if (!app) return;
+
+    type ObjLike = {
+      id: string;
+      x: number;
+      y: number;
+      spriteKey?: string;
+      collisionBox?: { offsetY: number };
+      transition?: { incomingSpawnId?: string; targetMapId?: string };
+    };
+
+    /** Walk the loaded map's layered AND legacy object lists into a
+     *  flat array. The editor writes new saves to `layers`, but
+     *  some older overrides still surface entities through the
+     *  legacy `objects` mirror — we want both. */
+    const collectObjects = (mapId: string): ObjLike[] => {
+      let map;
+      try { map = loadMap(mapId); } catch { return []; }
+      const out: ObjLike[] = [];
+      const layers = (map as unknown as { layers?: Array<{ objects?: ObjLike[] }> }).layers;
+      if (Array.isArray(layers)) {
+        for (const l of layers) if (Array.isArray(l.objects)) out.push(...l.objects);
+      }
+      const objs = (map as unknown as { objects?: ObjLike[] }).objects;
+      if (Array.isArray(objs)) out.push(...objs);
+      return out;
+    };
+
+    const markers: Array<{ id: string; x: number; y: number; spriteKey: string; label?: string }> = [];
+
+    // ── Story-critical: office building marker during intro ──
     const introActive = questStatuses['intro-translator-job'] === 'active';
-    if (!introActive || currentMapId !== 'pokemon') {
-      app.setQuestMarkers([]);
-      return;
-    }
-    let map;
-    try { map = loadMap('pokemon'); } catch { map = null; }
-    if (!map) {
-      app.setQuestMarkers([]);
-      return;
-    }
-    type ObjLike = { id: string; x: number; y: number; collisionBox?: { offsetY: number }; transition?: { incomingSpawnId?: string } };
-    // Search both the legacy `objects` field AND any object-layers,
-    // since the editor's runtime override now writes layered data.
-    const candidates: ObjLike[] = [];
-    const layers = (map as unknown as { layers?: Array<{ kind?: string; objects?: ObjLike[] }> }).layers;
-    if (Array.isArray(layers)) {
-      for (const layer of layers) {
-        if (Array.isArray(layer.objects)) candidates.push(...layer.objects);
+    if (introActive && currentMapId === 'pokemon') {
+      const office = collectObjects('pokemon').find(
+        (o) => o.transition?.incomingSpawnId === 'outdoor-office',
+      );
+      if (office) {
+        const top = office.y + (office.collisionBox?.offsetY ?? -64);
+        markers.push({
+          id: 'intro-office',
+          x: office.x,
+          y: top + 60,
+          spriteKey: 'edge-arrow-south-red',
+          // World-space caption above the arrow so a player who
+          // sees the red blip but can't tell what it's pointing at
+          // gets a one-word answer immediately.
+          label: 'Office',
+        });
       }
     }
-    if (Array.isArray((map as unknown as { objects?: ObjLike[] }).objects)) {
-      candidates.push(...((map as unknown as { objects: ObjLike[] }).objects));
+
+    // ── Wayfinding: doormats in interior maps ──
+    // A doormat is identified by sprite key — every interior uses
+    // the literal `doormat` placeholder. We anchor the arrow above
+    // the entity's feet (entity.y is the foot row) with a small
+    // upward offset so the chevron points down at the tile.
+    const isInterior = currentMapId === 'pokemon-house-1f' || currentMapId === 'office';
+    if (isInterior) {
+      const doormats = collectObjects(currentMapId).filter(
+        (o) => o.spriteKey === 'doormat',
+      );
+      doormats.forEach((mat, i) => {
+        markers.push({
+          id: `doormat-${currentMapId}-${i}`,
+          // Position the marker ABOVE the doormat. Doormat sprites
+          // sit on the floor; bumping the marker up by ~20 px gives
+          // a clear pointer-at-the-mat read without colliding with
+          // the player sprite when they stand next to it.
+          x: mat.x,
+          y: mat.y - 20,
+          spriteKey: 'edge-arrow-south',
+        });
+      });
     }
-    const officeEntity = candidates.find(
-      (o) => o.transition?.incomingSpawnId === 'outdoor-office',
-    );
-    if (!officeEntity) {
-      app.setQuestMarkers([]);
-      return;
-    }
-    // Anchor marker above the building's collision-box top, with
-    // a small gap so the chevron doesn't overlap the roofline.
-    const top = officeEntity.y + (officeEntity.collisionBox?.offsetY ?? -64);
-    app.setQuestMarkers([
-      {
-        id: 'intro-office',
-        x: officeEntity.x,
-        y: top + 60,
-        spriteKey: 'edge-arrow-south',
-      },
-    ]);
+
+    app.setQuestMarkers(markers);
     return () => { app.setQuestMarkers([]); };
   }, [currentMapId, questStatuses]);
 
@@ -862,6 +917,26 @@ export default function GameCanvas() {
     // dialogue should branch on its npcId the same way.
     if (dialogue?.npcId === 'locked-district') {
       setDialogue(null);
+      return;
+    }
+    // CEO multi-stage dialogues are React-managed — the engine
+    // doesn't know about Stage 2 / Stage 3 line counts because the
+    // option handler swapped them in client-side. Walk currentLine
+    // locally; only fall through to ENGINE_ADVANCE when we run
+    // out of lines AND the dialogue is single-stage / engine-owned.
+    if (dialogue?.dialogueKind === 'ceo-intro') {
+      if (dialogue.currentLine < dialogue.lines.length - 1) {
+        setDialogue({ ...dialogue, currentLine: dialogue.currentLine + 1 });
+        return;
+      }
+      // Past the last line of the active stage — close. Stage
+      // transitions are option-driven (ceo-apply / fluency picks),
+      // so reaching the end of a stage with no options means the
+      // wrap-up monologue is over. Inline the close-everywhere
+      // logic here because the helper is declared further below
+      // and a forward ref triggers TS use-before-decl.
+      setDialogue(null);
+      pixiAppRef.current?.commandQueue.push({ type: 'CLOSE_DIALOGUE' });
       return;
     }
     const app = pixiAppRef.current;
@@ -977,16 +1052,48 @@ export default function GameCanvas() {
       closeDialogueEverywhere();
       return;
     }
-    // CEO's intro hire flow — both options complete the tutorial
-    // quest, with mildly different parting lines for flavor. The
-    // quest-complete toast fires automatically on `completeQuest`,
-    // so the player sees the closer dialogue + the toast banner
-    // back-to-back.
+    // CEO intro — Stage 1 → Stage 2 (fluency).
+    if (optionId === 'ceo-apply') {
+      setDialogue({
+        npcId: dialogue.npcId,
+        npcName: dialogue.npcName,
+        dialogueKind: 'ceo-intro',
+        lines: [
+          "A translator? Yes — we are looking for one. Tell me, are you fluent in our tongue?",
+        ],
+        currentLine: 0,
+        options: [
+          {
+            id: 'ceo-intro-confident',
+            label: 'Completely fluent.',
+            hint: '(A bold lie.)',
+          },
+          {
+            id: 'ceo-intro-honest',
+            label: 'Mostly… working on it.',
+            hint: '(Honest enough.)',
+          },
+        ],
+      });
+      return;
+    }
+    if (optionId === 'ceo-decline-apply') {
+      // Walk-away option. Keep the quest active so the player can
+      // come back any time and re-greet from Stage 1.
+      closeDialogueEverywhere();
+      return;
+    }
+
+    // CEO intro — Stage 2 → Stage 3 (hired). Confident vs honest
+    // changes the opening line of the wrap-up; the rest of the
+    // explanation (job mechanics, payout, return-for-bonus pitch)
+    // is identical. Quest completes the moment Stage 3 begins so
+    // the toast lands while the wrap-up plays.
     if (optionId === 'ceo-intro-confident' || optionId === 'ceo-intro-honest') {
-      const closer =
+      const opening =
         optionId === 'ceo-intro-confident'
-          ? "Confidence. Good. Don't make me regret this."
-          : "Mostly's enough. Honest answer too. Start today.";
+          ? "Confidence. Good — don't make me regret this. The job is yours."
+          : "Mostly's enough. Honest answer too — that's worth something. The job is yours.";
       completeQuest('intro-translator-job');
       // Chain the next milestone — the paycheck quest auto-starts
       // here so the player has a concrete short-term goal the moment
@@ -996,10 +1103,13 @@ export default function GameCanvas() {
       setDialogue({
         npcId: dialogue.npcId,
         npcName: dialogue.npcName,
+        dialogueKind: 'ceo-intro',
         lines: [
-          closer,
-          "Way it works: people in town need help with words. You translate. They pay. I get a cut. Off you go.",
-          `Earn ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} translating and come back — there's a bonus waiting on top.`,
+          opening,
+          "Way it works: people around town need help with words. You walk up, translate, they pay you per correct answer. I take a small cut.",
+          `Pays ${formatBalance(REWARD_PER_CORRECT)} for every word you nail. Lose ${formatBalance(PENALTY_PER_WRONG)} on a wrong guess — focus matters. And ${formatBalance(PENALTY_PER_IDK)} if you admit you don't know it.`,
+          `Earn ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} translating and circle back — there's a bonus waiting on top.`,
+          "Off you go. Find someone who needs help.",
         ],
         currentLine: 0,
       });

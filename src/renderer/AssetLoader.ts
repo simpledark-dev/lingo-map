@@ -155,6 +155,13 @@ const spriteManifest: Record<string, string> = {
   'edge-arrow-south': `${ASSET_BASE}edge-arrow-south.webp`,
   'edge-arrow-west':  `${ASSET_BASE}edge-arrow-west.webp`,
   'edge-arrow-north': `${ASSET_BASE}edge-arrow-north.webp`,
+  // Red variants for story-critical "must-do" markers (e.g. the
+  // office during the intro tutorial). Yellow is the ambient
+  // affordance, red is the imperative.
+  'edge-arrow-east-red':  `${ASSET_BASE}edge-arrow-east-red.webp`,
+  'edge-arrow-south-red': `${ASSET_BASE}edge-arrow-south-red.webp`,
+  'edge-arrow-west-red':  `${ASSET_BASE}edge-arrow-west-red.webp`,
+  'edge-arrow-north-red': `${ASSET_BASE}edge-arrow-north-red.webp`,
   'mart-base': `${ASSET_BASE}mart-base.webp`,
   'mart-roof': `${ASSET_BASE}mart-roof.webp`,
   'lab-base': `${ASSET_BASE}lab-base.webp`,

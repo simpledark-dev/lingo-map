@@ -26,17 +26,22 @@ const RIGHT = [
 
 const COLOR_BODY   = [255, 215, 100, 255]; // warm gold
 const COLOR_BORDER = [110,  70,  20, 255]; // dark wood-brown outline
+// Red variant — used for quest markers above story-critical doors
+// (e.g. the office during the intro tutorial). The yellow palette
+// blends into the cozy art at distance; red pops as "here, now".
+const COLOR_BODY_RED   = [228,  60,  60, 255];
+const COLOR_BORDER_RED = [110,  20,  20, 255];
 
-function buildBuffer(grid) {
+function buildBuffer(grid, body = COLOR_BODY, border = COLOR_BORDER) {
   const buf = Buffer.alloc(SIZE * SIZE * 4);
   for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++) {
       const ch = grid[y][x];
       const i = (y * SIZE + x) * 4;
       if (ch === '1') {
-        buf[i] = COLOR_BODY[0]; buf[i+1] = COLOR_BODY[1]; buf[i+2] = COLOR_BODY[2]; buf[i+3] = COLOR_BODY[3];
+        buf[i] = body[0]; buf[i+1] = body[1]; buf[i+2] = body[2]; buf[i+3] = body[3];
       } else if (ch === '2') {
-        buf[i] = COLOR_BORDER[0]; buf[i+1] = COLOR_BORDER[1]; buf[i+2] = COLOR_BORDER[2]; buf[i+3] = COLOR_BORDER[3];
+        buf[i] = border[0]; buf[i+1] = border[1]; buf[i+2] = border[2]; buf[i+3] = border[3];
       } else {
         buf[i] = 0; buf[i+1] = 0; buf[i+2] = 0; buf[i+3] = 0;
       }
@@ -67,10 +72,10 @@ function rotateGrid(grid, dir) {
 const dirs = ['east', 'south', 'west', 'north'];
 const rotKey = { east: 'right', south: 'down', west: 'left', north: 'up' };
 
-for (const d of dirs) {
-  const grid = rotateGrid(RIGHT, rotKey[d]);
-  const raw = buildBuffer(grid);
-  const baseName = `edge-arrow-${d}`;
+async function emit(dir, palette, suffix = '') {
+  const grid = rotateGrid(RIGHT, rotKey[dir]);
+  const raw = buildBuffer(grid, palette[0], palette[1]);
+  const baseName = `edge-arrow-${dir}${suffix}`;
   const png = await sharp(raw, { raw: { width: SIZE, height: SIZE, channels: 4 } })
     .png()
     .toBuffer();
@@ -80,4 +85,14 @@ for (const d of dirs) {
   await writeFile(`/Users/gaelduong/Documents/Code/lingo-map/public/assets/placeholder/${baseName}.png`, png);
   await writeFile(`/Users/gaelduong/Documents/Code/lingo-map/public/assets/placeholder/${baseName}.webp`, webp);
   console.log(`wrote ${baseName}.png and .webp`);
+}
+
+for (const d of dirs) {
+  await emit(d, [COLOR_BODY, COLOR_BORDER]);
+}
+// Red variants — only the south arrow is used in current code (the
+// office quest marker), but generating all four keeps the asset set
+// symmetric for future "must-do" markers.
+for (const d of dirs) {
+  await emit(d, [COLOR_BODY_RED, COLOR_BORDER_RED], '-red');
 }

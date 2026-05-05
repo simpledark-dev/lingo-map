@@ -1,4 +1,4 @@
-import { Application, Container, Graphics, RenderTexture, Sprite, Texture } from 'pixi.js';
+import { Application, Container, Graphics, RenderTexture, Sprite, Text, Texture } from 'pixi.js';
 import { Direction, Entity, MapData, MapLayer, PlayerState } from '../core/types';
 import { PLAYER_LAYER_ID, PLAYER_SPRITE_PREFIX } from '../core/constants';
 import { getEffectiveZIndex, getLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
@@ -113,7 +113,7 @@ export class RenderSystem {
    *  on PixiApp; the renderer just owns the sprite container + the
    *  bob animation. Cleared on every `setMap` so a marker pointing
    *  at the previous scene's coords doesn't bleed into the new one. */
-  private questMarkers = new Map<string, { sprite: Sprite; baseY: number; phase: number }>();
+  private questMarkers = new Map<string, { sprite: Sprite; label: Text | null; baseY: number; labelBaseY: number; phase: number }>();
   private questMarkerLayer: Container | null = null;
   animationsEnabled = true;
 
@@ -929,8 +929,13 @@ export class RenderSystem {
     // so the eye reads it as "look here!" rather than "background".
     const Q_SPEED = 2.4;
     const Q_AMP = 4;
-    for (const { sprite, baseY, phase } of this.questMarkers.values()) {
-      sprite.y = baseY + Math.sin(time * Q_SPEED + phase) * Q_AMP;
+    for (const { sprite, label, baseY, labelBaseY, phase } of this.questMarkers.values()) {
+      const offset = Math.sin(time * Q_SPEED + phase) * Q_AMP;
+      sprite.y = baseY + offset;
+      // Label rides the same bob so it stays anchored to the
+      // sprite — labelBaseY captures the create-time gap above
+      // the sprite's top edge.
+      if (label) label.y = labelBaseY + offset;
     }
 
     // NPC idle bob — disabled temporarily
@@ -952,7 +957,22 @@ export class RenderSystem {
    *  a stale marker set doesn't apply over a newer call's results. */
   private markerGen = 0;
 
-  setQuestMarkers(markers: Array<{ id: string; x: number; y: number; spriteKey: string }>): void {
+  setQuestMarkers(
+    markers: Array<{
+      id: string;
+      x: number;
+      y: number;
+      spriteKey: string;
+      /** Optional caption rendered above the bobbing arrow. World-
+       *  space text rides the same camera transform as the sprite,
+       *  so it scales with the player's zoom and stays anchored to
+       *  the building beneath. Skipped when omitted — most
+       *  ambient-cue markers (doormats, edge arrows) don't need
+       *  labels and adding noise to the world hurts more than it
+       *  helps. Reserved for story-critical "go HERE" beats. */
+      label?: string;
+    }>,
+  ): void {
     if (this.destroyed) return;
     const gen = ++this.markerGen;
     this.clearQuestMarkers();
@@ -970,7 +990,37 @@ export class RenderSystem {
         for (let i = 0; i < m.id.length; i++) h = ((h * 31) + m.id.charCodeAt(i)) | 0;
         const phase = ((h % 1000) / 1000) * Math.PI * 2;
         this.questMarkerLayer.addChild(sprite);
-        this.questMarkers.set(m.id, { sprite, baseY: m.y, phase });
+
+        // Optional caption. Pixi `Text` is heavy if instantiated
+        // every frame, but our marker set is tiny (≤ a handful)
+        // and only resets on scene change, so the per-marker cost
+        // is negligible. Anchor centered horizontally + bottom so
+        // the label's baseline sits just above the arrow tip.
+        let label: Text | null = null;
+        // Position the label above the sprite. Sprite anchor is
+        // (0.5, 1) so its top edge is roughly y - texture.height;
+        // give a 2 px gap above that so the label doesn't kiss
+        // the arrow's outline.
+        const labelBaseY = m.y - tex.height - 2;
+        if (m.label) {
+          label = new Text({
+            text: m.label,
+            style: {
+              fontFamily: 'monospace',
+              fontSize: 8,
+              fontWeight: '700',
+              fill: 0xfdf6e0,
+              stroke: { color: 0x1a1008, width: 3, join: 'round' },
+              align: 'center',
+            },
+          });
+          label.anchor.set(0.5, 1);
+          label.x = m.x;
+          label.y = labelBaseY;
+          this.questMarkerLayer.addChild(label);
+        }
+
+        this.questMarkers.set(m.id, { sprite, label, baseY: m.y, labelBaseY, phase });
       }
     };
     // Marker sprites typically aren't on the per-scene required-asset
@@ -986,8 +1036,9 @@ export class RenderSystem {
   }
 
   clearQuestMarkers(): void {
-    for (const { sprite } of this.questMarkers.values()) {
+    for (const { sprite, label } of this.questMarkers.values()) {
       sprite.destroy();
+      label?.destroy();
     }
     this.questMarkers.clear();
   }

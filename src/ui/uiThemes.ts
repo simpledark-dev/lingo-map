@@ -393,7 +393,7 @@ function buildHudTheme(colors: UIThemeColors, id: UIThemeId): HudTheme {
     statusRowStyle: {
       position: "absolute",
       top: 8,
-      left: 8,
+      left: 20,
       display: "flex",
       alignItems: "center",
       flexWrap: "wrap",
@@ -440,7 +440,7 @@ function buildHudTheme(colors: UIThemeColors, id: UIThemeId): HudTheme {
       pointerEvents: "auto",
       position: "absolute",
       top: 8,
-      right: 8,
+      right: 20,
       display: "flex",
       gap: 6,
     },

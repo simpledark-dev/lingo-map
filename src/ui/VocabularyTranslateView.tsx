@@ -698,26 +698,6 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                 }}
               >
                 <span>{formatBalance(coins)}</span>
-                {/* Floating delta — fades up + out on each answer. The
-                    `key={lastDelta}` retriggers the animation even if
-                    the value is the same as the previous one. */}
-                {lastDelta !== null ? (
-                  <span
-                    key={lastDelta + ':' + round.prompt.target}
-                    style={{
-                      position: 'absolute',
-                      top: -4,
-                      right: 4,
-                      color: lastDelta > 0 ? COLORS.correct : COLORS.wrong,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      animation: 'lingoMapTranslateDeltaFloat 900ms ease-out forwards',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    {formatDelta(lastDelta)}
-                  </span>
-                ) : null}
               </div>
               <PixelButton onClick={() => setSessionEnded(true)} small>
                 End ▶
@@ -738,8 +718,29 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
               padding: '20px 16px',
               flex: 1,
               minHeight: 0,
+              position: 'relative',
             }}
           >
+            {/* Big money feedback — intentionally lives in the work
+                area, not beside the wallet pill, so the player sees
+                the earn/loss moment while answering. */}
+            {lastDelta !== null ? (
+              <div className="vt-money-feedback-layer" aria-live="polite">
+                <div
+                  key={lastDelta + ':' + round.prompt.target}
+                  className="vt-money-feedback"
+                  style={{
+                    color: lastDelta > 0 ? COLORS.correct : COLORS.wrong,
+                    background: lastDelta > 0 ? COLORS.correctBg : COLORS.wrongBg,
+                    border: `3px solid ${lastDelta > 0 ? COLORS.correct : COLORS.wrong}`,
+                    boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 4px 0 0 ${COLORS.cardBorder}`,
+                  }}
+                >
+                  {formatDelta(lastDelta)}
+                </div>
+              </div>
+            ) : null}
+
             <div
               key={round.prompt.target}
               className="vt-prompt-section"
@@ -1130,9 +1131,11 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
             80%      { transform: translateX(2px); }
           }
           @keyframes lingoMapTranslateDeltaFloat {
-            0%   { opacity: 0; transform: translateY(0); }
-            20%  { opacity: 1; }
-            100% { opacity: 0; transform: translateY(-22px); }
+            0%   { opacity: 0; transform: translateY(10px) scale(0.82); }
+            14%  { opacity: 1; transform: translateY(0) scale(1.16); }
+            30%  { opacity: 1; transform: translateY(0) scale(1); }
+            74%  { opacity: 1; transform: translateY(-6px) scale(1); }
+            100% { opacity: 0; transform: translateY(-34px) scale(1.08); }
           }
           @keyframes lingoMapTranslateHintPulse {
             0%, 100% { opacity: 0.55; }
@@ -1151,6 +1154,29 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
             60%  { transform: scale(1); }
             100% { transform: scale(1); }
           }
+          .vt-money-feedback-layer {
+            position: absolute;
+            top: 92px;
+            left: 0;
+            right: 0;
+            z-index: 4;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+          }
+          .vt-money-feedback {
+            min-width: 92px;
+            padding: 8px 18px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 0;
+            line-height: 1;
+            animation: lingoMapTranslateDeltaFloat 1450ms ease-out forwards;
+            image-rendering: pixelated;
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.35);
+          }
 
           /* ── Landscape / short-viewport layout ──
              Triggered when the modal can't comfortably fit its
@@ -1163,6 +1189,8 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           @media (max-height: 540px) {
             .vt-body { padding: 10px 14px; }
             .vt-prompt-section { margin-bottom: 10px !important; text-align: center; }
+            .vt-money-feedback-layer { top: 48px; }
+            .vt-money-feedback { min-width: 74px; padding: 6px 14px; font-size: 20px; }
             .vt-prompt-label { display: none; }
             /* Stack word above speaker — the 2-col grid below saved
                enough vertical room that the speaker no longer needs
