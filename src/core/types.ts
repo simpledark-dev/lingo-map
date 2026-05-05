@@ -340,6 +340,12 @@ export interface DialogueState {
    *  keeps NPC English lines silent; target-language word audio is
    *  handled by vocabulary views instead. */
   audioUrl?: string;
+  /** When true, DialogueOverlay reveals the current line in full
+   *  immediately — no per-character typewriter pass. Used when we
+   *  RESTORE a dialogue the player has already read (e.g. the
+   *  translator offer after closing the wordlist) so the typing
+   *  pass doesn't replay copy they've already seen. */
+  skipTypewriter?: boolean;
   /** Marker that the React layer should rewrite the dialogue based
    *  on game state (inventory / event flags / debt / quest). Mirrors
    *  `NPCData.dialogueKind`; the engine just hands the marker off,

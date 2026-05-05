@@ -309,7 +309,17 @@ export default function GameCanvas() {
    *  name here and render `VocabularyListView` over the world. The
    *  dialogue closes; the list takes over until the player closes
    *  it via the back button or the dim background. */
-  const [vocabularyView, setVocabularyView] = useState<{ packId: string; npcName: string } | null>(null);
+  const [vocabularyView, setVocabularyView] = useState<{
+    packId: string;
+    npcName: string;
+    /** Snapshot of the offer dialogue we came FROM. Closing the
+     *  word-list pops this back so the player lands on the
+     *  Help / View / Decline menu again instead of a silent close
+     *  (which made the player feel like the game forgot why they
+     *  came). Null when the view was opened from a non-offer
+     *  flow — closing then just exits the view. */
+    returnDialogue: DialogueState | null;
+  } | null>(null);
   /** Same shape, but for the for-money translation work session. The
    *  player gets here by accepting the offer (option 1) then picking
    *  one of the mode buttons. `mode` distinguishes the recognition
@@ -1002,7 +1012,18 @@ export default function GameCanvas() {
     const packId = dialogue.vocabularyPackId;
 
     if (optionId === 'view' && packId) {
-      setVocabularyView({ packId, npcName: dialogue.npcName });
+      // Snapshot the current offer dialogue (Help / View / Decline)
+      // so closing the list returns the player to the same menu —
+      // otherwise tapping ✕ feels like the conversation evaporated.
+      // Reset `currentLine` to 0 AND set `skipTypewriter` so the
+      // restored dialogue lands fully revealed: the player already
+      // read the offer line, replaying the typing pass would feel
+      // like the game forgot the conversation just happened.
+      setVocabularyView({
+        packId,
+        npcName: dialogue.npcName,
+        returnDialogue: { ...dialogue, currentLine: 0, skipTypewriter: true },
+      });
       closeDialogueEverywhere();
       return;
     }
@@ -1230,7 +1251,19 @@ export default function GameCanvas() {
   }, [dialogue, closeDialogueEverywhere]);
 
   const handleCloseVocabularyView = useCallback(() => {
-    setVocabularyView(null);
+    // Pop the offer dialogue back if we came from one. The
+    // engine's `gameState.activeDialogue` was cleared via
+    // closeDialogueEverywhere on entry, so we re-set ONLY the
+    // React side. Tap-to-advance + option-pick on the restored
+    // dialogue go through the React-side branches we already
+    // have for `view` / `help` / `decline`, which never need the
+    // engine to know.
+    setVocabularyView((prev) => {
+      if (prev?.returnDialogue) {
+        setDialogue(prev.returnDialogue);
+      }
+      return null;
+    });
   }, []);
 
   const handleCloseTranslateView = useCallback(() => {

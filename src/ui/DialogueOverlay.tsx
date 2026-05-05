@@ -39,8 +39,20 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
   const visibleText = currentLine.slice(0, revealedCount);
 
   useEffect(() => {
+    if (!currentLine) {
+      setRevealedCount(0);
+      return;
+    }
+    // Skip-typewriter dialogues land fully revealed in a single
+    // tick — used when we RESTORE copy the player already read
+    // (e.g. the translator-offer menu after closing the wordlist).
+    // Replaying the typing pass on familiar lines feels like the
+    // game forgot itself.
+    if (dialogue.skipTypewriter) {
+      setRevealedCount(currentLine.length);
+      return;
+    }
     setRevealedCount(0);
-    if (!currentLine) return;
     let i = 0;
     const tick = () => {
       i += 1;
@@ -53,7 +65,7 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
     return () => {
       window.clearTimeout(timer);
     };
-  }, [currentLine, dialogue.npcId]);
+  }, [currentLine, dialogue.npcId, dialogue.skipTypewriter]);
 
   // Tap on the parchment: if still typing, fast-forward; if revealed
   // and the dialogue is a sequence (no options), advance to next

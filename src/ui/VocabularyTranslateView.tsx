@@ -45,7 +45,10 @@ import { cancelDialogueSpeech } from './tts';
 import { speakVocabWord } from './wordSpeak';
 import { playSfx, SFX } from './sfx';
 import { consumeEnergy } from '../data/energy';
+import { useInventory } from '../data/inventory';
+import { ITEMS } from '../data/items';
 import { getUiTheme } from './uiThemes';
+import AtlasSprite from './AtlasSprite';
 
 interface VocabularyTranslateViewProps {
   pack: VocabularyPack;
@@ -559,61 +562,17 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
     );
   }
 
-  // Out-of-energy short-circuit: replace the round UI with a
-  // simple parchment notice + Close. The player goes back to the
-  // map, opens the bag, eats, and re-enters this view (which will
-  // re-run the mount-effect that pays for the first round).
+  // Out-of-energy short-circuit. Three guidance branches based on
+  // what the player can do RIGHT NOW:
+  //   1. Has edible food in the bag → just eat it.
+  //   2. Has enough cash to buy the cheapest food → head to the Mart.
+  //   3. Broke → borrow from Theo first (shows Theo's portrait
+  //      so a player who hasn't met him knows who to look for).
+  // Branch logic is intentionally pessimistic: even if the player
+  // ALSO has food in the bag, we surface that path first — eating
+  // is one tap, walking to the Mart is many.
   if (outOfEnergy) {
-    return (
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 60,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(0,0,0,0.5)',
-          padding: 16,
-        }}
-        onClick={onClose}
-      >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              ...UI_THEME.modal.panelStyle,
-              padding: 20,
-              width: '100%',
-              maxWidth: 360,
-              gap: 14,
-              textAlign: 'center',
-            }}
-          >
-          <div style={{ fontSize: 38, lineHeight: 1 }}>⚡</div>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>Out of energy</div>
-          <div style={{ fontSize: 12, color: COLORS.hintText, lineHeight: 1.45 }}>
-            You&apos;re too tired to keep working. Open your <strong>Bag</strong> and eat
-            something to refill, then come back to {npcName}.
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: COLORS.accentGold,
-              color: '#fdf6e0',
-              border: `2px solid ${COLORS.cardBorder}`,
-              borderRadius: 4,
-              padding: '8px 14px',
-              fontSize: 13,
-              fontWeight: 700,
-              letterSpacing: 0.5,
-              cursor: 'pointer',
-            }}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
+    return <OutOfEnergyPanel npcName={npcName} onClose={onClose} />;
   }
 
   return (
@@ -1385,5 +1344,120 @@ function WriteForm({
         </div>
       )}
     </form>
+  );
+}
+
+/** Out-of-energy panel — picks one of three guidance branches:
+ *    1. Has edible food in inventory → "eat from bag".
+ *    2. Has the cash to buy the cheapest food → "head to Mart".
+ *    3. Broke → "borrow from Theo" + Theo portrait.
+ *  Lives as a small subcomponent so it can take its own hooks
+ *  (`useInventory`, `useWalletBalance`) without polluting the
+ *  parent's hook list — and so the conditional render at the
+ *  parent stays a single line. */
+function OutOfEnergyPanel({
+  npcName,
+  onClose,
+}: {
+  npcName: string;
+  onClose: () => void;
+}) {
+  const inventory = useInventory();
+  const balance = useWalletBalance();
+
+  // Cheapest food the catalog can offer (energy > 0). If the catalog
+  // is ever empty, we still want a sensible message — fall back to
+  // a non-zero number so the affordability branch doesn't silently
+  // route everyone to "broke" mode.
+  const edibles = Object.values(ITEMS).filter((i) => (i.energy ?? 0) > 0);
+  const cheapestPrice = edibles.length
+    ? Math.min(...edibles.map((i) => i.priceCents))
+    : Infinity;
+
+  const haveFoodInBag = edibles.some((def) => (inventory[def.id] ?? 0) > 0);
+  const canAffordFood = balance >= cheapestPrice;
+
+  let body: React.ReactNode;
+  if (haveFoodInBag) {
+    body = (
+      <div style={{ fontSize: 12, color: COLORS.hintText, lineHeight: 1.45 }}>
+        You&apos;re too tired to keep working. Open your <strong>Bag</strong>
+        {' '}and eat something to refill, then come back to {npcName}.
+      </div>
+    );
+  } else if (canAffordFood) {
+    body = (
+      <div style={{ fontSize: 12, color: COLORS.hintText, lineHeight: 1.45 }}>
+        You&apos;re too tired to keep working. You have{' '}
+        <strong>{formatBalance(balance)}</strong> — head to the{' '}
+        <strong>Mart</strong> and buy a snack, then come back to {npcName}.
+      </div>
+    );
+  } else {
+    body = (
+      <>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <AtlasSprite
+            atlasKey="me-char-19-down"
+            scale={3}
+            ariaLabel="Theo"
+          />
+        </div>
+        <div style={{ fontSize: 12, color: COLORS.hintText, lineHeight: 1.45 }}>
+          You&apos;re too tired to keep working — and you can&apos;t afford
+          food on <strong>{formatBalance(balance)}</strong>. Find{' '}
+          <strong>Theo</strong> on the path; he&apos;ll spot you a small
+          loan you can pay back later.
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 60,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.5)',
+        padding: 16,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          ...UI_THEME.modal.panelStyle,
+          padding: 20,
+          width: '100%',
+          maxWidth: 360,
+          gap: 14,
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: 38, lineHeight: 1 }}>⚡</div>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>Out of energy</div>
+        {body}
+        <button
+          onClick={onClose}
+          style={{
+            background: COLORS.accentGold,
+            color: '#fdf6e0',
+            border: `2px solid ${COLORS.cardBorder}`,
+            borderRadius: 4,
+            padding: '8px 14px',
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: 0.5,
+            cursor: 'pointer',
+          }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
   );
 }
