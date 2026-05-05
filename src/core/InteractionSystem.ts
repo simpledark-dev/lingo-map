@@ -15,7 +15,7 @@ import { getVocabularyPack } from "../data/vocabularyPacks";
 export function checkInteraction(
   player: PlayerState,
   npcs: NPCData[],
-  input: InputState
+  input: InputState,
 ): DialogueState | null {
   if (!input.interact) return null;
 
@@ -35,8 +35,8 @@ export function checkInteraction(
         lines: [`Welcome to ${npc.shopName}! Want to take a look?`],
         currentLine: 0,
         options: [
-          { id: 'shop-browse', label: 'Browse items' },
-          { id: 'shop-leave', label: 'Maybe later' },
+          { id: "shop-browse", label: "Browse items" },
+          { id: "shop-leave", label: "Maybe later" },
         ],
       };
     }
@@ -50,7 +50,7 @@ export function checkInteraction(
       return {
         npcId: npc.id,
         npcName: npc.name,
-        lines: [npc.dialogue[0] ?? '...'],
+        lines: [npc.dialogue[0] ?? "..."],
         currentLine: 0,
         dialogueKind: npc.dialogueKind,
       };
@@ -75,18 +75,18 @@ export function checkInteraction(
         options: [
           {
             id: "help",
-            label: "1. Sure, I'll give it a shot",
-            hint: "Earn coins for every word you get right. Wrong ones will cost you.",
+            label: "Sure, I'll give it a shot",
+            hint: "Earn money for every word you get right. Wrong ones will cost you.",
           },
           {
             id: "view",
-            label: `2. Let me look them over first (${wordCount})`,
-            hint: "Browse the list, hear how they sound, practice freely — no coins on the line.",
+            label: `Let me look them over first (${wordCount} words)`,
+            hint: "Browse the list, hear how they sound, practice freely — no money on the line.",
           },
           {
             id: "decline",
-            label: "3. Sorry, not right now",
-            hint: "Maybe another time.",
+            label: "Sorry, not right now",
+            hint: "",
           },
         ],
       };

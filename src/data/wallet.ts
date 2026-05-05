@@ -25,9 +25,10 @@ const STORAGE_KEY = 'lingo-wallet:balance';
  *  way" milestones. Lives in its own key so penalties / shop spends
  *  / debt repayment don't reset the milestone. */
 const LIFETIME_EARNED_KEY = 'lingo-wallet:lifetime-earned';
+export const REWARD_PER_CORRECT_STORAGE_KEY = 'lingo-wallet:reward-per-correct';
 const STARTING_BALANCE_CENTS = 200;
 
-/** Cents earned for a correct vocabulary answer. ($0.03) */
+/** Default cents earned for a correct vocabulary answer. ($0.03) */
 export const REWARD_PER_CORRECT = 3;
 /** Cents removed for a wrong vocabulary answer. ($0.02) */
 export const PENALTY_PER_WRONG = 2;
@@ -47,6 +48,14 @@ let cached: number | null = null;
 type EarningsListener = (lifetime: number) => void;
 const earningsListeners = new Set<EarningsListener>();
 let earningsCached: number | null = null;
+type RewardListener = (reward: number) => void;
+const rewardListeners = new Set<RewardListener>();
+let rewardCached: number | null = null;
+
+function normalizeReward(value: number): number {
+  if (!Number.isFinite(value)) return REWARD_PER_CORRECT;
+  return Math.max(0, Math.min(999_999, Math.round(value)));
+}
 
 function read(): number {
   if (cached !== null) return cached;
@@ -117,6 +126,29 @@ function writeEarnings(value: number): void {
   } catch { /* silent */ }
 }
 
+function readReward(): number {
+  if (rewardCached !== null) return rewardCached;
+  if (typeof window === 'undefined') {
+    rewardCached = REWARD_PER_CORRECT;
+    return rewardCached;
+  }
+  try {
+    const raw = window.localStorage.getItem(REWARD_PER_CORRECT_STORAGE_KEY);
+    rewardCached = raw === null ? REWARD_PER_CORRECT : normalizeReward(Number(raw));
+  } catch {
+    rewardCached = REWARD_PER_CORRECT;
+  }
+  return rewardCached;
+}
+
+function writeReward(value: number): void {
+  rewardCached = normalizeReward(value);
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(REWARD_PER_CORRECT_STORAGE_KEY, String(rewardCached));
+  } catch { /* silent */ }
+}
+
 /** Lifetime cents earned via translation work. Distinct from
  *  current balance: spending, penalties, and debt never reduce
  *  this number. */
@@ -137,10 +169,46 @@ export function creditEarnings(cents: number): number {
   return addBalance(cents);
 }
 
+/** Current correct-answer reward in cents. Dev Settings can override
+ *  this while testing economy pacing; production defaults to $0.03
+ *  unless a local override already exists. */
+export function getRewardPerCorrect(): number {
+  return readReward();
+}
+
+export function setRewardPerCorrect(cents: number): number {
+  const next = normalizeReward(cents);
+  writeReward(next);
+  for (const l of rewardListeners) l(next);
+  return next;
+}
+
+export function adjustRewardPerCorrect(deltaCents: number): number {
+  return setRewardPerCorrect(readReward() + deltaCents);
+}
+
+export function resetRewardPerCorrect(): number {
+  rewardCached = REWARD_PER_CORRECT;
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.removeItem(REWARD_PER_CORRECT_STORAGE_KEY);
+    } catch { /* silent */ }
+  }
+  for (const l of rewardListeners) l(REWARD_PER_CORRECT);
+  return REWARD_PER_CORRECT;
+}
+
 export function subscribeEarnings(listener: EarningsListener): () => void {
   earningsListeners.add(listener);
   return () => {
     earningsListeners.delete(listener);
+  };
+}
+
+export function subscribeRewardPerCorrect(listener: RewardListener): () => void {
+  rewardListeners.add(listener);
+  return () => {
+    rewardListeners.delete(listener);
   };
 }
 
@@ -151,6 +219,15 @@ export function useLifetimeEarnings(): number {
   useEffect(() => {
     setV(getLifetimeEarnings());
     return subscribeEarnings(setV);
+  }, []);
+  return v;
+}
+
+export function useRewardPerCorrect(): number {
+  const [v, setV] = useState<number>(() => getRewardPerCorrect());
+  useEffect(() => {
+    setV(getRewardPerCorrect());
+    return subscribeRewardPerCorrect(setV);
   }, []);
   return v;
 }

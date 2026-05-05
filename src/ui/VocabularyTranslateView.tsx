@@ -32,11 +32,11 @@ import {
   recordPromptShown,
 } from '../data/vocabSelection';
 import {
-  REWARD_PER_CORRECT,
   PENALTY_PER_WRONG,
   PENALTY_PER_IDK,
   addBalance,
   creditEarnings,
+  getRewardPerCorrect,
   useWalletBalance,
   formatBalance,
   formatDelta,
@@ -149,7 +149,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
    *  view mount starts a fresh log. */
   type RoundOutcome = 'correct' | 'wrong' | 'idk';
   const [sessionLog, setSessionLog] = useState<
-    Array<{ target: string; english: string; outcome: RoundOutcome }>
+    Array<{ target: string; english: string; outcome: RoundOutcome; moneyDelta: number }>
   >([]);
   /** Player tapped "End session" — flip into the summary screen
    *  instead of immediately closing so they can see how the
@@ -240,7 +240,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       const guess = raw.trim().toLowerCase();
       if (!guess) return; // empty submit — ignore
       const isCorrect = guess === round.prompt.target.toLowerCase();
-      const delta = isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG;
+      const delta = isCorrect ? getRewardPerCorrect() : -PENALTY_PER_WRONG;
       // Positive reward routes through `creditEarnings` so it
       // counts toward the lifetime-earned milestone (first-paycheck
       // quest etc.); penalties stay as plain balance changes —
@@ -270,6 +270,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           target: round.prompt.target,
           english: round.prompt.english,
           outcome: isCorrect ? 'correct' : 'wrong',
+          moneyDelta: delta,
         },
       ]);
       setWaitingOnNext(true);
@@ -282,7 +283,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       if (selectedTarget !== null || waitingOnNext) return;
       setSelectedTarget(chosen.target);
       const isCorrect = chosen.target === round.prompt.target;
-      const delta = isCorrect ? REWARD_PER_CORRECT : -PENALTY_PER_WRONG;
+      const delta = isCorrect ? getRewardPerCorrect() : -PENALTY_PER_WRONG;
       if (isCorrect) creditEarnings(delta);
       else addBalance(delta);
       setLastDelta(delta);
@@ -311,6 +312,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           target: round.prompt.target,
           english: round.prompt.english,
           outcome: isCorrect ? 'correct' : 'wrong',
+          moneyDelta: delta,
         },
       ]);
       setWaitingOnNext(true);
@@ -329,19 +331,21 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
    *  auto-expands — they asked for help, they get help. */
   const handleIDontKnow = useCallback(() => {
     if (selectedTarget !== null || waitingOnNext) return;
+    const delta = -PENALTY_PER_IDK;
     setProgress((p) => {
       const updated = recordAnswer(p, round.prompt.target, false);
       saveProgress(pack.id, updated);
       return updated;
     });
-    addBalance(-PENALTY_PER_IDK);
-    setLastDelta(-PENALTY_PER_IDK);
+    addBalance(delta);
+    setLastDelta(delta);
     setSessionLog((log) => [
       ...log,
       {
         target: round.prompt.target,
         english: round.prompt.english,
         outcome: 'idk',
+        moneyDelta: delta,
       },
     ]);
     setWaitingOnNext(true);
@@ -370,13 +374,13 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
     const wrong = sessionLog.filter((r) => r.outcome === 'wrong').length;
     const idk = sessionLog.filter((r) => r.outcome === 'idk').length;
     const successRate = total === 0 ? 0 : Math.round((correct / total) * 100);
-    // Per-session net wallet delta — derived from sessionLog +
-    // the wallet rate constants rather than a snapshot diff so
+    // Per-session net wallet delta — derived from the logged round
+    // deltas rather than a snapshot diff so custom dev rewards and
     // mid-session borrows/repays/shop purchases don't pollute the
     // "earned this session" number.
-    const sessionEarned = correct * REWARD_PER_CORRECT;
-    const sessionLost = wrong * PENALTY_PER_WRONG + idk * PENALTY_PER_IDK;
-    const sessionNet = sessionEarned - sessionLost;
+    const sessionNet = sessionLog.reduce((sum, r) => sum + r.moneyDelta, 0);
+    const sessionEarned = sessionLog.reduce((sum, r) => r.moneyDelta > 0 ? sum + r.moneyDelta : sum, 0);
+    const sessionLost = -sessionLog.reduce((sum, r) => r.moneyDelta < 0 ? sum + r.moneyDelta : sum, 0);
     const missesByTarget = new Map<string, { english: string; count: number }>();
     for (const r of sessionLog) {
       if (r.outcome === 'correct') continue;

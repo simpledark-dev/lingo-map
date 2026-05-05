@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Shop modal — opens when the player taps "Browse" on a shopkeeper
@@ -11,16 +11,12 @@
  * outside of penalties, so even one item is enough to close the
  * earn → spend loop.
  */
-import { useCallback } from 'react';
-import { ALL_ITEM_IDS, getItem } from '../data/items';
-import {
-  addBalance,
-  formatBalance,
-  useWalletBalance,
-} from '../data/wallet';
-import { addItem } from '../data/inventory';
-import { completeQuest, getQuestStatus } from '../data/quests';
-import { getUiTheme } from './uiThemes';
+import { useCallback } from "react";
+import { ALL_ITEM_IDS, getItem } from "../data/items";
+import { addBalance, formatBalance, useWalletBalance } from "../data/wallet";
+import { addItem } from "../data/inventory";
+import { completeQuest, getQuestStatus } from "../data/quests";
+import { getUiTheme } from "./uiThemes";
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -34,50 +30,53 @@ interface ShopViewProps {
 export default function ShopView({ shopName, onClose }: ShopViewProps) {
   const balance = useWalletBalance();
 
-  const handleBuy = useCallback((itemId: string) => {
-    const def = getItem(itemId);
-    if (!def) return;
-    if (balance < def.priceCents) return; // UI also disables the button — guard anyway
-    addBalance(-def.priceCents);
-    addItem(itemId, 1);
-    // Tutorial — first food purchase during the buy-food quest
-    // closes it. Limited to edible items (energy > 0) so a future
-    // non-food catalog entry doesn't accidentally complete the
-    // tutorial step.
-    if (
-      (def.energy ?? 0) > 0
-      && getQuestStatus('tutorial-buy-food') === 'active'
-    ) {
-      completeQuest('tutorial-buy-food');
-    }
-  }, [balance]);
+  const handleBuy = useCallback(
+    (itemId: string) => {
+      const def = getItem(itemId);
+      if (!def) return;
+      if (balance < def.priceCents) return; // UI also disables the button — guard anyway
+      addBalance(-def.priceCents);
+      addItem(itemId, 1);
+      // Tutorial — first food purchase during the buy-food quest
+      // closes it. Limited to edible items (energy > 0) so a future
+      // non-food catalog entry doesn't accidentally complete the
+      // tutorial step.
+      if (
+        (def.energy ?? 0) > 0 &&
+        getQuestStatus("tutorial-buy-food") === "active"
+      ) {
+        completeQuest("tutorial-buy-food");
+      }
+    },
+    [balance],
+  );
 
   return (
     <div
       style={{
-        position: 'absolute',
+        position: "absolute",
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.55)',
+        background: "rgba(0, 0, 0, 0.55)",
         zIndex: 800,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         padding: 16,
-        boxSizing: 'border-box',
+        boxSizing: "border-box",
       }}
       onClick={(e) => e.stopPropagation()}
     >
       <div
         style={{
           ...UI_THEME.modal.panelStyle,
-          width: 'min(420px, 100%)',
-          maxHeight: '90dvh',
+          width: "min(420px, 100%)",
+          maxHeight: "90dvh",
           padding: 16,
           gap: 12,
         }}
       >
         {/* Header — shop name + balance + close */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div
             style={{
               flex: 1,
@@ -96,7 +95,7 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
               color: COLORS.text,
               background: COLORS.parchmentLight,
               border: `2px solid ${COLORS.cardBorder}`,
-              padding: '4px 10px',
+              padding: "4px 10px",
               borderRadius: 4,
             }}
             title="Your wallet"
@@ -108,14 +107,15 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
             onClick={onClose}
             aria-label="Close shop"
             style={{
-              width: 28, height: 28,
+              width: 28,
+              height: 28,
               background: COLORS.parchmentLight,
               border: `2px solid ${COLORS.cardBorder}`,
               borderRadius: 4,
               color: COLORS.text,
               fontSize: 14,
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: "pointer",
             }}
           >
             ✕
@@ -126,7 +126,7 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
           style={{
             fontSize: 11,
             color: COLORS.hintText,
-            textTransform: 'uppercase',
+            textTransform: "uppercase",
             letterSpacing: 1,
             fontWeight: 700,
           }}
@@ -137,10 +137,10 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
         {/* Item list — scrolls if it ever outgrows the viewport. */}
         <div
           style={{
-            display: 'flex',
-            flexDirection: 'column',
+            display: "flex",
+            flexDirection: "column",
             gap: 8,
-            overflowY: 'auto',
+            overflowY: "auto",
             paddingRight: 4,
           }}
         >
@@ -152,25 +152,44 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
               <div
                 key={id}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
+                  display: "flex",
+                  alignItems: "center",
                   gap: 10,
                   background: COLORS.cardRest,
                   border: `2px solid ${COLORS.cardBorder}`,
                   borderRadius: 6,
-                  padding: '8px 10px',
+                  padding: "8px 10px",
                   boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
                 }}
               >
-                <div style={{ fontSize: 28, lineHeight: 1, width: 32, textAlign: 'center' }}>
+                <div
+                  style={{
+                    fontSize: 28,
+                    lineHeight: 1,
+                    width: 32,
+                    textAlign: "center",
+                  }}
+                >
                   {def.icon}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: COLORS.text,
+                    }}
+                  >
                     {def.name}
                   </div>
                   {def.description && (
-                    <div style={{ fontSize: 11, color: COLORS.hintText, lineHeight: 1.35 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: COLORS.hintText,
+                        lineHeight: 1.35,
+                      }}
+                    >
                       {def.description}
                     </div>
                   )}
@@ -181,7 +200,7 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
                     fontWeight: 700,
                     color: COLORS.accentGoldDark,
                     minWidth: 52,
-                    textAlign: 'right',
+                    textAlign: "right",
                   }}
                 >
                   {formatBalance(def.priceCents)}
@@ -190,19 +209,21 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
                   onClick={() => handleBuy(id)}
                   disabled={!canAfford}
                   style={{
-                    background: canAfford ? COLORS.buyEnabled : COLORS.buyDisabled,
-                    color: '#fdf6e0',
+                    background: canAfford
+                      ? COLORS.buyEnabled
+                      : COLORS.buyDisabled,
+                    color: "#fdf6e0",
                     border: `2px solid ${COLORS.cardBorder}`,
                     borderRadius: 4,
-                    padding: '6px 10px',
+                    padding: "6px 10px",
                     fontSize: 12,
                     fontWeight: 700,
                     letterSpacing: 0.5,
-                    cursor: canAfford ? 'pointer' : 'not-allowed',
+                    cursor: canAfford ? "pointer" : "not-allowed",
                     opacity: canAfford ? 1 : 0.7,
                   }}
                 >
-                  {canAfford ? 'Buy' : 'Need more $'}
+                  {canAfford ? "Buy" : "Buy"}
                 </button>
               </div>
             );

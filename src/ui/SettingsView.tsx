@@ -13,7 +13,13 @@
  */
 import { useState } from 'react';
 import { resetAllGameData } from '../data/reset';
-import { creditEarnings, useLifetimeEarnings, formatBalance } from '../data/wallet';
+import {
+  creditEarnings,
+  useLifetimeEarnings,
+  useRewardPerCorrect,
+  setRewardPerCorrect,
+  formatBalance,
+} from '../data/wallet';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -37,6 +43,7 @@ export default function SettingsView({
   // Live read so the dev "Earn $1" button label can show current
   // lifetime earnings — saves opening the wallet pill to check.
   const lifetime = useLifetimeEarnings();
+  const rewardPerCorrect = useRewardPerCorrect();
   // Dev cheats are only surfaced outside production builds. Keeps
   // a player on the deployed game from accidentally tapping a
   // "+$1" button. Next.js inlines `process.env.NODE_ENV` at build
@@ -78,6 +85,7 @@ export default function SettingsView({
           ...UI_THEME.modal.panelStyle,
           width: 'min(380px, 100%)',
           maxHeight: '90dvh',
+          overflowY: 'auto',
           padding: 18,
           gap: 14,
         }}
@@ -309,6 +317,90 @@ export default function SettingsView({
                 >
                   Earn +$5.00
                 </button>
+              </div>
+              <div
+                style={{
+                  borderTop: `1px dashed ${COLORS.cardBorder}`,
+                  paddingTop: 8,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                }}
+              >
+                <div style={{ fontSize: 12, lineHeight: 1.4 }}>
+                  Correct-answer reward: <strong>{formatBalance(rewardPerCorrect)}</strong>.
+                  Applies to new correct vocabulary answers immediately.
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRewardPerCorrect(3)}
+                    style={{
+                      background: COLORS.cardRest,
+                      color: COLORS.text,
+                      border: `2px solid ${COLORS.cardBorder}`,
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: 0.5,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    $0.03
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRewardPerCorrect(5)}
+                    style={{
+                      background: COLORS.cardRest,
+                      color: COLORS.text,
+                      border: `2px solid ${COLORS.cardBorder}`,
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: 0.5,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    $0.05
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRewardPerCorrect(10)}
+                    style={{
+                      background: COLORS.cardRest,
+                      color: COLORS.text,
+                      border: `2px solid ${COLORS.cardBorder}`,
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: 0.5,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    $0.10
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRewardPerCorrect(50)}
+                    style={{
+                      background: COLORS.cardRest,
+                      color: COLORS.text,
+                      border: `2px solid ${COLORS.cardBorder}`,
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: 0.5,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    $0.50
+                  </button>
+                </div>
               </div>
             </div>
           </>

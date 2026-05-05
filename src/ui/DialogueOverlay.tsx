@@ -18,6 +18,21 @@ interface DialogueOverlayProps {
  *  pass. ~22ms ≈ 45 chars/sec — brisk but still legibly per-letter
  *  in JRPG style. Tap on the dialogue box snaps the rest in. */
 const TYPEWRITER_INTERVAL_MS = 22;
+const TRANSLATE_MODE_OPTION_COLORS: Record<
+  string,
+  { bg: string; hover: string; border: string }
+> = {
+  "mode-read": { bg: "#f3d895", hover: "#ffe7a8", border: "#9a6e16" },
+  "mode-listen": { bg: "#dce4b7", hover: "#edf2ca", border: "#697a3a" },
+  "mode-write": { bg: "#cfe1e8", hover: "#e0eef3", border: "#3b87a6" },
+  "mode-speak": { bg: "#e9c7bc", hover: "#f3d7ce", border: "#8f5a68" },
+};
+const TRANSLATE_MODE_OPTION_NUMBERS: Record<string, string> = {
+  "mode-read": "1",
+  "mode-listen": "2",
+  "mode-write": "3",
+  "mode-speak": "4",
+};
 
 export default function DialogueOverlay({
   dialogue,
@@ -150,6 +165,17 @@ export default function DialogueOverlay({
               {dialogue.options!.map((opt) => {
                 const isDisabled = !!opt.disabled || !!opt.comingSoon;
                 const showSoonBadge = !!opt.comingSoon;
+                const modeOptionColors = TRANSLATE_MODE_OPTION_COLORS[opt.id];
+                const modeOptionNumber = TRANSLATE_MODE_OPTION_NUMBERS[opt.id];
+                const labelText = modeOptionNumber
+                  ? opt.label.replace(/^\d+\.\s*/, "")
+                  : opt.label;
+                const optionRestShadow = modeOptionColors
+                  ? `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${modeOptionColors.border}`
+                  : theme.optionButtonRestShadow;
+                const optionPressedShadow = modeOptionColors
+                  ? `inset 1px 1px 0 0 ${COLORS.parchmentLight}`
+                  : theme.optionButtonPressedShadow;
                 return (
                   <button
                     key={opt.id}
@@ -168,38 +194,60 @@ export default function DialogueOverlay({
                     }}
                     style={{
                       ...theme.optionButtonStyle,
-                      boxShadow: isDisabled
-                        ? "none"
-                        : theme.optionButtonRestShadow,
+                      background: modeOptionColors?.bg ?? theme.optionButtonStyle.background,
+                      border: modeOptionColors
+                        ? `2px solid ${modeOptionColors.border}`
+                        : theme.optionButtonStyle.border,
+                      boxShadow: isDisabled ? "none" : optionRestShadow,
                       cursor: isDisabled ? "not-allowed" : "pointer",
                       opacity: isDisabled ? 0.55 : 1,
                     }}
                     onMouseDown={(e) => {
                       if (isDisabled) return;
                       e.currentTarget.style.transform = "translateY(2px)";
-                      e.currentTarget.style.boxShadow =
-                        theme.optionButtonPressedShadow;
+                      e.currentTarget.style.boxShadow = optionPressedShadow;
                     }}
                     onMouseUp={(e) => {
                       if (isDisabled) return;
                       e.currentTarget.style.transform = "";
-                      e.currentTarget.style.boxShadow =
-                        theme.optionButtonRestShadow;
+                      e.currentTarget.style.boxShadow = optionRestShadow;
                     }}
                     onMouseEnter={(e) => {
                       if (isDisabled) return;
-                      e.currentTarget.style.background = COLORS.optionHover;
+                      e.currentTarget.style.background =
+                        modeOptionColors?.hover ?? COLORS.optionHover;
                     }}
                     onMouseLeave={(e) => {
                       if (isDisabled) return;
-                      e.currentTarget.style.background = COLORS.optionRest;
+                      e.currentTarget.style.background =
+                        modeOptionColors?.bg ?? COLORS.optionRest;
                       e.currentTarget.style.transform = "";
-                      e.currentTarget.style.boxShadow =
-                        theme.optionButtonRestShadow;
+                      e.currentTarget.style.boxShadow = optionRestShadow;
                     }}
                   >
                     <div style={theme.optionLabelStyle}>
-                      <span>{opt.label}</span>
+                      {modeOptionNumber ? (
+                        <span
+                          style={{
+                            minWidth: 24,
+                            height: 22,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: modeOptionColors?.border ?? COLORS.accentGold,
+                            border: `1px solid ${COLORS.cardBorder}`,
+                            borderRadius: 3,
+                            boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}`,
+                            color: COLORS.parchmentLight,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {modeOptionNumber}
+                        </span>
+                      ) : null}
+                      <span>{labelText}</span>
                       {showSoonBadge ? (
                         <span style={theme.soonBadgeStyle}>SOON</span>
                       ) : null}

@@ -1,5 +1,6 @@
 import { SETTINGS_STORAGE_KEY } from './settings';
 import { WORLD_SAVE_STORAGE_KEY } from './worldSave';
+import { REWARD_PER_CORRECT_STORAGE_KEY } from './wallet';
 
 /**
  * One-call full reset for the game. Wipes every localStorage key
@@ -18,6 +19,7 @@ import { WORLD_SAVE_STORAGE_KEY } from './worldSave';
 const STORAGE_KEYS = [
   'lingo-wallet:balance',
   'lingo-wallet:lifetime-earned',
+  REWARD_PER_CORRECT_STORAGE_KEY,
   'lingo-inventory:v1',
   'lingo-energy:v1',
   'lingo-debt:v1',
