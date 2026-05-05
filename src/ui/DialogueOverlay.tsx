@@ -86,6 +86,28 @@ export default function DialogueOverlay({
     };
   }, [currentLine, dialogue.npcId, dialogue.skipTypewriter]);
 
+  // Settle time between typewriter completion and option render.
+  // Without this, the same React tick that paints the last
+  // character also flips `isFullyRevealed` true and reveals the
+  // option buttons — the player's eye is still tracking the
+  // typewriter and the options feel like they jumped the gun.
+  // 250ms is enough to read as "the line landed, now choose."
+  // Restored dialogues (skipTypewriter) bypass the wait — replaying
+  // a settle on familiar copy is just lag.
+  const [optionsSettled, setOptionsSettled] = useState(false);
+  useEffect(() => {
+    if (!hasOptions || !isLastLine || !isFullyRevealed) {
+      setOptionsSettled(false);
+      return;
+    }
+    if (dialogue.skipTypewriter) {
+      setOptionsSettled(true);
+      return;
+    }
+    const t = window.setTimeout(() => setOptionsSettled(true), 250);
+    return () => window.clearTimeout(t);
+  }, [hasOptions, isLastLine, isFullyRevealed, dialogue.skipTypewriter]);
+
   // Tap on the parchment: if still typing, fast-forward; if revealed
   // and the dialogue is a sequence (no options), advance to next
   // line; if it's a prompt with options, ignore (player picks via the
@@ -156,12 +178,20 @@ export default function DialogueOverlay({
             ) : null}
           </div>
 
-          {/* Options stay hidden until the line finishes typing — the
-              player shouldn't be able to pick before they've read the
-              prompt. Same idea for the "tap to continue" indicator
-              below. */}
-          {hasOptions && isFullyRevealed ? (
-            <div style={theme.optionsStyle}>
+          {/* Options stay hidden until the LAST line finishes typing
+              — the player shouldn't be able to pick before they've
+              read the whole prompt, and on multi-line dialogues
+              (e.g. CEO intro) gating only on `isFullyRevealed`
+              would surface choices on line 0 with more text still
+              to come. Fade-in softens the appearance so it doesn't
+              pop. */}
+          {hasOptions && optionsSettled ? (
+            <div
+              style={{
+                ...theme.optionsStyle,
+                animation: 'lingoMapDialogueOptionsIn 220ms ease-out',
+              }}
+            >
               {dialogue.options!.map((opt) => {
                 const isDisabled = !!opt.disabled || !!opt.comingSoon;
                 const showSoonBadge = !!opt.comingSoon;
@@ -295,6 +325,10 @@ export default function DialogueOverlay({
           @keyframes lingoMapDialogueBlink {
             0%, 100% { opacity: 1; transform: translateY(0); }
             50%       { opacity: 0.5; transform: translateY(2px); }
+          }
+          @keyframes lingoMapDialogueOptionsIn {
+            0%   { opacity: 0; transform: translateY(4px); }
+            100% { opacity: 1; transform: translateY(0); }
           }
         `}</style>
       </div>

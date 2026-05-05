@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react';
 import {
   QuestTransition,
+  getTitle,
   subscribeQuestTransitions,
 } from '../data/quests';
 import { getUiTheme } from './uiThemes';
@@ -109,7 +110,7 @@ export default function QuestToast() {
             {labelTop}
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.parchment, lineHeight: 1.25 }}>
-            {active.def.title}
+            {getTitle(active.def)}
           </div>
         </div>
       </div>

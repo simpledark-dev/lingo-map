@@ -38,6 +38,7 @@ import {
   completeQuest,
   getQuestStatus,
   useQuestStatuses,
+  subscribeQuestTransitions,
   FIRST_PAYCHECK_THRESHOLD_CENTS,
   FIRST_PAYCHECK_BONUS_CENTS,
 } from "../data/quests";
@@ -379,6 +380,15 @@ export default function GameCanvas() {
   const [shopView, setShopView] = useState<{ shopName: string } | null>(null);
   /** Quest log modal — opened via the HUD scroll button. */
   const [questLogOpen, setQuestLogOpen] = useState(false);
+  /** True when a quest has started since the player last opened the
+   *  log. Drives a pulse on the quest button so a chained start
+   *  (catch-up effect auto-firing the next quest right after the
+   *  previous one completes) doesn't slip past unnoticed. Persisted
+   *  so a reload doesn't silently swallow the cue. */
+  const [questHasUnread, setQuestHasUnread] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try { return localStorage.getItem('lingo-quest:has-unread') === '1'; } catch { return false; }
+  });
   /** Inventory modal — opens via the HUD bag pill. Lets the player
    *  eat held food items (which restores energy). */
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -431,6 +441,23 @@ export default function GameCanvas() {
   const walletBalance = useWalletBalance();
   const debt = useDebt();
   const questStatuses = useQuestStatuses();
+
+  // Pulse-the-quest-button driver. Listens for `started` transitions
+  // and flips the unread flag; the QuestLog open handler clears it.
+  // Refresh-safe via localStorage.
+  useEffect(() => {
+    return subscribeQuestTransitions((event) => {
+      if (event.kind !== 'started') return;
+      setQuestHasUnread(true);
+      try { localStorage.setItem('lingo-quest:has-unread', '1'); } catch {}
+    });
+  }, []);
+
+  const openQuestLog = useCallback(() => {
+    setQuestLogOpen(true);
+    setQuestHasUnread(false);
+    try { localStorage.setItem('lingo-quest:has-unread', '0'); } catch {}
+  }, []);
   const worldPausedByOverlay = Boolean(
     dialogue ||
     vocabularyView ||
@@ -1283,7 +1310,20 @@ export default function GameCanvas() {
         if (getQuestStatus("tutorial-borrow") === "active") {
           completeQuest("tutorial-borrow");
         }
-        setDialogue(buildLenderDialogue(dialogue));
+        // Close on a confirmation line instead of re-showing the
+        // borrow menu — playtest feedback was that the menu coming
+        // straight back made it feel like the player could (or
+        // should) immediately borrow again. Re-engaging Theo
+        // re-opens the menu with the fresh ledger; this is just
+        // about ending the current beat cleanly.
+        setDialogue({
+          npcId: dialogue.npcId,
+          npcName: dialogue.npcName,
+          lines: [
+            `Here's ${formatBalance(BORROW_INCREMENT_CENTS)}. You now owe me ${formatBalance(getDebt())}.`,
+          ],
+          currentLine: 0,
+        });
         return;
       }
       if (optionId === "lender-repay") {
@@ -1914,12 +1954,44 @@ export default function GameCanvas() {
 
           {/* Quest log — opens the modal listing active + completed
               quests. Always visible so the player can re-read the
-              objective whenever they want. */}
+              objective whenever they want. The dot + pulse share a
+              single "unread" semantic: both light up when a quest
+              starts and both clear when the player opens the log.
+              The QuestHud strip is the persistent "you have active
+              quests" signal — duplicating that here would dilute
+              the unread cue. */}
           <button
-            onClick={() => setQuestLogOpen(true)}
-            style={btnStyle}
+            onClick={openQuestLog}
+            style={{
+              ...btnStyle,
+              position: 'relative',
+              animation: questHasUnread
+                ? 'lingoMapQuestBtnPulse 1.4s ease-in-out infinite'
+                : undefined,
+            }}
             aria-label="Open quest log"
           >
+            {questHasUnread && (
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#ff3b30',
+                  boxShadow: '0 0 0 1.5px rgba(0,0,0,0.6)',
+                }}
+              />
+            )}
+            <style>{`
+              @keyframes lingoMapQuestBtnPulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.55); transform: scale(1); }
+                50%      { box-shadow: 0 0 0 8px rgba(255, 59, 48, 0);     transform: scale(1.08); }
+              }
+            `}</style>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <rect
                 x="3"
@@ -2140,7 +2212,7 @@ export default function GameCanvas() {
             IntroHintBanner since the intro quest's title alone
             already conveys "head to the office." Tap to open the
             full log; auto-hides when no quest is active. */}
-        <QuestHud onOpenLog={() => setQuestLogOpen(true)} />
+        <QuestHud onOpenLog={openQuestLog} />
 
         {/* Intro cutscene — full-screen overlay shown once on a
             fresh save (or after a dev reset). Blocks the world

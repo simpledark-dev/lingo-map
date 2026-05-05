@@ -22,6 +22,7 @@
  */
 import { useEffect, useState } from 'react';
 import { hasFlag, FLAGS } from './eventFlags';
+import { getChildName } from './profile';
 
 const STORAGE_KEY = 'lingo-quests:v1';
 /** Append-only list of quest IDs in the order the player completed
@@ -50,6 +51,9 @@ export interface QuestDef {
   /** Short label, used in the HUD pill, the log header, and the
    *  toast. Keep under ~28 chars for the toast to fit on mobile. */
   title: string;
+  /** Optional dynamic title hook for copy that depends on profile
+   *  state, such as the child name chosen during the intro. */
+  computeTitle?: () => string;
   /** What the player needs to do to clear this quest. Shown in the
    *  log while the quest is active. Static fallback — for quests
    *  whose text changes as the player progresses through sub-
@@ -60,9 +64,9 @@ export interface QuestDef {
    *  string given live game state (event flags, inventory, etc.).
    *  Called on each render of the quest log, so keep it cheap and
    *  pure. Skipped when undefined — the static `objective` field
-   *  is shown instead. Lets a quest like child-sandwich say
-   *  "Mim wanted to talk to you. Head home." pre-conversation and
-   *  "Buy a sandwich at the Mart…" after Mim has actually asked. */
+ *  is shown instead. Lets a quest like child-sandwich say
+ *  "your child wanted to talk to you" pre-conversation and
+ *  "Buy a sandwich at the Mart…" after they have actually asked. */
   computeObjective?: () => string;
   /** Hint shown in the log BEFORE the quest is started — points
    *  the player at the NPC or location that triggers it. Lets
@@ -72,6 +76,7 @@ export interface QuestDef {
   /** Wrap-up shown in the log after the quest is completed. Falls
    *  back to "Completed." when omitted. */
   completedSummary?: string;
+  computeCompletedSummary?: () => string;
   /** IDs of quests that must be in `'completed'` state before this
    *  quest is allowed to appear anywhere a player can see it
    *  (Available tier in the log, etc.). Inactive quests with
@@ -81,6 +86,14 @@ export interface QuestDef {
   requiresCompleted?: string[];
 }
 
+function childDisplayName(): string {
+  return getChildName() ?? 'Mim';
+}
+
+export function getTitle(quest: QuestDef): string {
+  return quest.computeTitle ? quest.computeTitle() : quest.title;
+}
+
 /** Resolve a quest's currently-displayed objective string. Calls
  *  the optional `computeObjective` hook if present, else returns
  *  the static `objective`. Centralised so call sites (log, future
@@ -88,6 +101,12 @@ export interface QuestDef {
  *  quest opted into dynamic copy. */
 export function getObjective(quest: QuestDef): string {
   return quest.computeObjective ? quest.computeObjective() : quest.objective;
+}
+
+export function getCompletedSummary(quest: QuestDef): string {
+  return quest.computeCompletedSummary
+    ? quest.computeCompletedSummary()
+    : quest.completedSummary ?? 'Completed.';
 }
 
 /** True when every quest id in `prereqs` is currently `'completed'`.
@@ -151,10 +170,11 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   'child-sandwich': {
     id: 'child-sandwich',
-    title: 'A Sandwich for Mim',
+    title: 'A Sandwich for Your Child',
+    computeTitle: () => `A Sandwich for ${childDisplayName()}`,
     // Static fallback — only shown if `computeObjective` is somehow
     // skipped (e.g. unit-test reading the def directly).
-    objective: 'Mim wanted to talk to you. Head home.',
+    objective: 'Your child wanted to talk to you. Head home.',
     // Two-stage objective: pre-Mim-ask vs post-Mim-ask. Keeps the
     // quest log faithful to what the PLAYER currently knows
     // (Mim hasn't said anything yet → "go home and find out") vs
@@ -164,8 +184,10 @@ export const QUESTS: Record<string, QuestDef> = {
     computeObjective: () =>
       hasFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH)
         ? 'Buy a sandwich at the Mart and bring it home.'
-        : 'Mim wanted to talk to you. Head home.',
-    completedSummary: 'You brought Mim a sandwich. They were thrilled.',
+        : `${childDisplayName()} wanted to talk to you. Head home.`,
+    completedSummary: 'You brought your child a sandwich. They were thrilled.',
+    computeCompletedSummary: () =>
+      `You brought ${childDisplayName()} a sandwich. They were thrilled.`,
     // Auto-chained after the first paycheck — the player has the
     // money + the workflow muscle memory by then, and Mim's request
     // closes the loop on "you came to the city to feed your kid".

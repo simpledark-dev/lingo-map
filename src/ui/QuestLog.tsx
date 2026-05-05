@@ -10,7 +10,7 @@
  * starting a quest mid-modal updates the list live.
  */
 import { useMemo } from 'react';
-import { QUESTS, useQuestStatuses, isAvailable, getObjective, useCompletionOrder } from '../data/quests';
+import { QUESTS, useQuestStatuses, isAvailable, getTitle, getObjective, getCompletedSummary, useCompletionOrder } from '../data/quests';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -117,7 +117,7 @@ export default function QuestLog({ onClose }: QuestLogProps) {
               {active.map((q) => (
                 <QuestRow
                   key={q.id}
-                  title={q.title}
+                  title={getTitle(q)}
                   body={getObjective(q)}
                   accent={COLORS.active}
                   badge="Active"
@@ -131,7 +131,7 @@ export default function QuestLog({ onClose }: QuestLogProps) {
               {available.map((q) => (
                 <QuestRow
                   key={q.id}
-                  title={q.title}
+                  title={getTitle(q)}
                   body={q.availableHint ?? ''}
                   accent={COLORS.available}
                   badge="New"
@@ -146,8 +146,8 @@ export default function QuestLog({ onClose }: QuestLogProps) {
               {completed.map((q) => (
                 <QuestRow
                   key={q.id}
-                  title={q.title}
-                  body={q.completedSummary ?? 'Completed.'}
+                  title={getTitle(q)}
+                  body={getCompletedSummary(q)}
                   accent={COLORS.done}
                   badge="Done"
                   faded

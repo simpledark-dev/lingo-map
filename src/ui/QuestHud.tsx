@@ -16,7 +16,7 @@
  * board player gets a clean HUD.
  */
 import { useMemo } from 'react';
-import { QUESTS, useQuestStatuses, FIRST_PAYCHECK_THRESHOLD_CENTS } from '../data/quests';
+import { QUESTS, useQuestStatuses, FIRST_PAYCHECK_THRESHOLD_CENTS, getTitle } from '../data/quests';
 import { useLifetimeEarnings, formatBalance } from '../data/wallet';
 import { getUiTheme } from './uiThemes';
 
@@ -85,7 +85,7 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
         <QuestRow
           key={q.id}
           accent={COLORS.active}
-          title={q.title}
+          title={getTitle(q)}
           progress={progressSuffix(q.id)}
           onClick={onOpenLog}
         />
