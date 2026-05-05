@@ -226,6 +226,16 @@ export class PixiApp {
     // If destroy() was called while we were awaiting, bail out
     if (this.destroyed) return;
 
+    // Disable Pixi 8's stage event system. We do all input handling
+    // manually via InputAdapter's DOM listeners on the canvas, and
+    // Pixi's hit-testing was intermittently swallowing pointerdown
+    // (taps on the canvas wouldn't fire our handler in some browser
+    // states — e.g. Chrome's normal viewport, but worked fine after
+    // toggling DevTools responsive mode). Setting `eventMode: 'none'`
+    // on the root stage takes Pixi out of the chain so DOM events
+    // flow straight to our listener.
+    this.app.stage.eventMode = 'none';
+
     const canvas = this.app.canvas as HTMLCanvasElement;
     canvas.style.imageRendering = 'pixelated';
     canvas.style.position = 'absolute';

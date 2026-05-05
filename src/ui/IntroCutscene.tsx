@@ -141,7 +141,12 @@ const SCENES: Scene[] = [
 const TYPEWRITER_MS_PER_CHAR = 22;
 
 export default function IntroCutscene({
-  parentSpriteKey = 'me-char-01-down',
+  // Defaults align with the in-world player + child NPC sprites:
+  // me-char-07 is the main character's down-facing frame across the
+  // engine, me-char-12 is Mim's. Keeping these in lockstep with
+  // pokemon-house-1f's `1f-npc-child.spriteKey` means the cutscene
+  // portrait + the in-world NPC visually match.
+  parentSpriteKey = 'me-char-07-down',
   childSpriteKey = 'me-char-12-down',
   onComplete,
 }: IntroCutsceneProps) {

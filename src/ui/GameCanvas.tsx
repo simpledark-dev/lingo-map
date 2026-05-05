@@ -40,7 +40,7 @@ import QuestHud from './QuestHud';
 import SettingsView from './SettingsView';
 import WordStatsView from './WordStatsView';
 import { hasFlag, setFlag, FLAGS } from '../data/eventFlags';
-import { getPlayerName, clearProfile } from '../data/profile';
+import { getPlayerName, getChildName, clearProfile } from '../data/profile';
 import { clearFlag } from '../data/eventFlags';
 import Minimap from './Minimap';
 import VirtualDPad from './VirtualDPad';
@@ -88,22 +88,34 @@ function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
   const status = getQuestStatus('child-sandwich');
   const introStatus = getQuestStatus('intro-translator-job');
   const haveSandwich = hasItem('sandwich');
+  // Override the engine-supplied name with the player's child name
+  // from the intro cutscene. The map data uses "Mim" as a fallback
+  // (the engine doesn't read profile state), but the player typed
+  // a specific name during the cutscene and seeing that everywhere
+  // beats a hardcoded placeholder.
+  const childNpcName = getChildName() ?? stub.npcName;
+  // Helper so every branch consistently emits the player-named NPC
+  // and short-circuits the boilerplate of `npcId: stub.npcId,
+  // npcName: childNpcName, currentLine: 0`.
+  const withChildName = (extra: Partial<DialogueState>): DialogueState => ({
+    ...stub,
+    npcName: childNpcName,
+    ...extra,
+  });
   // Intro override: while the tutorial quest is active, Mim sends
   // the player off with a "good luck" line and DOES NOT start her
   // own quest yet. Avoids two competing toasts on the very first
   // session and keeps the player pointed at the office.
   if (introStatus === 'active' && status === 'inactive') {
     const playerName = getPlayerName() ?? 'dad';
-    return {
-      ...stub,
+    return withChildName({
       lines: [`Good luck, ${playerName}! I'll wait here. Bring back something tasty?`],
-    };
+    });
   }
   if (status === 'completed') {
-    return {
-      ...stub,
+    return withChildName({
       lines: ['Thanks for the sandwich earlier! I love you, dad.'],
-    };
+    });
   }
   if (status === 'inactive') {
     // Defensive — should be unreachable now that the quest is
@@ -111,10 +123,9 @@ function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
     // that skips the chain (e.g. clearing only the sandwich
     // status) still results in a sensible Mim line + activation.
     startQuest('child-sandwich');
-    return {
-      ...stub,
+    return withChildName({
       lines: ["I'm hungry… can you go to the Mart and grab me a sandwich? Please?"],
-    };
+    });
   }
   // status === 'active'. The chain auto-starts the quest WITHOUT
   // a Mim dialogue, so the very first visit needs to land the
@@ -126,19 +137,17 @@ function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
   // direct reaction to the player tapping Give without having one.
   if (!hasFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH)) {
     setFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
-    return {
-      ...stub,
+    return withChildName({
       lines: ["I'm hungry… can you go to the Mart and grab me a sandwich? Please?"],
-    };
+    });
   }
-  return {
-    ...stub,
+  return withChildName({
     lines: ['Did you get my sandwich?'],
     options: [
       { id: 'child-give-sandwich', label: 'Give the sandwich 🥪' },
       { id: 'child-decline', label: 'Not yet' },
     ],
-  };
+  });
 }
 
 /** Compose Theo's dialogue based on current debt + balance.

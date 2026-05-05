@@ -67,16 +67,27 @@ export interface VocabProgress {
   queueOnlyMode: boolean;
 }
 
-const WRONG_QUEUE_CAP = 10;
+/** Cap on simultaneously-tracked weak words. Tightened from 10 →
+ *  3 because a struggling player with five+ failure-tier words in
+ *  rotation hits the queue-only wall feeling overwhelmed; three is
+ *  a digestible review batch (the "rule of three" from drill
+ *  pedagogy). When the cap fills, the oldest entry is evicted and
+ *  the new failure replaces it — see the eviction branch in
+ *  `recordAnswer`. */
+const WRONG_QUEUE_CAP = 3;
 const RECENT_BUFFER_SIZE = 10;
 const GRADUATION_STREAK = 5;
-/** Queue size that flips queueOnlyMode ON. The player has 5 active
- *  weak words; further new vocab would just dilute review. */
-const QUEUE_ONLY_ENTER_AT = 5;
-/** Queue size that flips queueOnlyMode OFF. Has to be < ENTER_AT to
- *  give hysteresis — without a gap the mode would flicker on every
- *  graduate-then-miss cycle. Threshold is "≤ 3" per the design. */
-const QUEUE_ONLY_EXIT_AT = 3;
+/** Queue size that flips queueOnlyMode ON. Matches the cap: as
+ *  soon as the queue is full (3), the picker stops sampling new
+ *  words and forces the player to graduate at least one before
+ *  fresh vocab returns to rotation. */
+const QUEUE_ONLY_ENTER_AT = 3;
+/** Queue size that flips queueOnlyMode OFF. Lower than ENTER for
+ *  hysteresis — without a gap the mode would flicker on every
+ *  graduate-then-miss cycle. Releasing at 1 means the player has
+ *  to actually clear most of the backlog before fresh exposures
+ *  resume. */
+const QUEUE_ONLY_EXIT_AT = 1;
 
 const STORAGE_PREFIX = 'vocab-progress:';
 

@@ -67,19 +67,18 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 12,
-        // Tappable when a handler is wired so a quick tap can pull
-        // up the full log; otherwise this is a read-only hint.
-        pointerEvents: onOpenLog ? 'auto' : 'none',
+        // Wrapper itself never intercepts clicks — only the
+        // individual pills do (each wired below). Otherwise the
+        // wrapper's auto-flex sizing in some browsers expands
+        // beyond the visible content and silently eats taps that
+        // the player aimed at the canvas underneath.
+        pointerEvents: 'none',
         display: 'flex',
         flexDirection: 'column',
         gap: 4,
         alignItems: 'center',
         maxWidth: 'min(92vw, 420px)',
-        cursor: onOpenLog ? 'pointer' : 'default',
       }}
-      role={onOpenLog ? 'button' : undefined}
-      onClick={onOpenLog}
-      title={onOpenLog ? 'Open quest log' : undefined}
       aria-label="Active quests overview"
     >
       {active.map((q) => (
@@ -88,6 +87,7 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
           accent={COLORS.active}
           title={q.title}
           progress={progressSuffix(q.id)}
+          onClick={onOpenLog}
         />
       ))}
     </div>
@@ -99,6 +99,7 @@ function QuestRow({
   title,
   badge,
   progress,
+  onClick,
 }: {
   accent: string;
   title: string;
@@ -107,9 +108,17 @@ function QuestRow({
    *  "$1.23 / $5.00"). Null/undefined for quests without a numeric
    *  goal — the title stands alone in that case. */
   progress?: string | null;
+  /** Tap handler — when set, the pill itself becomes the only
+   *  click-intercepting element in the strip. The wrapper above
+   *  stays pointer-events:none so the rest of the screen passes
+   *  taps straight through to the canvas. */
+  onClick?: () => void;
 }) {
   return (
     <div
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      title={onClick ? 'Open quest log' : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -123,6 +132,8 @@ function QuestRow({
         textShadow: '0 1px 0 rgba(0,0,0,0.7)',
         userSelect: 'none',
         maxWidth: '92vw',
+        pointerEvents: onClick ? 'auto' : 'none',
+        cursor: onClick ? 'pointer' : 'default',
       }}
     >
       {badge && (

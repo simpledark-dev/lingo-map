@@ -192,6 +192,46 @@ export class InputAdapter {
     this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom + delta));
   };
 
+  /** Desktop-mouse fallback for `onPointerDown`. Pixi 8's EventSystem
+   *  silently swallows pointerdown on the canvas in some browser
+   *  states (we hit this on Chrome desktop normal viewport — toggling
+   *  DevTools responsive mode reactivated input because that path
+   *  uses touch events). Mouse events are unaffected by Pixi's
+   *  pointer-event interception, so we listen on mousedown/move/up
+   *  alongside the pointer handlers. Only fires for primary-button
+   *  click; pinch / multi-touch stays on the pointer/touch path. */
+  private onMouseDown = (e: MouseEvent) => {
+    if (!this.canvas) return;
+    if (e.button !== 0) return; // primary mouse button only
+    // Mirror onPointerDown's screen→world math.
+    const rect = this.canvas.getBoundingClientRect();
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+    const worldX =
+      (screenX - this.screenOffset.x) / this.zoom + this.cameraOffset.x;
+    const worldY =
+      (screenY - this.screenOffset.y) / this.zoom + this.cameraOffset.y;
+
+    // Same NPC tap-zone hit test as the pointer path. Without this
+    // a desktop-mouse-only flow couldn't initiate dialogue.
+    const playerDist = (nx: number, ny: number) =>
+      Math.sqrt((this.playerPos.x - nx) ** 2 + (this.playerPos.y - ny) ** 2);
+    for (const npc of this.npcs) {
+      const dx = worldX - npc.x;
+      const dy = worldY - npc.y;
+      const inBox =
+        dx >= -NPC_TAP_HALF_W &&
+        dx <= NPC_TAP_HALF_W &&
+        dy >= -NPC_TAP_TOP &&
+        dy <= NPC_TAP_BOTTOM;
+      if (inBox && playerDist(npc.x, npc.y) <= INTERACTION_RANGE) {
+        this._interact = true;
+        return;
+      }
+    }
+    this._moveTarget = { x: worldX, y: worldY };
+  };
+
   private preventDefault = (e: Event) => {
     if (e.cancelable) e.preventDefault();
   };
@@ -218,6 +258,12 @@ export class InputAdapter {
     canvas.addEventListener("pointermove", this.onPointerMove);
     canvas.addEventListener("pointerup", this.onPointerUp);
     canvas.addEventListener("pointercancel", this.onPointerUp);
+    // Mouse-event fallback. Pixi 8's EventSystem silently swallows
+    // pointer events on the canvas in some browser states; mouse
+    // events are unaffected, so listening on both gives desktop a
+    // reliable input path. Touch keeps using pointer/touch events
+    // for pinch / multi-touch detection.
+    canvas.addEventListener("mousedown", this.onMouseDown);
     canvas.addEventListener("wheel", this.onWheel, { passive: false });
     canvas.addEventListener("contextmenu", this.preventDefault);
     canvas.addEventListener("selectstart", this.preventDefault);
@@ -239,6 +285,7 @@ export class InputAdapter {
       this.canvas.removeEventListener("pointermove", this.onPointerMove);
       this.canvas.removeEventListener("pointerup", this.onPointerUp);
       this.canvas.removeEventListener("pointercancel", this.onPointerUp);
+      this.canvas.removeEventListener("mousedown", this.onMouseDown);
       this.canvas.removeEventListener("wheel", this.onWheel);
       this.canvas.removeEventListener("contextmenu", this.preventDefault);
       this.canvas.removeEventListener("selectstart", this.preventDefault);
