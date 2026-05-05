@@ -249,7 +249,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
         background: 'rgba(0,0,0,0.45)',
         padding: 16,
       }}
-      onClick={onClose}
+      onClick={(e) => e.stopPropagation()}
     >
       <div
         onClick={(e) => e.stopPropagation()}

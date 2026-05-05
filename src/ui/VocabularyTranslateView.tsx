@@ -401,7 +401,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           background: 'rgba(0,0,0,0.5)',
           padding: 16,
         }}
-        onClick={onClose}
+        onClick={(e) => e.stopPropagation()}
       >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -587,7 +587,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
         background: 'rgba(0,0,0,0.5)',
         padding: 16,
       }}
-      onClick={onClose}
+      onClick={(e) => e.stopPropagation()}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -1425,7 +1425,7 @@ function OutOfEnergyPanel({
         background: 'rgba(0,0,0,0.5)',
         padding: 16,
       }}
-      onClick={onClose}
+      onClick={(e) => e.stopPropagation()}
     >
       <div
         onClick={(e) => e.stopPropagation()}

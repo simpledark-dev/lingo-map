@@ -53,6 +53,7 @@ export class PixiApp {
    * left cell `(0,0)` of map A. */
   private lastLoggedCell: { mapId: string; col: number; row: number } | null = null;
   private transitioning = false;
+  private worldPausedByUI = false;
   private initialized = false;
   private destroyed = false;
   /** Title of the most-recently-fired locked transition. Set when the
@@ -692,7 +693,6 @@ export class PixiApp {
       this.inputAdapter.screenOffset = { x: 0, y: 0 };
     }
     const input = this.inputAdapter.getInputState();
-    const carObstacleBoxes = this.getCarObstacleBoxes(map.tileSize);
 
     // Process commands from UI
     let dialogueClosedThisFrame = false;
@@ -732,8 +732,10 @@ export class PixiApp {
 
     // Handle dialogue state
     if (this.gameState.activeDialogue) {
-      // Advance with interact key OR any tap/click (for mobile)
-      if (input.interact || input.moveTarget) {
+      // Dialogue only advances from explicit interact input here. Touch/click
+      // advancement is owned by DialogueOverlay, so map taps outside the box
+      // cannot accidentally close or advance an NPC conversation.
+      if (input.interact) {
         const next = advanceDialogue(this.gameState.activeDialogue);
         if (next) {
           this.gameState.activeDialogue = next;
@@ -754,6 +756,20 @@ export class PixiApp {
       if (this.debugOverlay) this.debugOverlay.update();
       return;
     }
+
+    if (this.worldPausedByUI) {
+      const capPaused = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capPaused);
+      this.renderSystem.updatePlayer(this.gameState.player, 0);
+      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom, map.maxViewTiles ? capPaused : undefined);
+      this.renderSystem.updateAnimations(performance.now() / 1000);
+      this.renderSystem.applyOcclusionFade();
+      if (this.tapFeedback) this.tapFeedback.update(delta);
+      if (this.debugOverlay) this.debugOverlay.update();
+      return;
+    }
+
+    const carObstacleBoxes = this.getCarObstacleBoxes(map.tileSize);
 
     // Check NPC interaction
     const dialogueEvent = checkInteraction(this.gameState.player, this.gameState.npcs, input);
@@ -1238,6 +1254,16 @@ export class PixiApp {
 
   isMusicEnabled(): boolean {
     return this.bgm.isEnabled();
+  }
+
+  /** Pauses world simulation while React-owned blocking UI is open. */
+  setWorldPausedByUI(paused: boolean): void {
+    if (this.worldPausedByUI === paused) return;
+    this.worldPausedByUI = paused;
+    if (paused) {
+      this.inputAdapter.clearTransientInput({ suppressInteractUntilRelease: true });
+      this.inputAdapter.setVirtualDirection(null);
+    }
   }
 
   /** Forwarded from the on-screen virtual D-pad in `VirtualDPad.tsx`. */

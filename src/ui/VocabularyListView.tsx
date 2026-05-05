@@ -89,10 +89,8 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
         justifyContent: 'center',
         background: 'rgba(0,0,0,0.4)',
         padding: 16,
-        // Treat clicks on the dim background as a "close" action,
-        // standard modal behavior.
       }}
-      onClick={onClose}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Parchment modal panel, matching the cutscene dialogue style. */}
       <div
@@ -467,7 +465,7 @@ function PracticeModePicker({
         background: 'rgba(0,0,0,0.5)',
         padding: 16,
       }}
-      onClick={onCancel}
+      onClick={(e) => e.stopPropagation()}
     >
         <div
           onClick={(e) => e.stopPropagation()}

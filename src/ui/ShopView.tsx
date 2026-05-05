@@ -65,10 +65,7 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
         padding: 16,
         boxSizing: 'border-box',
       }}
-      onClick={(e) => {
-        // Tap-outside-to-close — backdrop only, not the panel.
-        if (e.target === e.currentTarget) onClose();
-      }}
+      onClick={(e) => e.stopPropagation()}
     >
       <div
         style={{

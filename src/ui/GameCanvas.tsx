@@ -67,6 +67,25 @@ const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
 const HUD = UI_THEME.hud;
 
+/** Quests whose objective is "go talk to NPC X". The marker driver
+ * floats a red chevron over the named NPC whenever the quest is
+ * active and the player is on the NPC's map. NPC lookup is by
+ * `name` so the table stays robust against id renames in map JSON.
+ * Cross-map cases (player needs to enter the NPC's map first) stay
+ * in the bespoke building-marker blocks — only "you're in the right
+ * room, here's the person" is generalized through this table. */
+const QUEST_TALK_TARGETS: ReadonlyArray<{
+  questId: string;
+  npcName: string;
+  mapId: string;
+}> = [
+  { questId: 'intro-translator-job', npcName: 'CEO', mapId: 'office' },
+  { questId: 'first-paycheck', npcName: 'Saba', mapId: 'pokemon' },
+  { questId: 'child-sandwich', npcName: 'Mim', mapId: 'pokemon-house-1f' },
+  { questId: 'tutorial-borrow', npcName: 'Theo', mapId: 'pokemon' },
+  { questId: 'tutorial-buy-food', npcName: 'Shopkeeper', mapId: 'grocer-1f' },
+];
+
 type ViewportSize = { width: number; height: number };
 
 function readViewportSize(): ViewportSize | null {
@@ -333,6 +352,7 @@ export default function GameCanvas() {
    *  it and the player has to identify by audio alone. Same picker,
    *  same wallet, same wrong-queue underneath. */
   const [translateView, setTranslateView] = useState<{ packId: string; npcName: string; mode: 'read' | 'listen' | 'write' } | null>(null);
+  const translationModeReturnDialogueRef = useRef<DialogueState | null>(null);
   /** Shop modal state — opened when the player selects "Browse" on
    *  a shopkeeper's offer dialogue. Carries only the display name;
    *  the catalog lives in `src/data/items.ts` and is shared across
@@ -387,6 +407,17 @@ export default function GameCanvas() {
   const walletBalance = useWalletBalance();
   const debt = useDebt();
   const questStatuses = useQuestStatuses();
+  const worldPausedByOverlay = Boolean(
+    dialogue ||
+    vocabularyView ||
+    translateView ||
+    shopView ||
+    questLogOpen ||
+    inventoryOpen ||
+    settingsOpen ||
+    wordStatsOpen ||
+    minimapData,
+  );
   // Catch-up auto-starts: a save written before a quest's chain
   // was wired (or a player who completed a parent quest in a
   // previous version) ends up with downstream quests stuck at
@@ -580,6 +611,10 @@ export default function GameCanvas() {
     window.addEventListener('keydown', handleCheatKey);
     return () => window.removeEventListener('keydown', handleCheatKey);
   }, []);
+
+  useEffect(() => {
+    pixiAppRef.current?.setWorldPausedByUI(worldPausedByOverlay);
+  }, [worldPausedByOverlay]);
 
   useEffect(() => {
     if (!containerRef.current || pixiAppRef.current) return;
@@ -936,30 +971,32 @@ export default function GameCanvas() {
       }
     }
 
-    // ── First-paycheck: point at the starter NPC (Saba). ──
-    // Player has just been hired and doesn't yet know which NPC
-    // will hand them their first translator job; this arrow funnels
-    // them at Saba specifically so the loop closes once before they
-    // free-roam. `followNpcId` makes the marker track Saba as she
-    // wanders — without that the chevron sits at her spawn point
-    // while she walks away from it. No label by request.
-    const paycheckActive = questStatuses['first-paycheck'] === 'active';
-    if (paycheckActive && currentMapId === 'pokemon') {
-      let pokemonMap;
-      try { pokemonMap = loadMap('pokemon'); } catch { pokemonMap = null; }
-      const sabaNpc = pokemonMap?.npcs.find((n) => n.name === 'Saba');
-      if (sabaNpc) {
-        markers.push({
-          id: 'first-paycheck-saba',
-          // (x, y) are now offsets from the NPC anchor (feet) since
-          // we set `followNpcId`. -28 floats the chevron over the
-          // head sprite without colliding with the body.
-          x: 0,
-          y: -28,
-          spriteKey: 'edge-arrow-south-red',
-          followNpcId: sabaNpc.id,
-        });
-      }
+    // ── "Go talk to X" markers ──
+    // Whenever an active quest's objective is to speak with a
+    // specific NPC, float a red chevron over them so the player
+    // never has to guess who. Only fires when the player is on
+    // the NPC's map; cross-map wayfinding (e.g. the office
+    // building marker on the outdoor map during the intro) is
+    // handled by bespoke blocks above.
+    //
+    // followNpcId makes the renderer re-anchor the marker each
+    // frame so wandering NPCs don't outrun their chevron. (x, y)
+    // are interpreted as offsets from the NPC anchor (feet) —
+    // -28 floats the chevron above the head sprite.
+    for (const target of QUEST_TALK_TARGETS) {
+      if (questStatuses[target.questId] !== 'active') continue;
+      if (currentMapId !== target.mapId) continue;
+      let map;
+      try { map = loadMap(target.mapId); } catch { continue; }
+      const npc = map.npcs.find((n) => n.name === target.npcName);
+      if (!npc) continue;
+      markers.push({
+        id: `talk-target-${target.questId}`,
+        x: 0,
+        y: -28,
+        spriteKey: 'edge-arrow-south-red',
+        followNpcId: npc.id,
+      });
     }
 
     // ── Wayfinding: doormats in interior maps ──
@@ -1232,10 +1269,24 @@ export default function GameCanvas() {
       setDialogue(null);
       return;
     }
+    if (optionId === 'mode-back') {
+      const previous = translationModeReturnDialogueRef.current;
+      if (previous) {
+        setDialogue(previous);
+      } else {
+        closeDialogueEverywhere();
+      }
+      return;
+    }
     if (optionId === 'help' && packId) {
       // Step 2: pick the translation mode. Only `mode-read` is wired
       // up — the other three render disabled with a "SOON" badge so
       // the player can see the full menu coming.
+      translationModeReturnDialogueRef.current = {
+        ...dialogue,
+        currentLine: 0,
+        skipTypewriter: true,
+      };
       setDialogue({
         npcId: dialogue.npcId,
         npcName: dialogue.npcName,
@@ -1269,6 +1320,11 @@ export default function GameCanvas() {
             label: '4. Speak from meaning',
             hint: 'See the meaning, say the word out loud.',
             comingSoon: true,
+          },
+          {
+            id: 'mode-back',
+            label: '← Back',
+            hint: 'Return to the previous choices.',
           },
         ],
       });
@@ -1670,7 +1726,29 @@ export default function GameCanvas() {
         </div>
 
         {dialogue && (
-          <div style={{ pointerEvents: 'auto' }}>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 60,
+              pointerEvents: 'auto',
+              touchAction: 'none',
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onPointerCancel={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onWheel={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
             <DialogueOverlay
               dialogue={dialogue}
               onAdvance={handleAdvanceDialogue}
@@ -1792,9 +1870,9 @@ export default function GameCanvas() {
         )}
 
         {/* Mobile virtual D-pad — auto-hides on desktop. Suppressed
-            during dialogue so the pad doesn't sit on top of the
-            dialogue box and accidentally walk the player while reading. */}
-        {virtualDPadEnabled && !dialogue && !minimapData && (
+            while a blocking overlay is open so it cannot keep a
+            movement input alive behind modal UI. */}
+        {virtualDPadEnabled && !worldPausedByOverlay && (
           <VirtualDPad onChange={handleDPadChange} />
         )}
       </div>

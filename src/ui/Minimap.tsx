@@ -124,7 +124,7 @@ export default function Minimap({ mapData, gameState, onClose }: MinimapProps) {
   return (
     <div
       className="absolute inset-0 z-50 flex items-center justify-center bg-black/70"
-      onClick={onClose}
+      onClick={(e) => e.stopPropagation()}
     >
       <div
         className="relative flex flex-col items-center gap-3 p-4"

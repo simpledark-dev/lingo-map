@@ -199,9 +199,7 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
         padding: 16,
         boxSizing: 'border-box',
       }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      onClick={(e) => e.stopPropagation()}
     >
       <div
         style={{

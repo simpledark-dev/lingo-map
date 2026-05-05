@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { DialogueState } from '../core/types';
-import { getDialogueTheme } from './dialogueThemes';
+import { useEffect, useState, useCallback } from "react";
+import { DialogueState } from "../core/types";
+import { getDialogueTheme } from "./dialogueThemes";
 
 interface DialogueOverlayProps {
   dialogue: DialogueState;
@@ -19,11 +19,15 @@ interface DialogueOverlayProps {
  *  in JRPG style. Tap on the dialogue box snaps the rest in. */
 const TYPEWRITER_INTERVAL_MS = 22;
 
-export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }: DialogueOverlayProps) {
+export default function DialogueOverlay({
+  dialogue,
+  onAdvance,
+  onSelectOption,
+}: DialogueOverlayProps) {
   const theme = getDialogueTheme();
   const COLORS = theme.colors;
   const isLastLine = dialogue.currentLine >= dialogue.lines.length - 1;
-  const currentLine = dialogue.lines[dialogue.currentLine] ?? '';
+  const currentLine = dialogue.lines[dialogue.currentLine] ?? "";
   // When `options` is set the dialogue is a static prompt with choice
   // buttons instead of a sequence the player advances through —
   // tapping the box must NOT call onAdvance, otherwise the click that
@@ -88,7 +92,7 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
   return (
     <div
       style={{
-        position: 'absolute',
+        position: "absolute",
         bottom: 16,
         left: 16,
         right: 16,
@@ -103,12 +107,19 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
             the top-left and a darker shade along the bottom-right.
             Achieved with two stacked box-shadows so we don't need
             extra DOM. */}
-        <div style={theme.panelStyle}>
+        <div
+          style={{
+            ...theme.panelStyle,
+            // Option prompts are short menu copy, not multi-line story text.
+            // The cutscene-style theme normally reserves vertical space for
+            // typewriter stability; remove that reserved gap here so choices
+            // sit close to the utterance without negative margins.
+            gap: hasOptions ? 4 : theme.panelStyle.gap,
+          }}
+        >
           {/* Name plaque — amber underline, slight letter-spacing for
               that "stamped on the page" feel. */}
-          <div style={theme.namePlaqueStyle}>
-            {dialogue.npcName}
-          </div>
+          <div style={theme.namePlaqueStyle}>{dialogue.npcName}</div>
 
           {/* Body text. Bumped line-height for cozy reading; brown ink
               against parchment. The hidden remainder span reserves the
@@ -118,12 +129,13 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
           <div
             style={{
               ...theme.bodyTextStyle,
-              marginBottom: hasOptions ? 12 : 8,
+              minHeight: hasOptions ? 0 : theme.bodyTextStyle.minHeight,
+              marginBottom: hasOptions ? 6 : 8,
             }}
           >
             {visibleText}
             {!isFullyRevealed ? (
-              <span aria-hidden style={{ visibility: 'hidden' }}>
+              <span aria-hidden style={{ visibility: "hidden" }}>
                 {currentLine.slice(revealedCount)}
               </span>
             ) : null}
@@ -157,20 +169,22 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
                     style={{
                       ...theme.optionButtonStyle,
                       boxShadow: isDisabled
-                        ? 'none'
+                        ? "none"
                         : theme.optionButtonRestShadow,
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      cursor: isDisabled ? "not-allowed" : "pointer",
                       opacity: isDisabled ? 0.55 : 1,
                     }}
                     onMouseDown={(e) => {
                       if (isDisabled) return;
-                      e.currentTarget.style.transform = 'translateY(2px)';
-                      e.currentTarget.style.boxShadow = theme.optionButtonPressedShadow;
+                      e.currentTarget.style.transform = "translateY(2px)";
+                      e.currentTarget.style.boxShadow =
+                        theme.optionButtonPressedShadow;
                     }}
                     onMouseUp={(e) => {
                       if (isDisabled) return;
-                      e.currentTarget.style.transform = '';
-                      e.currentTarget.style.boxShadow = theme.optionButtonRestShadow;
+                      e.currentTarget.style.transform = "";
+                      e.currentTarget.style.boxShadow =
+                        theme.optionButtonRestShadow;
                     }}
                     onMouseEnter={(e) => {
                       if (isDisabled) return;
@@ -179,31 +193,30 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
                     onMouseLeave={(e) => {
                       if (isDisabled) return;
                       e.currentTarget.style.background = COLORS.optionRest;
-                      e.currentTarget.style.transform = '';
-                      e.currentTarget.style.boxShadow = theme.optionButtonRestShadow;
+                      e.currentTarget.style.transform = "";
+                      e.currentTarget.style.boxShadow =
+                        theme.optionButtonRestShadow;
                     }}
                   >
                     <div style={theme.optionLabelStyle}>
                       <span>{opt.label}</span>
                       {showSoonBadge ? (
-                        <span style={theme.soonBadgeStyle}>
-                          SOON
-                        </span>
+                        <span style={theme.soonBadgeStyle}>SOON</span>
                       ) : null}
                     </div>
                     {opt.hint ? (
-                      <div style={theme.optionHintStyle}>
-                        {opt.hint}
-                      </div>
+                      <div style={theme.optionHintStyle}>{opt.hint}</div>
                     ) : null}
                   </button>
                 );
               })}
             </div>
-          ) : !hasOptions && theme.continueMode === 'button' ? (
+          ) : !hasOptions && theme.continueMode === "button" ? (
             <div style={theme.footerStyle}>
               <div style={theme.footerHintStyle}>
-                {isFullyRevealed ? 'Tap or press Space to continue' : 'Tap to skip...'}
+                {isFullyRevealed
+                  ? "Tap or press Space to continue"
+                  : "Tap to skip..."}
               </div>
               <button
                 type="button"
@@ -216,7 +229,7 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
                   opacity: isFullyRevealed ? 1 : 0.6,
                 }}
               >
-                {isFullyRevealed ? (isLastLine ? 'Close ▶' : 'Next ▶') : 'Skip'}
+                {isFullyRevealed ? (isLastLine ? "Close ▶" : "Next ▶") : "Skip"}
               </button>
             </div>
           ) : !hasOptions && isFullyRevealed ? (
@@ -225,7 +238,7 @@ export default function DialogueOverlay({ dialogue, onAdvance, onSelectOption }:
             // Hidden during the typewriter pass; otherwise the player
             // sees "tap to continue" before they've read the line.
             <div style={theme.continueIndicatorStyle}>
-              {isLastLine ? '▼ tap to close' : '▼ tap to continue'}
+              {isLastLine ? "▼ tap to close" : "▼ tap to continue"}
             </div>
           ) : null}
         </div>
