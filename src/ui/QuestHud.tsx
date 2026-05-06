@@ -63,7 +63,14 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
     <div
       style={{
         position: 'absolute',
-        top: 34,
+        // Sit BELOW the top-left status pills (wallet, energy,
+        // etc.) and the top-right icon row (sound, quest log,
+        // settings). Both of those start at 8px and are ~34px
+        // tall, so 50px + safe-area-inset clears them with a tiny
+        // gap. env(safe-area-inset-top) is 0 on devices without a
+        // notch, so non-iOS layouts pull the strip up the same
+        // amount as before relative to the icons.
+        top: 'calc(50px + env(safe-area-inset-top, 0px))',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 12,

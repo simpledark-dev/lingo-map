@@ -392,7 +392,10 @@ function buildHudTheme(colors: UIThemeColors, id: UIThemeId): HudTheme {
   return {
     statusRowStyle: {
       position: "absolute",
-      top: 8,
+      // Push below the iOS notch / Dynamic Island on portrait. On
+      // platforms without a notch, env(safe-area-inset-top) is 0
+      // and this collapses to the original 8px.
+      top: "calc(8px + env(safe-area-inset-top, 0px))",
       left: 20,
       display: "flex",
       alignItems: "center",
@@ -420,7 +423,10 @@ function buildHudTheme(colors: UIThemeColors, id: UIThemeId): HudTheme {
     inventoryButtonStyle: {
       ...plateBase,
       position: "absolute",
-      top: 48,
+      // Push below the iOS notch / Dynamic Island on portrait. On
+      // platforms without a notch, env(safe-area-inset-top) is 0
+      // and this collapses to the original 48px.
+      top: "calc(48px + env(safe-area-inset-top, 0px))",
       left: 8,
       gap: 6,
       pointerEvents: "auto",
@@ -439,7 +445,10 @@ function buildHudTheme(colors: UIThemeColors, id: UIThemeId): HudTheme {
     iconGroupStyle: {
       pointerEvents: "auto",
       position: "absolute",
-      top: 8,
+      // Push below the iOS notch / Dynamic Island on portrait. On
+      // platforms without a notch, env(safe-area-inset-top) is 0
+      // and this collapses to the original 8px.
+      top: "calc(8px + env(safe-area-inset-top, 0px))",
       right: 20,
       display: "flex",
       gap: 6,

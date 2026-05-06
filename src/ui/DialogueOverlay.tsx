@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { DialogueState } from "../core/types";
 import { getDialogueTheme } from "./dialogueThemes";
 
@@ -84,6 +84,13 @@ export default function DialogueOverlay({
   const isFullyRevealed = revealedCount >= currentLine.length;
   const visibleText = currentLine.slice(0, revealedCount);
 
+  // Timer id for the pending typewriter tick — kept in a ref so
+  // handleBoxClick can cancel it when the player fast-forwards.
+  // Without this, clicking mid-pass briefly snaps to full text but
+  // the next tick (within 22ms) overwrites revealedCount back to
+  // its local `i`, making the click look like a no-op.
+  const typewriterTimerRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!currentLine) {
       setRevealedCount(0);
@@ -104,12 +111,17 @@ export default function DialogueOverlay({
       i += 1;
       setRevealedCount(i);
       if (i < currentLine.length) {
-        timer = window.setTimeout(tick, TYPEWRITER_INTERVAL_MS);
+        typewriterTimerRef.current = window.setTimeout(tick, TYPEWRITER_INTERVAL_MS);
+      } else {
+        typewriterTimerRef.current = null;
       }
     };
-    let timer = window.setTimeout(tick, TYPEWRITER_INTERVAL_MS);
+    typewriterTimerRef.current = window.setTimeout(tick, TYPEWRITER_INTERVAL_MS);
     return () => {
-      window.clearTimeout(timer);
+      if (typewriterTimerRef.current !== null) {
+        window.clearTimeout(typewriterTimerRef.current);
+        typewriterTimerRef.current = null;
+      }
     };
   }, [currentLine, dialogue.npcId, dialogue.skipTypewriter]);
 
@@ -144,6 +156,15 @@ export default function DialogueOverlay({
   // the player stalls on line 0 and never reaches the choices.
   const handleBoxClick = useCallback(() => {
     if (!isFullyRevealed) {
+      // Cancel the pending typewriter tick — without this, the
+      // next scheduled tick fires within 22ms and overwrites
+      // revealedCount back to its closure-local `i` value, making
+      // the fast-forward briefly flash full text and then snap
+      // back to mid-typewriter.
+      if (typewriterTimerRef.current !== null) {
+        window.clearTimeout(typewriterTimerRef.current);
+        typewriterTimerRef.current = null;
+      }
       setRevealedCount(currentLine.length);
       return;
     }
@@ -335,22 +356,26 @@ export default function DialogueOverlay({
             <div style={theme.footerStyle}>
               <div style={theme.footerHintStyle}>
                 {isFullyRevealed
-                  ? "Tap or press Space to continue"
+                  ? "Tap to continue"
                   : "Tap to skip..."}
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleBoxClick();
-                }}
-                style={{
-                  ...theme.continueButtonStyle,
-                  opacity: isFullyRevealed ? 1 : 0.6,
-                }}
-              >
-                {isFullyRevealed ? (isLastLine ? "Close ▶" : "Next ▶") : "Skip"}
-              </button>
+              {/* Continue button only shows once the line is fully
+                  revealed. During the typewriter pass, tap-on-box
+                  already fast-forwards (see handleBoxClick), so a
+                  separate "Skip" button was a duplicated affordance
+                  that did nothing the box-tap didn't already do. */}
+              {isFullyRevealed && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBoxClick();
+                  }}
+                  style={theme.continueButtonStyle}
+                >
+                  {isLastLine ? "Close ▶" : "Next ▶"}
+                </button>
+              )}
             </div>
           ) : !hasOptions && isFullyRevealed ? (
             // Continue indicator — tiny pixel triangle bouncing at the

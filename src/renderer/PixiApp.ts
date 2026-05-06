@@ -759,22 +759,16 @@ export class PixiApp {
       return;
     }
 
-    // Handle dialogue state
+    // Handle dialogue state. Advancement is OWNED by DialogueOverlay
+    // (tap on the box → ADVANCE_DIALOGUE command pushed back to the
+    // engine via commandQueue). The engine no longer reads
+    // input.interact here — letting Space advance/close from the
+    // keyboard meant a player who pressed Space mid-dialogue could
+    // skip past a line they hadn't read yet, with no way to recover.
+    // Tap on the dialogue box still fast-forwards the typewriter
+    // (see DialogueOverlay's handleBoxClick) and advances on full
+    // reveal, so keyboard-only flow loses nothing material.
     if (this.gameState.activeDialogue) {
-      // Dialogue only advances from explicit interact input here. Touch/click
-      // advancement is owned by DialogueOverlay, so map taps outside the box
-      // cannot accidentally close or advance an NPC conversation.
-      if (input.interact) {
-        const next = advanceDialogue(this.gameState.activeDialogue);
-        if (next) {
-          this.gameState.activeDialogue = next;
-          this.bridge.emit({ type: 'dialogueAdvance', dialogue: next });
-        } else {
-          this.gameState.activeDialogue = null;
-          this.inputAdapter.clearTransientInput({ suppressInteractUntilRelease: true });
-          this.bridge.emit({ type: 'dialogueEnd' });
-        }
-      }
       // Update camera and render even during dialogue (player is frozen, but camera should stay)
       const capDialogue = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
       this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capDialogue);
