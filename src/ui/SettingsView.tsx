@@ -20,6 +20,7 @@ import {
   setRewardPerCorrect,
   formatBalance,
 } from '../data/wallet';
+import { Locale, setLocale, useLocale, t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -92,11 +93,11 @@ export default function SettingsView({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, fontSize: 18, fontWeight: 700, letterSpacing: 0.5 }}>
-            ⚙️ Settings
+            ⚙️ {t('settings.title')}
           </div>
           <button
             onClick={onClose}
-            aria-label="Close settings"
+            aria-label={t('settings.close')}
             style={{
               width: 28, height: 28,
               background: COLORS.parchmentLight,
@@ -112,6 +113,11 @@ export default function SettingsView({
           </button>
         </div>
 
+        {/* Language picker — mirrors the boot-time LocalePickerScreen
+            but lives here so a player can flip languages mid-play
+            without resetting. setLocale fires through the subscription
+            hook, every t() call inside React re-renders with the new
+            language. */}
         <div
           style={{
             fontSize: 10,
@@ -121,7 +127,20 @@ export default function SettingsView({
             color: COLORS.hintText,
           }}
         >
-          Controls
+          {t('settings.language')}
+        </div>
+        <LanguagePicker />
+
+        <div
+          style={{
+            fontSize: 10,
+            textTransform: 'uppercase',
+            letterSpacing: 1.2,
+            fontWeight: 700,
+            color: COLORS.hintText,
+          }}
+        >
+          {t('settings.controls')}
         </div>
 
         <label
@@ -139,10 +158,10 @@ export default function SettingsView({
         >
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 13, fontWeight: 700 }}>
-              Virtual D-pad
+              {t('settings.virtualDpad')}
             </span>
             <span style={{ display: 'block', fontSize: 11, lineHeight: 1.4, color: COLORS.hintText, marginTop: 3 }}>
-              Show on-screen movement controls on mobile.
+              {t('settings.virtualDpadHint')}
             </span>
           </span>
           <input
@@ -168,7 +187,7 @@ export default function SettingsView({
             color: COLORS.warn,
           }}
         >
-          Danger zone
+          {t('settings.dangerZone')}
         </div>
 
         <div
@@ -184,12 +203,11 @@ export default function SettingsView({
           }}
         >
           <div style={{ fontSize: 13, fontWeight: 700 }}>
-            Reset game
+            {t('settings.resetTitle')}
           </div>
           <div style={{ fontSize: 11, lineHeight: 1.4, color: COLORS.text }}>
-            Wipes location, wallet, inventory, energy, debt, quests, names, and vocab progress.
-            The opening cutscene will play again.
-            {' '}<strong>This cannot be undone.</strong>
+            {t('settings.resetWarning')}
+            {' '}<strong>{t('settings.resetCannotUndo')}</strong>
           </div>
           {!confirming ? (
             <button
@@ -206,14 +224,14 @@ export default function SettingsView({
                 fontWeight: 700,
                 letterSpacing: 0.5,
                 cursor: 'pointer',
-              }}
-            >
-              Reset game…
+            }}
+          >
+              {t('settings.resetButton')}
             </button>
           ) : (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: 11, fontWeight: 700, marginRight: 4 }}>
-                Are you sure?
+                {t('settings.resetAreYouSure')}
               </span>
               <button
                 type="button"
@@ -230,7 +248,7 @@ export default function SettingsView({
                   cursor: 'pointer',
                 }}
               >
-                Yes, wipe everything
+                {t('settings.resetYes')}
               </button>
               <button
                 type="button"
@@ -247,7 +265,7 @@ export default function SettingsView({
                   cursor: 'pointer',
                 }}
               >
-                Cancel
+                {t('settings.resetCancel')}
               </button>
             </div>
           )}
@@ -264,7 +282,7 @@ export default function SettingsView({
                 color: COLORS.hintText,
               }}
             >
-              Dev
+              {t('settings.devHeader')}
             </div>
             <div
               style={{
@@ -279,8 +297,7 @@ export default function SettingsView({
               }}
             >
               <div style={{ fontSize: 12, lineHeight: 1.4 }}>
-                Lifetime earnings: <strong>{formatBalance(lifetime)}</strong>.
-                Skip the grind while testing quest milestones.
+                {t('settings.devLifetime', { amount: formatBalance(lifetime) })}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button
@@ -296,9 +313,9 @@ export default function SettingsView({
                     fontWeight: 700,
                     letterSpacing: 0.5,
                     cursor: 'pointer',
-                  }}
-                >
-                  Earn +$1.00
+                }}
+              >
+                  {t('settings.devEarn1')}
                 </button>
                 <button
                   type="button"
@@ -313,9 +330,9 @@ export default function SettingsView({
                     fontWeight: 700,
                     letterSpacing: 0.5,
                     cursor: 'pointer',
-                  }}
-                >
-                  Earn +$5.00
+                }}
+              >
+                  {t('settings.devEarn5')}
                 </button>
               </div>
               <div
@@ -328,8 +345,7 @@ export default function SettingsView({
                 }}
               >
                 <div style={{ fontSize: 12, lineHeight: 1.4 }}>
-                  Correct-answer reward: <strong>{formatBalance(rewardPerCorrect)}</strong>.
-                  Applies to new correct vocabulary answers immediately.
+                  {t('settings.devReward', { amount: formatBalance(rewardPerCorrect) })}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button
@@ -406,6 +422,47 @@ export default function SettingsView({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+
+/** Language picker row used inside the Settings modal. Subscribes
+ *  via useLocale so its own button-pressed state updates live, and
+ *  setLocale propagates through every other useLocale subscriber
+ *  (the GameCanvas tree) so visible text flips on the next render. */
+function LanguagePicker() {
+  const current = useLocale();
+  return (
+    <div style={{ display: "flex", gap: 6 }}>
+      {([
+        { id: "en" as Locale, key: "settings.languageEnglish" },
+        { id: "vi" as Locale, key: "settings.languageVietnamese" },
+      ]).map(({ id, key }) => {
+        const active = current === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setLocale(id)}
+            aria-pressed={active}
+            style={{
+              flex: 1,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              color: active ? "#fdf6e0" : COLORS.text,
+              background: active ? COLORS.accentGold : COLORS.parchmentLight,
+              border: `2px solid ${active ? COLORS.accentGoldDark : COLORS.cardBorder}`,
+              borderRadius: 6,
+              padding: "8px 12px",
+              cursor: "pointer",
+            }}
+          >
+            {t(key)}
+          </button>
+        );
+      })}
     </div>
   );
 }

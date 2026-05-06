@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { DialogueState } from "../core/types";
+import { t } from "../data/i18n";
 import { getDialogueTheme } from "./dialogueThemes";
 
 interface DialogueOverlayProps {
@@ -355,7 +356,7 @@ export default function DialogueOverlay({
                       ) : null}
                       <span>{labelText}</span>
                       {showSoonBadge ? (
-                        <span style={theme.soonBadgeStyle}>SOON</span>
+                        <span style={theme.soonBadgeStyle}>{t('common.soon')}</span>
                       ) : null}
                     </div>
                     {opt.hint ? (
@@ -369,8 +370,8 @@ export default function DialogueOverlay({
             <div style={theme.footerStyle}>
               <div style={theme.footerHintStyle}>
                 {isFullyRevealed
-                  ? "Tap to continue"
-                  : "Tap to skip..."}
+                  ? t('dialogue.control.tapContinue')
+                  : t('dialogue.control.tapSkip')}
               </div>
               {/* Continue button only shows once the line is fully
                   revealed. During the typewriter pass, tap-on-box
@@ -386,7 +387,7 @@ export default function DialogueOverlay({
                   }}
                   style={theme.continueButtonStyle}
                 >
-                  {isLastLine ? "Close ▶" : "Next ▶"}
+                  {isLastLine ? t('dialogue.control.close') : t('dialogue.control.next')}
                 </button>
               )}
             </div>
@@ -396,7 +397,9 @@ export default function DialogueOverlay({
             // Hidden during the typewriter pass; otherwise the player
             // sees "tap to continue" before they've read the line.
             <div style={theme.continueIndicatorStyle}>
-              {isLastLine ? "▼ tap to close" : "▼ tap to continue"}
+              {isLastLine
+                ? t('dialogue.control.indicatorClose')
+                : t('dialogue.control.indicatorContinue')}
             </div>
           ) : null}
         </div>

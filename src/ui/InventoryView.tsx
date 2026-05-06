@@ -12,9 +12,10 @@
  */
 import { useEffect } from 'react';
 import { eatItem, useInventory } from '../data/inventory';
-import { getItem } from '../data/items';
+import { getItem, getItemName, getItemDescription } from '../data/items';
 import { useEnergy, getMaxEnergy } from '../data/energy';
 import { getUiTheme } from './uiThemes';
+import { t } from '../data/i18n';
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -69,7 +70,7 @@ export default function InventoryView({ onClose }: InventoryViewProps) {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, fontSize: 18, fontWeight: 700, color: COLORS.text, letterSpacing: 0.5 }}>
-            🎒 Bag
+            🎒 {t('inventory.title')}
           </div>
           <div
             style={{
@@ -81,14 +82,14 @@ export default function InventoryView({ onClose }: InventoryViewProps) {
               padding: '4px 10px',
               borderRadius: 4,
             }}
-            title="Energy"
+            title={t('inventory.energyTip')}
           >
             <span style={{ color: COLORS.energyAccent, marginRight: 4 }}>⚡</span>
             {energy}/{max}
           </div>
           <button
             onClick={onClose}
-            aria-label="Close inventory"
+            aria-label={t('inventory.close')}
             style={{
               width: 28, height: 28,
               background: COLORS.parchmentLight,
@@ -139,15 +140,15 @@ export default function InventoryView({ onClose }: InventoryViewProps) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>
-                    {row.def.name} <span style={{ color: COLORS.hintText, fontWeight: 500 }}>×{row.count}</span>
+                    {getItemName(row.id)} <span style={{ color: COLORS.hintText, fontWeight: 500 }}>×{row.count}</span>
                   </div>
                   {canEat ? (
                     <div style={{ fontSize: 11, color: COLORS.hintText, lineHeight: 1.35 }}>
-                      Restores <span style={{ color: COLORS.energyAccent, fontWeight: 700 }}>+{energyValue} ⚡</span>
+                      {t('inventory.eatRestoresLabel')} <span style={{ color: COLORS.energyAccent, fontWeight: 700 }}>+{energyValue} ⚡</span>
                     </div>
-                  ) : row.def.description ? (
+                  ) : getItemDescription(row.id) ? (
                     <div style={{ fontSize: 11, color: COLORS.hintText, lineHeight: 1.35 }}>
-                      {row.def.description}
+                      {getItemDescription(row.id)}
                     </div>
                   ) : null}
                 </div>
@@ -155,7 +156,7 @@ export default function InventoryView({ onClose }: InventoryViewProps) {
                   <button
                     onClick={() => eatItem(row.id)}
                     disabled={!eatEnabled}
-                    title={wouldOvercap ? 'Energy already full' : `Eat for +${energyValue} energy`}
+                    title={wouldOvercap ? t('inventory.energyFullTip') : t('inventory.eatTip', { energy: energyValue })}
                     style={{
                       background: eatEnabled ? COLORS.eatBtn : COLORS.eatBtnDisabled,
                       color: '#fdf6e0',
@@ -169,7 +170,7 @@ export default function InventoryView({ onClose }: InventoryViewProps) {
                       opacity: eatEnabled ? 1 : 0.7,
                     }}
                   >
-                    Eat
+                    {t('inventory.eat')}
                   </button>
                 )}
               </div>

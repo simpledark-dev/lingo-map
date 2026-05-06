@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -120,7 +121,7 @@ export default function WelcomeScreen({ onFadeStart, onComplete }: WelcomeScreen
             textShadow: `0 2px 0 ${COLORS.parchmentLight}, 0 3px 6px rgba(0,0,0,0.25)`,
           }}
         >
-          Survive Lingo
+          {t('welcome.title')}
         </div>
         <div
           style={{
@@ -132,7 +133,7 @@ export default function WelcomeScreen({ onFadeStart, onComplete }: WelcomeScreen
             fontStyle: 'italic',
           }}
         >
-          Survive a new city. Learn its language.
+          {t('welcome.tagline')}
         </div>
       </div>
 
@@ -148,7 +149,7 @@ export default function WelcomeScreen({ onFadeStart, onComplete }: WelcomeScreen
           transition: 'opacity 500ms ease-out',
         }}
       >
-        Tap to begin
+        {t('welcome.tapToBegin')}
       </div>
     </div>
   );

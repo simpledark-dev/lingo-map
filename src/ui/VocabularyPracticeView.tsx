@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { VocabularyPack, VocabularyEntry, getExamples } from '../data/vocabularyPacks';
+import { VocabularyPack, VocabularyEntry, getExamples, getMeaning } from '../data/vocabularyPacks';
+import { t } from '../data/i18n';
 import {
   VocabProgress,
   loadProgress,
@@ -290,7 +291,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                   marginBottom: 2,
                 }}
               >
-                Practice with {npcName}
+                {t('practicePicker.with', { name: npcName })}
               </div>
               {/* Score row — quietly informative, not the focus. */}
               <div style={{ color: COLORS.text, fontSize: 13, display: 'flex', gap: 12 }}>
@@ -308,7 +309,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
               </div>
             </div>
             <PixelButton onClick={onClose} small>
-              ✕ close
+              ✕ {t('translate.summary.close')}
             </PixelButton>
           </div>
 
@@ -345,10 +346,10 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                 }}
               >
                 {isWriteMode
-                  ? 'How do you write…'
+                  ? t('practice.prompt.writeQuestion')
                   : isListenMode
-                    ? 'Listen carefully — what did you hear?'
-                    : 'What does this mean?'}
+                    ? t('practice.prompt.listenQuestion')
+                    : t('practice.prompt.readQuestion')}
               </div>
               {/* Prompt word + speaker — inline, with media query
                   collapsing them onto one row in landscape. */}
@@ -379,7 +380,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                       paddingBottom: 2,
                     }}
                   >
-                    {round.prompt.english}
+                    {getMeaning(round.prompt)}
                   </span>
                 ) : isListenMode && !waitingOnNext && !showDetails ? (
                   // Listen mode hides the spelling pre-answer so the
@@ -397,7 +398,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                       lineHeight: 1.1,
                       paddingBottom: 2,
                     }}
-                    aria-label="Hidden word — listen and pick the meaning"
+                    aria-label={t('practice.hiddenWordAria')}
                   >
                     ◌◌◌
                   </span>
@@ -419,7 +420,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                       paddingBottom: 2,
                       transition: 'border-color 180ms',
                     }}
-                    title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
+                    title={promptIsTappable ? (showDetails ? t('practice.hideDetails') : t('practice.showDetails')) : undefined}
                   >
                     {round.prompt.target}
                   </span>
@@ -432,7 +433,11 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                   <button
                     type="button"
                     className="vp-speaker"
-                    aria-label={isListenMode ? 'Hear it again' : `Pronounce ${round.prompt.target}`}
+                    aria-label={
+                      isListenMode
+                        ? t('practice.hearAgainAria')
+                        : t('practice.pronounceAria', { word: round.prompt.target })
+                    }
                     onClick={handleSpeak}
                     style={{
                       fontFamily: 'inherit',
@@ -446,7 +451,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                       color: COLORS.text,
                     }}
                   >
-                    🔊 {isListenMode ? 'hear again' : 'hear it'}
+                    🔊 {isListenMode ? t('practice.hearAgain') : t('practice.hearIt')}
                   </button>
                 )}
               </div>
@@ -515,7 +520,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                     >
                       {String.fromCharCode(65 + i)}
                     </span>
-                    <span style={{ flex: 1 }}>{choice.english}</span>
+                    <span style={{ flex: 1 }}>{getMeaning(choice)}</span>
                     {showAsCorrect ? <span style={{ color: COLORS.correct, fontSize: 16 }}>✓</span> : null}
                     {showAsWrong ? <span style={{ color: COLORS.wrong, fontSize: 16 }}>✗</span> : null}
                   </button>
@@ -604,7 +609,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                         {round.prompt.pos}
                       </span>
                       <span style={{ color: COLORS.text, fontSize: 14 }}>
-                        — {round.prompt.english}
+                        — {getMeaning(round.prompt)}
                       </span>
                     </div>
                     <div style={{ borderTop: `1px dashed ${COLORS.cardBorder}`, paddingTop: 8 }}>
@@ -618,7 +623,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                           fontWeight: 700,
                         }}
                       >
-                        Examples
+                        {t('common.examples')}
                       </div>
                       {examples.map((sentence, i) => (
                         <div
@@ -667,8 +672,8 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                   }}
                 >
                   {selectedTarget !== null && selectedTarget === round.prompt.target
-                    ? 'Nice! Next ▶'
-                    : 'Got it — Next ▶'}
+                    ? t('practice.next.correct')
+                    : t('practice.next.studied')}
                 </button>
               </div>
             ) : null}
@@ -839,7 +844,7 @@ function PracticeWriteForm({
         autoComplete="off"
         maxLength={30}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Type the word…"
+        placeholder={t('translate.write.placeholder')}
         style={{
           fontFamily: 'inherit',
           fontSize: 22,

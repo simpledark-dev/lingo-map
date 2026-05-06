@@ -98,6 +98,12 @@ export interface NPCData {
   collisionBox: CollisionBox;
   name: string;
   dialogue: string[];
+  /** Optional locale keys for `dialogue`. If present, interaction
+   *  reads these through `t()` at interaction time so language
+   *  switches are reflected without reloading the map. The raw
+   *  `dialogue` array remains the English fallback for editor/data
+   *  compatibility. */
+  dialogueKeys?: string[];
   /** If set, NPC wanders within this radius (pixels) of their spawn point. */
   wanderRadius?: number;
   /** Optional rectangular area the NPC is confined to (world pixels). */
@@ -114,6 +120,9 @@ export interface NPCData {
    *  pitch the work in their own voice — keeps the recurring dialog
    *  from feeling copy-pasted across every NPC the player meets. */
   vocabularyOfferLine?: string;
+  /** Locale key for `vocabularyOfferLine`. Mirrors `dialogueKeys`
+   *  but for the translator-offer opener. */
+  vocabularyOfferLineKey?: string;
   /** Legacy recorded opener metadata. Main-game NPC dialogue is
    *  intentionally silent now because those lines are native-language
    *  English; target-language word audio is handled by vocabulary

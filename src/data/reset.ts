@@ -27,6 +27,8 @@ const STORAGE_KEYS = [
   'lingo-quests:v1',
   'lingo-quests:completion-order',
   'lingo-profile:v1',
+  'lingo-locale',
+  'lingo-locale:picked',
   WORLD_SAVE_STORAGE_KEY,
   SETTINGS_STORAGE_KEY,
 ];

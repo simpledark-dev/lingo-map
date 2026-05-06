@@ -32,6 +32,7 @@ import {
 } from '../data/debt';
 import { hasFlag, setFlag, FLAGS } from '../data/eventFlags';
 import { getPlayerName, getChildName } from '../data/profile';
+import { t } from '../data/i18n';
 
 /** Compose the child NPC's dialogue based on the current quest's
  *  status + inventory. Slice 2 promotes the previous flag-driven
@@ -68,13 +69,13 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
   if (introStatus === 'active' && status === 'inactive') {
     return withChildName({
       lines: [
-        `Good luck, dad! I'll wait here. Bring back some good news!`,
+        t('dialogue.mim.goodLuckDad'),
       ],
     });
   }
   if (status === 'completed') {
     return withChildName({
-      lines: ['Thanks for the sandwich earlier! I love you, dad.'],
+      lines: [t('dialogue.mim.thanksForSandwich')],
     });
   }
   if (status === 'inactive') {
@@ -88,7 +89,7 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
       startQuest('child-sandwich');
       return withChildName({
         lines: [
-          "I'm hungry… can you go to the Mart and grab me a sandwich? Please?",
+          t('dialogue.mim.imHungry'),
         ],
       });
     }
@@ -98,8 +99,8 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
     // has begun yet, so the line lands in context.
     return withChildName({
       lines: introStatus === 'active'
-        ? [`Good luck, dad! I'll wait here. Bring back some good news!`]
-        : [`Hi dad. Are we okay?`],
+        ? [t('dialogue.mim.goodLuckDad')]
+        : [t('dialogue.mim.preFirstPaycheck')],
     });
   }
   // status === 'active'. The chain auto-starts the quest WITHOUT
@@ -114,7 +115,7 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
     setFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
     return withChildName({
       lines: [
-        "I'm hungry… can you go to the Mart and grab me a sandwich? Please?",
+        t('dialogue.mim.imHungry'),
       ],
     });
   }
@@ -124,10 +125,10 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
   // dialogue builder a pure projection of quest + flag state.
   void hasItem;
   return withChildName({
-    lines: ['Did you get my sandwich?'],
+    lines: [t('dialogue.mim.didYouGet')],
     options: [
-      { id: 'child-give-sandwich', label: 'Give the sandwich 🥪' },
-      { id: 'child-decline', label: 'Not yet' },
+      { id: 'child-give-sandwich', label: t('dialogue.mim.giveSandwich') },
+      { id: 'child-decline', label: t('dialogue.mim.notYet') },
     ],
   });
 }
@@ -146,31 +147,31 @@ export function buildLenderDialogue(stub: DialogueState): DialogueState {
   const lines =
     debt > 0
       ? [
-          `You owe me ${formatBalance(debt)}. Need more, or are you here to pay up?`,
+          t('dialogue.theo.youOwe', { debt: formatBalance(debt) }),
         ]
-      : ['Need a hand? I can spot you five at a time, up to twenty.'];
+      : [t('dialogue.theo.canSpot')];
   const canPay = debt > 0 && balance > 0;
   const repayAmount = Math.min(balance, debt);
   const options: DialogueState['options'] = [
     {
       id: 'lender-borrow',
-      label: `Borrow ${formatBalance(BORROW_INCREMENT_CENTS)}`,
+      label: t('dialogue.theo.borrow', { amount: formatBalance(BORROW_INCREMENT_CENTS) }),
       hint: canBorrow()
-        ? `Owed after: ${formatBalance(debt + BORROW_INCREMENT_CENTS)} (cap ${formatBalance(MAX_DEBT_CENTS)})`
-        : `You’re maxed out — pay some back first.`,
+        ? t('dialogue.theo.borrowHint', { after: formatBalance(debt + BORROW_INCREMENT_CENTS), cap: formatBalance(MAX_DEBT_CENTS) })
+        : t('dialogue.theo.borrowMaxedHint'),
       disabled: !canBorrow(),
     },
     {
       id: 'lender-repay',
-      label: canPay ? `Repay ${formatBalance(repayAmount)}` : 'Repay',
+      label: canPay ? t('dialogue.theo.repay', { amount: formatBalance(repayAmount) }) : t('dialogue.theo.repayLabelEmpty'),
       hint: canPay
-        ? `Pays everything you can right now.`
+        ? t('dialogue.theo.repayHint')
         : debt === 0
-          ? `Nothing to repay.`
-          : `You don’t have any cash on you.`,
+          ? t('dialogue.theo.repayNothingHint')
+          : t('dialogue.theo.repayBrokeHint'),
       disabled: !canPay,
     },
-    { id: 'lender-leave', label: 'Maybe later' },
+    { id: 'lender-leave', label: t('dialogue.theo.maybeLater') },
   ];
   return {
     ...stub,
@@ -201,7 +202,7 @@ export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
     return {
       ...stub,
       lines: [
-        "I'll wait for an actual translator — talk to the CEO first.",
+        t('dialogue.eli.preHire'),
       ],
       currentLine: 0,
     };
@@ -210,7 +211,7 @@ export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
   return {
     ...stub,
     lines: [
-      "Hey, the translator! Got three words to drill — quick run?",
+      t('dialogue.eli.offer'),
     ],
     currentLine: 0,
     vocabularyPackId: 'office-tutor-pack',
@@ -218,17 +219,17 @@ export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
     options: [
       {
         id: 'help',
-        label: "Sure, I'll give it a shot",
-        hint: 'Earn money for every word you get right. Wrong ones will cost you.',
+        label: t('dialogue.offer.help'),
+        hint: t('dialogue.offer.helpHint'),
       },
       {
         id: 'view',
-        label: 'Let me look them over first (3 words)',
-        hint: 'Browse the list, hear how they sound, practice freely — no money on the line.',
+        label: t('dialogue.offer.view', { count: 3 }),
+        hint: t('dialogue.offer.viewHint'),
       },
       {
         id: 'decline',
-        label: 'Sorry, not right now',
+        label: t('dialogue.offer.decline'),
         hint: '',
       },
     ],
@@ -269,17 +270,17 @@ export function buildCeoIntroDialogue(stub: DialogueState): DialogueState {
     return {
       ...stub,
       dialogueKind: 'ceo-intro',
-      lines: [`Welcome, stranger. What can I do for you?`],
+      lines: [t('dialogue.ceo.greeting')],
       currentLine: 0,
       options: [
         {
           id: 'ceo-apply',
-          label: 'I’m here to apply for the translator job.',
+          label: t('dialogue.ceo.option.apply'),
         },
         {
           id: 'ceo-decline-apply',
-          label: 'Ah, nothing — nevermind.',
-          hint: 'You can come back any time.',
+          label: t('dialogue.ceo.option.declineApply'),
+          hint: t('dialogue.ceo.option.declineApplyHint'),
         },
       ],
     };
@@ -292,24 +293,24 @@ export function buildCeoIntroDialogue(stub: DialogueState): DialogueState {
       return {
         ...stub,
         lines: [
-          `${playerName}! Word is you've cleared ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} translating. That's a real paycheck.`,
-          `Here — bonus of ${formatBalance(FIRST_PAYCHECK_BONUS_CENTS)} for showing up. Don't blow it all at the Mart.`,
+          t('dialogue.ceo.paycheckClaimL1', { name: playerName, threshold: formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS) }),
+          t('dialogue.ceo.paycheckClaimL2', { bonus: formatBalance(FIRST_PAYCHECK_BONUS_CENTS) }),
         ],
         options: [
           {
             id: 'ceo-paycheck-claim',
-            label: `Claim ${formatBalance(FIRST_PAYCHECK_BONUS_CENTS)} bonus`,
-            hint: 'You earned it.',
+            label: t('dialogue.ceo.paycheckClaimOption', { bonus: formatBalance(FIRST_PAYCHECK_BONUS_CENTS) }),
+            hint: t('dialogue.ceo.paycheckClaimOptionHint'),
           },
-          { id: 'ceo-paycheck-decline', label: 'Maybe later' },
+          { id: 'ceo-paycheck-decline', label: t('dialogue.ceo.paycheckMaybeLater') },
         ],
       };
     }
     return {
       ...stub,
       lines: [
-        `Translating going alright, ${playerName}? You're at ${formatBalance(earned)} so far.`,
-        `Hit ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} earned and there's a bonus waiting for you on top of what you've already pocketed.`,
+        t('dialogue.ceo.paycheckCheckin1', { name: playerName, earned: formatBalance(earned) }),
+        t('dialogue.ceo.paycheckCheckin2', { threshold: formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS) }),
       ],
     };
   }
@@ -326,14 +327,14 @@ export const APARTMENT_DIALOGUE: ReadonlyArray<{
   speaker: 'parent' | 'child';
   text: (names: { parent: string; child: string }) => string;
 }> = [
-  { speaker: 'parent', text: () => 'This is our home. For now.' },
-  { speaker: 'parent', text: () => "It's small. Bare. But the rent's paid for a month." },
-  { speaker: 'parent', text: () => 'After that... I need money. Quickly.' },
-  { speaker: 'parent', text: () => "I saw an ad in the paper — translation office on Mart Street. I'm going to apply." },
-  { speaker: 'child',  text: () => "Wait — but you don't even speak the language!" },
-  { speaker: 'parent', text: () => 'I know.' },
-  { speaker: 'parent', text: () => "I'll fake it till I make it. Smile. Nod. They won't have to know." },
-  { speaker: 'child',  text: () => '...Will it work?' },
-  { speaker: 'parent', text: () => 'It has to.' },
-  { speaker: 'parent', text: ({ child }) => `Stay here, ${child}. I'll come back with good news.` },
+  { speaker: 'parent', text: () => t('apartment.line.home') },
+  { speaker: 'parent', text: () => t('apartment.line.smallButRent') },
+  { speaker: 'parent', text: () => t('apartment.line.needMoney') },
+  { speaker: 'parent', text: () => t('apartment.line.sawAd') },
+  { speaker: 'child',  text: () => t('apartment.line.childObjection') },
+  { speaker: 'parent', text: () => t('apartment.line.iKnow') },
+  { speaker: 'parent', text: () => t('apartment.line.fakeIt') },
+  { speaker: 'child',  text: () => t('apartment.line.willItWork') },
+  { speaker: 'parent', text: () => t('apartment.line.ithasTo') },
+  { speaker: 'parent', text: ({ child }) => t('apartment.line.stayHere', { child }) },
 ];

@@ -20,6 +20,7 @@ import {
   subscribeQuestTransitions,
 } from '../data/quests';
 import { getUiTheme } from './uiThemes';
+import { t } from '../data/i18n';
 
 const HOLD_MS = 3200;
 
@@ -48,7 +49,7 @@ export default function QuestToast() {
   if (!active) return null;
 
   const isStart = active.kind === 'started';
-  const labelTop = isStart ? 'New Quest' : 'Quest Complete';
+  const labelTop = isStart ? t('questToast.newQuest') : t('questToast.questComplete');
   const accentColor = isStart ? COLORS.active : COLORS.done;
 
   return (

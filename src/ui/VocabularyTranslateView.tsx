@@ -21,7 +21,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { VocabularyPack, VocabularyEntry, getExamples } from '../data/vocabularyPacks';
+import { VocabularyPack, VocabularyEntry, getExamples, getMeaning } from '../data/vocabularyPacks';
+import { t } from '../data/i18n';
 import {
   VocabProgress,
   loadProgress,
@@ -420,7 +421,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           >
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.hintText, fontWeight: 700 }}>
-              Session Summary
+              {t('translate.summary.title')}
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>
               {npcName}
@@ -429,7 +430,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
 
           {total === 0 ? (
             <div style={{ fontSize: 12, color: COLORS.hintText, textAlign: 'center', padding: '12px 4px', fontStyle: 'italic' }}>
-              No rounds answered. Come back when you&apos;re ready.
+              {t('translate.summary.noRoundsAnswered')}
             </div>
           ) : (
             <>
@@ -447,17 +448,17 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                     {successRate}%
                   </div>
                   <div style={{ fontSize: 10, color: COLORS.hintText, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    Success
+                    {t('translate.summary.successLabel')}
                   </div>
                 </div>
                 <div style={{ width: 1, alignSelf: 'stretch', background: COLORS.cardBorder, opacity: 0.4 }} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
-                  <div><span style={{ color: COLORS.correct, fontWeight: 700 }}>✓</span> {correct} correct</div>
-                  <div><span style={{ color: COLORS.wrong, fontWeight: 700 }}>✕</span> {wrong} wrong</div>
+                  <div><span style={{ color: COLORS.correct, fontWeight: 700 }}>✓</span> {t('translate.summary.correctRow', { count: correct })}</div>
+                  <div><span style={{ color: COLORS.wrong, fontWeight: 700 }}>✕</span> {t('translate.summary.wrongRow', { count: wrong })}</div>
                   {idk > 0 && (
-                    <div><span style={{ fontWeight: 700 }}>🤷</span> {idk} skipped</div>
+                    <div><span style={{ fontWeight: 700 }}>🤷</span> {t('translate.summary.skippedRow', { count: idk })}</div>
                   )}
-                  <div style={{ color: COLORS.hintText, marginTop: 2 }}>{total} total</div>
+                  <div style={{ color: COLORS.hintText, marginTop: 2 }}>{t('translate.summary.totalRow', { count: total })}</div>
                 </div>
               </div>
 
@@ -480,19 +481,19 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
                   <div>
                     <span style={{ color: COLORS.correct, fontWeight: 700 }}>+{formatBalance(sessionEarned)}</span>
-                    <span style={{ color: COLORS.hintText, marginLeft: 6 }}>earned</span>
+                    <span style={{ color: COLORS.hintText, marginLeft: 6 }}>{t('translate.summary.earnedLabel')}</span>
                   </div>
                   {sessionLost > 0 && (
                     <div>
                       <span style={{ color: COLORS.wrong, fontWeight: 700 }}>-{formatBalance(sessionLost)}</span>
-                      <span style={{ color: COLORS.hintText, marginLeft: 6 }}>lost</span>
+                      <span style={{ color: COLORS.hintText, marginLeft: 6 }}>{t('translate.summary.lostLabel')}</span>
                     </div>
                   )}
                 </div>
                 <div style={{ width: 1, alignSelf: 'stretch', background: COLORS.cardBorder, opacity: 0.4 }} />
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 10, color: COLORS.hintText, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    Net
+                    {t('translate.summary.netLabel')}
                   </div>
                   <div
                     style={{
@@ -509,7 +510,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
               {topMissed.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
                   <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.wrong, fontWeight: 700 }}>
-                    Words to review
+                    {t('translate.summary.wordsToReview')}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
                     {topMissed.map((m) => (
@@ -539,7 +540,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
 
               {topMissed.length === 0 && (
                 <div style={{ fontSize: 12, color: COLORS.correct, textAlign: 'center', fontStyle: 'italic' }}>
-                  Clean session — no words missed. Nicely done.
+                  {t('translate.summary.cleanSession')}
                 </div>
               )}
             </>
@@ -559,7 +560,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
               cursor: 'pointer',
             }}
           >
-            Close
+            {t('translate.summary.close')}
           </button>
         </div>
       </div>
@@ -633,14 +634,14 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   marginBottom: 2,
                 }}
               >
-                Translating for {npcName}
+                {t('translate.headerFor', { name: npcName })}
               </div>
               <div style={{ color: COLORS.text, fontSize: 11, opacity: 0.8 }}>
                 {isWriteMode
-                  ? 'See the meaning — type the word.'
+                  ? t('translate.modeHint.write')
                   : isListenMode
-                    ? 'Listen and pick the meaning.'
-                    : 'Read the word, pick its meaning.'}
+                    ? t('translate.modeHint.listen')
+                    : t('translate.modeHint.read')}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -663,7 +664,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                 <span>{formatBalance(coins)}</span>
               </div>
               <PixelButton onClick={() => setSessionEnded(true)} small>
-                End ▶
+                {t('translate.endButton')}
               </PixelButton>
             </div>
           </div>
@@ -724,10 +725,10 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                 }}
               >
                 {isWriteMode
-                  ? 'How do you write…'
+                  ? t('translate.prompt.writeQuestion')
                   : isListenMode
-                    ? 'Listen carefully — what did you hear?'
-                    : 'What does this mean?'}
+                    ? t('translate.prompt.listenQuestion')
+                    : t('translate.prompt.read')}
               </div>
               {/* Prompt area. In `read` mode we render the target word
                   as text with the speaker button beside it. In `listen`
@@ -764,7 +765,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                       paddingBottom: 2,
                     }}
                   >
-                    {round.prompt.english}
+                    {getMeaning(round.prompt)}
                   </span>
                 ) : isListenMode ? (
                   // Listen mode: a chunky waveform-glyph placeholder
@@ -788,7 +789,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                       transition: 'border-color 180ms',
                       display: 'inline-block',
                     }}
-                    title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
+                    title={promptIsTappable ? (showDetails ? t('translate.studyHide') : t('translate.studyTap')) : undefined}
                   >
                     ◌◌◌
                   </span>
@@ -810,7 +811,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                       paddingBottom: 2,
                       transition: 'border-color 180ms',
                     }}
-                    title={promptIsTappable ? (showDetails ? 'Hide details' : 'Tap to see meaning & examples') : undefined}
+                    title={promptIsTappable ? (showDetails ? t('translate.studyHide') : t('translate.studyTap')) : undefined}
                   >
                     {round.prompt.target}
                   </span>
@@ -823,7 +824,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   <button
                     type="button"
                     className="vt-speaker"
-                    aria-label={`Pronounce ${round.prompt.target}`}
+                    aria-label={t('translate.pronounceAria', { word: round.prompt.target })}
                     onClick={handleSpeak}
                     style={{
                       fontFamily: 'inherit',
@@ -837,7 +838,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                       color: COLORS.text,
                     }}
                   >
-                    🔊 {isListenMode ? 'hear again' : 'hear it'}
+                    🔊 {isListenMode ? t('translate.hearAgain') : t('translate.hearIt')}
                   </button>
                 )}
               </div>
@@ -901,7 +902,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                     <span style={{ color: COLORS.hintText, fontSize: 12, fontWeight: 700, minWidth: 18 }}>
                       {String.fromCharCode(65 + i)}
                     </span>
-                    <span style={{ flex: 1 }}>{choice.english}</span>
+                    <span style={{ flex: 1 }}>{getMeaning(choice)}</span>
                     {showAsCorrect ? <span style={{ color: COLORS.correct, fontSize: 16 }}>✓</span> : null}
                     {showAsWrong ? <span style={{ color: COLORS.wrong, fontSize: 16 }}>✗</span> : null}
                   </button>
@@ -942,7 +943,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   e.currentTarget.style.color = COLORS.hintText;
                 }}
               >
-                🤷 I don&apos;t know — show me
+                {t('translate.idkAction')}
               </button>
             ) : null}
 
@@ -1010,7 +1011,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                           animation: 'lingoMapTranslateMeaningPalpitate 1100ms ease-out',
                         }}
                       >
-                        — {round.prompt.english}
+                        — {getMeaning(round.prompt)}
                       </span>
                     </div>
                     <div style={{ borderTop: `1px dashed ${COLORS.cardBorder}`, paddingTop: 8 }}>
@@ -1024,7 +1025,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                           fontWeight: 700,
                         }}
                       >
-                        Examples
+                        {t('common.examples')}
                       </div>
                       {examples.map((sentence, i) => (
                         <div
@@ -1073,8 +1074,8 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   }}
                 >
                   {selectedTarget !== null && selectedTarget === round.prompt.target
-                    ? 'Nice! Next ▶'
-                    : 'Got it — Next ▶'}
+                    ? t('translate.next.correct')
+                    : t('translate.next.studied')}
                 </button>
               </div>
             ) : null}
@@ -1288,7 +1289,7 @@ function WriteForm({
         // realistically grow to without enabling a flood-paste.
         maxLength={30}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Type the word…"
+        placeholder={t('translate.write.placeholder')}
         // Letterspacing tightens for the input vs the prompt so
         // typed text reads as input, not as a label.
         style={{
@@ -1330,7 +1331,7 @@ function WriteForm({
             opacity: canSubmit ? 1 : 0.65,
           }}
         >
-          Submit ▶
+          {t('translate.write.submit')}
         </button>
       )}
       {outcome !== null && (
@@ -1385,16 +1386,13 @@ function OutOfEnergyPanel({
   if (haveFoodInBag) {
     body = (
       <div style={{ fontSize: 12, color: COLORS.hintText, lineHeight: 1.45 }}>
-        You&apos;re too tired to keep working. Open your <strong>Bag</strong>
-        {' '}and eat something to refill, then come back to {npcName}.
+        {t('translate.outOfEnergy.haveFood', { name: npcName })}
       </div>
     );
   } else if (canAffordFood) {
     body = (
       <div style={{ fontSize: 12, color: COLORS.hintText, lineHeight: 1.45 }}>
-        You&apos;re too tired to keep working. You have{' '}
-        <strong>{formatBalance(balance)}</strong> — head to the{' '}
-        <strong>Mart</strong> and buy a snack, then come back to {npcName}.
+        {t('translate.outOfEnergy.canAfford', { balance: formatBalance(balance), name: npcName })}
       </div>
     );
   } else {
@@ -1408,10 +1406,7 @@ function OutOfEnergyPanel({
           />
         </div>
         <div style={{ fontSize: 12, color: COLORS.hintText, lineHeight: 1.45 }}>
-          You&apos;re too tired to keep working — and you can&apos;t afford
-          food on <strong>{formatBalance(balance)}</strong>. Find{' '}
-          <strong>Theo</strong> on the path; he&apos;ll spot you a small
-          loan you can pay back later.
+          {t('translate.outOfEnergy.broke', { balance: formatBalance(balance) })}
         </div>
       </>
     );
@@ -1443,7 +1438,7 @@ function OutOfEnergyPanel({
         }}
       >
         <div style={{ fontSize: 38, lineHeight: 1 }}>⚡</div>
-        <div style={{ fontSize: 16, fontWeight: 700 }}>Out of energy</div>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>{t('translate.outOfEnergy.title')}</div>
         {body}
         <button
           onClick={onClose}
@@ -1459,7 +1454,7 @@ function OutOfEnergyPanel({
             cursor: 'pointer',
           }}
         >
-          Close
+          {t('translate.outOfEnergy.close')}
         </button>
       </div>
     </div>

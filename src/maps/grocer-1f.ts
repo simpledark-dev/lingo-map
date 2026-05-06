@@ -113,6 +113,7 @@ const npcs: NPCData[] = [
     collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
     name: "Shopkeeper",
     dialogue: ["Welcome!"],
+    dialogueKeys: ["npc.grocer.shopkeeper.line1"],
     shopName: "Mart",
   },
 ];

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { t } from '../data/i18n';
 
 type Dir = { up: boolean; down: boolean; left: boolean; right: boolean };
 const ZERO_DIR: Dir = { up: false, down: false, left: false, right: false };
@@ -137,7 +138,7 @@ export default function VirtualDPad({ onChange }: Props) {
         WebkitTouchCallout: 'none',
         WebkitTapHighlightColor: 'transparent',
       }}
-      aria-label="Movement controls"
+      aria-label={t('controls.movementControls')}
     >
       {/* Outer circle — entire surface is the touch zone. */}
       <div

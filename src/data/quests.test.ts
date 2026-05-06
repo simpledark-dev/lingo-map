@@ -117,10 +117,18 @@ describe('subscribeQuestTransitions', () => {
 
 describe('getObjective', () => {
   it('returns the static objective when no computeObjective is defined', async () => {
-    const { getObjective, QUESTS } = await import('./quests');
-    expect(getObjective(QUESTS['first-paycheck'])).toBe(
-      QUESTS['first-paycheck'].objective,
-    );
+    const { getObjective } = await import('./quests');
+    // Synthetic quest def — every shipped quest now has a
+    // computeObjective for i18n, so we can't reference one from the
+    // catalog. The contract still matters: a partial QuestDef without
+    // the hook should fall back to the static field.
+    expect(
+      getObjective({
+        id: 'synthetic',
+        title: 'Synthetic',
+        objective: 'Static fallback string.',
+      }),
+    ).toBe('Static fallback string.');
   });
 
   it('first-paycheck objective references the threshold dollar amount', async () => {

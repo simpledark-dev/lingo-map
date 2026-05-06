@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from '../core/constants';
 import { MapData, TileType, GameState } from '../core/types';
+import { t } from '../data/i18n';
 
 const TILE_COLORS: Record<string, string> = {
   [TileType.GRASS]: '#4a8c3f',
@@ -135,22 +136,22 @@ export default function Minimap({ mapData, gameState, onClose }: MinimapProps) {
           style={{ imageRendering: 'pixelated', borderRadius: 8, border: '2px solid rgba(255,255,255,0.3)' }}
         />
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-white/70 max-w-[480px]">
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-[#3a7bd5]" /> You</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#a0785a]" /> House</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#c07050]" /> Cafe</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#904040]" /> Restaurant</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#3a6a2a]" /> Bookstore</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#b09050]" /> Market</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#c08050]" /> Bakery</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#7a6040]" /> Inn</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#555555]" /> Blacksmith</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#c44a4a]" /> NPC</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-[#3a7bd5]" /> {t('minimap.you')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#a0785a]" /> {t('minimap.house')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#c07050]" /> {t('minimap.cafe')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#904040]" /> {t('minimap.restaurant')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#3a6a2a]" /> {t('minimap.bookstore')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#b09050]" /> {t('minimap.market')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#c08050]" /> {t('minimap.bakery')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#7a6040]" /> {t('minimap.inn')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#555555]" /> {t('minimap.blacksmith')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-[#c44a4a]" /> {t('minimap.npc')}</span>
         </div>
         <button
           onClick={onClose}
           className="mt-1 px-4 py-1.5 rounded bg-white/20 text-white text-sm hover:bg-white/30 transition"
         >
-          Close Map
+          {t('minimap.close')}
         </button>
       </div>
     </div>

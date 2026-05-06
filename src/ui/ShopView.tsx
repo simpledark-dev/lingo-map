@@ -12,7 +12,8 @@
  * earn → spend loop.
  */
 import { useCallback } from "react";
-import { ALL_ITEM_IDS, getItem } from "../data/items";
+import { ALL_ITEM_IDS, getItem, getItemName, getItemDescription } from "../data/items";
+import { t } from "../data/i18n";
 import { addBalance, formatBalance, useWalletBalance } from "../data/wallet";
 import { addItem } from "../data/inventory";
 import { completeQuest, getQuestStatus } from "../data/quests";
@@ -98,14 +99,14 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
               padding: "4px 10px",
               borderRadius: 4,
             }}
-            title="Your wallet"
+            title={t('shop.walletTip')}
           >
             <span style={{ color: COLORS.coinGold, marginRight: 4 }}>●</span>
             {formatBalance(balance)}
           </div>
           <button
             onClick={onClose}
-            aria-label="Close shop"
+            aria-label={t('shop.closeAriaLabel')}
             style={{
               width: 28,
               height: 28,
@@ -131,7 +132,7 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
             fontWeight: 700,
           }}
         >
-          For sale
+          {t('shop.forSaleHeader')}
         </div>
 
         {/* Item list — scrolls if it ever outgrows the viewport. */}
@@ -180,9 +181,9 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
                       color: COLORS.text,
                     }}
                   >
-                    {def.name}
+                    {getItemName(id)}
                   </div>
-                  {def.description && (
+                  {getItemDescription(id) && (
                     <div
                       style={{
                         fontSize: 11,
@@ -190,7 +191,7 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
                         lineHeight: 1.35,
                       }}
                     >
-                      {def.description}
+                      {getItemDescription(id)}
                     </div>
                   )}
                 </div>
@@ -223,7 +224,7 @@ export default function ShopView({ shopName, onClose }: ShopViewProps) {
                     opacity: canAfford ? 1 : 0.7,
                   }}
                 >
-                  {canAfford ? "Buy" : "Buy"}
+                  {t('shop.buy')}
                 </button>
               </div>
             );

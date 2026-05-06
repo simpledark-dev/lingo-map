@@ -23,6 +23,7 @@
 import { useEffect, useState } from 'react';
 import { hasFlag, FLAGS } from './eventFlags';
 import { getChildName } from './profile';
+import { t } from './i18n';
 
 const STORAGE_KEY = 'lingo-quests:v1';
 /** Append-only list of quest IDs in the order the player completed
@@ -73,6 +74,8 @@ export interface QuestDef {
    *  players plan the next thing to do without first stumbling on
    *  the right NPC by chance. */
   availableHint?: string;
+  /** Locale-aware hint hook, mirroring computeObjective. */
+  computeAvailableHint?: () => string;
   /** Wrap-up shown in the log after the quest is completed. Falls
    *  back to "Completed." when omitted. */
   completedSummary?: string;
@@ -146,32 +149,37 @@ export const QUESTS: Record<string, QuestDef> = {
   'tutorial-borrow': {
     id: 'tutorial-borrow',
     title: 'Borrow from Theo',
-    objective:
-      'Money runs out fast in this town. Find Theo on the path outside and borrow a little to keep going.',
-    completedSummary: 'You borrowed from Theo. Pay him back when you can.',
+    computeTitle: () => t('quest.tutorialBorrow.title'),
+    objective: 'Money runs out fast in this town. Find Theo and borrow a little.',
+    computeObjective: () => t('quest.tutorialBorrow.objective'),
+    completedSummary: 'You borrowed from Theo.',
+    computeCompletedSummary: () => t('quest.tutorialBorrow.completedSummary'),
     requiresCompleted: ['child-sandwich'],
   },
   'tutorial-buy-food': {
     id: 'tutorial-buy-food',
     title: 'Buy Food at the Mart',
-    objective:
-      'Head into the Mart and buy any food item — you\u2019ll need something to eat before you can work again.',
-    completedSummary: 'You bought a snack at the Mart. The shopkeeper appreciated the business.',
+    computeTitle: () => t('quest.tutorialBuyFood.title'),
+    objective: 'Buy any food item at the Mart.',
+    computeObjective: () => t('quest.tutorialBuyFood.objective'),
+    completedSummary: 'You bought a snack.',
+    computeCompletedSummary: () => t('quest.tutorialBuyFood.completedSummary'),
     requiresCompleted: ['tutorial-borrow'],
   },
   'tutorial-eat': {
     id: 'tutorial-eat',
     title: 'Refill Your Energy',
-    objective:
-      'Open your Bag (the icon under the wallet) and eat what you bought to refill your energy.',
-    completedSummary:
-      'You ate to refill energy. The full loop: translate → earn → buy food → eat → keep going.',
+    computeTitle: () => t('quest.tutorialEat.title'),
+    objective: 'Open your Bag and eat what you bought.',
+    computeObjective: () => t('quest.tutorialEat.objective'),
+    completedSummary: 'You ate to refill energy.',
+    computeCompletedSummary: () => t('quest.tutorialEat.completedSummary'),
     requiresCompleted: ['tutorial-buy-food'],
   },
   'child-sandwich': {
     id: 'child-sandwich',
     title: 'A Sandwich for Your Child',
-    computeTitle: () => `A Sandwich for ${childDisplayName()}`,
+    computeTitle: () => t('quest.childSandwich.title', { child: childDisplayName() }),
     // Static fallback — only shown if `computeObjective` is somehow
     // skipped (e.g. unit-test reading the def directly).
     objective: 'Your child wanted to talk to you. Head home.',
@@ -183,11 +191,11 @@ export const QUESTS: Record<string, QuestDef> = {
     // Mim's dialogue handler.
     computeObjective: () =>
       hasFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH)
-        ? 'Buy a sandwich at the Mart and bring it home.'
-        : `${childDisplayName()} wanted to talk to you. Head home.`,
-    completedSummary: 'You brought your child a sandwich. They were thrilled.',
+        ? t('quest.childSandwich.objective', { child: childDisplayName() })
+        : t('quest.childSandwich.objectivePreAsk', { child: childDisplayName() }),
+    completedSummary: 'You brought your child a sandwich.',
     computeCompletedSummary: () =>
-      `You brought ${childDisplayName()} a sandwich. They were thrilled.`,
+      t('quest.childSandwich.completedSummary', { child: childDisplayName() }),
     // Auto-chained after the first paycheck — the player has the
     // money + the workflow muscle memory by then, and Mim's request
     // closes the loop on "you came to the city to feed your kid".
@@ -199,22 +207,22 @@ export const QUESTS: Record<string, QuestDef> = {
   'intro-translator-job': {
     id: 'intro-translator-job',
     title: 'Apply for the Translator Job',
-    objective: 'Walk to the translation office on Mart Street. The CEO is waiting.',
-    // No `availableHint` — this quest is auto-started by the intro
-    // cutscene rather than discovered organically; surfacing a hint
-    // before the cutscene runs would spoil it.
-    completedSummary: 'You bluffed your way into a translator gig. The work begins now.',
+    computeTitle: () => t('quest.introTranslatorJob.title'),
+    objective: 'Walk to the translation office on Mart Street.',
+    computeObjective: () => t('quest.introTranslatorJob.objective'),
+    completedSummary: 'You bluffed your way into a translator gig.',
+    computeCompletedSummary: () => t('quest.introTranslatorJob.completedSummary'),
   },
   'first-paycheck': {
     id: 'first-paycheck',
     title: 'Earn Your First Paycheck',
-    // Concrete, action-first objective. Eli at the office is the
-    // primary customer — repeatable, three-word pack — and is the
-    // intended path to the $1.00 threshold. Once met, return to
-    // the CEO for the bonus.
-    objective: "Eli's at the office with a three-word job — drill it as many times as you need. Earn $1.00 total, then return to the CEO for your bonus.",
-    availableHint: 'The CEO promised a paycheck once you\u2019ve earned your stripes — keep translating.',
-    completedSummary: 'You earned your first paycheck. The CEO threw in a small bonus on top.',
+    computeTitle: () => t('quest.firstPaycheck.title'),
+    objective: "Eli's at the office. Earn $1.00 and return to the CEO.",
+    computeObjective: () => t('quest.firstPaycheck.objective', { threshold: '$1.00' }),
+    availableHint: 'The CEO promised a paycheck.',
+    computeAvailableHint: () => t('quest.firstPaycheck.availableHint'),
+    completedSummary: 'You earned your first paycheck.',
+    computeCompletedSummary: () => t('quest.firstPaycheck.completedSummary'),
     // Auto-starts as soon as the intro is done (see GameCanvas's
     // catch-up effect), but prereq is set anyway so a stale save
     // mid-intro doesn't accidentally surface this in Available.

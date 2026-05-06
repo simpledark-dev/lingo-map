@@ -1,17 +1,35 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistrar } from "../ui/ServiceWorkerRegistrar";
 import { ErrorOverlay } from "../ui/ErrorOverlay";
 
+// Geist for sans, Roboto Mono for the in-game UI's JRPG-style
+// monospace. Vietnamese needs the `vietnamese` subset on both —
+// Geist Mono (the original choice for monospace) doesn't ship
+// Vietnamese glyphs at all, so when Vietnamese characters
+// rendered with it, the browser fell back to a generic mono
+// and the diacritic stacking broke. Roboto Mono has full
+// Vietnamese support and reads close enough to Geist Mono in
+// the cozy-pixel-art context that the swap is invisible to
+// English players. The CSS variable name stays
+// `--font-geist-mono` for now to avoid touching every consumer
+// site; future cleanup could rename to `--font-mono`.
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  // Geist on Next.js doesn't ship a `vietnamese` subset, but
+  // `latin-ext` covers almost every common Vietnamese letter
+  // (precomposed). The remaining handful of chars fall back to
+  // the OS sans, which on every modern platform has full
+  // Vietnamese — visible mismatch is rare and minor. The
+  // monospace font (Roboto Mono) handles the heavier Vietnamese
+  // load since it's used for the cutscene + dialogue text.
+  subsets: ["latin", "latin-ext"],
 });
 
-const geistMono = Geist_Mono({
+const geistMono = Roboto_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext", "vietnamese"],
 });
 
 export const viewport: Viewport = {

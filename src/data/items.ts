@@ -8,6 +8,8 @@
  * intentionally small; food is a meaningful savings goal.
  */
 
+import { t } from './i18n';
+
 export interface ItemDef {
   id: string;
   name: string;
@@ -83,6 +85,28 @@ export const ITEMS: Record<string, ItemDef> = {
 
 export function getItem(id: string): ItemDef | undefined {
   return ITEMS[id];
+}
+
+/** Locale-aware display name for an item. The static `name` field
+ *  on the def is the English fallback; this helper looks up the
+ *  current locale's translation via the `item.<id>.name` key. */
+export function getItemName(id: string): string {
+  const def = ITEMS[id];
+  if (!def) return id;
+  // t() falls back to English for keys without a translation, then
+  // to the key itself if even English is missing — so a forgotten
+  // item key surfaces in dev rather than going invisible.
+  const translated = t(`item.${id}.name`);
+  // If the key wasn't in either locale, t() returns the raw key —
+  // catch that and fall back to the def's static name.
+  return translated.startsWith('item.') ? def.name : translated;
+}
+
+export function getItemDescription(id: string): string | undefined {
+  const def = ITEMS[id];
+  if (!def?.description) return def?.description;
+  const translated = t(`item.${id}.description`);
+  return translated.startsWith('item.') ? def.description : translated;
 }
 
 export const ALL_ITEM_IDS: readonly string[] = Object.keys(ITEMS);

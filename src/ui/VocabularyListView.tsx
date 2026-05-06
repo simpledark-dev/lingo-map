@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { VocabularyPack, getExamples } from '../data/vocabularyPacks';
+import { VocabularyPack, getExamples, getMeaning } from '../data/vocabularyPacks';
+import { t } from '../data/i18n';
 import { cancelDialogueSpeech } from './tts';
 import { speakVocabWord } from './wordSpeak';
 import VocabularyPracticeView from './VocabularyPracticeView';
@@ -133,10 +134,10 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
                   marginBottom: 2,
                 }}
               >
-                {npcName}'s wordbook
+                {t('wordlist.title', { name: npcName })}
               </div>
               <div style={{ color: COLORS.text, fontSize: 14, fontWeight: 600 }}>
-                {pack.theme} · {pack.entries.length} words
+                {pack.theme} · {pack.entries.length}
               </div>
             </div>
             {/* Header actions — Practice is the primary CTA (gold)
@@ -152,7 +153,7 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="Back"
+                aria-label={t('wordlist.back')}
                 style={{
                   fontFamily: 'inherit',
                   fontSize: 13,
@@ -180,7 +181,7 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
                   e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`;
                 }}
               >
-                ◀ Back
+                {t('wordlist.back')}
               </button>
               <button
                 type="button"
@@ -210,7 +211,7 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
                   e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`;
                 }}
               >
-                ▶ Practice
+                ▶ {t('wordlist.practice')}
               </button>
             </div>
           </div>
@@ -270,15 +271,15 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
                         {entry.target}
                       </div>
                       <div style={{ color: COLORS.hintText, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
-                        {entry.pos}
+                        {t('wordlist.posLabel.' + entry.pos)}
                       </div>
                     </div>
                     <div style={{ flex: 1, color: COLORS.text, fontSize: 14, lineHeight: 1.3 }}>
-                      {entry.english}
+                      {getMeaning(entry)}
                     </div>
                     <button
                       type="button"
-                      aria-label={`Pronounce ${entry.target}`}
+                      aria-label={entry.target}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSpeak(entry.target);
@@ -332,7 +333,7 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
                           fontWeight: 700,
                         }}
                       >
-                        Examples
+                        {t('wordlist.examples')}
                       </div>
                       {examples.map((sentence, i) => (
                         <div
@@ -441,23 +442,23 @@ function PracticeModePicker({
   > = [
     {
       id: 'read',
-      label: '1. Read & match',
-      hint: 'See each word in writing, pick its meaning.',
+      label: t('practicePicker.read'),
+      hint: t('practicePicker.readHint'),
     },
     {
       id: 'listen',
-      label: '2. Listen & match',
-      hint: 'Hear each word spoken, pick its meaning.',
+      label: t('practicePicker.listen'),
+      hint: t('practicePicker.listenHint'),
     },
     {
       id: 'write',
-      label: '3. Write from meaning',
-      hint: 'See the meaning, type the word.',
+      label: t('practicePicker.write'),
+      hint: t('practicePicker.writeHint'),
     },
     {
       id: 'speak',
-      label: '4. Speak from meaning',
-      hint: 'See the meaning, say the word out loud.',
+      label: t('practicePicker.speak'),
+      hint: t('practicePicker.speakHint'),
       comingSoon: true,
     },
   ];
@@ -489,13 +490,13 @@ function PracticeModePicker({
         >
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.hintText, fontWeight: 700 }}>
-            Practice with {npcName}
+            {t('practicePicker.with', { name: npcName })}
           </div>
           <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>
-            How would you like to practice?
+            {t('practicePicker.heading')}
           </div>
           <div style={{ fontSize: 11, color: COLORS.hintText, marginTop: 4, fontStyle: 'italic' }}>
-            No money on the line — drill freely.
+            {t('practicePicker.subheading')}
           </div>
         </div>
 
@@ -538,7 +539,7 @@ function PracticeModePicker({
                         fontWeight: 700,
                       }}
                     >
-                      SOON
+                      {t('practicePicker.soon')}
                     </span>
                   )}
                 </div>
@@ -563,7 +564,7 @@ function PracticeModePicker({
             cursor: 'pointer',
           }}
         >
-          Back
+          {t('practicePicker.cancel')}
         </button>
       </div>
     </div>

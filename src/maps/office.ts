@@ -133,6 +133,7 @@ const npcs: NPCData[] = [
     //     with name personalisation, completes the quest on close.
     //   - completed → casual repeat-line ("come back when ready").
     dialogue: ['Come back when you are ready for your first contract.'],
+    dialogueKeys: ['dialogue.ceo.standard'],
     dialogueKind: 'ceo-intro',
   },
   // Eli — the player's first customer, sitting in the office
@@ -152,10 +153,12 @@ const npcs: NPCData[] = [
     collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
     name: 'Eli',
     dialogue: ["Hey, the new translator! Got a sec?"],
+    dialogueKeys: ['dialogue.eli.fallback'],
     dialogueKind: 'office-tutor',
     vocabularyPackId: 'office-tutor-pack',
     vocabularyOfferLine:
       "Hey, the new translator. I've been waiting — only got three words for you, mind running them with me?",
+    vocabularyOfferLineKey: 'dialogue.eli.offerLine',
   },
 ];
 

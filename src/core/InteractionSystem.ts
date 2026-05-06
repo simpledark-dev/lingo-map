@@ -1,6 +1,12 @@
 import { PlayerState, NPCData, InputState, DialogueState } from "./types";
 import { INTERACTION_RANGE } from "./constants";
 import { getVocabularyPack } from "../data/vocabularyPacks";
+import { t } from "../data/i18n";
+import {
+  getNpcDialogueLines,
+  getNpcFirstDialogueLine,
+  getNpcVocabularyOfferLine,
+} from "../data/npcDialogue";
 
 /**
  * Check if player is in range of an NPC and pressing interact.
@@ -32,11 +38,11 @@ export function checkInteraction(
       return {
         npcId: npc.id,
         npcName: npc.name,
-        lines: [`Welcome to ${npc.shopName}! Want to take a look?`],
+        lines: [t('shop.welcome', { name: npc.shopName })],
         currentLine: 0,
         options: [
-          { id: "shop-browse", label: "Browse items" },
-          { id: "shop-leave", label: "Maybe later" },
+          { id: "shop-browse", label: t('shop.option.browse') },
+          { id: "shop-leave", label: t('shop.option.leave') },
         ],
       };
     }
@@ -50,7 +56,7 @@ export function checkInteraction(
       return {
         npcId: npc.id,
         npcName: npc.name,
-        lines: [npc.dialogue[0] ?? "..."],
+        lines: [getNpcFirstDialogueLine(npc)],
         currentLine: 0,
         dialogueKind: npc.dialogueKind,
       };
@@ -62,9 +68,7 @@ export function checkInteraction(
       // Prefer the NPC's own offer line so each character pitches the
       // job in their own voice. Falls back to a generic line for any
       // NPC that's been given a pack but no line yet.
-      const offerLine =
-        npc.vocabularyOfferLine ??
-        "Hey! You're the new translator in town, right? I'm really struggling with these words. Can you help me?";
+      const offerLine = getNpcVocabularyOfferLine(npc);
       return {
         npcId: npc.id,
         npcName: npc.name,
@@ -75,17 +79,17 @@ export function checkInteraction(
         options: [
           {
             id: "help",
-            label: "Sure, I'll give it a shot",
-            hint: "Earn money for every word you get right. Wrong ones will cost you.",
+            label: t('dialogue.offer.help'),
+            hint: t('dialogue.offer.helpHint'),
           },
           {
             id: "view",
-            label: `Let me look them over first (${wordCount} words)`,
-            hint: "Browse the list, hear how they sound, practice freely — no money on the line.",
+            label: t('dialogue.offer.view', { count: wordCount }),
+            hint: t('dialogue.offer.viewHint'),
           },
           {
             id: "decline",
-            label: "Sorry, not right now",
+            label: t('dialogue.offer.decline'),
             hint: "",
           },
         ],
@@ -95,7 +99,7 @@ export function checkInteraction(
     return {
       npcId: npc.id,
       npcName: npc.name,
-      lines: npc.dialogue,
+      lines: getNpcDialogueLines(npc),
       currentLine: 0,
     };
   }

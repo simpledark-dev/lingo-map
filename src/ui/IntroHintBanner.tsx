@@ -16,6 +16,7 @@
  * editor.
  */
 import { useQuestStatuses } from '../data/quests';
+import { t } from '../data/i18n';
 
 export default function IntroHintBanner() {
   const statuses = useQuestStatuses();
@@ -42,9 +43,9 @@ export default function IntroHintBanner() {
         whiteSpace: 'nowrap',
         animation: 'lingoMapIntroHintPulse 2.2s ease-in-out infinite',
       }}
-      aria-label="Tutorial hint: head to the translation office on Mart Street"
+      aria-label={t('introHint.officeAria')}
     >
-      📍 Translation Office — Mart Street
+      {t('introHint.officeLabel')}
       <style>{`
         @keyframes lingoMapIntroHintPulse {
           0%, 100% { opacity: 0.78; transform: translateX(-50%) scale(1); }

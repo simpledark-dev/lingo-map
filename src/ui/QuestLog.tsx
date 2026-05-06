@@ -11,6 +11,7 @@
  */
 import { useMemo } from 'react';
 import { QUESTS, useQuestStatuses, isAvailable, getTitle, getObjective, getCompletedSummary, useCompletionOrder } from '../data/quests';
+import { t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -77,11 +78,11 @@ export default function QuestLog({ onClose }: QuestLogProps) {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, fontSize: 18, fontWeight: 700, color: COLORS.text, letterSpacing: 0.5 }}>
-            📜 Quests
+            📜 {t('questLog.title')}
           </div>
           <button
             onClick={onClose}
-            aria-label="Close quest log"
+            aria-label={t('questLog.close')}
             style={{
               width: 28, height: 28,
               background: COLORS.parchmentLight,
@@ -108,26 +109,26 @@ export default function QuestLog({ onClose }: QuestLogProps) {
                 fontStyle: 'italic',
               }}
             >
-              Nothing here yet. Talk to people around town — someone usually needs help.
+              {t('questLog.empty.active')}
             </div>
           )}
 
           {active.length > 0 && (
-            <Section label="In Progress" accent={COLORS.active}>
+            <Section label={t("questLog.tab.active")} accent={COLORS.active}>
               {active.map((q) => (
                 <QuestRow
                   key={q.id}
                   title={getTitle(q)}
                   body={getObjective(q)}
                   accent={COLORS.active}
-                  badge="Active"
+                  badge={t('questLog.tab.active')}
                 />
               ))}
             </Section>
           )}
 
           {available.length > 0 && (
-            <Section label="Available" accent={COLORS.available}>
+            <Section label={t("questLog.tab.available")} accent={COLORS.available}>
               {available.map((q) => (
                 <QuestRow
                   key={q.id}
@@ -142,7 +143,7 @@ export default function QuestLog({ onClose }: QuestLogProps) {
           )}
 
           {completed.length > 0 && (
-            <Section label="Completed" accent={COLORS.done}>
+            <Section label={t("questLog.tab.completed")} accent={COLORS.done}>
               {completed.map((q) => (
                 <QuestRow
                   key={q.id}

@@ -196,9 +196,11 @@ const npcs: NPCData[] = [
     collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
     name: "Pio",
     dialogue: ["Just hanging around the house. Ask me about everyday verbs?"],
+    dialogueKeys: ["npc.house.pio.line1"],
     vocabularyPackId: "pio-pack-1",
     vocabularyOfferLine:
       "Translator! Help me drill these everyday verbs — eat, sleep, that kind of thing.",
+    vocabularyOfferLineKey: "npc.house.pio.offer",
   },
   // Child NPC — placeholder sprite key (user will swap for the real
   // child sprite). `dialogueKind: 'child-sandwich'` routes this
@@ -217,6 +219,7 @@ const npcs: NPCData[] = [
     collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
     name: "Mim",
     dialogue: ["Hi!"],
+    dialogueKeys: ["dialogue.mim.fallback"],
     dialogueKind: "child-sandwich",
   },
 ];

@@ -191,6 +191,7 @@ const npcs: NPCData[] = [
       "Oh, hi there! You must be new in town.",
       "The Mart is just east past the path.",
     ],
+    dialogueKeys: ["npc.pokemon.mira.line1", "npc.pokemon.mira.line2"],
     wanderRadius: 32,
   },
   {
@@ -206,6 +207,7 @@ const npcs: NPCData[] = [
       "Mart's been in my family three generations.",
       "Anything you need, we've got it.",
     ],
+    dialogueKeys: ["npc.pokemon.hank.line1", "npc.pokemon.hank.line2"],
     wanderRadius: 32,
   },
   {
@@ -221,6 +223,7 @@ const npcs: NPCData[] = [
       "I'm waiting for the next showing at the cinema.",
       "Old monster movies tonight!",
     ],
+    dialogueKeys: ["npc.pokemon.riku.line1", "npc.pokemon.riku.line2"],
     wanderRadius: 32,
   },
   {
@@ -233,6 +236,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Sumi",
     dialogue: ["Morning! Try the bakery while it's warm."],
+    dialogueKeys: ["npc.pokemon.sumi.line1"],
     wanderRadius: 32,
   },
   {
@@ -245,6 +249,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Kit",
     dialogue: ["Hey, hey! Wanna race to that tree?", "...okay, fine, you win."],
+    dialogueKeys: ["npc.pokemon.kit.line1", "npc.pokemon.kit.line2"],
     wanderRadius: 32,
   },
   {
@@ -257,6 +262,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Tomas",
     dialogue: ["Construction's been going on for weeks.", "They never finish."],
+    dialogueKeys: ["npc.pokemon.tomas.line1", "npc.pokemon.tomas.line2"],
     wanderRadius: 32,
   },
   {
@@ -269,6 +275,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Ada",
     dialogue: ["I'm late for my shift. Excuse me!"],
+    dialogueKeys: ["npc.pokemon.ada.line1"],
     wanderRadius: 32,
   },
   {
@@ -281,6 +288,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Jun",
     dialogue: ["Have you seen a stray cat? Black with white socks."],
+    dialogueKeys: ["npc.pokemon.jun.line1"],
     wanderRadius: 32,
   },
   {
@@ -293,6 +301,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Pia",
     dialogue: ["The cars get really fast around the bend. Be careful."],
+    dialogueKeys: ["npc.pokemon.pia.line1"],
     wanderRadius: 32,
   },
   {
@@ -305,6 +314,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Olek",
     dialogue: ["Did you bring your book back? Library closes at 6."],
+    dialogueKeys: ["npc.pokemon.olek.line1"],
     wanderRadius: 32,
   },
   {
@@ -317,6 +327,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Esme",
     dialogue: ["Postal route takes forever today."],
+    dialogueKeys: ["npc.pokemon.esme.line1"],
     wanderRadius: 32,
   },
   {
@@ -329,6 +340,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Bo",
     dialogue: ["I just moved here. Still figuring out the streets."],
+    dialogueKeys: ["npc.pokemon.bo.line1"],
     wanderRadius: 32,
   },
   {
@@ -341,6 +353,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Nora",
     dialogue: ["You look like you've been walking all morning."],
+    dialogueKeys: ["npc.pokemon.nora.line1"],
     wanderRadius: 32,
   },
   {
@@ -353,6 +366,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Reza",
     dialogue: ["I lost my keys somewhere on this street..."],
+    dialogueKeys: ["npc.pokemon.reza.line1"],
     wanderRadius: 32,
   },
   {
@@ -365,6 +379,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Yuki",
     dialogue: ["Cinema's playing something foreign tonight. Subtitles!"],
+    dialogueKeys: ["npc.pokemon.yuki.line1"],
     wanderRadius: 32,
   },
   {
@@ -377,6 +392,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Cleo",
     dialogue: ["Waiting on a delivery. They said before noon."],
+    dialogueKeys: ["npc.pokemon.cleo.line1"],
     wanderRadius: 32,
     // First NPC wired into the translator-job loop. Cleo is the
     // closest NPC to the player's default spawn (4, 40), so she's
@@ -386,6 +402,7 @@ const npcs: NPCData[] = [
     vocabularyPackId: "mira-pack-1",
     vocabularyOfferLine:
       "Oh — translator, right? Quick, while I wait on this delivery — help me with these words?",
+    vocabularyOfferLineKey: "npc.pokemon.cleo.offer",
   },
   {
     id: "pk-npc-17",
@@ -397,6 +414,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Otis",
     dialogue: ["That mart sells the best onigiri."],
+    dialogueKeys: ["npc.pokemon.otis.line1"],
     wanderRadius: 32,
   },
   {
@@ -409,6 +427,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Saba",
     dialogue: ["I should be at work but the weather is too nice."],
+    dialogueKeys: ["npc.pokemon.saba.line1"],
     wanderRadius: 32,
     // Numbers 1-20 pack — see `SABA_PACK` in vocabularyPacks.ts.
     // The offer line leans into Saba's "skipping work" character
@@ -417,6 +436,7 @@ const npcs: NPCData[] = [
     vocabularyPackId: "saba-pack-1",
     vocabularyOfferLine:
       "Yo the translator! Help me drill these numbers please.",
+    vocabularyOfferLineKey: "npc.pokemon.saba.offer",
     // Legacy pre-recorded voice line. Dialogue overlays are silent
     // now; target-language audio plays inside vocab practice/list
     // surfaces instead.
@@ -434,6 +454,7 @@ const npcs: NPCData[] = [
     // Stub line; the React layer overrides via `dialogueKind: 'lender'`
     // to compose a Borrow/Repay menu from current debt + balance.
     dialogue: ["Need a hand? I lend small."],
+    dialogueKeys: ["dialogue.theo.lendStub"],
     wanderRadius: 32,
     dialogueKind: "lender",
   },
@@ -447,6 +468,7 @@ const npcs: NPCData[] = [
     collisionBox: NPC_FOOT_COLLISION,
     name: "Vera",
     dialogue: ["Welcome to the neighborhood, friend."],
+    dialogueKeys: ["npc.pokemon.vera.line1"],
     wanderRadius: 32,
   },
 ];

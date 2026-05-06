@@ -26,6 +26,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { setProfile } from '../data/profile';
 import { setFlag, FLAGS } from '../data/eventFlags';
+import { t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -67,72 +68,65 @@ type InputScene = {
 
 type Scene = LineScene | InputScene;
 
-const SCENES: Scene[] = [
-  // 1.1 Arrival — establishes WHO (small family), WHERE FROM (a
-  // place far enough that they had to take a multi-day bus), WHY
-  // (deliberately vague "old life" / "had to leave" so players
-  // project their own backstory), and NOW (just arrived). The
-  // kid's line drops the "Mama/Papa" honorific so the solo-parent
-  // setup reads cleanly — only one adult on screen, no missing-
-  // spouse mystery to derail Scene 1. Practical exposition (rent,
-  // job plan, the lie) is deferred to the apartment scene where
-  // the player can see the room those words refer to.
-  {
-    kind: 'lines',
-    show: 'both',
-    lines: [
-      '~ A new city. A new life. ~',
-      'Three days on the bus from home. Two suitcases. Just us.',
-      "Whatever's left of the old life is in those bags.",
-      'Okay. We made it.',
-      'Papa. What do we do now?',
-    ],
-  },
-
-  // 1.2 Names — parent
-  {
-    kind: 'input',
-    show: 'parent',
-    prompt: "First — what's your name?",
-    field: 'you',
-  },
-  {
-    kind: 'lines',
-    show: 'both',
-    lines: [
-      ({ you }) => `I'm ${you}. And this is…`,
-    ],
-  },
-
-  // 1.2 Names — child
-  {
-    kind: 'input',
-    show: 'child',
-    prompt: "And your child's name?",
-    field: 'child',
-  },
-  {
-    kind: 'lines',
-    show: 'both',
-    lines: [
-      ({ child }) => `…this is ${child}. My everything.`,
-    ],
-  },
-
-  // 1.3 Hook into the apartment — names the place we're about to
-  // spawn into so the player isn't surprised when the cutscene
-  // hands them off to F1. "Rented" + "for now" plant the timer
-  // (rent = pressure) without spending a line on exposition; the
-  // apartment monologue picks that thread back up.
-  {
-    kind: 'lines',
-    show: 'both',
-    lines: [
-      "I rented us a place. Small, but it's ours for now.",
-      "Come on. Let's go inside.",
-    ],
-  },
-];
+/** Build the scene list at render time so each render reads the
+ *  active locale via t(). Module-level const wouldn't pick up
+ *  the language switch from the locale picker. */
+function getScenes(): Scene[] {
+  return [
+    // 1.1 Arrival — establishes WHO (small family), WHERE FROM
+    // (a place far enough that they had to take a multi-day
+    // bus), WHY (deliberately vague "old life" / "had to leave"
+    // so players project their own backstory), and NOW (just
+    // arrived). Practical exposition (rent, job plan, the lie)
+    // is deferred to the apartment scene where the player can
+    // see the room those words refer to.
+    {
+      kind: 'lines',
+      show: 'both',
+      lines: [
+        t('cutscene.narratorArrival'),
+        t('cutscene.busJourney'),
+        t('cutscene.oldLifeInBags'),
+        t('cutscene.weMadeIt'),
+        t('cutscene.papaWhatNow'),
+      ],
+    },
+    {
+      kind: 'input',
+      show: 'parent',
+      prompt: t('cutscene.parentNamePrompt'),
+      field: 'you',
+    },
+    {
+      kind: 'lines',
+      show: 'both',
+      lines: [
+        ({ you }) => t('cutscene.iAmAndThis', { you }),
+      ],
+    },
+    {
+      kind: 'input',
+      show: 'child',
+      prompt: t('cutscene.childNamePrompt'),
+      field: 'child',
+    },
+    {
+      kind: 'lines',
+      show: 'both',
+      lines: [
+        ({ child }) => t('cutscene.thisIsMyEverything', { child }),
+      ],
+    },
+    {
+      kind: 'lines',
+      show: 'both',
+      lines: [
+        t('cutscene.rentedAPlace'),
+        t('cutscene.letsGoInside'),
+      ],
+    },
+  ];
+}
 
 /** Char-per-tick reveal speed for the typewriter. Same cadence as
  *  the in-game DialogueOverlay so the cutscene feels like it lives
@@ -174,8 +168,10 @@ export default function IntroCutscene({
   // Live input field text (reset between scenes).
   const [inputDraft, setInputDraft] = useState('');
 
-  const scene = SCENES[sceneIndex];
-  const isLast = sceneIndex >= SCENES.length - 1;
+  // SCENES rebuilt per render so t() picks up locale changes.
+  const scenes = getScenes();
+  const scene = scenes[sceneIndex];
+  const isLast = sceneIndex >= scenes.length - 1;
 
   // Compute the current line's text up front so the typewriter
   // effect + the render path use the same source.
@@ -435,7 +431,7 @@ function LinesView({
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
         <div style={{ fontSize: 10, color: COLORS.hintText, letterSpacing: 1, textTransform: 'uppercase' }}>
-          {isFullyRevealed ? 'Tap or press Enter to continue' : 'Tap to skip…'}
+          {isFullyRevealed ? t('cutscene.tapOrEnter') : t('cutscene.tapToSkip')}
         </div>
         {/* Continue button only shows once the line is fully revealed.
             During the typewriter pass, tap-on-backdrop already
@@ -458,7 +454,7 @@ function LinesView({
               cursor: 'pointer',
             }}
           >
-            {isLast ? 'Begin ▶' : 'Next ▶'}
+            {isLast ? t('cutscene.begin') : t('cutscene.next')}
           </button>
         )}
       </div>
@@ -496,7 +492,11 @@ function InputView({
         value={value}
         maxLength={20}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={scene.field === 'you' ? 'Your name…' : 'Their name…'}
+        placeholder={
+          scene.field === 'you'
+            ? t('cutscene.parentNamePlaceholder')
+            : t('cutscene.childNamePlaceholder')
+        }
         style={{
           fontSize: 14,
           padding: '8px 10px',
@@ -510,7 +510,7 @@ function InputView({
       />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
         <div style={{ fontSize: 10, color: COLORS.hintText, letterSpacing: 0.5 }}>
-          {trimmed.length === 0 ? 'Type a name to continue.' : `${trimmed.length}/20`}
+          {trimmed.length === 0 ? t('cutscene.typeNameToContinue') : `${trimmed.length}/20`}
         </div>
         <button
           type="submit"
@@ -528,7 +528,7 @@ function InputView({
             opacity: valid ? 1 : 0.7,
           }}
         >
-          Continue ▶
+          {t('cutscene.continue')}
         </button>
       </div>
     </form>

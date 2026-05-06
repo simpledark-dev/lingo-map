@@ -21,7 +21,8 @@
  */
 
 import { useMemo, useState } from 'react';
-import { VOCABULARY_PACKS, type VocabularyEntry, getExamples } from '../data/vocabularyPacks';
+import { VOCABULARY_PACKS, type VocabularyEntry, getExamples, getMeaning } from '../data/vocabularyPacks';
+import { t } from '../data/i18n';
 import { loadProgress, type WordState } from '../data/vocabSelection';
 import { speakVocabWord } from './wordSpeak';
 import { cancelDialogueSpeech } from './tts';
@@ -40,14 +41,14 @@ interface FilterDef {
   hint: string;
 }
 
-const FILTERS: FilterDef[] = [
-  { id: 'all', label: 'All words', hint: 'Every word, alphabetical.' },
-  { id: 'most-correct', label: 'Most correct', hint: 'Words you\u2019ve nailed the most.' },
-  { id: 'most-wrong', label: 'Most wrong', hint: 'Words you\u2019ve missed the most.' },
-  { id: 'worst-ratio', label: 'Worst ratio', hint: 'Lowest correct % among words you\u2019ve seen.' },
-  { id: 'not-seen', label: 'Not seen yet', hint: 'Untouched words across every pack.' },
-  { id: 'in-review', label: 'In review queue', hint: 'Currently flagged for forced review.' },
-];
+function getFilters(): FilterDef[] { return [
+  { id: 'all', label: t('wordStats.filter.all'), hint: t('wordStats.filter.allHint') },
+  { id: 'most-correct', label: t('wordStats.filter.mostCorrect'), hint: t('wordStats.filter.mostCorrectHint') },
+  { id: 'most-wrong', label: t('wordStats.filter.mostWrong'), hint: t('wordStats.filter.mostWrongHint') },
+  { id: 'worst-ratio', label: t('wordStats.filter.worstRatio'), hint: t('wordStats.filter.worstRatioHint') },
+  { id: 'not-seen', label: t('wordStats.filter.notSeen'), hint: t('wordStats.filter.notSeenHint') },
+  { id: 'in-review', label: t('wordStats.filter.inReview'), hint: t('wordStats.filter.inReviewHint') },
+]; }
 
 interface RowData {
   entry: VocabularyEntry;
@@ -184,7 +185,7 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
     if (pack) speakVocabWord(pack, entry.target);
   };
 
-  const activeFilter = FILTERS.find((f) => f.id === filter)!;
+  const activeFilter = getFilters().find((f) => f.id === filter)!;
 
   return (
     <div
@@ -213,7 +214,7 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
         {/* Header — title + overall summary chip + close. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, fontSize: 18, fontWeight: 700, color: COLORS.text, letterSpacing: 0.5 }}>
-            📊 Word Stats
+            📊 {t('wordStats.title')}
           </div>
           {totalSeen > 0 && (
             <div
@@ -226,7 +227,7 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
                 padding: '4px 10px',
                 borderRadius: 4,
               }}
-              title={`Lifetime ${totalCorrect} correct / ${totalWrong} wrong across ${totalSeen} answers`}
+              title={t('wordStats.lifetimeTip', { correct: totalCorrect, wrong: totalWrong, seen: totalSeen })}
             >
               <span style={{
                 color: overallPct != null && overallPct >= 80 ? COLORS.correct
@@ -242,7 +243,7 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
           )}
           <button
             onClick={onClose}
-            aria-label="Close stats"
+            aria-label={t('wordStats.closeAria')}
             style={{
               width: 28, height: 28,
               background: COLORS.parchmentLight,
@@ -261,7 +262,7 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
         {/* Filter row — pill toggles. Wraps on narrow viewports. */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {FILTERS.map((f) => {
+            {getFilters().map((f) => {
               const active = f.id === filter;
               return (
                 <button
@@ -349,11 +350,13 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
                     {row.entry.pos}
                   </span>
                   <span style={{ fontSize: 12, color: COLORS.hintText }}>
-                    — {row.entry.english}
+                    — {getMeaning(row.entry)}
                   </span>
                   <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center', fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                     {row.state.seenCount === 0 ? (
-                      <span style={{ color: COLORS.hintText, fontStyle: 'italic' }}>not seen</span>
+                      <span style={{ color: COLORS.hintText, fontStyle: 'italic' }}>
+                        {t('wordStats.notSeenShort')}
+                      </span>
                     ) : (
                       <>
                         <span style={{ color: COLORS.correct }}>{row.state.correctCount}✓</span>
@@ -423,16 +426,16 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
                           cursor: 'pointer',
                         }}
                       >
-                        🔊 hear it
+                        🔊 {t('wordStats.hearIt')}
                       </button>
                       <span style={{ fontSize: 11, color: COLORS.hintText }}>
-                        From <strong>{row.packTheme}</strong>
+                        {t('wordStats.fromPack')} <strong>{row.packTheme}</strong>
                       </span>
                     </div>
                     {examples.length > 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.7, color: COLORS.accentGoldDark, fontWeight: 700 }}>
-                          Examples
+                          {t('common.examples')}
                         </div>
                         {examples.map((sentence, i) => (
                           <div key={i} style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.4 }}>

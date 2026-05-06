@@ -14,6 +14,7 @@ import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
 import { buildCarNetwork, carAABB, CAR_SPRITE_SETS, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
 import { getTexture, loadAssets, loadCharacterAtlas, loadPackSingle } from './AssetLoader';
+import { getNpcFirstDialogueLine } from '../data/npcDialogue';
 
 /** localStorage key kept in sync with `data/car-collisions.json` by the
  * editor. The runtime no longer reads it (we use the disk file via the
@@ -385,7 +386,7 @@ export class PixiApp {
    *  offers before the player is hired) is suppressed. */
   getNpcFallbackLine(npcId: string): string | null {
     const npc = this.gameState?.npcs.find((n) => n.id === npcId);
-    return npc?.dialogue[0] ?? null;
+    return npc ? getNpcFirstDialogueLine(npc) : null;
   }
 
   /** Force a stationary NPC's sprite to face a specific direction.

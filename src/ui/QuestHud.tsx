@@ -18,6 +18,7 @@
 import { useMemo } from 'react';
 import { QUESTS, useQuestStatuses, FIRST_PAYCHECK_THRESHOLD_CENTS, getTitle } from '../data/quests';
 import { useLifetimeEarnings, formatBalance } from '../data/wallet';
+import { t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -73,7 +74,13 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
         top: 'calc(50px + env(safe-area-inset-top, 0px))',
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 12,
+        // Above modals (translate view at z-index 60, dialogue
+        // wrapper at 60) so the player can see paycheck progress
+        // ($X.XX / $1.00) while drilling. Especially relevant in
+        // landscape mobile where the translate view fills the
+        // screen and the lifetime-earnings number is the only
+        // way to know how close they are to claiming.
+        zIndex: 100,
         // Wrapper itself never intercepts clicks — only the
         // individual pills do (each wired below). Otherwise the
         // wrapper's auto-flex sizing in some browsers expands
@@ -86,7 +93,7 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
         alignItems: 'center',
         maxWidth: 'min(92vw, 420px)',
       }}
-      aria-label="Active quests overview"
+      aria-label={t('questHud.activeOverview')}
     >
       {active.map((q) => (
         <QuestRow
@@ -133,8 +140,8 @@ function QuestRow({
       }}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      aria-label={onClick ? `Open quest details: ${title}` : undefined}
-      title={onClick ? 'Open quest log' : undefined}
+      aria-label={onClick ? t('questHud.openDetails', { title }) : undefined}
+      title={onClick ? t('hud.openLog') : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',

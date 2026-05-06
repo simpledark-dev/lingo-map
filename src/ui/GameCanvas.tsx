@@ -23,7 +23,7 @@ import {
   PENALTY_PER_IDK,
 } from "../data/wallet";
 import { hasItem, consumeItem, useInventory } from "../data/inventory";
-import { getItem } from "../data/items";
+import { getItem, getItemName } from "../data/items";
 import { useEnergy, getMaxEnergy, restoreEnergy } from "../data/energy";
 import {
   borrowFromTheo,
@@ -48,6 +48,8 @@ import QuestLog from "./QuestLog";
 import InventoryView from "./InventoryView";
 import IntroCutscene from "./IntroCutscene";
 import WelcomeScreen from "./WelcomeScreen";
+import LocalePickerScreen from "./LocalePickerScreen";
+import { hasPickedLocale, useLocale, t } from "../data/i18n";
 import QuestHud from "./QuestHud";
 import SettingsView from "./SettingsView";
 import WordStatsView from "./WordStatsView";
@@ -242,6 +244,20 @@ export default function GameCanvas() {
   // 360ms cross-fade reveals the cutscene's gradient instead of
   // the F1 room briefly flashing through.
   const [welcomeFading, setWelcomeFading] = useState(false);
+  // Locale picker — shown between welcome → cutscene on a fresh
+  // save (no `lingo-locale:picked` flag yet). Mounted on its own
+  // overlay layer so the cutscene only mounts after the player
+  // has explicitly chosen English or Vietnamese. Returning
+  // players who've already picked skip this screen entirely.
+  const [localePickerActive, setLocalePickerActive] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return !hasPickedLocale();
+  });
+  // useLocale subscription forces a re-render of the whole
+  // GameCanvas tree whenever the player flips the language —
+  // every t() call inside child components reads the latest
+  // locale on the new render.
+  useLocale();
   // True during the 1.2s gap between cutscene-end and the
   // apartment monologue mounting. Without this, mobile players
   // can tap on Mim (who's spawned right next to them) before the
@@ -317,6 +333,7 @@ export default function GameCanvas() {
     // conversation. Pausing the engine for the duration of these
     // overlays makes input gating identical to dialogue overlays.
     welcomeActive ||
+    localePickerActive ||
     cutsceneActive ||
     introGapActive ||
     vocabularyView ||
@@ -384,17 +401,11 @@ export default function GameCanvas() {
   // a stale localStorage entry from a removed item doesn't render
   // as a "?" chip.
   const inventoryRows = Object.entries(inventory)
-    .map(([id, count]) => ({ id, count, def: getItem(id) }))
-    .filter(
-      (
-        r,
-      ): r is {
-        id: string;
-        count: number;
-        def: NonNullable<ReturnType<typeof getItem>>;
-      } => !!r.def,
-    )
-    .sort((a, b) => a.def.name.localeCompare(b.def.name));
+    .flatMap(([id, count]) => {
+      const def = getItem(id);
+      return def ? [{ id, count, def, name: getItemName(id) }] : [];
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const syncViewportSize = useCallback(() => {
     const next = readViewportSize();
@@ -769,7 +780,7 @@ export default function GameCanvas() {
               // still has SOMETHING to read.
               const fallback =
                 pixiAppRef.current?.getNpcFallbackLine(event.dialogue.npcId) ??
-                "Hi there.";
+                t('dialogue.fallback.hiThere');
               setDialogue({
                 npcId: event.dialogue.npcId,
                 npcName: event.dialogue.npcName,
@@ -805,7 +816,7 @@ export default function GameCanvas() {
             setDialogue({
               npcId: "locked-district",
               npcName: "",
-              lines: [`You must reach ${event.title} to visit this district.`],
+              lines: [t('lockedDistrict.message', { title: event.title })],
               currentLine: 0,
             });
             break;
@@ -1047,7 +1058,7 @@ export default function GameCanvas() {
           x: office.x,
           y: top + 60,
           spriteKey: "edge-arrow-south-red",
-          label: "Office",
+          label: t('mapMarker.office'),
         });
       }
     }
@@ -1316,7 +1327,7 @@ export default function GameCanvas() {
       // Shopkeeper routes — Browse pops the shop modal, Maybe later
       // closes the dialogue cleanly.
       if (optionId === "shop-browse") {
-        const shopName = dialogue.npcName || "Shop";
+        const shopName = dialogue.npcName || t('shop.defaultName');
         setShopView({ shopName });
         closeDialogueEverywhere();
         return;
@@ -1337,7 +1348,7 @@ export default function GameCanvas() {
           setDialogue({
             npcId: dialogue.npcId,
             npcName: dialogue.npcName,
-            lines: ["Yes! Thank you, dad!"],
+            lines: [t('dialogue.mim.thanksNow')],
             currentLine: 0,
           });
         } else {
@@ -1348,7 +1359,7 @@ export default function GameCanvas() {
           setDialogue({
             npcId: dialogue.npcId,
             npcName: dialogue.npcName,
-            lines: ["Huh? Where? You didn’t buy it…"],
+            lines: [t('dialogue.mim.noSandwich')],
             currentLine: 0,
           });
         }
@@ -1381,7 +1392,7 @@ export default function GameCanvas() {
           npcId: dialogue.npcId,
           npcName: dialogue.npcName,
           lines: [
-            `Here's ${formatBalance(BORROW_INCREMENT_CENTS)}. You now owe me ${formatBalance(getDebt())}.`,
+            t('dialogue.theo.afterBorrow', { amount: formatBalance(BORROW_INCREMENT_CENTS), total: formatBalance(getDebt()) }),
           ],
           currentLine: 0,
         });
@@ -1396,7 +1407,7 @@ export default function GameCanvas() {
             npcId: dialogue.npcId,
             npcName: dialogue.npcName,
             lines: [
-              `Paid in full — we're square. ${formatBalance(paid)} settled.`,
+              t('dialogue.theo.squareUp', { amount: formatBalance(paid) }),
             ],
             currentLine: 0,
           });
@@ -1416,19 +1427,19 @@ export default function GameCanvas() {
           npcName: dialogue.npcName,
           dialogueKind: "ceo-intro",
           lines: [
-            "A translator? Yes — we are looking for one. Tell me, are you fluent in our tongue?",
+            t('dialogue.ceo.fluencyQuestion'),
           ],
           currentLine: 0,
           options: [
             {
               id: "ceo-intro-confident",
-              label: "Completely fluent.",
-              hint: "(A bold lie.)",
+              label: t('dialogue.ceo.option.confident'),
+              hint: t('dialogue.ceo.option.confidentHint'),
             },
             {
               id: "ceo-intro-honest",
-              label: "Mostly… working on it.",
-              hint: "(Honest enough.)",
+              label: t('dialogue.ceo.option.honest'),
+              hint: t('dialogue.ceo.option.honestHint'),
             },
           ],
         });
@@ -1455,8 +1466,8 @@ export default function GameCanvas() {
       ) {
         const opening =
           optionId === "ceo-intro-confident"
-            ? "Confidence. Good — don't make me regret this. The job is yours."
-            : "Mostly's enough. Honest answer too — that's worth something. The job is yours.";
+            ? t('dialogue.ceo.hireConfident')
+            : t('dialogue.ceo.hireHonest');
         completeQuest("intro-translator-job");
         startQuest("first-paycheck");
         setDialogue({
@@ -1465,10 +1476,10 @@ export default function GameCanvas() {
           dialogueKind: "ceo-intro",
           lines: [
             opening,
-            "The way it works: people around town need help with words. You walk up, translate, they pay you per correct answer. I take a small cut.",
-            `Pays ${formatBalance(getRewardPerCorrect())} for every word you nail. Lose ${formatBalance(PENALTY_PER_WRONG)} on a wrong guess — focus matters. And ${formatBalance(PENALTY_PER_IDK)} if you admit you don't know it.`,
-            `Earn ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} translating and circle back — there's a bonus waiting on top.`,
-            "Eli's at the desk waiting on you — only three words, easy first job. Get those done and circle back if you want a bigger street route.",
+            t('dialogue.ceo.hireExplain'),
+            t('dialogue.ceo.hirePay', { reward: formatBalance(getRewardPerCorrect()), wrong: formatBalance(PENALTY_PER_WRONG), idk: formatBalance(PENALTY_PER_IDK) }),
+            t('dialogue.ceo.hireBonus', { threshold: formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS) }),
+            t('dialogue.ceo.hireOffYouGo'),
           ],
           currentLine: 0,
         });
@@ -1483,8 +1494,8 @@ export default function GameCanvas() {
           npcId: dialogue.npcId,
           npcName: dialogue.npcName,
           lines: [
-            `There you go — ${formatBalance(FIRST_PAYCHECK_BONUS_CENTS)} bonus. Family eats tonight.`,
-            `Keep at it. Town's got plenty more words that need translating.`,
+            t('dialogue.ceo.paycheckClaimedL1', { bonus: formatBalance(FIRST_PAYCHECK_BONUS_CENTS) }),
+            t('dialogue.ceo.paycheckClaimedL2'),
           ],
           currentLine: 0,
         });
@@ -1515,41 +1526,41 @@ export default function GameCanvas() {
         setDialogue({
           npcId: dialogue.npcId,
           npcName: dialogue.npcName,
-          lines: ["I need help with one of these."],
+          lines: [t('dialogue.offer.modePrompt')],
           currentLine: 0,
           vocabularyPackId: packId,
           vocabularyWordCount: dialogue.vocabularyWordCount,
           options: [
             {
               id: "mode-read",
-              label: "1. Read & translate",
+              label: t('dialogue.offer.modeRead'),
               // Cost suffix on every paid mode so the player always
               // sees the entry fee before they tap. Practice is exempt
               // (and accessed via the dictionary view) so it stays
               // unannotated. Session-cost, not per-round — same fee
               // whether they drill 5 words or 50.
-              hint: "See each word in writing, pick its meaning. · Costs 1 ⚡",
+              hint: t('dialogue.offer.modeReadHint'),
             },
             {
               id: "mode-listen",
-              label: "2. Listen & translate",
-              hint: "Hear each word spoken, pick its meaning. · Costs 1 ⚡",
+              label: t('dialogue.offer.modeListen'),
+              hint: t('dialogue.offer.modeListenHint'),
             },
             {
               id: "mode-write",
-              label: "3. Write from meaning",
-              hint: "See the meaning, type the word. · Costs 1 ⚡",
+              label: t('dialogue.offer.modeWrite'),
+              hint: t('dialogue.offer.modeWriteHint'),
             },
             {
               id: "mode-speak",
-              label: "4. Speak from meaning",
-              hint: "See the meaning, say the word out loud.",
+              label: t('dialogue.offer.modeSpeak'),
+              hint: t('dialogue.offer.modeSpeakHint'),
               comingSoon: true,
             },
             {
               id: "mode-back",
-              label: "← Back",
-              hint: "Return to the previous choices.",
+              label: t('dialogue.offer.modeBack'),
+              hint: t('dialogue.offer.modeBackHint'),
             },
           ],
         });
@@ -1722,7 +1733,7 @@ export default function GameCanvas() {
               animation: "lingoMapPulse 1.4s ease-in-out infinite",
             }}
           >
-            SURVIVE LINGO
+            {t('loading.title')}
           </div>
           <div
             style={{
@@ -1736,7 +1747,7 @@ export default function GameCanvas() {
               lineHeight: 1.4,
             }}
           >
-            Survive a new city. Learn its language.
+            {t('loading.tagline')}
           </div>
           <div
             aria-hidden
@@ -1760,7 +1771,7 @@ export default function GameCanvas() {
               animation: "lingoMapSpin 0.9s linear infinite",
             }}
           />
-          <div style={{ fontSize: 11, opacity: 0.55 }}>loading…</div>
+          <div style={{ fontSize: 11, opacity: 0.55 }}>{t('loading.label')}</div>
         </div>
       )}
 
@@ -1871,11 +1882,11 @@ export default function GameCanvas() {
               ...HUD.energyPlateStyle,
               opacity: energy === 0 ? 0.55 : 1,
             }}
-            aria-label={`Energy: ${energy} of ${energyMax}`}
+            aria-label={t('hud.energyAmount', { current: energy, max: energyMax })}
             title={
               energy === 0
-                ? "Out of energy — eat something to keep working."
-                : `Energy ${energy}/${energyMax}`
+                ? t('hud.outOfEnergyTip')
+                : t('hud.energyAmountShort', { current: energy, max: energyMax })
             }
           >
             <span
@@ -1903,8 +1914,12 @@ export default function GameCanvas() {
           <button
             onClick={() => setInventoryOpen(true)}
             style={HUD.inventoryButtonStyle}
-            aria-label={`Inventory (tap to open): ${inventoryRows.map((r) => `${r.count} ${r.def.name}`).join(", ")}`}
-            title="Open bag"
+            aria-label={t('hud.inventorySummary', {
+              items: inventoryRows
+                .map((r) => t('hud.inventoryItemCount', { count: r.count, item: r.name }))
+                .join(", "),
+            })}
+            title={t('hud.openInventory')}
           >
             {inventoryRows.map((row) => (
               // Each chip gets its own outlined pill so neighbouring
@@ -1914,7 +1929,7 @@ export default function GameCanvas() {
               <span
                 key={row.id}
                 style={HUD.inventoryChipStyle}
-                title={`${row.def.name} ×${row.count}`}
+                title={`${row.name} ×${row.count}`}
               >
                 <span style={{ fontSize: 14, lineHeight: 1 }}>
                   {row.def.icon}
@@ -1932,7 +1947,7 @@ export default function GameCanvas() {
             onClick={handleToggleSound}
             style={btnStyle}
             aria-label={
-              soundOn ? "Mute background music" : "Unmute background music"
+              soundOn ? t('hud.muteMusic') : t('hud.unmuteMusic')
             }
           >
             {soundOn ? (
@@ -1991,7 +2006,7 @@ export default function GameCanvas() {
             <button
               onClick={handleOpenMinimap}
               style={btnStyle}
-              aria-label="Open map"
+              aria-label={t('hud.openMinimap')}
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <rect
@@ -2043,7 +2058,7 @@ export default function GameCanvas() {
                 ? 'lingoMapQuestBtnPulse 1.4s ease-in-out infinite'
                 : undefined,
             }}
-            aria-label="Open quest log"
+            aria-label={t('hud.openLog')}
           >
             {questHasUnread && (
               <span
@@ -2111,7 +2126,7 @@ export default function GameCanvas() {
           <button
             onClick={() => setWordStatsOpen(true)}
             style={btnStyle}
-            aria-label="Open word stats"
+            aria-label={t('hud.openWordStats')}
           >
             <svg
               width="20"
@@ -2157,7 +2172,7 @@ export default function GameCanvas() {
           <button
             onClick={() => setSettingsOpen(true)}
             style={btnStyle}
-            aria-label="Open settings"
+            aria-label={t('hud.openSettings')}
           >
             <svg
               width="20"
@@ -2308,7 +2323,18 @@ export default function GameCanvas() {
             />
           </div>
         )}
-        {cutsceneActive && (welcomeFading || !welcomeActive) && (
+        {/* Locale picker — sits between welcome and cutscene on a
+            fresh save. Mount it BEHIND the welcome splash as soon
+            as the splash starts fading; otherwise the transparent
+            part of the welcome fade reveals the already-booted F1
+            room for ~360ms before the picker appears. Keep pointer
+            events disabled until welcome fully unmounts. */}
+        {localePickerActive && (welcomeFading || !welcomeActive) && (
+          <div style={{ pointerEvents: welcomeActive ? "none" : "auto" }}>
+            <LocalePickerScreen onComplete={() => setLocalePickerActive(false)} />
+          </div>
+        )}
+        {cutsceneActive && !localePickerActive && (welcomeFading || !welcomeActive) && (
           <div style={{ pointerEvents: "auto" }}>
             <IntroCutscene
               onComplete={() => {
