@@ -121,13 +121,9 @@ export const FLAGS = {
    *  the trainer next. The intro quest itself stays active until
    *  the tutor's mock-job session completes. */
   INTRO_HIRED: 'intro-hired',
-  /** True once the player has finished the office tutor's mock
-   *  vocabulary session. Stops the tutor from re-offering the
-   *  walkthrough on every subsequent visit. */
+  /** True once the player has finished the in-office first-customer
+   *  session (Eli's 3-word translator job). Stops Eli from
+   *  re-offering the warm-up on every subsequent visit and is the
+   *  signal that completes intro-translator-job → first-paycheck. */
   INTRO_TUTOR_DONE: 'intro-tutor-done',
-  /** True once the player has opened the wordlist (option 2) on
-   *  the tutor's mock-job offer at least once. Drives the offer-
-   *  dialogue tutorial popup: pre-flag → "pick option 2 first",
-   *  post-flag → "now try option 1". Permanent unless reset. */
-  INTRO_TUTOR_WORDLIST_SEEN: 'intro-tutor-wordlist-seen',
 } as const;
