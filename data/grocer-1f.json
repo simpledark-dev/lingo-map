@@ -26,6 +26,9 @@
       "dialogue": [
         "Welcome!"
       ],
+      "dialogueKeys": [
+        "npc.grocer.shopkeeper.line1"
+      ],
       "shopName": "Mart"
     }
   ],

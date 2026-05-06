@@ -26,7 +26,38 @@
       "dialogue": [
         "Come back when you are ready for your first contract."
       ],
+      "dialogueKeys": [
+        "dialogue.ceo.standard"
+      ],
       "dialogueKind": "ceo-intro"
+    },
+    {
+      "id": "office-npc-tutor",
+      "x": 248,
+      "y": 112,
+      "spriteKey": "me-char-13",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 112,
+      "collisionBox": {
+        "offsetX": -4,
+        "offsetY": -6,
+        "width": 8,
+        "height": 6
+      },
+      "name": "Eli",
+      "dialogue": [
+        "Hey, the new translator! Got a sec?"
+      ],
+      "dialogueKeys": [
+        "dialogue.eli.fallback"
+      ],
+      "dialogueKind": "office-tutor",
+      "vocabularyPackId": "office-tutor-pack",
+      "vocabularyOfferLine": "Hey, the new translator. I've been waiting — only got three words for you, mind running them with me?",
+      "vocabularyOfferLineKey": "dialogue.eli.offerLine"
     }
   ],
   "triggers": [],
@@ -428,9 +459,9 @@
             "targetSpawnId": "outdoor-office",
             "triggerBox": {
               "offsetX": -16,
-              "offsetY": -18,
+              "offsetY": -28,
               "width": 32,
-              "height": 18
+              "height": 28
             }
           },
           "scale": 0.15

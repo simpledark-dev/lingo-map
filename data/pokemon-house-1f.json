@@ -26,8 +26,12 @@
       "dialogue": [
         "Just hanging around the house. Ask me about everyday verbs?"
       ],
+      "dialogueKeys": [
+        "npc.house.pio.line1"
+      ],
       "vocabularyPackId": "pio-pack-1",
-      "vocabularyOfferLine": "Translator! Help me drill these everyday verbs — eat, sleep, that kind of thing."
+      "vocabularyOfferLine": "Translator! Help me drill these everyday verbs — eat, sleep, that kind of thing.",
+      "vocabularyOfferLineKey": "npc.house.pio.offer"
     },
     {
       "id": "1f-npc-child",
@@ -48,6 +52,9 @@
       "name": "Mim",
       "dialogue": [
         "Hi!"
+      ],
+      "dialogueKeys": [
+        "dialogue.mim.fallback"
       ],
       "dialogueKind": "child-sandwich"
     }
@@ -308,8 +315,8 @@
           "floor-wood",
           "floor-wood",
           "floor-wood",
-          "floor-wood",
-          "floor-wood",
+          "dirt",
+          "dirt",
           "floor-wood",
           "floor-wood",
           "floor-wood",
@@ -331,7 +338,7 @@
           "floor-wood",
           "floor-wood",
           "floor-wood",
-          "floor-wood",
+          "dirt",
           "floor-wood",
           "floor-wood",
           "floor-wood",
@@ -576,9 +583,9 @@
             "targetSpawnId": "outdoor-houseA-door",
             "triggerBox": {
               "offsetX": -16,
-              "offsetY": -18,
+              "offsetY": -28,
               "width": 32,
-              "height": 18
+              "height": 28
             }
           }
         },
