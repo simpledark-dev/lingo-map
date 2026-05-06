@@ -140,13 +140,19 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
               </div>
             </div>
             {/* Header actions — Practice is the primary CTA (gold)
-                and close is the muted secondary. Putting them in
+                and Back is the muted secondary. Putting them in
                 this order (primary right) matches every cozy-game
-                menu pattern players have already learned. */}
+                menu pattern players have already learned. The
+                Back label (vs a ✕) reads as "return to where I
+                came from", which lines up with the actual
+                behaviour: closing pops back to the offer dialogue
+                (the snapshot is held in returnDialogue), not to
+                the world. */}
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <button
                 type="button"
                 onClick={onClose}
+                aria-label="Back"
                 style={{
                   fontFamily: 'inherit',
                   fontSize: 13,
@@ -157,6 +163,9 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
                   boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
                   padding: '6px 12px',
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
                 }}
                 onMouseDown={(e) => {
                   e.currentTarget.style.transform = 'translateY(2px)';
@@ -171,7 +180,7 @@ export default function VocabularyListView({ pack, npcName, onClose }: Vocabular
                   e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`;
                 }}
               >
-                ✕
+                ◀ Back
               </button>
               <button
                 type="button"
