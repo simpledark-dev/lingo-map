@@ -70,6 +70,17 @@ const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
 const HUD = UI_THEME.hud;
 
+// Dialogue builders + apartment script were extracted to a sibling
+// module so they can be unit-tested without spinning up the canvas.
+// Re-exported here so existing imports keep working until callers
+// migrate.
+import {
+  buildChildSandwichDialogue,
+  buildLenderDialogue,
+  buildCeoIntroDialogue,
+  APARTMENT_DIALOGUE,
+} from './dialogueBuilders';
+
 /** Quests whose objective is "go talk to NPC X". The marker driver
  * floats a red chevron over the named NPC whenever the quest is
  * active and the player is on the NPC's map. NPC lookup is by
@@ -89,26 +100,6 @@ const QUEST_TALK_TARGETS: ReadonlyArray<{
   { questId: "tutorial-buy-food", npcName: "Shopkeeper", mapId: "grocer-1f" },
 ];
 
-/** Script for the intro apartment back-and-forth. Index in `lines`
- *  ↔ index in `speakers` so each tap can swap the dialogue's
- *  npcName as the speaker changes. Resolved with the player's
- *  chosen child name at trigger time. */
-const APARTMENT_DIALOGUE: ReadonlyArray<{
-  speaker: 'parent' | 'child';
-  text: (names: { parent: string; child: string }) => string;
-}> = [
-  { speaker: 'parent', text: () => "This is our home. For now." },
-  { speaker: 'parent', text: () => "It's small. Bare. But the rent's paid for a month." },
-  { speaker: 'parent', text: () => "After that... I need money. Quickly." },
-  { speaker: 'parent', text: () => "I saw an ad in the paper — translation office on Mart Street. I'm going to apply." },
-  { speaker: 'child',  text: () => "Wait — but you don't even speak the language!" },
-  { speaker: 'parent', text: () => "I know." },
-  { speaker: 'parent', text: () => "I'll fake it till I make it. Smile. Nod. They won't have to know." },
-  { speaker: 'child',  text: () => "...Will it work?" },
-  { speaker: 'parent', text: () => "It has to." },
-  { speaker: 'parent', text: ({ child }) => `Stay here, ${child}. I'll come back with good news.` },
-];
-
 type ViewportSize = { width: number; height: number };
 
 function readViewportSize(): ViewportSize | null {
@@ -125,218 +116,6 @@ function readViewportSize(): ViewportSize | null {
   return { width, height };
 }
 
-/** Compose the child NPC's dialogue based on the current quest's
- *  status + inventory. Slice 2 promotes the previous flag-driven
- *  state machine to the quest module — same four branches:
- *    1. Quest inactive → Mim asks; we `startQuest` so future
- *       visits skip the ask AND the toast fires.
- *    2. Active, no sandwich → Mim nags, no options.
- *    3. Active, has sandwich → "Give it" option appears. (The
- *       option handler is what actually completes the quest, so a
- *       player who opens this dialogue and walks away keeps the
- *       quest active rather than auto-finishing it on view.)
- *    4. Completed → casual thank-you line. */
-function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
-  const status = getQuestStatus("child-sandwich");
-  const introStatus = getQuestStatus("intro-translator-job");
-  const haveSandwich = hasItem("sandwich");
-  // Override the engine-supplied name with the player's child name
-  // from the intro cutscene. The map data uses "Mim" as a fallback
-  // (the engine doesn't read profile state), but the player typed
-  // a specific name during the cutscene and seeing that everywhere
-  // beats a hardcoded placeholder.
-  const childNpcName = getChildName() ?? stub.npcName;
-  // Helper so every branch consistently emits the player-named NPC
-  // and short-circuits the boilerplate of `npcId: stub.npcId,
-  // npcName: childNpcName, currentLine: 0`.
-  const withChildName = (extra: Partial<DialogueState>): DialogueState => ({
-    ...stub,
-    npcName: childNpcName,
-    ...extra,
-  });
-  // Intro override: while the tutorial quest is active, Mim sends
-  // the player off with a "good luck" line and DOES NOT start her
-  // own quest yet. Avoids two competing toasts on the very first
-  // session and keeps the player pointed at the office.
-  if (introStatus === "active" && status === "inactive") {
-    const playerName = getPlayerName() ?? "dad";
-    return withChildName({
-      lines: [
-        `Good luck, dad! I'll wait here. Bring back some good news!`,
-      ],
-    });
-  }
-  if (status === "completed") {
-    return withChildName({
-      lines: ["Thanks for the sandwich earlier! I love you, dad."],
-    });
-  }
-  if (status === "inactive") {
-    // Defensive — should be unreachable now that the quest is
-    // auto-chained from first-paycheck. Kept so a dev-tool flow
-    // that skips the chain (e.g. clearing only the sandwich
-    // status) still results in a sensible Mim line + activation.
-    startQuest("child-sandwich");
-    return withChildName({
-      lines: [
-        "I'm hungry… can you go to the Mart and grab me a sandwich? Please?",
-      ],
-    });
-  }
-  // status === 'active'. The chain auto-starts the quest WITHOUT
-  // a Mim dialogue, so the very first visit needs to land the
-  // hungry-ask beat — flagged so subsequent returns flip to the
-  // ongoing "did you get it?" exchange. The Give option is shown
-  // both when the player has the sandwich AND when they don't:
-  // the option handler differentiates, and an inventory check at
-  // selection time lets Mim deliver the "huh? where?" line as a
-  // direct reaction to the player tapping Give without having one.
-  if (!hasFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH)) {
-    setFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
-    return withChildName({
-      lines: [
-        "I'm hungry… can you go to the Mart and grab me a sandwich? Please?",
-      ],
-    });
-  }
-  return withChildName({
-    lines: ["Did you get my sandwich?"],
-    options: [
-      { id: "child-give-sandwich", label: "Give the sandwich 🥪" },
-      { id: "child-decline", label: "Not yet" },
-    ],
-  });
-}
-
-/** Compose Theo's dialogue based on current debt + balance.
- *
- *  Three states:
- *    1. No debt, no balance → friendly opener + Borrow option.
- *    2. Outstanding debt → ledger line ("You owe Theo $X.XX") +
- *       Borrow (disabled at cap) + Repay (disabled if balance == 0).
- *    3. Just repaid in full → "we're square" follow-up. Driven by
- *       the option handler, not this builder. */
-function buildLenderDialogue(stub: DialogueState): DialogueState {
-  const debt = getDebt();
-  const balance = getBalance();
-  const lines =
-    debt > 0
-      ? [
-          `You owe me ${formatBalance(debt)}. Need more, or are you here to pay up?`,
-        ]
-      : ["Need a hand? I can spot you five at a time, up to twenty."];
-  const canPay = debt > 0 && balance > 0;
-  const repayAmount = Math.min(balance, debt);
-  const options: DialogueState["options"] = [
-    {
-      id: "lender-borrow",
-      label: `Borrow ${formatBalance(BORROW_INCREMENT_CENTS)}`,
-      hint: canBorrow()
-        ? `Owed after: ${formatBalance(debt + BORROW_INCREMENT_CENTS)} (cap ${formatBalance(MAX_DEBT_CENTS)})`
-        : `You\u2019re maxed out — pay some back first.`,
-      disabled: !canBorrow(),
-    },
-    {
-      id: "lender-repay",
-      label: canPay ? `Repay ${formatBalance(repayAmount)}` : "Repay",
-      hint: canPay
-        ? `Pays everything you can right now.`
-        : debt === 0
-          ? `Nothing to repay.`
-          : `You don\u2019t have any cash on you.`,
-      disabled: !canPay,
-    },
-    { id: "lender-leave", label: "Maybe later" },
-  ];
-  return {
-    ...stub,
-    lines,
-    options,
-  };
-}
-
-/** Compose the CEO's dialogue. Multi-stage during the intro quest;
- *  collapses to status check-ins afterward.
- *
- *  Intro flow (each stage is its own DialogueState — option taps
- *  push the next stage via the option handler):
- *    Stage 1 GREETING  — CEO welcomes, player chooses to apply or
- *                        bow out. Bowing out keeps the quest active
- *                        so the player can return.
- *    Stage 2 FLUENCY   — after apply. CEO asks the question,
- *                        player picks confident / honest.
- *    Stage 3 HIRED     — multi-line wrap-up: parting line,
- *                        explanation of the job mechanics, exit.
- *                        Quest completes when we ENTER this stage
- *                        (the option handler), so the toast fires
- *                        as the wrap-up plays. Tap-through advances
- *                        the lines via handleAdvanceDialogue's
- *                        ceo-intro local-advance branch.
- *
- *  Post-intro:
- *    - first-paycheck active + lifetime < threshold → progress check-in
- *    - first-paycheck active + lifetime ≥ threshold → claim button
- *    - everything else → engine static line. */
-function buildCeoIntroDialogue(stub: DialogueState): DialogueState {
-  const introStatus = getQuestStatus("intro-translator-job");
-  const playerName = getPlayerName() ?? "you";
-
-  if (introStatus === "active") {
-    // Stage 1 — greeting. CEO doesn't know the player's name yet
-    // (this is their first walk-in), so use a neutral address;
-    // later stages and post-intro check-ins are name-on because
-    // by then he's hired them.
-    return {
-      ...stub,
-      dialogueKind: "ceo-intro",
-      lines: [`Welcome, stranger. What can I do for you?`],
-      currentLine: 0,
-      options: [
-        {
-          id: "ceo-apply",
-          label: "I\u2019m here to apply for the translator job.",
-        },
-        {
-          id: "ceo-decline-apply",
-          label: "Ah, nothing — nevermind.",
-          hint: "You can come back any time.",
-        },
-      ],
-    };
-  }
-
-  const paycheckStatus = getQuestStatus("first-paycheck");
-  if (paycheckStatus === "active") {
-    const earned = getLifetimeEarnings();
-    if (earned >= FIRST_PAYCHECK_THRESHOLD_CENTS) {
-      return {
-        ...stub,
-        lines: [
-          `${playerName}! Word is you've cleared ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} translating. That's a real paycheck.`,
-          `Here — bonus of ${formatBalance(FIRST_PAYCHECK_BONUS_CENTS)} for showing up. Don't blow it all at the Mart.`,
-        ],
-        options: [
-          {
-            id: "ceo-paycheck-claim",
-            label: `Claim ${formatBalance(FIRST_PAYCHECK_BONUS_CENTS)} bonus`,
-            hint: "You earned it.",
-          },
-          { id: "ceo-paycheck-decline", label: "Maybe later" },
-        ],
-      };
-    }
-    return {
-      ...stub,
-      lines: [
-        `Translating going alright, ${playerName}? You're at ${formatBalance(earned)} so far.`,
-        `Hit ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} earned and there's a bonus waiting for you on top of what you've already pocketed.`,
-      ],
-    };
-  }
-
-  // Quest done (or never started) — fall back to the engine's line.
-  return stub;
-}
 
 function readInitialObjectMultiplier(): number {
   if (typeof window === "undefined") return 1;

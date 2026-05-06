@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "pack:bundle": "node scripts/bundle-pack-assets.mjs",
-    "test:maps": "node scripts/test-map-roundtrip.mjs"
+    "test:maps": "node scripts/test-map-roundtrip.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "//": "Next 16 defaults to Safari 16.4+ which emits class static blocks. iPhones on iOS < 16.4 (e.g. iPhone 13 on iOS 15/16.0-16.3) crash with `SyntaxError: Unexpected token '{'`. Lowering Safari to 14 covers every iPhone from the 6s onward at the cost of a modest bundle-size bump.",
   "browserslist": [
@@ -26,13 +28,20 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.7.0",
     "canvas": "^3.2.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "jsdom": "^25.0.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9"
   }
 }

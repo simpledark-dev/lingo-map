@@ -394,7 +394,7 @@ export class PixiApp {
    *  face the parent and pivot her back to face-down on close. */
   setNpcFacing(npcId: string, facing: Direction): void {
     const npc = this.gameState?.npcs.find((n) => n.id === npcId);
-    if (!npc) return;
+    if (!npc || !this.renderSystem) return;
     this.renderSystem.updateNPC(npcId, npc.x, npc.y, facing, false, 0);
   }
 
