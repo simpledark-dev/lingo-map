@@ -437,24 +437,30 @@ function LinesView({
         <div style={{ fontSize: 10, color: COLORS.hintText, letterSpacing: 1, textTransform: 'uppercase' }}>
           {isFullyRevealed ? 'Tap or press Enter to continue' : 'Tap to skip…'}
         </div>
-        <button
-          type="button"
-          onClick={onAdvance}
-          style={{
-            background: COLORS.accentGold,
-            color: '#fdf6e0',
-            border: `2px solid ${COLORS.cardBorder}`,
-            borderRadius: 4,
-            padding: '6px 14px',
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: 0.5,
-            cursor: 'pointer',
-            opacity: isFullyRevealed ? 1 : 0.6,
-          }}
-        >
-          {isFullyRevealed ? (isLast ? 'Begin ▶' : 'Next ▶') : 'Skip'}
-        </button>
+        {/* Continue button only shows once the line is fully revealed.
+            During the typewriter pass, tap-on-backdrop already
+            fast-forwards (advanceLine) so a separate "Skip" button
+            was a duplicated affordance — same logic we removed from
+            the in-game DialogueOverlay. */}
+        {isFullyRevealed && (
+          <button
+            type="button"
+            onClick={onAdvance}
+            style={{
+              background: COLORS.accentGold,
+              color: '#fdf6e0',
+              border: `2px solid ${COLORS.cardBorder}`,
+              borderRadius: 4,
+              padding: '6px 14px',
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              cursor: 'pointer',
+            }}
+          >
+            {isLast ? 'Begin ▶' : 'Next ▶'}
+          </button>
+        )}
       </div>
     </>
   );
