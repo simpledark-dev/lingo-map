@@ -350,7 +350,7 @@ export default function SettingsView({
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button
                     type="button"
-                    onClick={() => setRewardPerCorrect(3)}
+                    onClick={() => setRewardPerCorrect(30)}
                     style={{
                       background: COLORS.cardRest,
                       color: COLORS.text,
@@ -363,41 +363,7 @@ export default function SettingsView({
                       cursor: 'pointer',
                     }}
                   >
-                    $0.03
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRewardPerCorrect(5)}
-                    style={{
-                      background: COLORS.cardRest,
-                      color: COLORS.text,
-                      border: `2px solid ${COLORS.cardBorder}`,
-                      borderRadius: 4,
-                      padding: '6px 10px',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      letterSpacing: 0.5,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    $0.05
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRewardPerCorrect(10)}
-                    style={{
-                      background: COLORS.cardRest,
-                      color: COLORS.text,
-                      border: `2px solid ${COLORS.cardBorder}`,
-                      borderRadius: 4,
-                      padding: '6px 10px',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      letterSpacing: 0.5,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    $0.10
+                    $0.30
                   </button>
                   <button
                     type="button"
@@ -415,6 +381,40 @@ export default function SettingsView({
                     }}
                   >
                     $0.50
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRewardPerCorrect(100)}
+                    style={{
+                      background: COLORS.cardRest,
+                      color: COLORS.text,
+                      border: `2px solid ${COLORS.cardBorder}`,
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: 0.5,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    $1.00
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRewardPerCorrect(500)}
+                    style={{
+                      background: COLORS.cardRest,
+                      color: COLORS.text,
+                      border: `2px solid ${COLORS.cardBorder}`,
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: 0.5,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    $5.00
                   </button>
                 </div>
               </div>

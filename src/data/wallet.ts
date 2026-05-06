@@ -2,8 +2,8 @@
  * Persistent player wallet — survives reloads, syncs across views.
  *
  * One global balance, stored in localStorage as an integer count of
- * cents (so $0.03 is `3`). Cents-as-int avoids floating-point drift
- * across thousands of small ±$0.01–$0.03 updates. The HUD and the
+ * cents (so $0.30 is `3`). Cents-as-int avoids floating-point drift
+ * across thousands of small ±$0.10–$0.30 updates. The HUD and the
  * vocab views render through `formatBalance` / `formatDelta` so the
  * "$" stays in one place.
  *
@@ -16,26 +16,26 @@
  * "into debt". Penalties still bite because they wipe out earned
  * cents, but the metaphor of money breaks if it goes negative.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-const STORAGE_KEY = 'lingo-wallet:balance';
+const STORAGE_KEY = "lingo-wallet:balance";
 /** Separate counter for cents EARNED via translation work (correct
  *  answers only — not the starter, not borrowing, not quest bonuses).
  *  Drives the `first-paycheck` quest and any future "X earned this
  *  way" milestones. Lives in its own key so penalties / shop spends
  *  / debt repayment don't reset the milestone. */
-const LIFETIME_EARNED_KEY = 'lingo-wallet:lifetime-earned';
-export const REWARD_PER_CORRECT_STORAGE_KEY = 'lingo-wallet:reward-per-correct';
+const LIFETIME_EARNED_KEY = "lingo-wallet:lifetime-earned";
+export const REWARD_PER_CORRECT_STORAGE_KEY = "lingo-wallet:reward-per-correct";
 const STARTING_BALANCE_CENTS = 200;
 
-/** Default cents earned for a correct vocabulary answer. ($0.03) */
-export const REWARD_PER_CORRECT = 3;
-/** Cents removed for a wrong vocabulary answer. ($0.02) */
-export const PENALTY_PER_WRONG = 2;
-/** Cents removed for an "I don't know" admission. ($0.01) — biting
+/** Default cents earned for a correct vocabulary answer. ($0.30) */
+export const REWARD_PER_CORRECT = 30;
+/** Cents removed for a wrong vocabulary answer. ($0.20) */
+export const PENALTY_PER_WRONG = 20;
+/** Cents removed for an "I don't know" admission. ($0.10) — biting
  *  but markedly less than a wrong guess so honesty stays the
  *  rational play. */
-export const PENALTY_PER_IDK = 1;
+export const PENALTY_PER_IDK = 10;
 
 type Listener = (balance: number) => void;
 const listeners = new Set<Listener>();
@@ -59,7 +59,7 @@ function normalizeReward(value: number): number {
 
 function read(): number {
   if (cached !== null) return cached;
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     cached = STARTING_BALANCE_CENTS;
     return cached;
   }
@@ -71,7 +71,9 @@ function read(): number {
       return cached;
     }
     const parsed = Number(raw);
-    cached = Number.isFinite(parsed) ? Math.max(0, parsed) : STARTING_BALANCE_CENTS;
+    cached = Number.isFinite(parsed)
+      ? Math.max(0, parsed)
+      : STARTING_BALANCE_CENTS;
   } catch {
     cached = STARTING_BALANCE_CENTS;
   }
@@ -80,7 +82,7 @@ function read(): number {
 
 function write(value: number): void {
   cached = value;
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(STORAGE_KEY, String(value));
   } catch {
@@ -104,7 +106,7 @@ export function addBalance(delta: number): number {
 
 function readEarnings(): number {
   if (earningsCached !== null) return earningsCached;
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     earningsCached = 0;
     return earningsCached;
   }
@@ -120,21 +122,24 @@ function readEarnings(): number {
 
 function writeEarnings(value: number): void {
   earningsCached = value;
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(LIFETIME_EARNED_KEY, String(value));
-  } catch { /* silent */ }
+  } catch {
+    /* silent */
+  }
 }
 
 function readReward(): number {
   if (rewardCached !== null) return rewardCached;
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     rewardCached = REWARD_PER_CORRECT;
     return rewardCached;
   }
   try {
     const raw = window.localStorage.getItem(REWARD_PER_CORRECT_STORAGE_KEY);
-    rewardCached = raw === null ? REWARD_PER_CORRECT : normalizeReward(Number(raw));
+    rewardCached =
+      raw === null ? REWARD_PER_CORRECT : normalizeReward(Number(raw));
   } catch {
     rewardCached = REWARD_PER_CORRECT;
   }
@@ -143,10 +148,15 @@ function readReward(): number {
 
 function writeReward(value: number): void {
   rewardCached = normalizeReward(value);
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(REWARD_PER_CORRECT_STORAGE_KEY, String(rewardCached));
-  } catch { /* silent */ }
+    window.localStorage.setItem(
+      REWARD_PER_CORRECT_STORAGE_KEY,
+      String(rewardCached)
+    );
+  } catch {
+    /* silent */
+  }
 }
 
 /** Lifetime cents earned via translation work. Distinct from
@@ -170,7 +180,7 @@ export function creditEarnings(cents: number): number {
 }
 
 /** Current correct-answer reward in cents. Dev Settings can override
- *  this while testing economy pacing; production defaults to $0.03
+ *  this while testing economy pacing; production defaults to $0.30
  *  unless a local override already exists. */
 export function getRewardPerCorrect(): number {
   return readReward();
@@ -189,10 +199,12 @@ export function adjustRewardPerCorrect(deltaCents: number): number {
 
 export function resetRewardPerCorrect(): number {
   rewardCached = REWARD_PER_CORRECT;
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     try {
       window.localStorage.removeItem(REWARD_PER_CORRECT_STORAGE_KEY);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }
   for (const l of rewardListeners) l(REWARD_PER_CORRECT);
   return REWARD_PER_CORRECT;
@@ -205,7 +217,9 @@ export function subscribeEarnings(listener: EarningsListener): () => void {
   };
 }
 
-export function subscribeRewardPerCorrect(listener: RewardListener): () => void {
+export function subscribeRewardPerCorrect(
+  listener: RewardListener
+): () => void {
   rewardListeners.add(listener);
   return () => {
     rewardListeners.delete(listener);
@@ -255,14 +269,14 @@ export function useWalletBalance(): number {
 /** Format an integer cent amount as a "$X.XX" string. Always shows
  *  exactly two fractional digits so widths stay stable. */
 export function formatBalance(cents: number): string {
-  const sign = cents < 0 ? '-' : '';
+  const sign = cents < 0 ? "-" : "";
   const abs = Math.abs(Math.trunc(cents));
   const dollars = Math.floor(abs / 100);
   const remainder = abs % 100;
-  return `${sign}$${dollars}.${remainder.toString().padStart(2, '0')}`;
+  return `${sign}$${dollars}.${remainder.toString().padStart(2, "0")}`;
 }
 
-/** Format a signed delta for floating-badge UI ("+$0.03" / "-$0.02"). */
+/** Format a signed delta for floating-badge UI ("+$0.30" / "-$0.20"). */
 export function formatDelta(cents: number): string {
   if (cents > 0) return `+${formatBalance(cents)}`;
   return formatBalance(cents); // negative formatBalance already prefixes the minus

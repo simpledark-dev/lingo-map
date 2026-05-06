@@ -20,27 +20,27 @@
  * outside the dialogue / GameCanvas state, so the same banner
  * works for any future quest source (NPC, trigger, scripted event).
  */
-import { useEffect, useState } from 'react';
-import { hasFlag, FLAGS } from './eventFlags';
-import { getChildName } from './profile';
-import { t } from './i18n';
+import { useEffect, useState } from "react";
+import { hasFlag, FLAGS } from "./eventFlags";
+import { getChildName } from "./profile";
+import { t } from "./i18n";
 
-const STORAGE_KEY = 'lingo-quests:v1';
+const STORAGE_KEY = "lingo-quests:v1";
 /** Append-only list of quest IDs in the order the player completed
  *  them. The QuestLog reads this to render Completed sorted most-
  *  recent first instead of catalog-insertion order. Stored as a
  *  separate key so the existing status-map schema stays untouched
  *  and back-compat reads keep working. */
-const ORDER_KEY = 'lingo-quests:completion-order';
+const ORDER_KEY = "lingo-quests:completion-order";
 
-export type QuestStatus = 'inactive' | 'active' | 'completed';
+export type QuestStatus = "inactive" | "active" | "completed";
 
 /** Cents the player must earn (translation work only — penalties +
  *  borrows don't count) before the CEO will hand over the first
  *  paycheck. Lives here next to the quest catalog rather than in
  *  GameCanvas so the QuestHud can read it without pulling in a
  *  circular import. Set to $1.00 (35 correct translations at the
- *  current $0.03 reward, with room to absorb a few wrongs) so the
+ *  current $0.30 reward, with room to absorb a few wrongs) so the
  *  first session can plausibly close the loop. */
 export const FIRST_PAYCHECK_THRESHOLD_CENTS = 100;
 /** Bonus paid on top of the cents already earned when the
@@ -65,9 +65,9 @@ export interface QuestDef {
    *  string given live game state (event flags, inventory, etc.).
    *  Called on each render of the quest log, so keep it cheap and
    *  pure. Skipped when undefined — the static `objective` field
- *  is shown instead. Lets a quest like child-sandwich say
- *  "your child wanted to talk to you" pre-conversation and
- *  "Buy a sandwich at the Mart…" after they have actually asked. */
+   *  is shown instead. Lets a quest like child-sandwich say
+   *  "your child wanted to talk to you" pre-conversation and
+   *  "Buy a sandwich at the Mart…" after they have actually asked. */
   computeObjective?: () => string;
   /** Hint shown in the log BEFORE the quest is started — points
    *  the player at the NPC or location that triggers it. Lets
@@ -90,7 +90,7 @@ export interface QuestDef {
 }
 
 function childDisplayName(): string {
-  return getChildName() ?? 'Mim';
+  return getChildName() ?? "Mim";
 }
 
 export function getTitle(quest: QuestDef): string {
@@ -109,7 +109,7 @@ export function getObjective(quest: QuestDef): string {
 export function getCompletedSummary(quest: QuestDef): string {
   return quest.computeCompletedSummary
     ? quest.computeCompletedSummary()
-    : quest.completedSummary ?? 'Completed.';
+    : quest.completedSummary ?? "Completed.";
 }
 
 /** True when every quest id in `prereqs` is currently `'completed'`.
@@ -119,10 +119,10 @@ export function getCompletedSummary(quest: QuestDef): string {
  *  filters. */
 export function arePrereqsMet(
   prereqs: string[] | undefined,
-  statuses: StatusMap,
+  statuses: StatusMap
 ): boolean {
   if (!prereqs || prereqs.length === 0) return true;
-  return prereqs.every((id) => statuses[id] === 'completed');
+  return prereqs.every((id) => statuses[id] === "completed");
 }
 
 /** Convenience: `inactive` quest that has an `availableHint` AND
@@ -146,43 +146,45 @@ export const QUESTS: Record<string, QuestDef> = {
   // the relevant action handler (Theo's borrow, ShopView's buy,
   // inventory.eatItem) so the trigger is unambiguous and tied to
   // the actual interaction, not a status snapshot.
-  'tutorial-borrow': {
-    id: 'tutorial-borrow',
-    title: 'Borrow from Theo',
-    computeTitle: () => t('quest.tutorialBorrow.title'),
-    objective: 'Money runs out fast in this town. Find Theo and borrow a little.',
-    computeObjective: () => t('quest.tutorialBorrow.objective'),
-    completedSummary: 'You borrowed from Theo.',
-    computeCompletedSummary: () => t('quest.tutorialBorrow.completedSummary'),
-    requiresCompleted: ['child-sandwich'],
+  "tutorial-borrow": {
+    id: "tutorial-borrow",
+    title: "Borrow from Theo",
+    computeTitle: () => t("quest.tutorialBorrow.title"),
+    objective:
+      "Money runs out fast in this town. Find Theo and borrow a little.",
+    computeObjective: () => t("quest.tutorialBorrow.objective"),
+    completedSummary: "You borrowed from Theo.",
+    computeCompletedSummary: () => t("quest.tutorialBorrow.completedSummary"),
+    requiresCompleted: ["child-sandwich"],
   },
-  'tutorial-buy-food': {
-    id: 'tutorial-buy-food',
-    title: 'Buy Food at the Mart',
-    computeTitle: () => t('quest.tutorialBuyFood.title'),
-    objective: 'Buy any food item at the Mart.',
-    computeObjective: () => t('quest.tutorialBuyFood.objective'),
-    completedSummary: 'You bought a snack.',
-    computeCompletedSummary: () => t('quest.tutorialBuyFood.completedSummary'),
-    requiresCompleted: ['tutorial-borrow'],
+  "tutorial-buy-food": {
+    id: "tutorial-buy-food",
+    title: "Buy Food at the Mart",
+    computeTitle: () => t("quest.tutorialBuyFood.title"),
+    objective: "Buy any food item at the Mart.",
+    computeObjective: () => t("quest.tutorialBuyFood.objective"),
+    completedSummary: "You bought a snack.",
+    computeCompletedSummary: () => t("quest.tutorialBuyFood.completedSummary"),
+    requiresCompleted: ["tutorial-borrow"],
   },
-  'tutorial-eat': {
-    id: 'tutorial-eat',
-    title: 'Refill Your Energy',
-    computeTitle: () => t('quest.tutorialEat.title'),
-    objective: 'Open your Bag and eat what you bought.',
-    computeObjective: () => t('quest.tutorialEat.objective'),
-    completedSummary: 'You ate to refill energy.',
-    computeCompletedSummary: () => t('quest.tutorialEat.completedSummary'),
-    requiresCompleted: ['tutorial-buy-food'],
+  "tutorial-eat": {
+    id: "tutorial-eat",
+    title: "Refill Your Energy",
+    computeTitle: () => t("quest.tutorialEat.title"),
+    objective: "Open your Bag and eat what you bought.",
+    computeObjective: () => t("quest.tutorialEat.objective"),
+    completedSummary: "You ate to refill energy.",
+    computeCompletedSummary: () => t("quest.tutorialEat.completedSummary"),
+    requiresCompleted: ["tutorial-buy-food"],
   },
-  'child-sandwich': {
-    id: 'child-sandwich',
-    title: 'A Sandwich for Your Child',
-    computeTitle: () => t('quest.childSandwich.title', { child: childDisplayName() }),
+  "child-sandwich": {
+    id: "child-sandwich",
+    title: "A Sandwich for Your Child",
+    computeTitle: () =>
+      t("quest.childSandwich.title", { child: childDisplayName() }),
     // Static fallback — only shown if `computeObjective` is somehow
     // skipped (e.g. unit-test reading the def directly).
-    objective: 'Your child wanted to talk to you. Head home.',
+    objective: "Your child wanted to talk to you. Head home.",
     // Two-stage objective: pre-Mim-ask vs post-Mim-ask. Keeps the
     // quest log faithful to what the PLAYER currently knows
     // (Mim hasn't said anything yet → "go home and find out") vs
@@ -191,42 +193,46 @@ export const QUESTS: Record<string, QuestDef> = {
     // Mim's dialogue handler.
     computeObjective: () =>
       hasFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH)
-        ? t('quest.childSandwich.objective', { child: childDisplayName() })
-        : t('quest.childSandwich.objectivePreAsk', { child: childDisplayName() }),
-    completedSummary: 'You brought your child a sandwich.',
+        ? t("quest.childSandwich.objective", { child: childDisplayName() })
+        : t("quest.childSandwich.objectivePreAsk", {
+            child: childDisplayName(),
+          }),
+    completedSummary: "You brought your child a sandwich.",
     computeCompletedSummary: () =>
-      t('quest.childSandwich.completedSummary', { child: childDisplayName() }),
+      t("quest.childSandwich.completedSummary", { child: childDisplayName() }),
     // Auto-chained after the first paycheck — the player has the
     // money + the workflow muscle memory by then, and Mim's request
     // closes the loop on "you came to the city to feed your kid".
     // No `availableHint` is intentional: the chain auto-starts via
     // GameCanvas's catch-up effect, so the quest skips the
     // Available tier entirely and lands directly in In Progress.
-    requiresCompleted: ['first-paycheck'],
+    requiresCompleted: ["first-paycheck"],
   },
-  'intro-translator-job': {
-    id: 'intro-translator-job',
-    title: 'Apply for the Translator Job',
-    computeTitle: () => t('quest.introTranslatorJob.title'),
-    objective: 'Walk to the translation office on Mart Street.',
-    computeObjective: () => t('quest.introTranslatorJob.objective'),
-    completedSummary: 'You bluffed your way into a translator gig.',
-    computeCompletedSummary: () => t('quest.introTranslatorJob.completedSummary'),
+  "intro-translator-job": {
+    id: "intro-translator-job",
+    title: "Apply for the Translator Job",
+    computeTitle: () => t("quest.introTranslatorJob.title"),
+    objective: "Walk to the translation office on Mart Street.",
+    computeObjective: () => t("quest.introTranslatorJob.objective"),
+    completedSummary: "You bluffed your way into a translator gig.",
+    computeCompletedSummary: () =>
+      t("quest.introTranslatorJob.completedSummary"),
   },
-  'first-paycheck': {
-    id: 'first-paycheck',
-    title: 'Earn Your First Paycheck',
-    computeTitle: () => t('quest.firstPaycheck.title'),
+  "first-paycheck": {
+    id: "first-paycheck",
+    title: "Earn Your First Paycheck",
+    computeTitle: () => t("quest.firstPaycheck.title"),
     objective: "Eli's at the office. Earn $1.00 and return to the CEO.",
-    computeObjective: () => t('quest.firstPaycheck.objective', { threshold: '$1.00' }),
-    availableHint: 'The CEO promised a paycheck.',
-    computeAvailableHint: () => t('quest.firstPaycheck.availableHint'),
-    completedSummary: 'You earned your first paycheck.',
-    computeCompletedSummary: () => t('quest.firstPaycheck.completedSummary'),
+    computeObjective: () =>
+      t("quest.firstPaycheck.objective", { threshold: "$1.00" }),
+    availableHint: "The CEO promised a paycheck.",
+    computeAvailableHint: () => t("quest.firstPaycheck.availableHint"),
+    completedSummary: "You earned your first paycheck.",
+    computeCompletedSummary: () => t("quest.firstPaycheck.completedSummary"),
     // Auto-starts as soon as the intro is done (see GameCanvas's
     // catch-up effect), but prereq is set anyway so a stale save
     // mid-intro doesn't accidentally surface this in Available.
-    requiresCompleted: ['intro-translator-job'],
+    requiresCompleted: ["intro-translator-job"],
   },
 };
 
@@ -240,8 +246,8 @@ type StatusListener = (statuses: StatusMap) => void;
 const statusListeners = new Set<StatusListener>();
 
 export type QuestTransition =
-  | { kind: 'started'; def: QuestDef }
-  | { kind: 'completed'; def: QuestDef };
+  | { kind: "started"; def: QuestDef }
+  | { kind: "completed"; def: QuestDef };
 
 type TransitionListener = (event: QuestTransition) => void;
 const transitionListeners = new Set<TransitionListener>();
@@ -256,7 +262,7 @@ const orderListeners = new Set<OrderListener>();
 
 function readOrder(): string[] {
   if (orderCached !== null) return orderCached;
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     orderCached = [];
     return orderCached;
   }
@@ -271,7 +277,7 @@ function readOrder(): string[] {
       orderCached = [];
       return orderCached;
     }
-    orderCached = parsed.filter((x): x is string => typeof x === 'string');
+    orderCached = parsed.filter((x): x is string => typeof x === "string");
   } catch {
     orderCached = [];
   }
@@ -280,10 +286,12 @@ function readOrder(): string[] {
 
 function writeOrder(value: string[]): void {
   orderCached = value;
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(ORDER_KEY, JSON.stringify(value));
-  } catch { /* silent */ }
+  } catch {
+    /* silent */
+  }
 }
 
 function emitOrder(): void {
@@ -318,7 +326,7 @@ export function useCompletionOrder(): readonly string[] {
 
 function read(): StatusMap {
   if (cached !== null) return cached;
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     cached = {};
     return cached;
   }
@@ -329,13 +337,13 @@ function read(): StatusMap {
       return cached;
     }
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') {
+    if (!parsed || typeof parsed !== "object") {
       cached = {};
       return cached;
     }
     const cleaned: StatusMap = {};
     for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-      if (v === 'active' || v === 'completed') cleaned[k] = v;
+      if (v === "active" || v === "completed") cleaned[k] = v;
     }
     cached = cleaned;
   } catch {
@@ -346,10 +354,12 @@ function read(): StatusMap {
 
 function write(value: StatusMap): void {
   cached = value;
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-  } catch { /* silent */ }
+  } catch {
+    /* silent */
+  }
 }
 
 function emitStatuses(): void {
@@ -362,7 +372,7 @@ function emitTransition(event: QuestTransition): void {
 }
 
 export function getQuestStatus(id: string): QuestStatus {
-  return read()[id] ?? 'inactive';
+  return read()[id] ?? "inactive";
 }
 
 /** Start a quest. No-op if it's already active or completed (so
@@ -373,11 +383,11 @@ export function startQuest(id: string): void {
   const def = QUESTS[id];
   if (!def) return;
   const current = read();
-  if (current[id] === 'active' || current[id] === 'completed') return;
-  const next: StatusMap = { ...current, [id]: 'active' };
+  if (current[id] === "active" || current[id] === "completed") return;
+  const next: StatusMap = { ...current, [id]: "active" };
   write(next);
   emitStatuses();
-  emitTransition({ kind: 'started', def });
+  emitTransition({ kind: "started", def });
 }
 
 /** Complete a quest. Idempotent — if it was inactive (never
@@ -388,8 +398,8 @@ export function completeQuest(id: string): void {
   const def = QUESTS[id];
   if (!def) return;
   const current = read();
-  if (current[id] === 'completed') return;
-  const next: StatusMap = { ...current, [id]: 'completed' };
+  if (current[id] === "completed") return;
+  const next: StatusMap = { ...current, [id]: "completed" };
   write(next);
   // Append to completion-order so the log can sort by recency.
   // Defensive dedupe in case of any future double-call path.
@@ -399,7 +409,7 @@ export function completeQuest(id: string): void {
     emitOrder();
   }
   emitStatuses();
-  emitTransition({ kind: 'completed', def });
+  emitTransition({ kind: "completed", def });
 }
 
 export function subscribeQuests(listener: StatusListener): () => void {
@@ -409,7 +419,9 @@ export function subscribeQuests(listener: StatusListener): () => void {
   };
 }
 
-export function subscribeQuestTransitions(listener: TransitionListener): () => void {
+export function subscribeQuestTransitions(
+  listener: TransitionListener
+): () => void {
   transitionListeners.add(listener);
   return () => {
     transitionListeners.delete(listener);
