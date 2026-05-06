@@ -1,17 +1,24 @@
 #!/usr/bin/env node
 /**
  * Walk every place that can reference a Modern Exteriors pack single
- * (data/*.json plus the hardcoded list in src/core/CarSystem.ts), copy
- * just those PNGs into `public/assets/me-bundle/`, and let the rest of
- * the gitignored pack stay outside the repo.
+ * (data/*.json plus the hardcoded list in src/core/CarSystem.ts) and
+ * encode just those source PNGs into `public/assets/me-bundle/` as
+ * lossless `.webp` siblings. The rest of the gitignored pack stays
+ * outside the repo.
  *
  * Run before deploying when new pack references show up. CI/Vercel
  * builds use the bundle folder via NEXT_PUBLIC_PACK_BASE_URL; local
  * dev keeps the symlinked full pack at public/assets/me/.
+ *
+ * Why webp-only: the runtime fetches `.webp` exclusively (see
+ * AssetLoader's PACK_EXT switch). The intermediate `.png` copies
+ * the previous version of this script wrote into the bundle were
+ * dead weight in the repo and on every Vercel deploy.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC_PACK = path.join(ROOT, 'public/assets/me');
@@ -52,29 +59,44 @@ if (idxMatch) {
   console.warn('Could not parse CAR_SPRITE_SETS indices from CarSystem.ts — car art may be missing in the bundle.');
 }
 
-// 3) Copy each key's PNG from the source pack into the bundle. Wipe
-//    the destination first so removed references don't leave stale
-//    files in the committed folder.
+// 3) Encode each key's PNG from the source pack into `.webp` in the
+//    bundle. Wipe the destination first so removed references don't
+//    leave stale files in the committed folder.
 fs.rmSync(DEST, { recursive: true, force: true });
 fs.mkdirSync(DEST, { recursive: true });
-let copied = 0, missing = 0;
-const missingKeys = [];
+
+const work = [];
 for (const key of keys) {
-  const rel = `${key.slice(3)}.png`; // strip "me:" prefix
-  const src = path.join(SRC_PACK, rel);
-  const dest = path.join(DEST, rel);
-  if (!fs.existsSync(src)) {
-    missingKeys.push(rel);
-    missing++;
-    continue;
-  }
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.copyFileSync(src, dest);
-  copied++;
+  const rel = key.slice(3); // strip "me:" prefix
+  const src = path.join(SRC_PACK, `${rel}.png`);
+  const dest = path.join(DEST, `${rel}.webp`);
+  work.push({ src, dest, rel });
 }
 
-console.log(`Bundled ${copied} pack asset${copied === 1 ? '' : 's'} into public/assets/me-bundle/`);
+let encoded = 0, missing = 0;
+const missingKeys = [];
+
+// Concurrent encode — sharp uses native threads, so 8 in-flight jobs
+// is enough to saturate cores without spawning too many libuv tasks.
+const CONCURRENCY = 8;
+let cursor = 0;
+async function worker() {
+  while (cursor < work.length) {
+    const item = work[cursor++];
+    if (!fs.existsSync(item.src)) {
+      missingKeys.push(item.rel);
+      missing++;
+      continue;
+    }
+    fs.mkdirSync(path.dirname(item.dest), { recursive: true });
+    await sharp(item.src).webp({ lossless: true, effort: 6 }).toFile(item.dest);
+    encoded++;
+  }
+}
+await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+console.log(`Bundled ${encoded} pack asset${encoded === 1 ? '' : 's'} into public/assets/me-bundle/ as .webp`);
 if (missing > 0) {
-  console.warn(`${missing} reference${missing === 1 ? '' : 's'} had no source file:`);
-  for (const k of missingKeys) console.warn(`  - ${k}`);
+  console.warn(`${missing} reference${missing === 1 ? '' : 's'} had no source PNG:`);
+  for (const k of missingKeys) console.warn(`  - ${k}.png`);
 }
