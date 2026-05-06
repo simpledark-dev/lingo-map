@@ -13,6 +13,7 @@ import ShopView from "./ShopView";
 import { getVocabularyPack } from "../data/vocabularyPacks";
 import {
   useWalletBalance,
+  useLifetimeEarnings,
   formatBalance,
   getBalance,
   getLifetimeEarnings,
@@ -481,6 +482,10 @@ export default function GameCanvas() {
   const [loading, setLoading] = useState(true);
   const [loadingVisible, setLoadingVisible] = useState(true);
   const walletBalance = useWalletBalance();
+  // Drives the first-paycheck marker handoff (Saba → CEO once the
+  // earnings threshold is hit). Reading the hook here forces the
+  // marker effect below to re-run whenever earnings change.
+  const lifetimeEarnings = useLifetimeEarnings();
   const debt = useDebt();
   const questStatuses = useQuestStatuses();
 
@@ -1170,16 +1175,27 @@ export default function GameCanvas() {
       followNpcId?: string;
     }> = [];
 
-    // ── Story-critical: office building marker during intro ──
+    // ── Story-critical: office building marker ──
+    // Fires during the intro AND during the first-paycheck claim
+    // moment. In both cases the player needs to physically enter
+    // the office on the outdoor map, so the same chevron over the
+    // building works for both. Once inside the office, the
+    // QUEST_TALK_TARGETS loop below puts the chevron over the CEO.
     const introActive = questStatuses["intro-translator-job"] === "active";
-    if (introActive && currentMapId === "pokemon") {
+    const paycheckReadyToClaim =
+      questStatuses["first-paycheck"] === "active" &&
+      getLifetimeEarnings() >= FIRST_PAYCHECK_THRESHOLD_CENTS;
+    if (
+      (introActive || paycheckReadyToClaim) &&
+      currentMapId === "pokemon"
+    ) {
       const office = collectObjects("pokemon").find(
         (o) => o.transition?.incomingSpawnId === "outdoor-office",
       );
       if (office) {
         const top = office.y + (office.collisionBox?.offsetY ?? -64);
         markers.push({
-          id: "intro-office",
+          id: introActive ? "intro-office" : "paycheck-office",
           x: office.x,
           y: top + 60,
           spriteKey: "edge-arrow-south-red",
@@ -1205,6 +1221,11 @@ export default function GameCanvas() {
     // -28 floats the chevron above the head sprite.
     for (const target of QUEST_TALK_TARGETS) {
       if (questStatuses[target.questId] !== "active") continue;
+      // First-paycheck has TWO talk targets across its lifetime:
+      // Saba (where to translate) before threshold, CEO (where to
+      // claim) after. The QUEST_TALK_TARGETS table only knows about
+      // the first; once the player is ready to claim, swap to CEO.
+      if (target.questId === "first-paycheck" && paycheckReadyToClaim) continue;
       if (currentMapId !== target.mapId) continue;
       let map;
       try {
@@ -1221,6 +1242,31 @@ export default function GameCanvas() {
         spriteKey: "edge-arrow-south-red",
         followNpcId: npc.id,
       });
+    }
+
+    // ── First-paycheck claim: CEO marker once threshold is met ──
+    // Special-case override of the QUEST_TALK_TARGETS Saba entry
+    // (skipped above when paycheckReadyToClaim is true). The
+    // outdoor-map case is covered by the office-building marker
+    // higher up; this one floats over the CEO when the player is
+    // already inside the office.
+    if (paycheckReadyToClaim && currentMapId === "office") {
+      let officeMap;
+      try {
+        officeMap = loadMap("office");
+      } catch {
+        officeMap = null;
+      }
+      const ceoNpc = officeMap?.npcs.find((n) => n.name === "CEO");
+      if (ceoNpc) {
+        markers.push({
+          id: "paycheck-ceo",
+          x: 0,
+          y: -28,
+          spriteKey: "edge-arrow-south-red",
+          followNpcId: ceoNpc.id,
+        });
+      }
     }
 
     // ── Wayfinding: doormats in interior maps ──
@@ -1252,7 +1298,7 @@ export default function GameCanvas() {
     return () => {
       app.setQuestMarkers([]);
     };
-  }, [currentMapId, questStatuses, dialogue]);
+  }, [currentMapId, questStatuses, dialogue, lifetimeEarnings]);
 
   // Intro apartment back-and-forth — auto-fires the FIRST time
   // the player lands in F1 after the cutscene. Holds the practical

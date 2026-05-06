@@ -108,18 +108,21 @@ export default function DialogueOverlay({
     return () => window.clearTimeout(t);
   }, [hasOptions, isLastLine, isFullyRevealed, dialogue.skipTypewriter]);
 
-  // Tap on the parchment: if still typing, fast-forward; if revealed
-  // and the dialogue is a sequence (no options), advance to next
-  // line; if it's a prompt with options, ignore (player picks via the
-  // option buttons, which stopPropagation themselves).
+  // Tap on the parchment: if still typing, fast-forward; otherwise
+  // advance to next line. Only the LAST line of an options dialogue
+  // locks the tap — that's where the choice buttons live and we
+  // don't want a stray box-tap dismissing them. Intermediate lines
+  // of multi-line options dialogues (e.g. CEO's paycheck monologue
+  // before the Claim button) must still advance on tap, otherwise
+  // the player stalls on line 0 and never reaches the choices.
   const handleBoxClick = useCallback(() => {
     if (!isFullyRevealed) {
       setRevealedCount(currentLine.length);
       return;
     }
-    if (hasOptions) return;
+    if (hasOptions && isLastLine) return;
     onAdvance();
-  }, [isFullyRevealed, hasOptions, currentLine.length, onAdvance]);
+  }, [isFullyRevealed, hasOptions, isLastLine, currentLine.length, onAdvance]);
 
   // Main-game NPC dialogue is native-language English, so it stays
   // silent. Foreign-word audio lives in the vocabulary views via
