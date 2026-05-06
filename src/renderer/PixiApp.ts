@@ -1,6 +1,6 @@
 import { Application, loadTextures } from 'pixi.js';
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DECOR_SPRITE_KEYS, MIN_ZOOM, MAX_ZOOM } from '../core/constants';
-import { GameState, MapData, TileType } from '../core/types';
+import { Direction, GameState, MapData, TileType } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
 import { buildStressMap, StressOptions } from '../core/MapStress';
 import { createPlayer, updatePlayer } from '../core/PlayerSystem';
@@ -367,6 +367,35 @@ export class PixiApp {
     }
     if (!this.initialized || this.destroyed) return;
     await this.loadScene(mapId, spawnId);
+  }
+
+  /** Force the player's facing direction. Used by scripted beats
+   *  (intro apartment monologue) where we want the parent looking
+   *  at the child regardless of last-input direction. The main
+   *  update loop will overwrite this on the next movement input,
+   *  which is the desired behaviour. */
+  setPlayerFacing(facing: Direction): void {
+    if (!this.gameState) return;
+    this.gameState.player.facing = facing;
+  }
+
+  /** Return an NPC's static `dialogue[0]` line if the loaded map
+   *  has them. Used by the React layer to fall back to a generic
+   *  greeting when a feature-gated dialogue (e.g. translator-job
+   *  offers before the player is hired) is suppressed. */
+  getNpcFallbackLine(npcId: string): string | null {
+    const npc = this.gameState?.npcs.find((n) => n.id === npcId);
+    return npc?.dialogue[0] ?? null;
+  }
+
+  /** Force a stationary NPC's sprite to face a specific direction.
+   *  Stationary NPCs (no wanderRadius) default to "-down" textures
+   *  forever; this lets the intro monologue swing Mim around to
+   *  face the parent and pivot her back to face-down on close. */
+  setNpcFacing(npcId: string, facing: Direction): void {
+    const npc = this.gameState?.npcs.find((n) => n.id === npcId);
+    if (!npc) return;
+    this.renderSystem.updateNPC(npcId, npc.x, npc.y, facing, false, 0);
   }
 
   private async loadScene(mapId: string, spawnId: string, restoreState: SavedWorldState | null = null): Promise<void> {

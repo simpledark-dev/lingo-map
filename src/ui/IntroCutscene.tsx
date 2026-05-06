@@ -26,7 +26,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { setProfile } from '../data/profile';
 import { setFlag, FLAGS } from '../data/eventFlags';
-import { startQuest } from '../data/quests';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -69,16 +68,24 @@ type InputScene = {
 type Scene = LineScene | InputScene;
 
 const SCENES: Scene[] = [
-  // 1.1 Arrival
+  // 1.1 Arrival — establishes WHO (small family), WHERE FROM (a
+  // place far enough that they had to take a multi-day bus), WHY
+  // (deliberately vague "old life" / "had to leave" so players
+  // project their own backstory), and NOW (just arrived). The
+  // kid's line drops the "Mama/Papa" honorific so the solo-parent
+  // setup reads cleanly — only one adult on screen, no missing-
+  // spouse mystery to derail Scene 1. Practical exposition (rent,
+  // job plan, the lie) is deferred to the apartment scene where
+  // the player can see the room those words refer to.
   {
     kind: 'lines',
     show: 'both',
     lines: [
-      // Italic-ish narrator vibe — rendered with the hint color in
-      // the panel below so it reads differently from spoken lines.
       '~ A new city. A new life. ~',
-      "Okay. Okay. We made it.",
-      "Mama… Papa… what do we do now?",
+      'Three days on the bus from home. Two suitcases. Just us.',
+      "Whatever's left of the old life is in those bags.",
+      'Okay. We made it.',
+      'Papa. What do we do now?',
     ],
   },
 
@@ -112,25 +119,17 @@ const SCENES: Scene[] = [
     ],
   },
 
-  // 1.3 The stakes
+  // 1.3 Hook into the apartment — names the place we're about to
+  // spawn into so the player isn't surprised when the cutscene
+  // hands them off to F1. "Rented" + "for now" plant the timer
+  // (rent = pressure) without spending a line on exposition; the
+  // apartment monologue picks that thread back up.
   {
     kind: 'lines',
-    show: 'parent',
+    show: 'both',
     lines: [
-      "I don't speak this language.",
-      ({ child }) => `${child} needs a home. School. Food.`,
-      'I need a job. Today.',
-    ],
-  },
-
-  // 1.4 The plan
-  {
-    kind: 'lines',
-    show: 'parent',
-    lines: [
-      'I saw an ad — a translation office on Mart Street.',
-      "I'll probably need to… not mention I don't actually speak the language.",
-      ({ child }) => `Let's go, ${child}. Wait at the house. I'll be back with good news.`,
+      "I rented us a place. Small, but it's ours for now.",
+      "Come on. Let's go inside.",
     ],
   },
 ];
@@ -139,6 +138,11 @@ const SCENES: Scene[] = [
  *  the in-game DialogueOverlay so the cutscene feels like it lives
  *  in the same world, not a separate screen. */
 const TYPEWRITER_MS_PER_CHAR = 22;
+
+/** How long the cutscene's fade-to-reveal-the-world takes after
+ *  the final tap. Long enough to read as a deliberate transition,
+ *  short enough not to test the player's patience. */
+const CUTSCENE_FADE_OUT_MS = 600;
 
 export default function IntroCutscene({
   // Defaults align with the in-world player + child NPC sprites:
@@ -153,6 +157,10 @@ export default function IntroCutscene({
   const [sceneIndex, setSceneIndex] = useState(0);
   // Index of the currently-revealed line within a `lines` scene.
   const [lineIndex, setLineIndex] = useState(0);
+  // Triggered after the final tap: fades the whole overlay to
+  // black so the handoff to the apartment doesn't snap. The world
+  // is already rendering F1 underneath, so the fade reveals it.
+  const [fadingOut, setFadingOut] = useState(false);
   // How many characters of the current line have been "typed". When
   // it equals the line length, the line is fully revealed and the
   // Continue button enables. A tap mid-reveal short-circuits to the
@@ -216,11 +224,17 @@ export default function IntroCutscene({
     }
     // Past the last line of this scene — move to the next scene.
     if (isLast) {
-      // Final scene complete: persist names + finish.
+      // Final scene complete: persist names + start the fade-out.
+      // The intro quest does NOT start here — the apartment
+      // monologue (in GameCanvas) starts it on its own dismissal
+      // so the quest pulse/dot/marker doesn't pop up while the
+      // parent is still mid-thought about the plan. onComplete
+      // fires AFTER the fade so the handoff to F1 reveals
+      // smoothly instead of snapping.
       setProfile(you.trim(), child.trim());
       setFlag(FLAGS.INTRO_CUTSCENE_SEEN);
-      startQuest('intro-translator-job');
-      onComplete();
+      setFadingOut(true);
+      window.setTimeout(() => onComplete(), CUTSCENE_FADE_OUT_MS);
       return;
     }
     setSceneIndex((i) => i + 1);
@@ -278,11 +292,20 @@ export default function IntroCutscene({
         boxSizing: 'border-box',
         // Same monospace as the rest of the cozy UI for consistency.
         fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
+        // Smooth handoff to F1 — fade the whole cutscene out on
+        // the final tap. The world is already rendering underneath
+        // so opacity 0 reveals it without a snap. Pointer events
+        // off during fade so a stray tap doesn't trigger something
+        // in the now-visible game world.
+        opacity: fadingOut ? 0 : 1,
+        transition: `opacity ${CUTSCENE_FADE_OUT_MS}ms ease-out`,
+        pointerEvents: fadingOut ? 'none' : 'auto',
         // Tap-to-advance lives on the WRAPPER for line-mode so any
         // tap on the backdrop progresses the line. Input mode
         // delegates to the form.
       }}
       onClick={() => {
+        if (fadingOut) return;
         if (scene.kind === 'lines') advanceLine();
       }}
     >

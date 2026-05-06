@@ -12744,7 +12744,7 @@
       "name": "Props",
       "kind": "object",
       "visible": true,
-      "locked": true,
+      "locked": false,
       "objects": [
         {
           "id": "obj-moh6aiy5-pmmhh",
@@ -14320,21 +14320,21 @@
         },
         {
           "id": "obj-moje0cds-g59wh",
-          "x": 238.74869791666669,
-          "y": 188.3984375,
+          "x": 248.13288458678946,
+          "y": 188.9311136630337,
           "spriteKey": "me:3_City_Props_Singles_16x16/decor-1",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 188.3984375,
+          "sortY": 188.9311136630337,
           "collisionBox": {
             "offsetX": -9,
             "offsetY": -13,
             "width": 17,
             "height": 13
           },
-          "scale": 0.88,
+          "scale": 0.77,
           "layer": "props"
         },
         {

@@ -46,17 +46,18 @@ import QuestToast from "./QuestToast";
 import QuestLog from "./QuestLog";
 import InventoryView from "./InventoryView";
 import IntroCutscene from "./IntroCutscene";
+import WelcomeScreen from "./WelcomeScreen";
 import QuestHud from "./QuestHud";
 import SettingsView from "./SettingsView";
 import WordStatsView from "./WordStatsView";
 import { hasFlag, setFlag, FLAGS } from "../data/eventFlags";
-import { getPlayerName, getChildName, clearProfile } from "../data/profile";
-import { clearFlag } from "../data/eventFlags";
+import { getPlayerName, getChildName } from "../data/profile";
 import Minimap from "./Minimap";
 import VirtualDPad from "./VirtualDPad";
 import { APP_VERSION } from "../version";
 import { getUiTheme } from "./uiThemes";
 import { clearWorldSave, loadWorldSave } from "../data/worldSave";
+import { resetAllGameData } from "../data/reset";
 import {
   getMusicEnabled,
   getVirtualDPadEnabled,
@@ -85,6 +86,26 @@ const QUEST_TALK_TARGETS: ReadonlyArray<{
   { questId: "child-sandwich", npcName: "Mim", mapId: "pokemon-house-1f" },
   { questId: "tutorial-borrow", npcName: "Theo", mapId: "pokemon" },
   { questId: "tutorial-buy-food", npcName: "Shopkeeper", mapId: "grocer-1f" },
+];
+
+/** Script for the intro apartment back-and-forth. Index in `lines`
+ *  ↔ index in `speakers` so each tap can swap the dialogue's
+ *  npcName as the speaker changes. Resolved with the player's
+ *  chosen child name at trigger time. */
+const APARTMENT_DIALOGUE: ReadonlyArray<{
+  speaker: 'parent' | 'child';
+  text: (names: { parent: string; child: string }) => string;
+}> = [
+  { speaker: 'parent', text: () => "This is our home. For now." },
+  { speaker: 'parent', text: () => "It's small. Bare. But the rent's paid for a month." },
+  { speaker: 'parent', text: () => "After that... I need money. Quickly." },
+  { speaker: 'parent', text: () => "I saw an ad in the paper — translation office on Mart Street. I'm going to apply." },
+  { speaker: 'child',  text: () => "Wait — but you don't even speak the language!" },
+  { speaker: 'parent', text: () => "I know." },
+  { speaker: 'parent', text: () => "I'll fake it till I make it. Smile. Nod. They won't have to know." },
+  { speaker: 'child',  text: () => "...Will it work?" },
+  { speaker: 'parent', text: () => "It has to." },
+  { speaker: 'parent', text: ({ child }) => `Stay here, ${child}. I'll come back with good news.` },
 ];
 
 type ViewportSize = { width: number; height: number };
@@ -140,7 +161,7 @@ function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
     const playerName = getPlayerName() ?? "dad";
     return withChildName({
       lines: [
-        `Good luck, ${playerName}! I'll wait here. Bring back something tasty?`,
+        `Good luck, dad! I'll wait here. Bring back some good news!`,
       ],
     });
   }
@@ -260,12 +281,14 @@ function buildCeoIntroDialogue(stub: DialogueState): DialogueState {
   const playerName = getPlayerName() ?? "you";
 
   if (introStatus === "active") {
-    // Stage 1 — greeting. Subsequent stages are pushed by option
-    // handlers (`ceo-apply`, `ceo-intro-confident`, etc.).
+    // Stage 1 — greeting. CEO doesn't know the player's name yet
+    // (this is their first walk-in), so use a neutral address;
+    // later stages and post-intro check-ins are name-on because
+    // by then he's hired them.
     return {
       ...stub,
       dialogueKind: "ceo-intro",
-      lines: [`Welcome, ${playerName}. What can I do for you?`],
+      lines: [`Welcome, stranger. What can I do for you?`],
       currentLine: 0,
       options: [
         {
@@ -413,12 +436,31 @@ export default function GameCanvas() {
     // the flag check below sees the cleared state.
     const params = new URLSearchParams(window.location.search);
     if (params.get("intro") === "replay") {
-      clearFlag(FLAGS.INTRO_CUTSCENE_SEEN);
-      clearProfile();
-      clearWorldSave();
+      // Full wipe so the replay test mirrors a brand-new save —
+      // otherwise leftover quest state from prior runs leaks
+      // through (e.g. child-sandwich already active triggers a
+      // marker on Mim during the apartment monologue, which is
+      // jarring and incorrect for a player who hasn't done the
+      // first paycheck yet).
+      resetAllGameData();
     }
     return !hasFlag(FLAGS.INTRO_CUTSCENE_SEEN);
   });
+  // Brand splash before the cutscene on a fresh save. Same gating
+  // as the cutscene so a returning player who's already been
+  // branded doesn't sit through it again. Welcome's fade-out
+  // overlaps cutscene's mount (see `welcomeFading` below) so the
+  // user never sees the canvas peek through.
+  const [welcomeActive, setWelcomeActive] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return !hasFlag(FLAGS.INTRO_CUTSCENE_SEEN);
+  });
+  // Flips true the moment the welcome splash starts fading out.
+  // The cutscene mounts on this signal — its sky-gradient backdrop
+  // sits behind the still-visible-but-fading splash, so the
+  // 360ms cross-fade reveals the cutscene's gradient instead of
+  // the F1 room briefly flashing through.
+  const [welcomeFading, setWelcomeFading] = useState(false);
   const [minimapData, setMinimapData] = useState<{
     map: MapData;
     state: GameState;
@@ -693,6 +735,12 @@ export default function GameCanvas() {
     if (!containerRef.current || pixiAppRef.current) return;
 
     let cancelled = false;
+    // Loading screen has a hard minimum display window so the
+    // brand + tagline get a real read even when the boot is
+    // already cached. Without this, returning players see the
+    // splash for ~200ms and the messaging never lands.
+    const MIN_LOADING_MS = 2000;
+    const loadingStartedAt = performance.now();
     // Determine start map — default to pokemon, allow ?map=<id> override.
     // The intro cutscene runs as a fullscreen overlay; while it's
     // up the world boots in parallel BEHIND it (so the loading
@@ -875,6 +923,24 @@ export default function GameCanvas() {
               setDialogue(buildLenderDialogue(event.dialogue));
             } else if (event.dialogue.dialogueKind === "ceo-intro") {
               setDialogue(buildCeoIntroDialogue(event.dialogue));
+            } else if (
+              event.dialogue.vocabularyPackId &&
+              getQuestStatus("intro-translator-job") !== "completed"
+            ) {
+              // Translator-job offer suppressed until the player has
+              // actually been hired — strangers don't pitch jobs to
+              // someone who isn't a translator yet. Fall back to the
+              // NPC's generic small-talk line so the interaction
+              // still has SOMETHING to read.
+              const fallback =
+                pixiAppRef.current?.getNpcFallbackLine(event.dialogue.npcId) ??
+                "Hi there.";
+              setDialogue({
+                npcId: event.dialogue.npcId,
+                npcName: event.dialogue.npcName,
+                lines: [fallback],
+                currentLine: 0,
+              });
             } else {
               setDialogue(event.dialogue);
             }
@@ -984,13 +1050,21 @@ export default function GameCanvas() {
       .then(({ appliedAll }) => {
         startGame().then(() => {
           if (cancelled) return;
-          // First scene mounted — drop the loading overlay. `loading`
-          // flips immediately to start the fade; `loadingVisible`
-          // unmounts after the CSS transition completes.
-          setLoading(false);
+          // First scene mounted — drop the loading overlay, but
+          // honour the minimum display window so the brand
+          // messaging gets a real read even on warm-cache boots.
+          const elapsed = performance.now() - loadingStartedAt;
+          const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
           window.setTimeout(() => {
-            if (!cancelled) setLoadingVisible(false);
-          }, 400);
+            if (cancelled) return;
+            // `loading` flips immediately to start the fade;
+            // `loadingVisible` unmounts after the CSS transition
+            // completes.
+            setLoading(false);
+            window.setTimeout(() => {
+              if (!cancelled) setLoadingVisible(false);
+            }, 400);
+          }, remaining);
           // BL-14: on iOS Safari portrait, the URL bar can collapse
           // shortly after init resolves (visualViewport grows but no
           // window.resize fires). The earlier mount-time resize timers
@@ -1046,6 +1120,13 @@ export default function GameCanvas() {
   useEffect(() => {
     const app = pixiAppRef.current;
     if (!app) return;
+    // No quest markers while the intro apartment dialogue is on
+    // screen — the player can't act on them yet, and the quest
+    // pointing at Mim while she's the one talking is jarring.
+    if (dialogue?.npcId === "intro-apartment") {
+      app.setQuestMarkers([]);
+      return;
+    }
 
     type ObjLike = {
       id: string;
@@ -1171,7 +1252,56 @@ export default function GameCanvas() {
     return () => {
       app.setQuestMarkers([]);
     };
-  }, [currentMapId, questStatuses]);
+  }, [currentMapId, questStatuses, dialogue]);
+
+  // Intro apartment back-and-forth — auto-fires the FIRST time
+  // the player lands in F1 after the cutscene. Holds the practical
+  // exposition (rent timer, translator-job plan, the lie) that
+  // used to live in the cutscene; saying it inside the room those
+  // words refer to makes it land. One-shot via INTRO_APARTMENT_SEEN
+  // flag. The intro quest is NOT yet active at this point — it
+  // gets started when the player taps past the final line (see
+  // handleAdvanceDialogue's intro-apartment branch), so the quest
+  // pulse / dot / marker don't appear while the parent + child
+  // are still talking.
+  //
+  // Lines alternate parent ↔ child via APARTMENT_DIALOGUE; each
+  // tap rebuilds the dialogue with the next speaker's name and
+  // line. Mim is rotated to face the parent on trigger and back
+  // to face-down on close.
+  useEffect(() => {
+    if (cutsceneActive || welcomeActive) return;
+    if (currentMapId !== "pokemon-house-1f") return;
+    if (!hasFlag(FLAGS.INTRO_CUTSCENE_SEEN)) return;
+    if (hasFlag(FLAGS.INTRO_APARTMENT_SEEN)) return;
+    // Beat between cutscene-end and dialogue-start so the player
+    // sees the apartment as a *room they're now in*, not as the
+    // cutscene's parchment panel getting new copy. Without this
+    // the dialogue feels like a continuation of the cutscene.
+    const t = window.setTimeout(() => {
+      const childName = getChildName() ?? "kiddo";
+      const parentName = getPlayerName() ?? "";
+      const lines = APARTMENT_DIALOGUE.map((s) =>
+        s.text({ parent: parentName, child: childName }),
+      );
+      const speakers = APARTMENT_DIALOGUE.map((s) => s.speaker);
+      const firstName = speakers[0] === "parent" ? parentName : childName;
+      setDialogue({
+        npcId: "intro-apartment",
+        npcName: firstName,
+        lines,
+        currentLine: 0,
+      });
+      // Mim faces the parent (player spawned at intro-start facing
+      // 'left'; she's to the player's left, so she faces 'right').
+      pixiAppRef.current?.setNpcFacing("1f-npc-child", "right");
+      // Flag set at trigger time so a refresh mid-monologue doesn't
+      // replay it. Edge case — player can re-read the plan via the
+      // quest objective in the log if they miss it.
+      setFlag(FLAGS.INTRO_APARTMENT_SEEN);
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [currentMapId, cutsceneActive, welcomeActive]);
 
   const handleAdvanceDialogue = useCallback(() => {
     // Locked-district dialogues are React-only — the engine never
@@ -1180,6 +1310,31 @@ export default function GameCanvas() {
     // dialogue should branch on its npcId the same way.
     if (dialogue?.npcId === "locked-district") {
       setDialogue(null);
+      return;
+    }
+    // Intro apartment back-and-forth is React-managed — walk
+    // currentLine locally and swap npcName as the speaker changes.
+    // On the final tap, close, start the intro quest (deferred
+    // from cutscene-end so the quest UI doesn't pop while the
+    // parent + child are still talking), and pivot both characters
+    // to face-down so the player isn't left staring sideways.
+    if (dialogue?.npcId === "intro-apartment") {
+      if (dialogue.currentLine < dialogue.lines.length - 1) {
+        const nextIndex = dialogue.currentLine + 1;
+        const nextSpeaker = APARTMENT_DIALOGUE[nextIndex].speaker;
+        const parentName = getPlayerName() ?? "";
+        const childName = getChildName() ?? "kiddo";
+        setDialogue({
+          ...dialogue,
+          currentLine: nextIndex,
+          npcName: nextSpeaker === "parent" ? parentName : childName,
+        });
+        return;
+      }
+      setDialogue(null);
+      pixiAppRef.current?.setPlayerFacing("down");
+      pixiAppRef.current?.setNpcFacing("1f-npc-child", "down");
+      startQuest("intro-translator-job");
       return;
     }
     // CEO multi-stage dialogues are React-managed — the engine
@@ -1405,7 +1560,7 @@ export default function GameCanvas() {
           dialogueKind: "ceo-intro",
           lines: [
             opening,
-            "Way it works: people around town need help with words. You walk up, translate, they pay you per correct answer. I take a small cut.",
+            "The way it works: people around town need help with words. You walk up, translate, they pay you per correct answer. I take a small cut.",
             `Pays ${formatBalance(getRewardPerCorrect())} for every word you nail. Lose ${formatBalance(PENALTY_PER_WRONG)} on a wrong guess — focus matters. And ${formatBalance(PENALTY_PER_IDK)} if you admit you don't know it.`,
             `Earn ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} translating and circle back — there's a bonus waiting on top.`,
             "Off you go. Find someone who needs help.",
@@ -1663,6 +1818,20 @@ export default function GameCanvas() {
             }}
           >
             SURVIVE LINGO
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.5,
+              opacity: 0.7,
+              fontStyle: "italic",
+              marginTop: -8,
+              maxWidth: 320,
+              textAlign: "center",
+              lineHeight: 1.4,
+            }}
+          >
+            Survive a new city. Learn its language.
           </div>
           <div
             aria-hidden
@@ -2222,7 +2391,18 @@ export default function GameCanvas() {
             the tutorial quest, then flips `cutsceneActive` false
             which kicks off PixiApp boot with the in-house spawn
             override. */}
-        {cutsceneActive && (
+        {welcomeActive && (
+          <div style={{ pointerEvents: "auto" }}>
+            <WelcomeScreen
+              onFadeStart={() => setWelcomeFading(true)}
+              onComplete={() => {
+                setWelcomeActive(false);
+                setWelcomeFading(false);
+              }}
+            />
+          </div>
+        )}
+        {cutsceneActive && (welcomeFading || !welcomeActive) && (
           <div style={{ pointerEvents: "auto" }}>
             <IntroCutscene
               onComplete={() => {

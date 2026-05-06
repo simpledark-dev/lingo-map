@@ -108,4 +108,11 @@ export const FLAGS = {
    *  flag is missing; flipping it on is permanent unless cleared
    *  by the dev reset path. */
   INTRO_CUTSCENE_SEEN: 'intro-cutscene-seen',
+  /** True once the parent's apartment monologue has played. Auto-
+   *  fires the first time the player lands in pokemon-house-1f
+   *  with the intro quest active; gives the practical exposition
+   *  (rent timer, translator-job plan, the lie) inside the room
+   *  it refers to instead of mid-cutscene. Permanent unless the
+   *  dev reset path wipes it. */
+  INTRO_APARTMENT_SEEN: 'intro-apartment-seen',
 } as const;
