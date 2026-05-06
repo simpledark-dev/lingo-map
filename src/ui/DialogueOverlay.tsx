@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { DialogueState } from "../core/types";
 import { t } from "../data/i18n";
-import { getDialogueTheme } from "./dialogueThemes";
+import { getDialogueTheme, type DialogueThemeColors } from "./dialogueThemes";
+import { playSfx, SFX } from "./sfx";
 
 interface DialogueOverlayProps {
   dialogue: DialogueState;
@@ -35,6 +36,18 @@ const TRANSLATE_MODE_OPTION_NUMBERS: Record<string, string> = {
   "mode-speak": "4",
 };
 
+/** Leave-the-conversation options pick up a small glyph so the
+ *  player can spot the exit at a glance instead of reading every
+ *  label. `←` for "back to previous menu", `✕` for "close the
+ *  whole interaction". Detection is by id pattern — every leave
+ *  id we use already follows one of these conventions, so adding
+ *  a new one needs no type change. */
+function leaveIcon(optionId: string): "back" | "exit" | null {
+  if (optionId === "mode-back") return "back";
+  if (/(^|-)decline$/.test(optionId)) return "exit";
+  return null;
+}
+
 /** Cozy palette for the per-speaker name plaque. Picked to read
  *  cleanly against the parchment background without fighting the
  *  theme's gold accents. The first entry is the existing
@@ -62,6 +75,61 @@ function speakerColor(name: string): string {
   return SPEAKER_COLORS[Math.abs(h) % SPEAKER_COLORS.length];
 }
 
+function plainDialogueText(line: string): string {
+  return line.replace(/<\/?(gain|loss|warn)>/g, "");
+}
+
+function renderDialogueText(
+  line: string,
+  visibleChars: number,
+  colors: DialogueThemeColors,
+) {
+  const nodes: ReactNode[] = [];
+  const tagRe = /<(gain|loss|warn)>(.*?)<\/\1>/g;
+  let cursor = 0;
+  let remaining = visibleChars;
+  let key = 0;
+
+  const push = (text: string, tone?: "gain" | "loss" | "warn") => {
+    if (!text || remaining <= 0) return;
+    const shown = text.slice(0, remaining);
+    remaining -= shown.length;
+    if (!tone) {
+      nodes.push(shown);
+      return;
+    }
+    const color =
+      tone === "gain" ? colors.correct : tone === "loss" ? colors.wrong : colors.active;
+    const bg =
+      tone === "gain" ? colors.correctBg : tone === "loss" ? colors.wrongBg : colors.cardActive;
+    nodes.push(
+      <span
+        key={`tone-${key++}`}
+        style={{
+          display: "inline-block",
+          color,
+          background: bg,
+          border: `1px solid ${color}`,
+          borderRadius: 3,
+          padding: "0 3px",
+          fontWeight: 900,
+          lineHeight: 1.25,
+        }}
+      >
+        {shown}
+      </span>,
+    );
+  };
+
+  for (const match of line.matchAll(tagRe)) {
+    push(line.slice(cursor, match.index));
+    push(match[2], match[1] as "gain" | "loss" | "warn");
+    cursor = (match.index ?? 0) + match[0].length;
+  }
+  push(line.slice(cursor));
+  return nodes;
+}
+
 export default function DialogueOverlay({
   dialogue,
   onAdvance,
@@ -71,6 +139,7 @@ export default function DialogueOverlay({
   const COLORS = theme.colors;
   const isLastLine = dialogue.currentLine >= dialogue.lines.length - 1;
   const currentLine = dialogue.lines[dialogue.currentLine] ?? "";
+  const plainCurrentLine = plainDialogueText(currentLine);
   // When `options` is set the dialogue is a static prompt with choice
   // buttons instead of a sequence the player advances through —
   // tapping the box must NOT call onAdvance, otherwise the click that
@@ -82,8 +151,7 @@ export default function DialogueOverlay({
   // currently visible. Resets to 0 whenever the line changes so each
   // line plays its own pass; tapping the box mid-pass snaps to full.
   const [revealedCount, setRevealedCount] = useState(0);
-  const isFullyRevealed = revealedCount >= currentLine.length;
-  const visibleText = currentLine.slice(0, revealedCount);
+  const isFullyRevealed = revealedCount >= plainCurrentLine.length;
 
   // Timer id for the pending typewriter tick — kept in a ref so
   // handleBoxClick can cancel it when the player fast-forwards.
@@ -103,7 +171,7 @@ export default function DialogueOverlay({
     // Replaying the typing pass on familiar lines feels like the
     // game forgot itself.
     if (dialogue.skipTypewriter) {
-      setRevealedCount(currentLine.length);
+      setRevealedCount(plainCurrentLine.length);
       return;
     }
     setRevealedCount(0);
@@ -111,7 +179,7 @@ export default function DialogueOverlay({
     const tick = () => {
       i += 1;
       setRevealedCount(i);
-      if (i < currentLine.length) {
+      if (i < plainCurrentLine.length) {
         typewriterTimerRef.current = window.setTimeout(tick, TYPEWRITER_INTERVAL_MS);
       } else {
         typewriterTimerRef.current = null;
@@ -124,7 +192,7 @@ export default function DialogueOverlay({
         typewriterTimerRef.current = null;
       }
     };
-  }, [currentLine, dialogue.npcId, dialogue.skipTypewriter]);
+  }, [currentLine, plainCurrentLine.length, dialogue.npcId, dialogue.skipTypewriter]);
 
   // Settle time between typewriter completion and option render.
   // Without this, the same React tick that paints the last
@@ -166,12 +234,19 @@ export default function DialogueOverlay({
         window.clearTimeout(typewriterTimerRef.current);
         typewriterTimerRef.current = null;
       }
-      setRevealedCount(currentLine.length);
+      setRevealedCount(plainCurrentLine.length);
       return;
     }
     if (hasOptions && isLastLine) return;
+    // Audible "page turn" cue — fires ONLY when we're actually
+    // advancing past a fully-revealed line, never on the
+    // fast-forward branch above. The two taps feel different
+    // (skip = "show me the rest", advance = "I read it, next");
+    // pairing only the advance with sound preserves that
+    // distinction.
+    playSfx(SFX.NEXT_DIALOGUE);
     onAdvance();
-  }, [isFullyRevealed, hasOptions, isLastLine, currentLine.length, onAdvance]);
+  }, [isFullyRevealed, hasOptions, isLastLine, plainCurrentLine.length, onAdvance]);
 
   // Main-game NPC dialogue is native-language English, so it stays
   // silent. Foreign-word audio lives in the vocabulary views via
@@ -234,10 +309,10 @@ export default function DialogueOverlay({
               marginBottom: hasOptions ? 6 : 8,
             }}
           >
-            {visibleText}
+            {renderDialogueText(currentLine, revealedCount, COLORS)}
             {!isFullyRevealed ? (
               <span aria-hidden style={{ visibility: "hidden" }}>
-                {currentLine.slice(revealedCount)}
+                {plainCurrentLine.slice(revealedCount)}
               </span>
             ) : null}
           </div>
@@ -261,9 +336,12 @@ export default function DialogueOverlay({
                 const showSoonBadge = !!opt.comingSoon;
                 const modeOptionColors = TRANSLATE_MODE_OPTION_COLORS[opt.id];
                 const modeOptionNumber = TRANSLATE_MODE_OPTION_NUMBERS[opt.id];
+                const leaveKind = leaveIcon(opt.id);
                 const labelText = modeOptionNumber
                   ? opt.label.replace(/^\d+\.\s*/, "")
-                  : opt.label;
+                  : leaveKind
+                    ? opt.label.replace(/^[←✕]\s*/, "")
+                    : opt.label;
                 const optionRestShadow = modeOptionColors
                   ? `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${modeOptionColors.border}`
                   : theme.optionButtonRestShadow;
@@ -352,6 +430,27 @@ export default function DialogueOverlay({
                           }}
                         >
                           {modeOptionNumber}
+                        </span>
+                      ) : leaveKind ? (
+                        <span
+                          aria-hidden
+                          style={{
+                            minWidth: 24,
+                            height: 22,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: COLORS.parchmentLight,
+                            border: `1px solid ${COLORS.cardBorder}`,
+                            borderRadius: 3,
+                            boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}`,
+                            color: COLORS.hintText,
+                            fontSize: 13,
+                            fontWeight: 800,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {leaveKind === "back" ? "←" : "✕"}
                         </span>
                       ) : null}
                       <span>{labelText}</span>

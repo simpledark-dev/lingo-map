@@ -222,7 +222,7 @@ export const en: Record<string, string> = {
   "dialogue.control.tapContinue": "Tap to continue",
   "dialogue.control.tapSkip": "Tap to skip...",
   "dialogue.control.close": "Close ▶",
-  "dialogue.control.next": "Next ▶",
+  "dialogue.control.next": "▶",
   "dialogue.control.indicatorClose": "▼ tap to close",
   "dialogue.control.indicatorContinue": "▼ tap to continue",
 
@@ -239,6 +239,11 @@ export const en: Record<string, string> = {
   // ── Locked district ──
   "lockedDistrict.message": "You must reach {title} to visit this district.",
   "mapMarker.office": "Office",
+  "mapMarker.mart": "Mart",
+  "mapMarker.home": "Home",
+  "mapMarker.exit": "Exit",
+  "mapMarker.upstairs": "Upstairs",
+  "mapMarker.downstairs": "Downstairs",
   "dialogue.fallback.hiThere": "Hi there.",
 
   // ── Quest titles ──
@@ -279,6 +284,7 @@ export const en: Record<string, string> = {
 
   // ── Quest log ──
   "questLog.title": "Quests",
+  "questLog.title.current": "Current Quest",
   "questLog.tab.active": "Active",
   "questLog.tab.completed": "Completed",
   "questLog.tab.available": "Available",

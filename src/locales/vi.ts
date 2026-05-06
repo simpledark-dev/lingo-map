@@ -210,7 +210,7 @@ export const vi: Record<string, string> = {
   "dialogue.control.tapContinue": "Chạm để tiếp tục",
   "dialogue.control.tapSkip": "Chạm để bỏ qua...",
   "dialogue.control.close": "Đóng ▶",
-  "dialogue.control.next": "Tiếp ▶",
+  "dialogue.control.next": "▶",
   "dialogue.control.indicatorClose": "▼ chạm để đóng",
   "dialogue.control.indicatorContinue": "▼ chạm để tiếp",
 
@@ -228,6 +228,11 @@ export const vi: Record<string, string> = {
   // ── Locked district ──
   "lockedDistrict.message": "Phải đến được {title} mới vào khu này được.",
   "mapMarker.office": "Văn phòng",
+  "mapMarker.mart": "Mart",
+  "mapMarker.home": "Nhà",
+  "mapMarker.exit": "Lối ra",
+  "mapMarker.upstairs": "Lầu trên",
+  "mapMarker.downstairs": "Lầu dưới",
   "dialogue.fallback.hiThere": "Chào bạn.",
 
   // ── Quest titles & objectives ──
@@ -267,6 +272,7 @@ export const vi: Record<string, string> = {
 
   // ── Quest log ──
   "questLog.title": "Nhiệm vụ",
+  "questLog.title.current": "Nhiệm vụ hiện tại",
   "questLog.tab.active": "Đang làm",
   "questLog.tab.completed": "Đã xong",
   "questLog.tab.available": "Sẵn sàng",

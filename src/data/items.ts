@@ -37,7 +37,7 @@ export const ITEMS: Record<string, ItemDef> = {
     id: 'sandwich',
     name: 'Sandwich',
     icon: '🥪',
-    priceCents: 599,
+    priceCents: 299,
     energy: 10,
     description: 'Soft bread, cheese, a slice of something. Lunchbox classic.',
   },

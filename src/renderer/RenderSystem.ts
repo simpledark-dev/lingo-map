@@ -1056,8 +1056,8 @@ export class RenderSystem {
         // is negligible. Anchor centered horizontally + bottom so
         // the label's baseline sits just above the arrow tip.
         let label: Text | null = null;
-        // Label sits `tex.height + 2` above the sprite's bottom anchor.
-        const labelOffset = tex.height + 2;
+        // Label sits just above the sprite's top edge.
+        const labelOffset = tex.height;
         const labelBaseY = initY - labelOffset;
         if (m.label) {
           label = new Text({

@@ -45,11 +45,11 @@ export default function SettingsView({
   // lifetime earnings — saves opening the wallet pill to check.
   const lifetime = useLifetimeEarnings();
   const rewardPerCorrect = useRewardPerCorrect();
-  // Dev cheats are only surfaced outside production builds. Keeps
-  // a player on the deployed game from accidentally tapping a
-  // "+$1" button. Next.js inlines `process.env.NODE_ENV` at build
-  // time so the whole block tree-shakes out of prod bundles.
-  const isDev = process.env.NODE_ENV !== 'production';
+  // Temporarily forced on in prod too — easier to demo the
+  // "Earn $1 / +$5" cheats from a Vercel preview without spinning
+  // up a local dev build. Flip back to `process.env.NODE_ENV !==
+  // 'production'` once the demo phase is over.
+  const isDev = true;
 
   const armReset = () => {
     setConfirming(true);

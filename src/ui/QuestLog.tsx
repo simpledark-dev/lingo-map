@@ -10,7 +10,7 @@
  * starting a quest mid-modal updates the list live.
  */
 import { useMemo } from 'react';
-import { QUESTS, useQuestStatuses, isAvailable, getTitle, getObjective, getCompletedSummary, useCompletionOrder } from '../data/quests';
+import { QUESTS, useQuestStatuses, isAvailable, getTitle, getObjective, getCompletedSummary, useCompletionOrder, type QuestStatus } from '../data/quests';
 import { t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
 
@@ -19,9 +19,10 @@ const COLORS = UI_THEME.colors;
 
 interface QuestLogProps {
   onClose: () => void;
+  focusQuestId?: string | null;
 }
 
-export default function QuestLog({ onClose }: QuestLogProps) {
+export default function QuestLog({ onClose, focusQuestId = null }: QuestLogProps) {
   const statuses = useQuestStatuses();
   const completionOrder = useCompletionOrder();
   const { active, available, completed } = useMemo(() => {
@@ -51,6 +52,28 @@ export default function QuestLog({ onClose }: QuestLogProps) {
         .sort((a, b) => (orderIndex.get(b.id) ?? -1) - (orderIndex.get(a.id) ?? -1)),
     };
   }, [statuses, completionOrder]);
+  const focusedQuest = focusQuestId ? QUESTS[focusQuestId] : null;
+  const focusedStatus = focusedQuest ? (statuses[focusedQuest.id] ?? 'inactive') : null;
+
+  const statusBadge = (status: QuestStatus | 'inactive'): string => {
+    if (status === 'active') return t('questLog.tab.active');
+    if (status === 'completed') return t('questLog.tab.completed');
+    return t('questLog.tab.available');
+  };
+
+  const statusAccent = (status: QuestStatus | 'inactive'): string => {
+    if (status === 'active') return COLORS.active;
+    if (status === 'completed') return COLORS.done;
+    return COLORS.available;
+  };
+
+  const focusedBody = focusedQuest
+    ? focusedStatus === 'completed'
+      ? getCompletedSummary(focusedQuest)
+      : focusedStatus === 'active'
+        ? getObjective(focusedQuest)
+        : focusedQuest.computeAvailableHint?.() ?? focusedQuest.availableHint ?? getObjective(focusedQuest)
+    : '';
 
   return (
     <div
@@ -78,7 +101,7 @@ export default function QuestLog({ onClose }: QuestLogProps) {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, fontSize: 18, fontWeight: 700, color: COLORS.text, letterSpacing: 0.5 }}>
-            📜 {t('questLog.title')}
+            📜 {t(focusedQuest ? 'questLog.title.current' : 'questLog.title')}
           </div>
           <button
             onClick={onClose}
@@ -99,7 +122,17 @@ export default function QuestLog({ onClose }: QuestLogProps) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', paddingRight: 4 }}>
-          {active.length === 0 && completed.length === 0 && available.length === 0 && (
+          {focusedQuest && focusedStatus ? (
+            <QuestRow
+              title={getTitle(focusedQuest)}
+              body={focusedBody}
+              accent={statusAccent(focusedStatus)}
+              badge={statusBadge(focusedStatus)}
+              faded={focusedStatus === 'completed'}
+            />
+          ) : null}
+
+          {!focusedQuest && active.length === 0 && completed.length === 0 && available.length === 0 && (
             <div
               style={{
                 fontSize: 12,
@@ -113,7 +146,7 @@ export default function QuestLog({ onClose }: QuestLogProps) {
             </div>
           )}
 
-          {active.length > 0 && (
+          {!focusedQuest && active.length > 0 && (
             <Section label={t("questLog.tab.active")} accent={COLORS.active}>
               {active.map((q) => (
                 <QuestRow
@@ -127,7 +160,7 @@ export default function QuestLog({ onClose }: QuestLogProps) {
             </Section>
           )}
 
-          {available.length > 0 && (
+          {!focusedQuest && available.length > 0 && (
             <Section label={t("questLog.tab.available")} accent={COLORS.available}>
               {available.map((q) => (
                 <QuestRow
@@ -135,14 +168,14 @@ export default function QuestLog({ onClose }: QuestLogProps) {
                   title={getTitle(q)}
                   body={q.availableHint ?? ''}
                   accent={COLORS.available}
-                  badge="New"
+                  badge={t('questLog.tab.available')}
                   faded
                 />
               ))}
             </Section>
           )}
 
-          {completed.length > 0 && (
+          {!focusedQuest && completed.length > 0 && (
             <Section label={t("questLog.tab.completed")} accent={COLORS.done}>
               {completed.map((q) => (
                 <QuestRow
@@ -150,7 +183,7 @@ export default function QuestLog({ onClose }: QuestLogProps) {
                   title={getTitle(q)}
                   body={getCompletedSummary(q)}
                   accent={COLORS.done}
-                  badge="Done"
+                  badge={t('questLog.tab.completed')}
                   faded
                 />
               ))}

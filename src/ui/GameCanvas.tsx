@@ -58,6 +58,8 @@ import { getPlayerName, getChildName } from "../data/profile";
 import Minimap from "./Minimap";
 import VirtualDPad from "./VirtualDPad";
 import { APP_VERSION } from "../version";
+import { playSfx, SFX } from "./sfx";
+import EnergyCostBurst from "./EnergyCostBurst";
 import { getUiTheme } from "./uiThemes";
 import { clearWorldSave, loadWorldSave } from "../data/worldSave";
 import { resetAllGameData } from "../data/reset";
@@ -186,6 +188,7 @@ export default function GameCanvas() {
   const [shopView, setShopView] = useState<{ shopName: string } | null>(null);
   /** Quest log modal — opened via the HUD scroll button. */
   const [questLogOpen, setQuestLogOpen] = useState(false);
+  const [questLogFocusId, setQuestLogFocusId] = useState<string | null>(null);
   /** True when a quest has started since the player last opened the
    *  log. Drives a pulse on the quest button so a chained start
    *  (catch-up effect auto-firing the next quest right after the
@@ -316,7 +319,8 @@ export default function GameCanvas() {
     });
   }, []);
 
-  const openQuestLog = useCallback(() => {
+  const openQuestLog = useCallback((questId?: string) => {
+    setQuestLogFocusId(questId ?? null);
     setQuestLogOpen(true);
     setQuestHasUnread(false);
     try { localStorage.setItem('lingo-quest:has-unread', '0'); } catch {}
@@ -336,6 +340,16 @@ export default function GameCanvas() {
     localePickerActive ||
     cutsceneActive ||
     introGapActive ||
+    vocabularyView ||
+    translateView ||
+    shopView ||
+    questLogOpen ||
+    inventoryOpen ||
+    settingsOpen ||
+    wordStatsOpen ||
+    minimapData,
+  );
+  const questHudLiftedForModal = Boolean(
     vocabularyView ||
     translateView ||
     shopView ||
@@ -583,7 +597,7 @@ export default function GameCanvas() {
     // brand + tagline get a real read even when the boot is
     // already cached. Without this, returning players see the
     // splash for ~200ms and the messaging never lands.
-    const MIN_LOADING_MS = 2000;
+    const MIN_LOADING_MS = 1000;
     const loadingStartedAt = performance.now();
     // Determine start map — default to pokemon, allow ?map=<id> override.
     // The intro cutscene runs as a fullscreen overlay; while it's
@@ -795,6 +809,12 @@ export default function GameCanvas() {
             setDialogue(null);
             break;
           case "sceneTransitionStart":
+            // Audible "door slam" cue paired with the fade-out that
+            // already kicks off here. `sceneTransitionStart` only
+            // fires on player-initiated door / staircase crossings,
+            // never on the boot scene load — so a page refresh
+            // doesn't trip the sound.
+            playSfx(SFX.SWITCH_MAP);
             setTransitionFade(true);
             break;
           case "sceneChange":
@@ -992,7 +1012,12 @@ export default function GameCanvas() {
       y: number;
       spriteKey?: string;
       collisionBox?: { offsetY: number };
-      transition?: { incomingSpawnId?: string; targetMapId?: string };
+      transition?: {
+        incomingSpawnId?: string;
+        targetMapId?: string;
+        targetSpawnId?: string;
+        triggerBox?: { offsetX: number; offsetY: number; width: number; height: number };
+      };
     };
 
     /** Walk the loaded map's layered AND legacy object lists into a
@@ -1019,14 +1044,68 @@ export default function GameCanvas() {
       return out;
     };
 
-    const markers: Array<{
+    type Marker = {
       id: string;
       x: number;
       y: number;
       spriteKey: string;
       label?: string;
       followNpcId?: string;
-    }> = [];
+    };
+    const markers = new Map<string, Marker>();
+    const addMarker = (marker: Marker) => {
+      markers.set(marker.id, marker);
+    };
+
+    const markerLabelForTransition = (
+      mapId: string,
+      transition: ObjLike["transition"],
+    ): string | null => {
+      if (!transition?.targetMapId) return null;
+      if (mapId === "pokemon") {
+        if (transition.targetMapId === "office") return t('mapMarker.office');
+        if (transition.targetMapId === "grocer-1f") return t('mapMarker.mart');
+        if (transition.targetMapId === "pokemon-house-1f") return t('mapMarker.home');
+        return null;
+      }
+      if (transition.targetMapId === "pokemon") return t('mapMarker.exit');
+      if (transition.targetMapId === "pokemon-house-2f") return t('mapMarker.upstairs');
+      if (transition.targetMapId === "pokemon-house-1f") return t('mapMarker.downstairs');
+      return null;
+    };
+
+    const markerYForLocation = (mapId: string, obj: ObjLike): number => {
+      if (mapId === "pokemon") {
+        const top = obj.y + (obj.collisionBox?.offsetY ?? -64);
+        return top + 60;
+      }
+      return obj.y - 20;
+    };
+
+    const markerXForLocation = (obj: ObjLike): number => {
+      const triggerBox = obj.transition?.triggerBox;
+      if (!triggerBox) return obj.x;
+      return obj.x + triggerBox.offsetX + triggerBox.width / 2;
+    };
+
+    // ── Always-on location markers ──
+    // Any transition that points to a named location gets a subtle
+    // yellow arrow + label, even when no quest currently targets it.
+    // Quest-critical markers below reuse the same ids and replace
+    // these with red variants when needed.
+    collectObjects(currentMapId)
+      .filter((o) => !!o.transition)
+      .forEach((obj) => {
+        const label = markerLabelForTransition(currentMapId, obj.transition);
+        if (!label) return;
+        addMarker({
+          id: `location-${currentMapId}-${obj.id}`,
+          x: markerXForLocation(obj),
+          y: markerYForLocation(currentMapId, obj),
+          spriteKey: "edge-arrow-south",
+          label,
+        });
+      });
 
     // ── Story-critical: office building marker ──
     // Fires whenever the active intro / first-paycheck step
@@ -1048,15 +1127,10 @@ export default function GameCanvas() {
         (o) => o.transition?.incomingSpawnId === "outdoor-office",
       );
       if (office) {
-        const top = office.y + (office.collisionBox?.offsetY ?? -64);
-        markers.push({
-          id: introActive
-            ? "intro-office"
-            : paycheckReadyToClaim
-              ? "paycheck-claim-office"
-              : "paycheck-eli-office",
-          x: office.x,
-          y: top + 60,
+        addMarker({
+          id: `location-${currentMapId}-${office.id}`,
+          x: markerXForLocation(office),
+          y: markerYForLocation(currentMapId, office),
           spriteKey: "edge-arrow-south-red",
           label: t('mapMarker.office'),
         });
@@ -1091,7 +1165,7 @@ export default function GameCanvas() {
       }
       const npc = map.npcs.find((n) => n.name === target.npcName);
       if (!npc) continue;
-      markers.push({
+      addMarker({
         id: `talk-target-${target.questId}`,
         x: 0,
         y: -28,
@@ -1115,7 +1189,7 @@ export default function GameCanvas() {
       }
       const ceoNpc = officeMap?.npcs.find((n) => n.name === "CEO");
       if (ceoNpc) {
-        markers.push({
+        addMarker({
           id: "paycheck-ceo",
           x: 0,
           y: -28,
@@ -1125,32 +1199,7 @@ export default function GameCanvas() {
       }
     }
 
-    // ── Wayfinding: doormats in interior maps ──
-    // A doormat is identified by sprite key — every interior uses
-    // the literal `doormat` placeholder. We anchor the arrow above
-    // the entity's feet (entity.y is the foot row) with a small
-    // upward offset so the chevron points down at the tile.
-    const isInterior =
-      currentMapId === "pokemon-house-1f" || currentMapId === "office";
-    if (isInterior) {
-      const doormats = collectObjects(currentMapId).filter(
-        (o) => o.spriteKey === "doormat",
-      );
-      doormats.forEach((mat, i) => {
-        markers.push({
-          id: `doormat-${currentMapId}-${i}`,
-          // Position the marker ABOVE the doormat. Doormat sprites
-          // sit on the floor; bumping the marker up by ~20 px gives
-          // a clear pointer-at-the-mat read without colliding with
-          // the player sprite when they stand next to it.
-          x: mat.x,
-          y: mat.y - 20,
-          spriteKey: "edge-arrow-south",
-        });
-      });
-    }
-
-    app.setQuestMarkers(markers);
+    app.setQuestMarkers([...markers.values()]);
     return () => {
       app.setQuestMarkers([]);
     };
@@ -1477,7 +1526,11 @@ export default function GameCanvas() {
           lines: [
             opening,
             t('dialogue.ceo.hireExplain'),
-            t('dialogue.ceo.hirePay', { reward: formatBalance(getRewardPerCorrect()), wrong: formatBalance(PENALTY_PER_WRONG), idk: formatBalance(PENALTY_PER_IDK) }),
+            t('dialogue.ceo.hirePay', {
+              reward: `<gain>${formatBalance(getRewardPerCorrect())}</gain>`,
+              wrong: `<loss>${formatBalance(PENALTY_PER_WRONG)}</loss>`,
+              idk: `<warn>${formatBalance(PENALTY_PER_IDK)}</warn>`,
+            }),
             t('dialogue.ceo.hireBonus', { threshold: formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS) }),
             t('dialogue.ceo.hireOffYouGo'),
           ],
@@ -1880,6 +1933,10 @@ export default function GameCanvas() {
           <div
             style={{
               ...HUD.energyPlateStyle,
+              // `position: relative` anchors the floating EnergyCostBurst
+              // child — its `position: absolute` pip floats up from the
+              // pill itself instead of escaping to the document body.
+              position: 'relative',
               opacity: energy === 0 ? 0.55 : 1,
             }}
             aria-label={t('hud.energyAmount', { current: energy, max: energyMax })}
@@ -1901,6 +1958,7 @@ export default function GameCanvas() {
             <span>
               {energy}/{energyMax}
             </span>
+            <EnergyCostBurst />
           </div>
         </div>
 
@@ -2050,7 +2108,7 @@ export default function GameCanvas() {
               quests" signal — duplicating that here would dilute
               the unread cue. */}
           <button
-            onClick={openQuestLog}
+            onClick={() => openQuestLog()}
             style={{
               ...btnStyle,
               position: 'relative',
@@ -2264,7 +2322,13 @@ export default function GameCanvas() {
 
         {questLogOpen && (
           <div style={{ pointerEvents: "auto" }}>
-            <QuestLog onClose={() => setQuestLogOpen(false)} />
+            <QuestLog
+              focusQuestId={questLogFocusId}
+              onClose={() => {
+                setQuestLogOpen(false);
+                setQuestLogFocusId(null);
+              }}
+            />
           </div>
         )}
 
@@ -2301,7 +2365,10 @@ export default function GameCanvas() {
             IntroHintBanner since the intro quest's title alone
             already conveys "head to the office." Tap to open the
             full log; auto-hides when no quest is active. */}
-        <QuestHud onOpenLog={openQuestLog} />
+        <QuestHud
+          liftedForModal={questHudLiftedForModal}
+          onOpenLog={openQuestLog}
+        />
 
 
         {/* Intro cutscene — full-screen overlay shown once on a

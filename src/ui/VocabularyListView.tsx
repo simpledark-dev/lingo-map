@@ -427,6 +427,22 @@ function renderSentenceWithHighlight(sentence: string, target: string) {
  *  or not. Lives inside the list view because that's where Practice
  *  is launched from; sits in the same modal frame so navigation
  *  feels continuous. */
+// Practice picker mirrors the colour-and-number palette from
+// DialogueOverlay's translator-mode menu so players reading the
+// dictionary's "Practice" affordance see the SAME visual layout
+// they see when CEO/Eli/Saba offer paid translation work — no
+// "wait, are these the same four modes?" hesitation. Keep these
+// values in sync with DialogueOverlay.TRANSLATE_MODE_OPTION_*.
+const PRACTICE_MODE_COLORS: Record<
+  'read' | 'listen' | 'write' | 'speak',
+  { bg: string; hover: string; border: string; number: string }
+> = {
+  read: { bg: '#f3d895', hover: '#ffe7a8', border: '#9a6e16', number: '1' },
+  listen: { bg: '#dce4b7', hover: '#edf2ca', border: '#697a3a', number: '2' },
+  write: { bg: '#cfe1e8', hover: '#e0eef3', border: '#3b87a6', number: '3' },
+  speak: { bg: '#e9c7bc', hover: '#f3d7ce', border: '#8f5a68', number: '4' },
+};
+
 function PracticeModePicker({
   npcName,
   onPick,
@@ -503,6 +519,11 @@ function PracticeModePicker({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {options.map((opt) => {
             const disabled = opt.comingSoon === true;
+            const palette = PRACTICE_MODE_COLORS[opt.id];
+            // Strip leading "1. " / "2. " from the label — the
+            // numbered badge provides that information visually,
+            // duplicating it in text reads as noisy.
+            const labelText = opt.label.replace(/^\d+\.\s*/, '');
             return (
               <button
                 key={opt.id}
@@ -512,22 +533,50 @@ function PracticeModePicker({
                   if (disabled) return;
                   onPick(opt.id as 'read' | 'listen' | 'write');
                 }}
+                onMouseEnter={(e) => {
+                  if (disabled) return;
+                  e.currentTarget.style.background = palette.hover;
+                }}
+                onMouseLeave={(e) => {
+                  if (disabled) return;
+                  e.currentTarget.style.background = palette.bg;
+                }}
                 style={{
                   textAlign: 'left',
-                  background: disabled ? COLORS.parchmentLight : COLORS.cardRest,
-                  border: `2px solid ${COLORS.cardBorder}`,
+                  background: palette.bg,
+                  border: `2px solid ${palette.border}`,
                   borderRadius: 4,
                   padding: '10px 12px',
                   fontFamily: 'inherit',
                   cursor: disabled ? 'not-allowed' : 'pointer',
-                  opacity: disabled ? 0.6 : 1,
+                  opacity: disabled ? 0.55 : 1,
                   boxShadow: disabled
                     ? 'none'
-                    : `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
+                    : `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${palette.border}`,
+                  transition: 'background 120ms ease-out',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>{opt.label}</span>
+                  <span
+                    style={{
+                      minWidth: 24,
+                      height: 22,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: palette.border,
+                      border: `1px solid ${COLORS.cardBorder}`,
+                      borderRadius: 3,
+                      boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}`,
+                      color: COLORS.parchmentLight,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {palette.number}
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>{labelText}</span>
                   {disabled && (
                     <span
                       style={{
@@ -562,8 +611,13 @@ function PracticeModePicker({
             fontWeight: 700,
             letterSpacing: 0.5,
             cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
           }}
         >
+          <span aria-hidden style={{ fontSize: 13 }}>←</span>
           {t('practicePicker.cancel')}
         </button>
       </div>

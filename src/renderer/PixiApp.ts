@@ -344,7 +344,14 @@ export class PixiApp {
    *  (e.g. above the office building during the intro quest) and
    *  hands them to the engine here; the renderer owns the sprite
    *  + bob lifecycle. Idempotent — call with `[]` to clear all. */
-  setQuestMarkers(markers: Array<{ id: string; x: number; y: number; spriteKey: string }>): void {
+  setQuestMarkers(markers: Array<{
+    id: string;
+    x: number;
+    y: number;
+    spriteKey: string;
+    label?: string;
+    followNpcId?: string;
+  }>): void {
     if (this.destroyed || !this.renderSystem) return;
     this.renderSystem.setQuestMarkers(markers);
   }

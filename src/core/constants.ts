@@ -7,7 +7,7 @@ export const MAX_CANVAS_WIDTH = 1024;
 export const CLICK_ARRIVE_THRESHOLD = 4; // pixels — close enough to count as "arrived"
 export const MIN_ZOOM = 1.5;
 export const MAX_ZOOM = 4.0;
-export const DEFAULT_ZOOM = 2.5;
+export const DEFAULT_ZOOM = 2.0;
 export const ZOOM_STEP = 0.1;
 
 /** Default viewport cap for interior maps — how many tiles of world are

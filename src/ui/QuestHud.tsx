@@ -24,13 +24,21 @@ import { getUiTheme } from './uiThemes';
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
 
+type QuestProgress = {
+  label: string;
+  ratio: number;
+};
+
 interface QuestHudProps {
-  /** Optional: clicking the strip opens the full quest log modal.
+  /** Optional: clicking a row opens that quest's details.
    *  Wired by GameCanvas so this component stays presentational. */
-  onOpenLog?: () => void;
+  onOpenLog?: (questId: string) => void;
+  /** When true, lift the strip into the top safe-area gap so it
+   *  remains visible above modal views like Word List / Translate. */
+  liftedForModal?: boolean;
 }
 
-export default function QuestHud({ onOpenLog }: QuestHudProps) {
+export default function QuestHud({ onOpenLog, liftedForModal = false }: QuestHudProps) {
   const statuses = useQuestStatuses();
   // Subscribed even when no quest cares about it — the hook is
   // cheap, and this way the strip rerenders live as cents tick up
@@ -50,10 +58,13 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
    *  so the player can read it at a glance. Returns null for quests
    *  that have no numeric progress to show. New quests with metric
    *  goals add a case here; un-cased quests stay title-only. */
-  const progressSuffix = (questId: string): string | null => {
+  const progressForQuest = (questId: string): QuestProgress | null => {
     if (questId === 'first-paycheck') {
       const earned = Math.min(lifetimeEarnings, FIRST_PAYCHECK_THRESHOLD_CENTS);
-      return `${formatBalance(earned)} / ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)}`;
+      return {
+        label: `${formatBalance(earned)} / ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)}`,
+        ratio: earned / FIRST_PAYCHECK_THRESHOLD_CENTS,
+      };
     }
     return null;
   };
@@ -61,7 +72,29 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
   if (active.length === 0) return null;
 
   return (
+    <>
+      <style>{`
+        /* Landscape mobile (short viewport, e.g. iPhone held sideways)
+           has wallet/energy on the top-left and the icon row on the
+           top-right with empty space in between — and very little
+           vertical real estate. Pull the quest strip up into that
+           middle gap so it sits in line with the rest of the HUD
+           row instead of eating one of the precious few rows of
+           in-world view. Portrait + tablet keep the original
+           below-HUD position.
+
+           The 500px max-height heuristic catches phones in
+           landscape (≤ ~430px tall on iPhones, ≤ ~500px on most
+           Android landscape) without affecting tablets in
+           landscape (≥ 768px tall). */
+        @media (orientation: landscape) and (max-height: 500px) {
+          .lingo-map-quest-hud {
+            top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+          }
+        }
+      `}</style>
     <div
+      className="lingo-map-quest-hud"
       style={{
         position: 'absolute',
         // Sit BELOW the top-left status pills (wallet, energy,
@@ -70,8 +103,13 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
         // tall, so 50px + safe-area-inset clears them with a tiny
         // gap. env(safe-area-inset-top) is 0 on devices without a
         // notch, so non-iOS layouts pull the strip up the same
-        // amount as before relative to the icons.
-        top: 'calc(50px + env(safe-area-inset-top, 0px))',
+        // amount as before relative to the icons. In landscape
+        // mobile a media query above pulls this up to 8px so the
+        // strip sits between the left/right HUD groups instead of
+        // stacking below them — see lingo-map-quest-hud rule.
+        top: liftedForModal
+          ? 'calc(8px + env(safe-area-inset-top, 0px))'
+          : 'calc(50px + env(safe-area-inset-top, 0px))',
         left: '50%',
         transform: 'translateX(-50%)',
         // Above modals (translate view at z-index 60, dialogue
@@ -80,7 +118,7 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
         // landscape mobile where the translate view fills the
         // screen and the lifetime-earnings number is the only
         // way to know how close they are to claiming.
-        zIndex: 100,
+        zIndex: liftedForModal ? 900 : 100,
         // Wrapper itself never intercepts clicks — only the
         // individual pills do (each wired below). Otherwise the
         // wrapper's auto-flex sizing in some browsers expands
@@ -100,11 +138,12 @@ export default function QuestHud({ onOpenLog }: QuestHudProps) {
           key={q.id}
           accent={COLORS.active}
           title={getTitle(q)}
-          progress={progressSuffix(q.id)}
-          onClick={onOpenLog}
+          progress={progressForQuest(q.id)}
+          onClick={onOpenLog ? () => onOpenLog(q.id) : undefined}
         />
       ))}
     </div>
+    </>
   );
 }
 
@@ -121,7 +160,7 @@ function QuestRow({
   /** Optional progress suffix rendered after the title (e.g.
    *  "$1.23 / $5.00"). Null/undefined for quests without a numeric
    *  goal — the title stands alone in that case. */
-  progress?: string | null;
+  progress?: QuestProgress | null;
   /** Tap handler — when set, the pill itself becomes the only
    *  click-intercepting element in the strip. The wrapper above
    *  stays pointer-events:none so the rest of the screen passes
@@ -141,18 +180,19 @@ function QuestRow({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       aria-label={onClick ? t('questHud.openDetails', { title }) : undefined}
-      title={onClick ? t('hud.openLog') : undefined}
+      title={onClick ? t('questHud.openDetails', { title }) : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: '4px 12px',
-        background: 'rgba(0, 0, 0, 0.65)',
-        border: `1px solid ${accent}`,
-        borderRadius: 999,
-        color: COLORS.parchmentLight,
+        padding: '6px 12px',
+        background: COLORS.parchmentLight,
+        border: `2px solid ${accent}`,
+        borderRadius: 6,
+        color: COLORS.text,
         fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
-        textShadow: '0 1px 0 rgba(0,0,0,0.7)',
+        textShadow: 'none',
+        boxShadow: `inset 1px 1px 0 0 ${COLORS.parchment}, 0 3px 0 0 ${COLORS.cardBorder}, 0 0 0 2px rgba(255, 246, 210, 0.7)`,
         userSelect: 'none',
         maxWidth: '92vw',
         pointerEvents: onClick ? 'auto' : 'none',
@@ -175,14 +215,14 @@ function QuestRow({
           {badge}
         </span>
       )}
-      <span aria-hidden style={{ fontSize: 11, lineHeight: 1, color: accent }}>
-        ◆
+      <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: accent }}>
+        📜
       </span>
       <span
         style={{
           fontSize: 12,
           fontWeight: 700,
-          color: '#fbe9b8',
+          color: COLORS.text,
           letterSpacing: 0.3,
           // Single-line title — clip with ellipsis on tiny screens
           // so the row never wraps awkwardly.
@@ -195,18 +235,50 @@ function QuestRow({
       </span>
       {progress && (
         <span
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress.ratio * 100)}
+          aria-label={progress.label}
           style={{
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 88,
+            height: 20,
             fontSize: 11,
-            fontWeight: 700,
-            color: accent,
-            background: 'rgba(0, 0, 0, 0.35)',
-            padding: '1px 6px',
-            borderRadius: 999,
+            fontWeight: 800,
+            color: COLORS.text,
+            background: COLORS.cardRest,
+            border: `1px solid ${accent}`,
+            padding: '0 7px',
+            borderRadius: 4,
             fontVariantNumeric: 'tabular-nums',
             flexShrink: 0,
+            boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}`,
           }}
         >
-          {progress}
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              inset: 0,
+              right: `${Math.max(0, Math.min(1, 1 - progress.ratio)) * 100}%`,
+              background: `linear-gradient(90deg, rgba(72, 132, 69, 0.58), rgba(92, 156, 78, 0.42))`,
+            }}
+          />
+          <span
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              whiteSpace: 'nowrap',
+              textShadow: `0 1px 0 ${COLORS.parchmentLight}`,
+            }}
+          >
+            {progress.label}
+          </span>
         </span>
       )}
       {onClick && (

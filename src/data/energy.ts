@@ -33,6 +33,13 @@ const STARTER_ENERGY = 20;
 
 type Listener = (energy: number) => void;
 const listeners = new Set<Listener>();
+/** Separate channel for "energy was just spent, here's the amount."
+ *  Used to drive the floating "−N ⚡" cost burst near the HUD pill;
+ *  decoupled from the value subscribers above so a UI element that
+ *  cares only about the SPEND moment doesn't have to diff its own
+ *  prev/next on every restore-from-eating tick. */
+type SpendListener = (amount: number) => void;
+const spendListeners = new Set<SpendListener>();
 let cached: number | null = null;
 
 function read(): number {
@@ -90,7 +97,15 @@ export function consumeEnergy(n = 1): boolean {
   if (current < n) return false;
   write(current - n);
   emit();
+  for (const l of spendListeners) l(n);
   return true;
+}
+
+export function subscribeEnergySpent(listener: SpendListener): () => void {
+  spendListeners.add(listener);
+  return () => {
+    spendListeners.delete(listener);
+  };
 }
 
 /** Add `n` energy, clamped to MAX_ENERGY. Used by the eat action
