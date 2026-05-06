@@ -5,9 +5,11 @@ import { getTexture } from './AssetLoader';
 /** All transition sprite keys for asset loading. */
 export const TRANSITION_ASSET_KEYS = [
   // Dirt transitions
+  // (trans-full omitted — its asset (`trans-nse.webp`) never
+  // shipped and the dirt transition path is dead since the
+  // dual-grid AutoTileset took over. See AssetLoader.ts.)
   'trans-n', 'trans-s', 'trans-w', 'trans-e',
   'trans-nw', 'trans-ne', 'trans-sw', 'trans-se',
-  'trans-full',
   'trans-inner-nw', 'trans-inner-ne', 'trans-inner-sw', 'trans-inner-se',
   'trans-inner-nw-se', 'trans-inner-ne-sw',
   // Water transitions

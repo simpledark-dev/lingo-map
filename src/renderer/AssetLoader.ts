@@ -87,7 +87,12 @@ const spriteManifest: Record<string, string> = {
   'trans-ne': `${ASSET_BASE}trans-ne.webp`,
   'trans-sw': `${ASSET_BASE}trans-sw.webp`,
   'trans-se': `${ASSET_BASE}trans-se.webp`,
-  'trans-full': `${ASSET_BASE}trans-nse.webp`,
+  // trans-full would map here, but the file (`trans-nse.webp`)
+  // never shipped and the dirt transition code path is dead (the
+  // dual-grid AutoTileset replaced it; DIRT_TILES in
+  // TransitionTiles.ts is empty). Removing the mapping silences
+  // the boot-time loader warning. If dirt transitions ever come
+  // back, add a real `trans-full.webp` and re-register here.
   'trans-inner-nw': `${ASSET_BASE}trans-inner-nw.webp`,
   'trans-inner-ne': `${ASSET_BASE}trans-inner-ne.webp`,
   'trans-inner-sw': `${ASSET_BASE}trans-inner-sw.webp`,

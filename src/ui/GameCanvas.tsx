@@ -241,6 +241,13 @@ export default function GameCanvas() {
   // 360ms cross-fade reveals the cutscene's gradient instead of
   // the F1 room briefly flashing through.
   const [welcomeFading, setWelcomeFading] = useState(false);
+  // True during the 1.2s gap between cutscene-end and the
+  // apartment monologue mounting. Without this, mobile players
+  // can tap on Mim (who's spawned right next to them) before the
+  // monologue fires, kicking off downstream interactions out of
+  // order. Folded into worldPausedByOverlay below so all input is
+  // gated for the duration.
+  const [introGapActive, setIntroGapActive] = useState(false);
   const [minimapData, setMinimapData] = useState<{
     map: MapData;
     state: GameState;
@@ -286,6 +293,7 @@ export default function GameCanvas() {
   }, []);
   const worldPausedByOverlay = Boolean(
     dialogue ||
+    introGapActive ||
     vocabularyView ||
     translateView ||
     shopView ||
@@ -1103,6 +1111,10 @@ export default function GameCanvas() {
     // sees the apartment as a *room they're now in*, not as the
     // cutscene's parchment panel getting new copy. Without this
     // the dialogue feels like a continuation of the cutscene.
+    // `introGapActive` pauses the world during this delay so a
+    // mobile tap can't sneak past and trigger Mim before the
+    // monologue mounts.
+    setIntroGapActive(true);
     const t = window.setTimeout(() => {
       const childName = getChildName() ?? "kiddo";
       const parentName = getPlayerName() ?? "";
@@ -1124,8 +1136,12 @@ export default function GameCanvas() {
       // replay it. Edge case — player can re-read the plan via the
       // quest objective in the log if they miss it.
       setFlag(FLAGS.INTRO_APARTMENT_SEEN);
+      setIntroGapActive(false);
     }, 1200);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      setIntroGapActive(false);
+    };
   }, [currentMapId, cutsceneActive, welcomeActive]);
 
   const handleAdvanceDialogue = useCallback(() => {

@@ -78,15 +78,28 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
     });
   }
   if (status === 'inactive') {
-    // Defensive — should be unreachable now that the quest is
-    // auto-chained from first-paycheck. Kept so a dev-tool flow
-    // that skips the chain (e.g. clearing only the sandwich
-    // status) still results in a sensible Mim line + activation.
-    startQuest('child-sandwich');
+    // Auto-start ONLY when the chain prereq is satisfied. Without
+    // this guard, talking to Mim before first-paycheck completes
+    // (e.g. in the brief window between cutscene-end and the
+    // apartment monologue starting the intro quest) would kick
+    // off the sandwich quest out of order — showing "I'm hungry"
+    // before the player has even taken the translator job.
+    if (getQuestStatus('first-paycheck') === 'completed') {
+      startQuest('child-sandwich');
+      return withChildName({
+        lines: [
+          "I'm hungry… can you go to the Mart and grab me a sandwich? Please?",
+        ],
+      });
+    }
+    // Pre-prereq fallback — a friendly, non-quest-starting line so
+    // an early interaction with Mim feels like a real beat instead
+    // of a dead-end. Two variants based on whether the intro quest
+    // has begun yet, so the line lands in context.
     return withChildName({
-      lines: [
-        "I'm hungry… can you go to the Mart and grab me a sandwich? Please?",
-      ],
+      lines: introStatus === 'active'
+        ? [`Good luck, dad! I'll wait here. Bring back some good news!`]
+        : [`Hi dad. Are we okay?`],
     });
   }
   // status === 'active'. The chain auto-starts the quest WITHOUT
