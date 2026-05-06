@@ -316,11 +316,25 @@ export const PIO_PACK: VocabularyPack = {
   ),
 };
 
+/** Tutorial pack — used by the office tutor NPC during the intro
+ *  quest's mock job. Deliberately tiny (3 words) so the player can
+ *  walk through both Practice and Read flows without grinding. The
+ *  words are picked from MIRA_PACK so we don't have to author new
+ *  audio / examples; theme just labels what they're learning. */
+export const OFFICE_TUTOR_PACK: VocabularyPack = {
+  id: 'office-tutor-pack',
+  theme: 'Trainer warm-up',
+  entries: MIRA_PACK.entries.filter((e) =>
+    ['grano', 'mira', 'solpi'].includes(e.target),
+  ),
+};
+
 /** All packs keyed by id. NPCs reference packs via `vocabularyPackId`. */
 export const VOCABULARY_PACKS: Record<string, VocabularyPack> = {
   [MIRA_PACK.id]: MIRA_PACK,
   [SABA_PACK.id]: SABA_PACK,
   [PIO_PACK.id]: PIO_PACK,
+  [OFFICE_TUTOR_PACK.id]: OFFICE_TUTOR_PACK,
 };
 
 export function getVocabularyPack(id: string): VocabularyPack | undefined {

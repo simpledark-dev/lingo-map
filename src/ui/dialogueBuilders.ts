@@ -179,6 +179,70 @@ export function buildLenderDialogue(stub: DialogueState): DialogueState {
   };
 }
 
+/** Compose the office trainer's dialogue. Three branches:
+ *
+ *  1. Pre-hire (INTRO_HIRED unset) — trainer brushes the player
+ *     off; they need to apply with the CEO first.
+ *  2. Hired but tutor mock job not done — translator-offer shape
+ *     (the same shape Saba/Pio use), backed by the tiny
+ *     office-tutor-pack. Reusing the existing shape means the
+ *     downstream Practice/Read flows work unchanged.
+ *  3. Post-tutor (INTRO_TUTOR_DONE set) — closure line nudging the
+ *     player toward Saba outside.
+ *
+ *  Shape note: the engine already builds a translator-offer for
+ *  any NPC with `vocabularyPackId`, but we're overriding here so
+ *  the offer line + options match the in-character "trainer doing
+ *  a mock job" framing rather than the generic "I'm struggling
+ *  with these words" customer pitch. */
+export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
+  const introHired = hasFlag(FLAGS.INTRO_HIRED);
+  const tutorDone = hasFlag(FLAGS.INTRO_TUTOR_DONE);
+
+  if (!introHired) {
+    return {
+      ...stub,
+      lines: [
+        "I show new hires the ropes — but you have to actually be hired first. Talk to the CEO.",
+      ],
+      currentLine: 0,
+    };
+  }
+
+  if (tutorDone) {
+    return {
+      ...stub,
+      lines: [
+        "You've got the basics. Real customers wait for nobody — head outside and find Saba on the street.",
+      ],
+      currentLine: 0,
+    };
+  }
+
+  // Hired + first-time — the mock job offer.
+  return {
+    ...stub,
+    lines: [
+      "Alright, fresh hire. Let's run through how a job actually works before you head out. Three words. No money on the line.",
+    ],
+    currentLine: 0,
+    vocabularyPackId: 'office-tutor-pack',
+    vocabularyWordCount: 3,
+    options: [
+      {
+        id: 'help',
+        label: "Sure, I'll give it a shot",
+        hint: 'Run a mock translation session — no real money, no penalties.',
+      },
+      {
+        id: 'view',
+        label: 'Let me look them over first (3 words)',
+        hint: 'Browse the list, hear how they sound, practice freely.',
+      },
+    ],
+  };
+}
+
 /** Compose the CEO's dialogue. Multi-stage during the intro quest;
  *  collapses to status check-ins afterward.
  *

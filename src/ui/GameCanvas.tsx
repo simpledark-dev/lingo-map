@@ -48,6 +48,7 @@ import QuestLog from "./QuestLog";
 import InventoryView from "./InventoryView";
 import IntroCutscene from "./IntroCutscene";
 import WelcomeScreen from "./WelcomeScreen";
+import TutorialOverlay from "./TutorialOverlay";
 import QuestHud from "./QuestHud";
 import SettingsView from "./SettingsView";
 import WordStatsView from "./WordStatsView";
@@ -78,6 +79,7 @@ import {
   buildChildSandwichDialogue,
   buildLenderDialogue,
   buildCeoIntroDialogue,
+  buildOfficeTutorDialogue,
   APARTMENT_DIALOGUE,
 } from './dialogueBuilders';
 
@@ -164,6 +166,14 @@ export default function GameCanvas() {
      *  flow — closing then just exits the view. */
     returnDialogue: DialogueState | null;
   } | null>(null);
+  /** Sub-state of the vocabulary view, surfaced via VocabularyListView's
+   *  `onSubModeChange` callback. Drives the tutorial overlay's hint
+   *  copy ("browse" vs "in practice") since the view manages those
+   *  internally. Stays at 'list' when the view is closed; consumers
+   *  should also gate on `vocabularyView` being non-null. */
+  const [vocabularySubMode, setVocabularySubMode] = useState<
+    'list' | 'practice-picker' | 'practice'
+  >('list');
   /** Same shape, but for the for-money translation work session. The
    *  player gets here by accepting the offer (option 1) then picking
    *  one of the mode buttons. `mode` distinguishes the recognition
@@ -755,6 +765,8 @@ export default function GameCanvas() {
               setDialogue(buildLenderDialogue(event.dialogue));
             } else if (event.dialogue.dialogueKind === "ceo-intro") {
               setDialogue(buildCeoIntroDialogue(event.dialogue));
+            } else if (event.dialogue.dialogueKind === "office-tutor") {
+              setDialogue(buildOfficeTutorDialogue(event.dialogue));
             } else if (
               event.dialogue.vocabularyPackId &&
               getQuestStatus("intro-translator-job") !== "completed"
@@ -1058,6 +1070,7 @@ export default function GameCanvas() {
     // frame so wandering NPCs don't outrun their chevron. (x, y)
     // are interpreted as offsets from the NPC anchor (feet) —
     // -28 floats the chevron above the head sprite.
+    const introHired = hasFlag(FLAGS.INTRO_HIRED);
     for (const target of QUEST_TALK_TARGETS) {
       if (questStatuses[target.questId] !== "active") continue;
       // First-paycheck has TWO talk targets across its lifetime:
@@ -1065,6 +1078,11 @@ export default function GameCanvas() {
       // claim) after. The QUEST_TALK_TARGETS table only knows about
       // the first; once the player is ready to claim, swap to CEO.
       if (target.questId === "first-paycheck" && paycheckReadyToClaim) continue;
+      // Intro quest also has a TWO-stage talk target: pre-hire =
+      // CEO (where to apply), post-hire = the office tutor (mock
+      // job walkthrough). The default table entry is the CEO; the
+      // tutor override is added below when INTRO_HIRED is set.
+      if (target.questId === "intro-translator-job" && introHired) continue;
       if (currentMapId !== target.mapId) continue;
       let map;
       try {
@@ -1081,6 +1099,37 @@ export default function GameCanvas() {
         spriteKey: "edge-arrow-south-red",
         followNpcId: npc.id,
       });
+    }
+
+    // ── Intro mock job: tutor marker once the CEO has hired ──
+    // The intro quest's pre-hire marker (office building outside,
+    // CEO inside) gets the player to the CEO. The CEO's hire wrap-
+    // up tells them to talk to the trainer next. This block paints
+    // the chevron on the trainer specifically while the intro
+    // quest is still active and INTRO_HIRED is set. Once the
+    // tutor's session completes, the intro quest closes and this
+    // block stops firing automatically.
+    if (
+      questStatuses["intro-translator-job"] === "active" &&
+      introHired &&
+      currentMapId === "office"
+    ) {
+      let officeMap;
+      try {
+        officeMap = loadMap("office");
+      } catch {
+        officeMap = null;
+      }
+      const tutorNpc = officeMap?.npcs.find((n) => n.name === "Trainer");
+      if (tutorNpc) {
+        markers.push({
+          id: "intro-tutor",
+          x: 0,
+          y: -28,
+          spriteKey: "edge-arrow-south-red",
+          followNpcId: tutorNpc.id,
+        });
+      }
     }
 
     // ── First-paycheck claim: CEO marker once threshold is met ──
@@ -1300,6 +1349,12 @@ export default function GameCanvas() {
           npcName: dialogue.npcName,
           returnDialogue: { ...dialogue, currentLine: 0, skipTypewriter: true },
         });
+        // Tutorial: the offer-dialogue popup flips from "pick
+        // option 2" to "now try option 1" the moment the player
+        // has opened the tutor wordlist at least once.
+        if (packId === "office-tutor-pack") {
+          setFlag(FLAGS.INTRO_TUTOR_WORDLIST_SEEN);
+        }
         closeDialogueEverywhere();
         return;
       }
@@ -1438,8 +1493,12 @@ export default function GameCanvas() {
       // CEO intro — Stage 2 → Stage 3 (hired). Confident vs honest
       // changes the opening line of the wrap-up; the rest of the
       // explanation (job mechanics, payout, return-for-bonus pitch)
-      // is identical. Quest completes the moment Stage 3 begins so
-      // the toast lands while the wrap-up plays.
+      // is identical. INTRO_HIRED flips on here — the marker
+      // handoff (CEO → tutor) keys off it, but the intro QUEST
+      // stays active until the tutor's mock job completes. That
+      // way the "go talk to Saba" beat doesn't fire before the
+      // player has actually been shown how a translation session
+      // works.
       if (
         optionId === "ceo-intro-confident" ||
         optionId === "ceo-intro-honest"
@@ -1448,12 +1507,7 @@ export default function GameCanvas() {
           optionId === "ceo-intro-confident"
             ? "Confidence. Good — don't make me regret this. The job is yours."
             : "Mostly's enough. Honest answer too — that's worth something. The job is yours.";
-        completeQuest("intro-translator-job");
-        // Chain the next milestone — the paycheck quest auto-starts
-        // here so the player has a concrete short-term goal the moment
-        // the tutorial closes. Toast fires from `startQuest`, landing
-        // back-to-back with the intro-complete toast.
-        startQuest("first-paycheck");
+        setFlag(FLAGS.INTRO_HIRED);
         setDialogue({
           npcId: dialogue.npcId,
           npcName: dialogue.npcName,
@@ -1463,7 +1517,7 @@ export default function GameCanvas() {
             "The way it works: people around town need help with words. You walk up, translate, they pay you per correct answer. I take a small cut.",
             `Pays ${formatBalance(getRewardPerCorrect())} for every word you nail. Lose ${formatBalance(PENALTY_PER_WRONG)} on a wrong guess — focus matters. And ${formatBalance(PENALTY_PER_IDK)} if you admit you don't know it.`,
             `Earn ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)} translating and circle back — there's a bonus waiting on top.`,
-            "Off you go. Find someone who needs help.",
+            "Before you head out — talk to the trainer at the desk. He'll walk you through your first job so you don't fumble in front of a real customer.",
           ],
           currentLine: 0,
         });
@@ -1588,7 +1642,26 @@ export default function GameCanvas() {
   }, []);
 
   const handleCloseTranslateView = useCallback(() => {
-    setTranslateView(null);
+    // Closing the office tutor's mock translate session is the
+    // signal that the player has been walked through the full
+    // job loop (offer → mode pick → translate). Flip
+    // INTRO_TUTOR_DONE and close the intro quest so the
+    // marker / chain advances on to first-paycheck (Saba on
+    // the street). Counted whether the player finished all
+    // three words or bailed early — tutorial guidance, not a
+    // gated test.
+    setTranslateView((prev) => {
+      if (
+        prev?.packId === "office-tutor-pack" &&
+        !hasFlag(FLAGS.INTRO_TUTOR_DONE)
+      ) {
+        setFlag(FLAGS.INTRO_TUTOR_DONE);
+        if (getQuestStatus("intro-translator-job") === "active") {
+          completeQuest("intro-translator-job");
+        }
+      }
+      return null;
+    });
   }, []);
 
   const handleOpenMinimap = useCallback(() => {
@@ -2212,6 +2285,7 @@ export default function GameCanvas() {
                   pack={pack}
                   npcName={vocabularyView.npcName}
                   onClose={handleCloseVocabularyView}
+                  onSubModeChange={setVocabularySubMode}
                 />
               </div>
             );
@@ -2282,6 +2356,17 @@ export default function GameCanvas() {
             already conveys "head to the office." Tap to open the
             full log; auto-hides when no quest is active. */}
         <QuestHud onOpenLog={openQuestLog} />
+
+        {/* Step-by-step popups for the office tutor's mock job.
+            Self-rendering — derives the active step from current
+            React state + event flags. Auto-hides outside the
+            tutorial window (pre-hire / post-tutor-done). */}
+        <TutorialOverlay
+          dialogue={dialogue}
+          vocabularyView={vocabularyView}
+          vocabularySubMode={vocabularySubMode}
+          translateView={translateView}
+        />
 
         {/* Intro cutscene — full-screen overlay shown once on a
             fresh save (or after a dev reset). Blocks the world

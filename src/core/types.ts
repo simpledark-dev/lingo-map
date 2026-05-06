@@ -133,7 +133,7 @@ export interface NPCData {
    *  3.5 adds `'lender'` for Theo; the intro-cutscene flow adds
    *  `'ceo-intro'` for the office CEO who closes the tutorial
    *  quest. */
-  dialogueKind?: 'child-sandwich' | 'lender' | 'ceo-intro';
+  dialogueKind?: 'child-sandwich' | 'lender' | 'ceo-intro' | 'office-tutor';
 }
 
 // ── Map ──
@@ -350,7 +350,7 @@ export interface DialogueState {
    *  on game state (inventory / event flags / debt / quest). Mirrors
    *  `NPCData.dialogueKind`; the engine just hands the marker off,
    *  it doesn't interpret the value. */
-  dialogueKind?: 'child-sandwich' | 'lender' | 'ceo-intro';
+  dialogueKind?: 'child-sandwich' | 'lender' | 'ceo-intro' | 'office-tutor';
 }
 
 /** Decoupled from `disabled`: a disabled option only dims the row.

@@ -135,6 +135,28 @@ const npcs: NPCData[] = [
     dialogue: ['Come back when you are ready for your first contract.'],
     dialogueKind: 'ceo-intro',
   },
+  // Trainer / mock-job NPC — only matters during the intro quest's
+  // post-hire window (INTRO_HIRED set, intro-translator-job still
+  // active). The CEO sends the player here for a no-stakes
+  // walkthrough of the translator-offer flow before they meet a
+  // real customer (Saba) outside. The dialogueKind routes through
+  // the React layer for stage-aware lines; the vocabulary pack is
+  // a 3-word warm-up so neither Practice nor Read drags on.
+  {
+    id: 'office-npc-tutor',
+    x: tx(15),
+    y: ty(6),
+    spriteKey: 'me-char-13',
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(6),
+    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
+    name: 'Trainer',
+    dialogue: ['Stop by when you start the job — I will show you the ropes.'],
+    dialogueKind: 'office-tutor',
+    vocabularyPackId: 'office-tutor-pack',
+    vocabularyOfferLine:
+      "Alright, fresh hire. Let's run through how a job actually works before you head out.",
+  },
 ];
 
 export const officeMap: MapData = {

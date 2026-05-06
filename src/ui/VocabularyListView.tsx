@@ -1,16 +1,27 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { VocabularyPack, getExamples } from '../data/vocabularyPacks';
 import { cancelDialogueSpeech } from './tts';
 import { speakVocabWord } from './wordSpeak';
 import VocabularyPracticeView from './VocabularyPracticeView';
 import { getUiTheme } from './uiThemes';
 
+/** Sub-states the list view internally manages. Surfaced via
+ *  `onSubModeChange` so a parent (e.g. the tutorial overlay) can
+ *  branch its hint copy on whether the player is browsing,
+ *  picking a practice mode, or actively drilling. */
+export type VocabularyListSubMode = 'list' | 'practice-picker' | 'practice';
+
 interface VocabularyListViewProps {
   pack: VocabularyPack;
   npcName: string;
   onClose: () => void;
+  /** Optional notifier for the active sub-mode. Fires on mount
+   *  and on every internal mode change. Parent uses this to drive
+   *  context-aware UI outside the modal — currently the
+   *  TutorialOverlay popup. */
+  onSubModeChange?: (sub: VocabularyListSubMode) => void;
 }
 
 /** The list view doubles as the parent for the practice screen — the
@@ -30,12 +41,22 @@ type Mode =
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
 
-export default function VocabularyListView({ pack, npcName, onClose }: VocabularyListViewProps) {
+export default function VocabularyListView({ pack, npcName, onClose, onSubModeChange }: VocabularyListViewProps) {
   // Only one row expanded at a time — keeps the list short and
   // matches the "tap to peek, tap again to close" pattern players
   // already know from any phone-app collapsible list.
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>({ kind: 'list' });
+
+  // Notify the parent every time the internal sub-mode flips so
+  // tutorial / contextual UIs outside this modal can branch on
+  // it. Fires on mount with the initial 'list' so the parent
+  // doesn't need to remember the default. Cleanup signals 'list'
+  // again on unmount, in case any subscriber wants to clean up
+  // mid-practice state.
+  useEffect(() => {
+    onSubModeChange?.(mode.kind);
+  }, [mode.kind, onSubModeChange]);
 
   // Pre-compute examples once per entry. Cheap (~150 string concats)
   // but no point doing it on every render. MUST run on every render
