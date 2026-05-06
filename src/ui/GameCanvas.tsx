@@ -293,6 +293,17 @@ export default function GameCanvas() {
   }, []);
   const worldPausedByOverlay = Boolean(
     dialogue ||
+    // Welcome splash and the intro cutscene render fullscreen
+    // OVER the canvas, but during their fade-out passes pointer
+    // events leak through to the canvas underneath. On mobile
+    // (Safari + PWA), a single tap near Mim during the fade
+    // would set `_interact = true` in InputAdapter, the engine
+    // would fire her dialogue mid-transition, and the apartment
+    // monologue would land on top of an already-open Mim
+    // conversation. Pausing the engine for the duration of these
+    // overlays makes input gating identical to dialogue overlays.
+    welcomeActive ||
+    cutsceneActive ||
     introGapActive ||
     vocabularyView ||
     translateView ||
