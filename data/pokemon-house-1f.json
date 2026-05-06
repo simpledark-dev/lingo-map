@@ -31,14 +31,14 @@
     },
     {
       "id": "1f-npc-child",
-      "x": 120,
-      "y": 208,
+      "x": 136,
+      "y": 144,
       "spriteKey": "me-char-12",
       "anchor": {
         "x": 0.5,
         "y": 1
       },
-      "sortY": 208,
+      "sortY": 144,
       "collisionBox": {
         "offsetX": -4,
         "offsetY": -6,
@@ -68,9 +68,9 @@
     },
     {
       "id": "intro-start",
-      "x": 160,
+      "x": 152,
       "y": 144,
-      "facing": "down"
+      "facing": "left"
     }
   ],
   "layers": [
@@ -576,9 +576,9 @@
             "targetSpawnId": "outdoor-houseA-door",
             "triggerBox": {
               "offsetX": -16,
-              "offsetY": -16,
+              "offsetY": -18,
               "width": 32,
-              "height": 16
+              "height": 18
             }
           }
         },

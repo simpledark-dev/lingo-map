@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useLayoutEffect, useState, useCallback } from "react";
 import { normalizeObjectMultiplier } from "../core/MapStress";
 import { loadMap, registerMap } from "../core/MapLoader";
 import { PixiApp } from "../renderer/PixiApp";
@@ -247,7 +247,20 @@ export default function GameCanvas() {
   // monologue fires, kicking off downstream interactions out of
   // order. Folded into worldPausedByOverlay below so all input is
   // gated for the duration.
-  const [introGapActive, setIntroGapActive] = useState(false);
+  //
+  // PRE-ARMED at mount when we already know the apartment dialogue
+  // is going to fire on this load — i.e., the player has seen the
+  // cutscene before but never reached the apartment monologue.
+  // Without pre-arming, there's a startup window between engine
+  // boot and the apartment-trigger effect running where the world
+  // is unpaused; a queued tap on Mim during that window fires her
+  // dialogue before the monologue mounts. The trigger effect's
+  // setTimeout will clear this flag when the dialogue actually
+  // appears.
+  const [introGapActive, setIntroGapActive] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return hasFlag(FLAGS.INTRO_CUTSCENE_SEEN) && !hasFlag(FLAGS.INTRO_APARTMENT_SEEN);
+  });
   const [minimapData, setMinimapData] = useState<{
     map: MapData;
     state: GameState;
@@ -530,7 +543,23 @@ export default function GameCanvas() {
     return () => window.removeEventListener("keydown", handleCheatKey);
   }, []);
 
-  useEffect(() => {
+  // useLayoutEffect (not useEffect) so the engine sees the new
+  // pause value BEFORE the next paint / rAF, rather than after.
+  // The Pixi ticker runs in rAF; with plain useEffect there's a
+  // race where the ticker can fire one tick with the stale value
+  // between React commit and effect execution, processing a
+  // queued input that was meant to be paused.
+  //
+  // The ref mirror is read by the init effect's `.then` callback
+  // to push the CURRENT pause state into the engine the moment
+  // it's ready — without it, a load that boots into a paused
+  // state (intro flow on stale-state reload) starts the engine
+  // with worldPausedByUI=false until something else changes the
+  // overlay state, which leaves a window where arrows / taps
+  // bypass the pause.
+  const worldPausedByOverlayRef = useRef(worldPausedByOverlay);
+  useLayoutEffect(() => {
+    worldPausedByOverlayRef.current = worldPausedByOverlay;
     pixiAppRef.current?.setWorldPausedByUI(worldPausedByOverlay);
   }, [worldPausedByOverlay]);
 
@@ -853,6 +882,18 @@ export default function GameCanvas() {
       .then(({ appliedAll }) => {
         startGame().then(() => {
           if (cancelled) return;
+          // The world-pause useLayoutEffect ran on the FIRST render
+          // with pixiAppRef.current still null (engine not yet
+          // initialised), so the engine boots with its default
+          // worldPausedByUI=false even when React's overlay state
+          // says it should be paused (e.g., introGapActive
+          // pre-armed for stale-state intro replays). Push the
+          // current value here, the first moment the engine is
+          // actually wired up, so arrow keys + taps don't slip
+          // through the pre-paint window.
+          pixiAppRef.current?.setWorldPausedByUI(
+            worldPausedByOverlayRef.current,
+          );
           // First scene mounted — drop the loading overlay, but
           // honour the minimum display window so the brand
           // messaging gets a real read even on warm-cache boots.

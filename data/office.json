@@ -5,7 +5,30 @@
   "height": 16,
   "tileSize": 16,
   "buildings": [],
-  "npcs": [],
+  "npcs": [
+    {
+      "id": "office-npc-ceo",
+      "x": 168,
+      "y": 112,
+      "spriteKey": "me-char-20",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 112,
+      "collisionBox": {
+        "offsetX": -4,
+        "offsetY": -6,
+        "width": 8,
+        "height": 6
+      },
+      "name": "CEO",
+      "dialogue": [
+        "Come back when you are ready for your first contract."
+      ],
+      "dialogueKind": "ceo-intro"
+    }
+  ],
   "triggers": [],
   "spawnPoints": [
     {
@@ -402,7 +425,13 @@
           },
           "transition": {
             "targetMapId": "pokemon",
-            "targetSpawnId": "outdoor-office"
+            "targetSpawnId": "outdoor-office",
+            "triggerBox": {
+              "offsetX": -16,
+              "offsetY": -18,
+              "width": 32,
+              "height": 18
+            }
           },
           "scale": 0.15
         }

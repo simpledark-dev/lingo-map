@@ -209,11 +209,11 @@ const npcs: NPCData[] = [
   // misleading when the override isn't applied.
   {
     id: "1f-npc-child",
-    x: tx(7),
-    y: ty(12),
+    x: tx(8),
+    y: ty(8),
     spriteKey: "me-char-12",
     anchor: { x: 0.5, y: 1.0 },
-    sortY: ty(12),
+    sortY: ty(8),
     collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
     name: "Mim",
     dialogue: ["Hi!"],
@@ -244,16 +244,13 @@ export const pokemonHouse1fMap: MapData = {
   spawnPoints: [
     { id: "entrance", x: tx(9) + 8, y: ty(H - 3), facing: "up" },
     { id: "from-2f", x: tx(17), y: ty(7), facing: "down" },
-    // Intro flow start — player spawns slightly to the right of
-    // Mim (the child NPC at tx(7), ty(12)), facing left so they
-    // can see each other during the apartment monologue. The
-    // distance is deliberately set OUTSIDE Mim's INTERACTION_RANGE
-    // (32px): at 36px the dialogue still reads as a face-to-face
-    // beat visually, but stray taps post-dialogue can't trip the
-    // tap-box → interact → reopen-her-dialogue loop that bit
-    // mobile players when they were spawned 1.5 tiles away. Both
-    // pivot to face down once the dialogue closes (see
-    // GameCanvas's handleAdvanceDialogue intro-apartment branch).
-    { id: "intro-start", x: tx(9) + 12, y: ty(12), facing: "left" },
+    // Intro flow start — player spawns next to Mim, facing left so
+    // they're visually facing each other for the apartment monologue.
+    // The world is paused during the dialogue (worldPausedByOverlay
+    // includes `dialogue`), so being inside her INTERACTION_RANGE
+    // doesn't matter here. The post-dialogue handler moves the
+    // player south afterwards to avoid the "tap-near-Mim → interact
+    // → reopen" loop on mobile.
+    { id: "intro-start", x: tx(9), y: ty(8), facing: "left" },
   ],
 };

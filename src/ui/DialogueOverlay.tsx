@@ -34,6 +34,33 @@ const TRANSLATE_MODE_OPTION_NUMBERS: Record<string, string> = {
   "mode-speak": "4",
 };
 
+/** Cozy palette for the per-speaker name plaque. Picked to read
+ *  cleanly against the parchment background without fighting the
+ *  theme's gold accents. The first entry is the existing
+ *  amber-gold so anonymous / single-NPC dialogues look unchanged
+ *  from before. */
+const SPEAKER_COLORS = [
+  '#8b4f10', // amber-gold (default — same as before)
+  '#2d6a8a', // teal
+  '#9c3a5b', // rose
+  '#3a6e3a', // forest
+  '#6b3a7e', // plum
+  '#a0581f', // burnt orange
+] as const;
+
+/** Stable colour for a given speaker name. Hash → palette index, so
+ *  the same character always paints the same colour and players can
+ *  glance at the plaque to tell who's speaking without reading the
+ *  letters. Empty / null names fall through to the default amber. */
+function speakerColor(name: string): string {
+  if (!name) return SPEAKER_COLORS[0];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) {
+    h = ((h << 5) - h + name.charCodeAt(i)) | 0;
+  }
+  return SPEAKER_COLORS[Math.abs(h) % SPEAKER_COLORS.length];
+}
+
 export default function DialogueOverlay({
   dialogue,
   onAdvance,
@@ -158,8 +185,20 @@ export default function DialogueOverlay({
           }}
         >
           {/* Name plaque — amber underline, slight letter-spacing for
-              that "stamped on the page" feel. */}
-          <div style={theme.namePlaqueStyle}>{dialogue.npcName}</div>
+              that "stamped on the page" feel. The plaque color is
+              derived from a hash of the speaker's name so that
+              back-and-forth dialogues (apartment monologue, future
+              multi-party scenes) clearly signal who's talking just
+              from the colour switch — no extra portraits needed. */}
+          <div
+            style={{
+              ...theme.namePlaqueStyle,
+              color: speakerColor(dialogue.npcName),
+              borderBottomColor: speakerColor(dialogue.npcName),
+            }}
+          >
+            {dialogue.npcName}
+          </div>
 
           {/* Body text. Bumped line-height for cozy reading; brown ink
               against parchment. The hidden remainder span reserves the
