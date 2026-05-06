@@ -1184,6 +1184,13 @@ export default function GameCanvas() {
         return;
       }
       setDialogue(null);
+      // Engine doesn't know about this dialogue, but pushing
+      // CLOSE_DIALOGUE still calls clearTransientInput with
+      // suppressInteractUntilRelease — important on mobile, where
+      // the same tap that closes the box can otherwise leak into
+      // an _interact on Mim (still nearby) and immediately reopen
+      // a new dialogue.
+      pixiAppRef.current?.commandQueue.push({ type: "CLOSE_DIALOGUE" });
       pixiAppRef.current?.setPlayerFacing("down");
       pixiAppRef.current?.setNpcFacing("1f-npc-child", "down");
       startQuest("intro-translator-job");
@@ -2263,6 +2270,16 @@ export default function GameCanvas() {
                 // (see init effect's `cutsceneActive` branch). This
                 // avoids the brief outdoor-flash that the post-cutscene
                 // teleport approach produced.
+                //
+                // Order matters: flip `introGapActive` true FIRST so
+                // the engine's worldPausedByUI=true survives the same
+                // batched commit that unmounts the cutscene. Without
+                // this, there's a one-frame window where cutscene-end
+                // is processed but the apartment trigger effect (which
+                // sets introGapActive) hasn't run yet — and a queued
+                // tap on mobile fires Mim's dialogue before the pause
+                // re-asserts.
+                setIntroGapActive(true);
                 setCutsceneActive(false);
               }}
             />

@@ -14716,6 +14716,44 @@
           },
           "scale": 1,
           "layer": "props"
+        },
+        {
+          "id": "obj-motgqjuk-xwggj",
+          "x": 8,
+          "y": 656,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Yellow_Stake",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 656,
+          "collisionBox": {
+            "offsetX": -8,
+            "offsetY": -8,
+            "width": 16,
+            "height": 8
+          },
+          "scale": 1,
+          "layer": "props"
+        },
+        {
+          "id": "obj-motgqkey-pvz7t",
+          "x": 8,
+          "y": 640,
+          "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Yellow_Stake",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 640,
+          "collisionBox": {
+            "offsetX": -8,
+            "offsetY": -8,
+            "width": 16,
+            "height": 8
+          },
+          "scale": 1,
+          "layer": "props"
         }
       ]
     },

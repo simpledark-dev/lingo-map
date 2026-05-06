@@ -244,11 +244,16 @@ export const pokemonHouse1fMap: MapData = {
   spawnPoints: [
     { id: "entrance", x: tx(9) + 8, y: ty(H - 3), facing: "up" },
     { id: "from-2f", x: tx(17), y: ty(7), facing: "down" },
-    // Intro flow start — player spawns one tile to the right of
-    // Mim (the child NPC at tx(7), ty(12)), facing left so they're
-    // looking at each other for the apartment monologue. Both
+    // Intro flow start — player spawns slightly to the right of
+    // Mim (the child NPC at tx(7), ty(12)), facing left so they
+    // can see each other during the apartment monologue. The
+    // distance is deliberately set OUTSIDE Mim's INTERACTION_RANGE
+    // (32px): at 36px the dialogue still reads as a face-to-face
+    // beat visually, but stray taps post-dialogue can't trip the
+    // tap-box → interact → reopen-her-dialogue loop that bit
+    // mobile players when they were spawned 1.5 tiles away. Both
     // pivot to face down once the dialogue closes (see
     // GameCanvas's handleAdvanceDialogue intro-apartment branch).
-    { id: "intro-start", x: tx(8) + 8, y: ty(12), facing: "left" },
+    { id: "intro-start", x: tx(9) + 12, y: ty(12), facing: "left" },
   ],
 };
