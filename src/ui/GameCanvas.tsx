@@ -95,7 +95,7 @@ const QUEST_TALK_TARGETS: ReadonlyArray<{
   mapId: string;
 }> = [
   { questId: "intro-translator-job", npcName: "CEO", mapId: "office" },
-  { questId: "first-paycheck", npcName: "Saba", mapId: "pokemon" },
+  { questId: "first-paycheck", npcName: "Eli", mapId: "office" },
   { questId: "child-sandwich", npcName: "Mim", mapId: "pokemon-house-1f" },
   { questId: "tutorial-borrow", npcName: "Theo", mapId: "pokemon" },
   { questId: "tutorial-buy-food", npcName: "Shopkeeper", mapId: "grocer-1f" },
@@ -1018,32 +1018,35 @@ export default function GameCanvas() {
     }> = [];
 
     // ── Story-critical: office building marker ──
-    // Fires during the intro AND during the first-paycheck claim
-    // moment. In both cases the player needs to physically enter
-    // the office on the outdoor map, so the same chevron over the
-    // building works for both. Once inside the office, the
-    // QUEST_TALK_TARGETS loop below puts the chevron over the CEO.
+    // Fires whenever the active intro / first-paycheck step
+    // requires the player to be inside the office — that's the
+    // entire intro quest (apply with CEO) and the entire
+    // first-paycheck quest (Eli's customer sessions, plus the CEO
+    // claim once threshold is met). Once the player is INSIDE,
+    // the per-NPC marker logic further down picks the right
+    // target (CEO / Eli) for each state. Same chevron sprite +
+    // "Office" label so a player coming back from a break
+    // recognises it as "head this way" without re-reading the log.
     const introActive = questStatuses["intro-translator-job"] === "active";
+    const paycheckActive = questStatuses["first-paycheck"] === "active";
     const paycheckReadyToClaim =
-      questStatuses["first-paycheck"] === "active" &&
+      paycheckActive &&
       getLifetimeEarnings() >= FIRST_PAYCHECK_THRESHOLD_CENTS;
-    if (
-      (introActive || paycheckReadyToClaim) &&
-      currentMapId === "pokemon"
-    ) {
+    if ((introActive || paycheckActive) && currentMapId === "pokemon") {
       const office = collectObjects("pokemon").find(
         (o) => o.transition?.incomingSpawnId === "outdoor-office",
       );
       if (office) {
         const top = office.y + (office.collisionBox?.offsetY ?? -64);
         markers.push({
-          id: introActive ? "intro-office" : "paycheck-office",
+          id: introActive
+            ? "intro-office"
+            : paycheckReadyToClaim
+              ? "paycheck-claim-office"
+              : "paycheck-eli-office",
           x: office.x,
           y: top + 60,
           spriteKey: "edge-arrow-south-red",
-          // World-space caption above the arrow so a player who
-          // sees the red blip but can't tell what it's pointing at
-          // gets a one-word answer immediately.
           label: "Office",
         });
       }
@@ -1061,19 +1064,13 @@ export default function GameCanvas() {
     // frame so wandering NPCs don't outrun their chevron. (x, y)
     // are interpreted as offsets from the NPC anchor (feet) —
     // -28 floats the chevron above the head sprite.
-    const introHired = hasFlag(FLAGS.INTRO_HIRED);
     for (const target of QUEST_TALK_TARGETS) {
       if (questStatuses[target.questId] !== "active") continue;
       // First-paycheck has TWO talk targets across its lifetime:
-      // Saba (where to translate) before threshold, CEO (where to
-      // claim) after. The QUEST_TALK_TARGETS table only knows about
-      // the first; once the player is ready to claim, swap to CEO.
+      // Eli (in office, repeatable until threshold) — handled by
+      // this loop's table entry — and CEO (claim) once threshold
+      // is met, handled by the bespoke claim block below.
       if (target.questId === "first-paycheck" && paycheckReadyToClaim) continue;
-      // Intro quest also has a TWO-stage talk target: pre-hire =
-      // CEO (where to apply), post-hire = the office tutor (mock
-      // job walkthrough). The default table entry is the CEO; the
-      // tutor override is added below when INTRO_HIRED is set.
-      if (target.questId === "intro-translator-job" && introHired) continue;
       if (currentMapId !== target.mapId) continue;
       let map;
       try {
@@ -1092,38 +1089,8 @@ export default function GameCanvas() {
       });
     }
 
-    // ── Intro first-customer marker once the CEO has hired ──
-    // Pre-hire, the intro marker points at the office building /
-    // the CEO. After hire, the CEO's wrap-up sends the player to
-    // Eli (in-office first customer). This block paints the
-    // chevron on Eli while the intro quest is still active and
-    // INTRO_HIRED is set. Once Eli's session completes, the
-    // intro quest closes and this block stops firing.
-    if (
-      questStatuses["intro-translator-job"] === "active" &&
-      introHired &&
-      currentMapId === "office"
-    ) {
-      let officeMap;
-      try {
-        officeMap = loadMap("office");
-      } catch {
-        officeMap = null;
-      }
-      const eliNpc = officeMap?.npcs.find((n) => n.name === "Eli");
-      if (eliNpc) {
-        markers.push({
-          id: "intro-eli",
-          x: 0,
-          y: -28,
-          spriteKey: "edge-arrow-south-red",
-          followNpcId: eliNpc.id,
-        });
-      }
-    }
-
     // ── First-paycheck claim: CEO marker once threshold is met ──
-    // Special-case override of the QUEST_TALK_TARGETS Saba entry
+    // Special-case override of the QUEST_TALK_TARGETS Eli entry
     // (skipped above when paycheckReadyToClaim is true). The
     // outdoor-map case is covered by the office-building marker
     // higher up; this one floats over the CEO when the player is
@@ -1477,12 +1444,11 @@ export default function GameCanvas() {
       // CEO intro — Stage 2 → Stage 3 (hired). Confident vs honest
       // changes the opening line of the wrap-up; the rest of the
       // explanation (job mechanics, payout, return-for-bonus pitch)
-      // is identical. INTRO_HIRED flips on here — the marker
-      // handoff (CEO → tutor) keys off it, but the intro QUEST
-      // stays active until the tutor's mock job completes. That
-      // way the "go talk to Saba" beat doesn't fire before the
-      // player has actually been shown how a translation session
-      // works.
+      // is identical. The intro quest completes here and the
+      // first-paycheck quest auto-starts via the catch-up effect.
+      // Eli (the in-office first customer) is the FIRST beat of
+      // first-paycheck — handled by that quest's marker logic and
+      // dialogue gating, not by intro-translator-job.
       if (
         optionId === "ceo-intro-confident" ||
         optionId === "ceo-intro-honest"
@@ -1491,7 +1457,8 @@ export default function GameCanvas() {
           optionId === "ceo-intro-confident"
             ? "Confidence. Good — don't make me regret this. The job is yours."
             : "Mostly's enough. Honest answer too — that's worth something. The job is yours.";
-        setFlag(FLAGS.INTRO_HIRED);
+        completeQuest("intro-translator-job");
+        startQuest("first-paycheck");
         setDialogue({
           npcId: dialogue.npcId,
           npcName: dialogue.npcName,
@@ -1626,26 +1593,7 @@ export default function GameCanvas() {
   }, []);
 
   const handleCloseTranslateView = useCallback(() => {
-    // Closing the office tutor's mock translate session is the
-    // signal that the player has been walked through the full
-    // job loop (offer → mode pick → translate). Flip
-    // INTRO_TUTOR_DONE and close the intro quest so the
-    // marker / chain advances on to first-paycheck (Saba on
-    // the street). Counted whether the player finished all
-    // three words or bailed early — tutorial guidance, not a
-    // gated test.
-    setTranslateView((prev) => {
-      if (
-        prev?.packId === "office-tutor-pack" &&
-        !hasFlag(FLAGS.INTRO_TUTOR_DONE)
-      ) {
-        setFlag(FLAGS.INTRO_TUTOR_DONE);
-        if (getQuestStatus("intro-translator-job") === "active") {
-          completeQuest("intro-translator-job");
-        }
-      }
-      return null;
-    });
+    setTranslateView(null);
   }, []);
 
   const handleOpenMinimap = useCallback(() => {

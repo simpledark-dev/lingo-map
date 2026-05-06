@@ -208,12 +208,11 @@ export const QUESTS: Record<string, QuestDef> = {
   'first-paycheck': {
     id: 'first-paycheck',
     title: 'Earn Your First Paycheck',
-    // Concrete, action-first objective. Calls out (1) WHERE to
-    // find work (vocabulary NPCs in town with translation
-    // offers), (2) WHAT to earn ($5.00), (3) WHO to return to
-    // (the office CEO) so a player coming back after a break
-    // doesn't have to guess.
-    objective: 'Find Saba (red marker on the map) — accept her translator offer to start. Earn $1.00 from correct answers, then return to the CEO at the office for your bonus.',
+    // Concrete, action-first objective. Eli at the office is the
+    // primary customer — repeatable, three-word pack — and is the
+    // intended path to the $1.00 threshold. Once met, return to
+    // the CEO for the bonus.
+    objective: "Eli's at the office with a three-word job — drill it as many times as you need. Earn $1.00 total, then return to the CEO for your bonus.",
     availableHint: 'The CEO promised a paycheck once you\u2019ve earned your stripes — keep translating.',
     completedSummary: 'You earned your first paycheck. The CEO threw in a small bonus on top.',
     // Auto-starts as soon as the intro is done (see GameCanvas's

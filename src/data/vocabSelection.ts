@@ -260,12 +260,19 @@ export function buildChoices(
     (e) => e.pos !== prompt.pos && e.target !== prompt.target,
   );
 
+  // Cap target distractor count by what the pack can actually
+  // provide. Without this, a small pack (e.g. the 3-word
+  // office-tutor-pack) infinite-loops the catch-up while: only
+  // 2 non-prompt entries exist, but the loop keeps trying to
+  // grow distractors to 3 and nothing it picks is ever new. The
+  // browser freezes and the tab dies.
+  const maxDistractors = Math.min(3, pack.entries.length - 1);
   const samePicks = shuffle(samePOS).slice(0, 2);
-  const remaining = 3 - samePicks.length;
+  const remaining = Math.max(0, maxDistractors - samePicks.length);
   const otherPicks = shuffle(otherPOS).slice(0, remaining);
 
   const distractors: VocabularyEntry[] = [...samePicks, ...otherPicks];
-  while (distractors.length < 3) {
+  while (distractors.length < maxDistractors) {
     const candidate = pack.entries[Math.floor(Math.random() * pack.entries.length)];
     if (
       candidate.target !== prompt.target &&

@@ -179,27 +179,25 @@ export function buildLenderDialogue(stub: DialogueState): DialogueState {
   };
 }
 
-/** Compose Eli's dialogue. Three branches:
+/** Compose Eli's dialogue. Two branches:
  *
- *  1. Pre-hire (INTRO_HIRED unset) — Eli brushes the player off;
- *     the CEO has to hire them first.
- *  2. Hired but Eli's session not yet done — translator-offer
- *     shape (the same shape Saba/Pio use), backed by the tiny
- *     office-tutor-pack (3 words). Finishing this session is
- *     what closes intro-translator-job and starts first-paycheck.
- *  3. Post-session (INTRO_TUTOR_DONE set) — friendly nudge toward
- *     Saba on the street for more work.
+ *  1. Pre-hire (intro-translator-job not yet completed) — Eli
+ *     brushes the player off; the CEO has to hire them first.
+ *  2. Hired — translator-offer shape, repeatable. Same flow as
+ *     Saba/Pio: tap to translate, earn per correct, lose per
+ *     wrong. Eli is the player's primary first-paycheck customer
+ *     (3-word pack); the player can drill him as many sessions
+ *     as they want until the $1.00 threshold is met.
  *
  *  Shape note: the engine would already build a generic translator
  *  offer for any NPC with `vocabularyPackId`. We override here so
  *  Eli's offer line + the option hints fit his role as the
- *  player's first customer (intro-quest closer) rather than the
- *  generic "I'm struggling with these words" pitch. */
+ *  player's first customer rather than the generic "I'm struggling
+ *  with these words" pitch. */
 export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
-  const introHired = hasFlag(FLAGS.INTRO_HIRED);
-  const tutorDone = hasFlag(FLAGS.INTRO_TUTOR_DONE);
+  const introDone = getQuestStatus('intro-translator-job') === 'completed';
 
-  if (!introHired) {
+  if (!introDone) {
     return {
       ...stub,
       lines: [
@@ -209,21 +207,10 @@ export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
     };
   }
 
-  if (tutorDone) {
-    return {
-      ...stub,
-      lines: [
-        "Thanks again. Saba's outside on the street — pretty sure she needs a hand too.",
-      ],
-      currentLine: 0,
-    };
-  }
-
-  // Hired, first-customer offer.
   return {
     ...stub,
     lines: [
-      "Hey, the new translator! Only got three words today — should be quick.",
+      "Hey, the translator! Got three words to drill — quick run?",
     ],
     currentLine: 0,
     vocabularyPackId: 'office-tutor-pack',
@@ -238,6 +225,11 @@ export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
         id: 'view',
         label: 'Let me look them over first (3 words)',
         hint: 'Browse the list, hear how they sound, practice freely — no money on the line.',
+      },
+      {
+        id: 'decline',
+        label: 'Sorry, not right now',
+        hint: '',
       },
     ],
   };
