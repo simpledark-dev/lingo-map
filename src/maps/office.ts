@@ -135,6 +135,28 @@ const npcs: NPCData[] = [
     dialogue: ['Come back when you are ready for your first contract.'],
     dialogueKind: 'ceo-intro',
   },
+  // Eli — the player's first customer, sitting in the office
+  // waiting on the new translator. Three-word pack so the first
+  // job is short. The CEO points the player here right after the
+  // hire wrap-up; finishing this session completes the intro
+  // quest and chains into first-paycheck (Saba on the street).
+  // dialogueKind routes through the React layer for stage-aware
+  // lines (pre-hire / hired-not-done / post-session).
+  {
+    id: 'office-npc-tutor',
+    x: tx(15),
+    y: ty(6),
+    spriteKey: 'me-char-13',
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(6),
+    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
+    name: 'Eli',
+    dialogue: ["Hey, the new translator! Got a sec?"],
+    dialogueKind: 'office-tutor',
+    vocabularyPackId: 'office-tutor-pack',
+    vocabularyOfferLine:
+      "Hey, the new translator. I've been waiting — only got three words for you, mind running them with me?",
+  },
 ];
 
 export const officeMap: MapData = {

@@ -179,6 +179,70 @@ export function buildLenderDialogue(stub: DialogueState): DialogueState {
   };
 }
 
+/** Compose Eli's dialogue. Three branches:
+ *
+ *  1. Pre-hire (INTRO_HIRED unset) — Eli brushes the player off;
+ *     the CEO has to hire them first.
+ *  2. Hired but Eli's session not yet done — translator-offer
+ *     shape (the same shape Saba/Pio use), backed by the tiny
+ *     office-tutor-pack (3 words). Finishing this session is
+ *     what closes intro-translator-job and starts first-paycheck.
+ *  3. Post-session (INTRO_TUTOR_DONE set) — friendly nudge toward
+ *     Saba on the street for more work.
+ *
+ *  Shape note: the engine would already build a generic translator
+ *  offer for any NPC with `vocabularyPackId`. We override here so
+ *  Eli's offer line + the option hints fit his role as the
+ *  player's first customer (intro-quest closer) rather than the
+ *  generic "I'm struggling with these words" pitch. */
+export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
+  const introHired = hasFlag(FLAGS.INTRO_HIRED);
+  const tutorDone = hasFlag(FLAGS.INTRO_TUTOR_DONE);
+
+  if (!introHired) {
+    return {
+      ...stub,
+      lines: [
+        "I'll wait for an actual translator — talk to the CEO first.",
+      ],
+      currentLine: 0,
+    };
+  }
+
+  if (tutorDone) {
+    return {
+      ...stub,
+      lines: [
+        "Thanks again. Saba's outside on the street — pretty sure she needs a hand too.",
+      ],
+      currentLine: 0,
+    };
+  }
+
+  // Hired, first-customer offer.
+  return {
+    ...stub,
+    lines: [
+      "Hey, the new translator! Only got three words today — should be quick.",
+    ],
+    currentLine: 0,
+    vocabularyPackId: 'office-tutor-pack',
+    vocabularyWordCount: 3,
+    options: [
+      {
+        id: 'help',
+        label: "Sure, I'll give it a shot",
+        hint: 'Earn money for every word you get right. Wrong ones will cost you.',
+      },
+      {
+        id: 'view',
+        label: 'Let me look them over first (3 words)',
+        hint: 'Browse the list, hear how they sound, practice freely — no money on the line.',
+      },
+    ],
+  };
+}
+
 /** Compose the CEO's dialogue. Multi-stage during the intro quest;
  *  collapses to status check-ins afterward.
  *

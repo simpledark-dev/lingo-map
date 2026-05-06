@@ -294,14 +294,27 @@ export default function DialogueOverlay({
                       boxShadow: isDisabled ? "none" : optionRestShadow,
                       cursor: isDisabled ? "not-allowed" : "pointer",
                       opacity: isDisabled ? 0.55 : 1,
+                      touchAction: "manipulation",
                     }}
-                    onMouseDown={(e) => {
+                    onPointerDown={(e) => {
                       if (isDisabled) return;
+                      e.currentTarget.setPointerCapture?.(e.pointerId);
                       e.currentTarget.style.transform = "translateY(2px)";
                       e.currentTarget.style.boxShadow = optionPressedShadow;
                     }}
-                    onMouseUp={(e) => {
+                    onPointerUp={(e) => {
                       if (isDisabled) return;
+                      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                      }
+                      e.currentTarget.style.transform = "";
+                      e.currentTarget.style.boxShadow = optionRestShadow;
+                    }}
+                    onPointerCancel={(e) => {
+                      if (isDisabled) return;
+                      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                      }
                       e.currentTarget.style.transform = "";
                       e.currentTarget.style.boxShadow = optionRestShadow;
                     }}

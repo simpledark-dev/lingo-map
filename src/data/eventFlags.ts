@@ -115,4 +115,15 @@ export const FLAGS = {
    *  it refers to instead of mid-cutscene. Permanent unless the
    *  dev reset path wipes it. */
   INTRO_APARTMENT_SEEN: 'intro-apartment-seen',
+  /** True once the CEO has hired the player (Stage 3 of the intro
+   *  dialogue). Used to swap the intro quest's marker target from
+   *  the CEO to the office tutor — the player is told to talk to
+   *  the trainer next. The intro quest itself stays active until
+   *  the tutor's mock-job session completes. */
+  INTRO_HIRED: 'intro-hired',
+  /** True once the player has finished the in-office first-customer
+   *  session (Eli's 3-word translator job). Stops Eli from
+   *  re-offering the warm-up on every subsequent visit and is the
+   *  signal that completes intro-translator-job → first-paycheck. */
+  INTRO_TUTOR_DONE: 'intro-tutor-done',
 } as const;
