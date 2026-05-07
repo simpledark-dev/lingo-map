@@ -27,6 +27,10 @@
         "Oh, hi there! You must be new in town.",
         "The Mart is just east past the path."
       ],
+      "dialogueKeys": [
+        "npc.pokemon.mira.line1",
+        "npc.pokemon.mira.line2"
+      ],
       "wanderRadius": 32
     },
     {
@@ -49,6 +53,10 @@
       "dialogue": [
         "Mart's been in my family three generations.",
         "Anything you need, we've got it."
+      ],
+      "dialogueKeys": [
+        "npc.pokemon.hank.line1",
+        "npc.pokemon.hank.line2"
       ],
       "wanderRadius": 32
     },
@@ -73,6 +81,10 @@
         "I'm waiting for the next showing at the cinema.",
         "Old monster movies tonight!"
       ],
+      "dialogueKeys": [
+        "npc.pokemon.riku.line1",
+        "npc.pokemon.riku.line2"
+      ],
       "wanderRadius": 32
     },
     {
@@ -94,6 +106,9 @@
       "name": "Sumi",
       "dialogue": [
         "Morning! Try the bakery while it's warm."
+      ],
+      "dialogueKeys": [
+        "npc.pokemon.sumi.line1"
       ],
       "wanderRadius": 32
     },
@@ -118,6 +133,10 @@
         "Hey, hey! Wanna race to that tree?",
         "...okay, fine, you win."
       ],
+      "dialogueKeys": [
+        "npc.pokemon.kit.line1",
+        "npc.pokemon.kit.line2"
+      ],
       "wanderRadius": 32
     },
     {
@@ -141,6 +160,10 @@
         "Construction's been going on for weeks.",
         "They never finish."
       ],
+      "dialogueKeys": [
+        "npc.pokemon.tomas.line1",
+        "npc.pokemon.tomas.line2"
+      ],
       "wanderRadius": 32
     },
     {
@@ -162,6 +185,9 @@
       "name": "Ada",
       "dialogue": [
         "I'm late for my shift. Excuse me!"
+      ],
+      "dialogueKeys": [
+        "npc.pokemon.ada.line1"
       ],
       "wanderRadius": 32
     },
@@ -185,6 +211,9 @@
       "dialogue": [
         "Have you seen a stray cat? Black with white socks."
       ],
+      "dialogueKeys": [
+        "npc.pokemon.jun.line1"
+      ],
       "wanderRadius": 32
     },
     {
@@ -206,6 +235,9 @@
       "name": "Pia",
       "dialogue": [
         "The cars get really fast around the bend. Be careful."
+      ],
+      "dialogueKeys": [
+        "npc.pokemon.pia.line1"
       ],
       "wanderRadius": 32
     },
@@ -229,6 +261,9 @@
       "dialogue": [
         "Did you bring your book back? Library closes at 6."
       ],
+      "dialogueKeys": [
+        "npc.pokemon.olek.line1"
+      ],
       "wanderRadius": 32
     },
     {
@@ -250,6 +285,9 @@
       "name": "Esme",
       "dialogue": [
         "Postal route takes forever today."
+      ],
+      "dialogueKeys": [
+        "npc.pokemon.esme.line1"
       ],
       "wanderRadius": 32
     },
@@ -273,6 +311,9 @@
       "dialogue": [
         "I just moved here. Still figuring out the streets."
       ],
+      "dialogueKeys": [
+        "npc.pokemon.bo.line1"
+      ],
       "wanderRadius": 32
     },
     {
@@ -294,6 +335,9 @@
       "name": "Nora",
       "dialogue": [
         "You look like you've been walking all morning."
+      ],
+      "dialogueKeys": [
+        "npc.pokemon.nora.line1"
       ],
       "wanderRadius": 32
     },
@@ -317,6 +361,9 @@
       "dialogue": [
         "I lost my keys somewhere on this street..."
       ],
+      "dialogueKeys": [
+        "npc.pokemon.reza.line1"
+      ],
       "wanderRadius": 32
     },
     {
@@ -338,6 +385,9 @@
       "name": "Yuki",
       "dialogue": [
         "Cinema's playing something foreign tonight. Subtitles!"
+      ],
+      "dialogueKeys": [
+        "npc.pokemon.yuki.line1"
       ],
       "wanderRadius": 32
     },
@@ -361,9 +411,13 @@
       "dialogue": [
         "Waiting on a delivery. They said before noon."
       ],
+      "dialogueKeys": [
+        "npc.pokemon.cleo.line1"
+      ],
       "wanderRadius": 32,
       "vocabularyPackId": "mira-pack-1",
-      "vocabularyOfferLine": "Oh — translator, right? Quick, while I wait on this delivery — help me with these words?"
+      "vocabularyOfferLine": "Oh — translator, right? Quick, while I wait on this delivery — help me with these words?",
+      "vocabularyOfferLineKey": "npc.pokemon.cleo.offer"
     },
     {
       "id": "pk-npc-17",
@@ -384,6 +438,9 @@
       "name": "Otis",
       "dialogue": [
         "That mart sells the best onigiri."
+      ],
+      "dialogueKeys": [
+        "npc.pokemon.otis.line1"
       ],
       "wanderRadius": 32
     },
@@ -407,9 +464,13 @@
       "dialogue": [
         "I should be at work but the weather is too nice."
       ],
+      "dialogueKeys": [
+        "npc.pokemon.saba.line1"
+      ],
       "wanderRadius": 32,
       "vocabularyPackId": "saba-pack-1",
       "vocabularyOfferLine": "Yo the translator! Help me drill these numbers please.",
+      "vocabularyOfferLineKey": "npc.pokemon.saba.offer",
       "vocabularyOfferAudio": "/assets/audio/saba_utterance.mp3"
     },
     {
@@ -431,6 +492,9 @@
       "name": "Theo",
       "dialogue": [
         "Need a hand? I lend small."
+      ],
+      "dialogueKeys": [
+        "dialogue.theo.lendStub"
       ],
       "wanderRadius": 32,
       "dialogueKind": "lender"
@@ -454,6 +518,9 @@
       "name": "Vera",
       "dialogue": [
         "Welcome to the neighborhood, friend."
+      ],
+      "dialogueKeys": [
+        "npc.pokemon.vera.line1"
       ],
       "wanderRadius": 32
     }

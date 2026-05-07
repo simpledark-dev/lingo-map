@@ -2,7 +2,7 @@ import { Application, Container, Sprite, Graphics, Text } from 'pixi.js';
 import { TileType, Entity, Building, CarDirection, Layer, MapLayer } from '../core/types';
 import { PLAYER_LAYER_ID } from '../core/constants';
 import { getEffectiveZIndex, isCarPathLayer, isObjectLayer, isTileLayer } from '../core/Layers';
-import { getTexture, getTileTexture, loadPackSingle, preloadAllAssets } from '../renderer/AssetLoader';
+import { getTexture, getTileTexture, loadInteriorSheets, loadPackSingle, preloadAllAssets } from '../renderer/AssetLoader';
 import { buildTransitionLayer } from '../renderer/TransitionTiles';
 import { loadAutoTileset, buildAutoTileLayer, isAutoTilesetReady } from '../renderer/AutoTileset';
 
@@ -149,9 +149,12 @@ export class EditorApp {
     this.worldContainer.addChild(this.previewContainer);
     this.app.stage.addChild(this.worldContainer);
 
-    // Load all assets (including the auto-tileset for grass↔water transitions)
+    // Load all assets (including the auto-tileset for grass↔water transitions
+    // and the Modern Interiors room-builder sheets so painted `mi:*` cells
+    // resolve through textureCache the same way placeholder tiles do).
     await preloadAllAssets();
     await loadAutoTileset();
+    await loadInteriorSheets();
 
     // Responsive resize
     const observer = new ResizeObserver((entries) => {

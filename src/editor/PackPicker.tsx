@@ -15,17 +15,46 @@ interface Props {
    * means it dispatches as an object (placed at click position on the layer). */
   activeLayerKind: 'tile' | 'object';
   dispatch: React.Dispatch<EditorAction>;
+  /** Themes-list API endpoint. Defaults to Modern Exteriors; override
+   *  to `/api/mi/themes` to point at the Modern Interiors furniture
+   *  symlink. */
+  themesEndpoint?: string;
+  /** Key prefix used when constructing the dispatched tile/object key.
+   *  `me:` for Modern Exteriors, `mi-s:` for Modern Interiors furniture
+   *  singles. The renderer's `loadPackSingle` reads the prefix to pick
+   *  the right asset folder. */
+  keyPrefix?: string;
+  /** URL prefix where the theme folders live on disk. Used for the
+   *  thumbnail `<img src>` so the picker's grid renders without
+   *  having to round-trip through `loadPackSingle`. */
+  thumbnailBase?: string;
+  /** localStorage key used to remember the user's last-selected
+   *  theme. Distinct per pack so switching tabs returns to whichever
+   *  theme they were browsing in that pack. */
+  storageKey?: string;
+  /** Thumbnail extension (`.png` by default; Modern Exteriors prod
+   *  bundle uses `.webp`). */
+  thumbnailExt?: string;
 }
 
 interface ThumbDims { w: number; h: number }
 
-/** localStorage key for the last-selected pack theme. Persisting it
- * means reloading the editor returns the user to whichever theme they
- * were working in (e.g. "5_City_Props_Singles_16x16") rather than always
- * snapping back to the first registered theme. */
+/** Default localStorage key for the Modern Exteriors pack. Each
+ * picker instance can override via the `storageKey` prop so two
+ * picker tabs (Pack + Furniture) don't fight over the same slot. */
 const PACK_THEME_KEY = 'editor:pack-theme';
 
-export default function PackPicker({ selectedTileType, selectedObjectKey, activeLayerKind, dispatch }: Props) {
+export default function PackPicker({
+  selectedTileType,
+  selectedObjectKey,
+  activeLayerKind,
+  dispatch,
+  themesEndpoint = '/api/me/themes',
+  keyPrefix = 'me:',
+  thumbnailBase = '/assets/me/',
+  thumbnailExt = '.png',
+  storageKey = PACK_THEME_KEY,
+}: Props) {
   const [themes, setThemes] = useState<string[]>([]);
   const [theme, setTheme] = useState<string | null>(null);
   // Tag the file list with the theme it came from so the render can ignore
@@ -39,33 +68,33 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, active
   // where the pack folder layout changed since their last session).
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/me/themes')
+    fetch(themesEndpoint)
       .then(r => r.json())
       .then((data: { themes?: string[] }) => {
         if (cancelled) return;
         const list = data.themes ?? [];
         setThemes(list);
         if (list.length === 0) return;
-        const saved = typeof window !== 'undefined' ? localStorage.getItem(PACK_THEME_KEY) : null;
+        const saved = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
         setTheme(saved && list.includes(saved) ? saved : list[0]);
       })
       .catch(err => console.warn('Failed to load themes:', err));
     return () => { cancelled = true; };
-  }, []);
+  }, [themesEndpoint, storageKey]);
 
   // Persist theme selection so the next page load restores it.
   useEffect(() => {
     if (!theme) return;
     if (typeof window === 'undefined') return;
-    try { localStorage.setItem(PACK_THEME_KEY, theme); } catch { /* quota / disabled */ }
-  }, [theme]);
+    try { localStorage.setItem(storageKey, theme); } catch { /* quota / disabled */ }
+  }, [theme, storageKey]);
 
   // Fetch the file list for the selected theme.
   useEffect(() => {
     if (!theme) return;
     let cancelled = false;
     setLoadingFiles(true);
-    fetch(`/api/me/themes/${encodeURIComponent(theme)}`)
+    fetch(`${themesEndpoint}/${encodeURIComponent(theme)}`)
       .then(r => r.json())
       .then((data: { files?: string[] }) => {
         if (cancelled) return;
@@ -98,12 +127,12 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, active
 
   const handlePick = useCallback((file: string) => {
     if (!theme) return;
-    const key = `me:${theme}/${file}`;
+    const key = `${keyPrefix}${theme}/${file}`;
     // Pre-load into PixiJS so painting / placing works on the next frame.
     void loadPackSingle(key);
     setPickedKey(key);
     dispatchPick(key, activeLayerKind);
-  }, [theme, activeLayerKind, dispatchPick]);
+  }, [theme, activeLayerKind, dispatchPick, keyPrefix]);
 
   // Re-dispatch the previously-picked key when the user activates a layer of
   // a different kind. Without this the editor would still be in the prior
@@ -181,7 +210,7 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, active
         {!loadingFiles && visibleFiles && visibleFiles.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 4 }}>
             {visibleFiles.map(f => {
-              const key = theme ? `me:${theme}/${f}` : '';
+              const key = theme ? `${keyPrefix}${theme}/${f}` : '';
               // Highlight whichever selection matches the active layer's
               // kind — picking a tile while a tile layer is active fills
               // selectedTileType; picking on an object layer fills
@@ -207,7 +236,7 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, active
                   }}
                 >
                   <img
-                    src={`/assets/me/${theme}/${f}.png`}
+                    src={`${thumbnailBase}${theme}/${f}${thumbnailExt}`}
                     alt={f}
                     loading="lazy"
                     style={{
@@ -235,8 +264,17 @@ export default function PackPicker({ selectedTileType, selectedObjectKey, active
 }
 
 function prettyName(folder: string): string {
-  // "1_Terrains_and_Fences_Singles_16x16" → "1. Terrains and Fences"
-  const stripped = folder.replace(/_Singles_16x16$/, '');
+  // Strip Modern Exteriors' `_Singles_16x16` suffix and Modern
+  // Interiors' `_Singles` (with the upstream-typo `_SInglesS`
+  // tolerated). Everything before that is the human-readable name.
+  // Examples:
+  //   "1_Terrains_and_Fences_Singles_16x16" → "1. Terrains and Fences"
+  //   "4_Bedroom_Singles"                   → "4. Bedroom"
+  //   "19_Hospital_SIngles"                 → "19. Hospital"
+  const stripped = folder
+    .replace(/_Singles_16x16$/, '')
+    .replace(/_S[Ii]ngles?$/, '')
+    .replace(/_S[Ii]nglesS?$/, '');
   const m = /^(\d+)_(.+)$/.exec(stripped);
   if (!m) return stripped.replace(/_/g, ' ');
   return `${m[1]}. ${m[2].replace(/_/g, ' ')}`;

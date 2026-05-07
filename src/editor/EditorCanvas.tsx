@@ -62,7 +62,13 @@ function snapXForSprite(col: number, spriteKey: string, tileSize: number): numbe
  * `tiles[][]`, which gives them free placement (any grid cell) and renders
  * them as a single sprite at native size — identical to Object mode. */
 function isMultiTilePackTile(tileType: string): boolean {
-  if (!tileType.startsWith('me:')) return false;
+  // Both Modern Exteriors (`me:`) and Modern Interiors furniture
+  // singles (`mi-s:`) can be larger than 16×16 — couches, beds,
+  // counters, etc. — and need the same "place as object on click,
+  // not as a single tile cell" behaviour the existing me: path
+  // gives. The mi: prefix (sliced 16×16 cells from sheets) does NOT
+  // count here — those are always 1×1 by construction.
+  if (!tileType.startsWith('me:') && !tileType.startsWith('mi-s:')) return false;
   const { cols, rows } = getPackTileCellDims(tileType);
   return cols > 1 || rows > 1;
 }
@@ -130,7 +136,7 @@ function stampMultiTileAsObject(
   layers: { id: string }[],
   dispatch: React.Dispatch<EditorAction>,
 ): boolean {
-  if (!tileType.startsWith('me:')) return false;
+  if (!tileType.startsWith('me:') && !tileType.startsWith('mi-s:')) return false;
   const { cols: N, rows: M } = getPackTileCellDims(tileType);
   if (N <= 1 && M <= 1) return false;
   const targetLayer = layers.find(l => l.id === 'floor')?.id ?? layers[0]?.id ?? 'floor';
@@ -149,6 +155,34 @@ function stampMultiTileAsObject(
     },
   });
   return true;
+}
+
+/** Stamp the active Modern Interiors rectangle at base-cell (row,col).
+ *  Each cell of the stamp footprint resolves to a unique sub-tile key
+ *  `mi:<sheetId>/<startCol+di>_<startRow+dj>`. Updates the editor's
+ *  visual canvas immediately so the player sees the stamp land, AND
+ *  records the per-cell tileType in `painted` so the deferred
+ *  STAMP_TILES dispatch on pointerup carries each cell's own type.
+ *  No-op if no stamp is active in `state`. */
+function applyStampAt(
+  row: number,
+  col: number,
+  state: { selectedTileStamp: { sheetId: string; startCol: number; startRow: number; width: number; height: number } | null; mapWidth: number; mapHeight: number },
+  painted: Map<string, string>,
+  app: { updateSingleTile: (row: number, col: number, tileType: string) => void } | null,
+): void {
+  const stamp = state.selectedTileStamp;
+  if (!stamp) return;
+  for (let dj = 0; dj < stamp.height; dj++) {
+    for (let di = 0; di < stamp.width; di++) {
+      const r = row + dj;
+      const c = col + di;
+      if (r < 0 || r >= state.mapHeight || c < 0 || c >= state.mapWidth) continue;
+      const tileType = `mi:${stamp.sheetId}/${stamp.startCol + di}_${stamp.startRow + dj}`;
+      painted.set(`${r},${c}`, tileType);
+      app?.updateSingleTile(r, c, tileType);
+    }
+  }
 }
 
 function initFromGameMap(): ReturnType<typeof createInitialState> {
@@ -232,6 +266,14 @@ export default function EditorCanvas() {
   // Paint drag state
   const isPaintingRef = useRef(false);
   const paintedCellsRef = useRef<Set<string>>(new Set());
+  // When a Modern Interiors rectangle stamp is active, every cell of
+  // the stamp footprint visited during this drag is recorded here as
+  // "row,col" -> tileType. On pointer-up we batch into a single
+  // STAMP_TILES dispatch instead of PAINT_TILES — STAMP_TILES carries
+  // a per-cell tileType so a 2×2 wall block paints four DIFFERENT
+  // sub-tile keys without losing them to PAINT_TILES's uniform-type
+  // contract.
+  const paintedStampCellsRef = useRef<Map<string, string>>(new Map());
 
   /** Native pointer events are primary, native mouse events are fallback.
    * Keep separate timestamps per event family: using pointer/mouse MOVE
@@ -809,13 +851,21 @@ export default function EditorCanvas() {
       if (getActiveTileLayer(s)?.locked) return;
       isPaintingRef.current = true;
       paintedCellsRef.current = new Set();
-      paintedCellsRef.current.add(`${row},${col}`);
-      // Multi-tile pack sources can't fit one cell — route them through
-      // object placement on the active layer so they render at native size
-      // at the click position (free placement, no cycle alignment).
-      if (isMultiTilePackTile(s.selectedTileType)) {
+      paintedStampCellsRef.current = new Map();
+      // Modern Interiors rectangle stamp wins over the legacy
+      // single-tile / multi-tile-pack paths. Each cell of the stamp
+      // footprint is updated visually now; the dispatch is batched
+      // on pointerup as a single STAMP_TILES action.
+      if (s.selectedTileStamp) {
+        applyStampAt(row, col, s, paintedStampCellsRef.current, editorAppRef.current);
+      } else if (isMultiTilePackTile(s.selectedTileType)) {
+        // Multi-tile pack sources can't fit one cell — route them through
+        // object placement on the active layer so they render at native size
+        // at the click position (free placement, no cycle alignment).
+        paintedCellsRef.current.add(`${row},${col}`);
         stampMultiTileAsObject(s.selectedTileType, row, col, s.tileSize, s.layers, dispatchRef.current);
       } else {
+        paintedCellsRef.current.add(`${row},${col}`);
         editorAppRef.current?.updateSingleTile(row, col, s.selectedTileType);
       }
       // We'll batch dispatch on pointer up
@@ -1324,24 +1374,37 @@ export default function EditorCanvas() {
 
     if (isPaintingRef.current) {
       const key = `${row},${col}`;
-      if (!paintedCellsRef.current.has(key)) {
-        paintedCellsRef.current.add(key);
-        // Drag-paint dispatch differs based on what kind of layer the
-        // user is painting on. Car-path drag stamps the currently-toggled
-        // direction set into each new cell; tile drag does optimistic
-        // visual updates batched into PAINT_TILES on pointerup.
-        const active = s.layers.find(l => l.id === s.activeLayerId);
-        if (active && active.kind === 'car-path') {
-          dispatchRef.current({ type: 'PAINT_CAR_CELL', row, col, exits: s.selectedCarDirections });
+      // Stamp drags dedupe on the BASE cell (top-left of the stamp
+      // footprint at this cursor position) — the per-cell map
+      // populated by applyStampAt naturally avoids re-painting the
+      // same footprint twice.
+      const stampInUse = s.selectedTileStamp != null && s.activeTool === 'tile';
+      const alreadyHere = stampInUse
+        ? paintedStampCellsRef.current.has(key)
+        : paintedCellsRef.current.has(key);
+      if (!alreadyHere) {
+        if (stampInUse) {
+          paintedStampCellsRef.current.set(key, '__base__');
+          applyStampAt(row, col, s, paintedStampCellsRef.current, editorAppRef.current);
         } else {
-          const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
-          // Multi-tile pack tiles drag-stamp as additional objects on
-          // the active layer (free placement); single-tile sources
-          // continue with normal cell-paint visual feedback.
-          if (s.activeTool === 'tile' && isMultiTilePackTile(tileType)) {
-            stampMultiTileAsObject(tileType, row, col, s.tileSize, s.layers, dispatchRef.current);
+          paintedCellsRef.current.add(key);
+          // Drag-paint dispatch differs based on what kind of layer the
+          // user is painting on. Car-path drag stamps the currently-toggled
+          // direction set into each new cell; tile drag does optimistic
+          // visual updates batched into PAINT_TILES on pointerup.
+          const active = s.layers.find(l => l.id === s.activeLayerId);
+          if (active && active.kind === 'car-path') {
+            dispatchRef.current({ type: 'PAINT_CAR_CELL', row, col, exits: s.selectedCarDirections });
           } else {
-            editorAppRef.current?.updateSingleTile(row, col, tileType);
+            const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
+            // Multi-tile pack tiles drag-stamp as additional objects on
+            // the active layer (free placement); single-tile sources
+            // continue with normal cell-paint visual feedback.
+            if (s.activeTool === 'tile' && isMultiTilePackTile(tileType)) {
+              stampMultiTileAsObject(tileType, row, col, s.tileSize, s.layers, dispatchRef.current);
+            } else {
+              editorAppRef.current?.updateSingleTile(row, col, tileType);
+            }
           }
         }
       }
@@ -1497,13 +1560,28 @@ export default function EditorCanvas() {
       return;
     }
 
-    if (isPaintingRef.current && paintedCellsRef.current.size > 0) {
+    if (
+      isPaintingRef.current &&
+      (paintedCellsRef.current.size > 0 || paintedStampCellsRef.current.size > 0)
+    ) {
       const s = stateRef.current;
       const active = s.layers.find(l => l.id === s.activeLayerId);
       // Car-path painting already fired PAINT_CAR_CELL per cell during
       // the drag — nothing to batch on pointerup.
       if (active && active.kind === 'car-path') {
         // no-op
+      } else if (s.selectedTileStamp && paintedStampCellsRef.current.size > 0) {
+        // Stamp paint: each cell already carries its own tileType
+        // (recorded by applyStampAt). Filter out the "__base__"
+        // sentinels — those were just bookkeeping for drag dedupe,
+        // not real painted cells.
+        const cells: { row: number; col: number; tileType: string }[] = [];
+        for (const [key, tileType] of paintedStampCellsRef.current) {
+          if (tileType === '__base__') continue;
+          const [r, c] = key.split(',').map(Number);
+          cells.push({ row: r, col: c, tileType });
+        }
+        if (cells.length > 0) dispatchRef.current({ type: 'STAMP_TILES', cells });
       } else {
         const tileType = s.activeTool === 'eraser' ? TileType.VOID : s.selectedTileType;
         // Multi-tile pack tiles already placed individual objects per cell
@@ -1518,6 +1596,7 @@ export default function EditorCanvas() {
       }
       isPaintingRef.current = false;
       paintedCellsRef.current.clear();
+      paintedStampCellsRef.current.clear();
     }
   }, []);
 

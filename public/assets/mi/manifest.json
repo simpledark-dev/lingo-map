@@ -1,0 +1,53 @@
+{
+  "tileSize": 16,
+  "sheets": [
+    {
+      "id": "walls",
+      "image": "/assets/mi/walls.png",
+      "cols": 32,
+      "rows": 40,
+      "marginX": 0,
+      "marginY": 0,
+      "spacingX": 0,
+      "spacingY": 0,
+      "blocking": true,
+      "label": "Walls"
+    },
+    {
+      "id": "floors",
+      "image": "/assets/mi/floors.png",
+      "cols": 15,
+      "rows": 40,
+      "marginX": 0,
+      "marginY": 0,
+      "spacingX": 0,
+      "spacingY": 0,
+      "blocking": false,
+      "label": "Floors"
+    },
+    {
+      "id": "baseboards",
+      "image": "/assets/mi/baseboards.png",
+      "cols": 6,
+      "rows": 6,
+      "marginX": 0,
+      "marginY": 0,
+      "spacingX": 0,
+      "spacingY": 0,
+      "blocking": true,
+      "label": "Baseboards"
+    },
+    {
+      "id": "borders",
+      "image": "/assets/mi/borders.png",
+      "cols": 45,
+      "rows": 10,
+      "marginX": 0,
+      "marginY": 0,
+      "spacingX": 0,
+      "spacingY": 0,
+      "blocking": true,
+      "label": "Borders (windows, door units)"
+    }
+  ]
+}

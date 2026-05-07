@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "pack:bundle": "node scripts/bundle-pack-assets.mjs",
+    "mi-s:bundle": "node scripts/bundle-mi-singles.mjs",
     "test:maps": "node scripts/test-map-roundtrip.mjs",
     "test": "vitest run",
     "test:watch": "vitest"

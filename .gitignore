@@ -49,6 +49,9 @@ docs/TODO.txt
 docs/IDEAS.txt
 
 moderninteriors-win
+# Symlink to Theme_Sorter_Singles inside moderninteriors-win; gitignored
+# for the same licensing reasons as the Modern Exteriors symlink above.
+public/assets/mi-singles
 
 # Editor save-backup rotation + atomic-write tmp files
 # (data/<id>.json.bak, .json.bak1, .json.bak2, .json.tmp).

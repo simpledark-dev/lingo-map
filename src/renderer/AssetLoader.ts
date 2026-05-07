@@ -24,10 +24,29 @@ const PACK_EXT = PACK_BASE.includes('me-bundle') ? '.webp' : '.png';
 
 const packPromises = new Map<string, Promise<Texture | null>>();
 
-/** Resolve a pack key to its public URL. Returns null if not a pack key. */
+/** Modern Interiors single-asset folder. Dev points at the gitignored
+ *  symlink that mirrors Limezu's `Theme_Sorter_Singles` (~21MB total);
+ *  production points at the committed `mi-singles-bundle/` subset
+ *  that `npm run mi-s:bundle` builds from `data/*.json` references.
+ *  Same dev/prod split as `PACK_BASE`, but no .webp encoding —
+ *  interior furniture PNGs are typically <2KB each so the savings
+ *  don't justify a sharp dependency in the bundle script. */
+const MI_SINGLES_BASE = process.env.NODE_ENV === 'production'
+  ? '/assets/mi-singles-bundle/'
+  : '/assets/mi-singles/';
+
+/** Resolve a pack key to its public URL. Returns null if not a pack key.
+ *  Two prefixes are recognised:
+ *    `me:<theme>/<file>`   → Modern Exteriors single (PACK_BASE)
+ *    `mi-s:<theme>/<file>` → Modern Interiors furniture single (MI_SINGLES_BASE)
+ *  Both follow the same theme/file convention; the prefix selects the
+ *  source folder + extension. Both prefixes resolve through this
+ *  function so the rest of `loadPackSingle` / `loadAssets` doesn't
+ *  branch on which pack the key came from. */
 function packKeyToUrl(key: string): string | null {
-  if (!key.startsWith('me:')) return null;
-  return `${PACK_BASE}${key.slice(3)}${PACK_EXT}`;
+  if (key.startsWith('me:')) return `${PACK_BASE}${key.slice(3)}${PACK_EXT}`;
+  if (key.startsWith('mi-s:')) return `${MI_SINGLES_BASE}${key.slice(5)}.png`;
+  return null;
 }
 
 /** Lazy-load a pack single by its key. Idempotent. Texture is cached in
@@ -215,6 +234,113 @@ const spriteManifest: Record<string, string> = {
   'bush': `${ASSET_BASE}bush.webp`,
 };
 
+// ── Modern Interiors room-builder sheets (mi:) ────────────────────────
+// Loads each big PNG once and slices it into a flat grid of 16×16
+// sub-textures keyed `mi:<sheetId>/<col>_<row>`. The renderer's
+// `getTileTexture` call then resolves them through the same
+// textureCache lookup used for everything else, so painted cells in
+// the editor light up without further integration.
+//
+// Why slice on a manifest instead of one PNG per cell:
+//   - One HTTP request per sheet (~50–600KB) is cheaper than 1280
+//     individual PNGs.
+//   - All slices share the same Pixi BaseTexture, so GPU memory cost
+//     is paid once per sheet, not per cell.
+//   - Manifest-driven margins/spacing handle Limezu sheets with
+//     non-trivial padding without code changes.
+//
+// `blocking: true` flags every cell of a sheet as collision-blocking.
+// Floors are flagged false; walls/baseboards true. CollisionSystem
+// reads the prefix at runtime — no per-cell entries needed.
+// Per-cell overrides will land alongside the in-editor collision
+// toggle that already exists for entities.
+
+interface InteriorSheet {
+  id: string;
+  image: string;
+  cols: number;
+  rows: number;
+  marginX: number;
+  marginY: number;
+  spacingX: number;
+  spacingY: number;
+  blocking: boolean;
+  label: string;
+}
+
+interface InteriorManifest {
+  tileSize: number;
+  sheets: InteriorSheet[];
+}
+
+let interiorManifest: InteriorManifest | null = null;
+let interiorPromise: Promise<InteriorManifest | null> | null = null;
+const blockingSheetIds = new Set<string>();
+
+/** Load + slice every Modern Interiors sheet listed in the manifest.
+ *  Idempotent — the in-flight promise is returned on subsequent
+ *  calls so editor + game can both call this without duplicate
+ *  network. Resolves to the manifest (so callers can drive UI off
+ *  it) or null if the manifest is missing / fails to parse. */
+export function loadInteriorSheets(): Promise<InteriorManifest | null> {
+  if (interiorPromise) return interiorPromise;
+  interiorPromise = (async () => {
+    try {
+      const res = await fetch('/assets/mi/manifest.json');
+      if (!res.ok) throw new Error(`mi manifest HTTP ${res.status}`);
+      const manifest = (await res.json()) as InteriorManifest;
+      const tileSize = manifest.tileSize ?? 16;
+      // Load every sheet in parallel — small enough that we don't
+      // need to lazy-stagger them.
+      await Promise.all(manifest.sheets.map(async (sheet) => {
+        try {
+          const sheetTex = await Assets.load<Texture>(sheet.image);
+          // Pixel art — disable bilinear filtering BEFORE slicing so
+          // every sub-texture inherits nearest-neighbour scaling.
+          sheetTex.source.scaleMode = 'nearest';
+          for (let row = 0; row < sheet.rows; row++) {
+            for (let col = 0; col < sheet.cols; col++) {
+              const x = sheet.marginX + col * (tileSize + sheet.spacingX);
+              const y = sheet.marginY + row * (tileSize + sheet.spacingY);
+              const sub = new Texture({
+                source: sheetTex.source,
+                frame: new Rectangle(x, y, tileSize, tileSize),
+              });
+              textureCache.set(`mi:${sheet.id}/${col}_${row}`, sub);
+            }
+          }
+          if (sheet.blocking) blockingSheetIds.add(sheet.id);
+        } catch (err) {
+          console.warn(`Failed to load Modern Interiors sheet "${sheet.id}":`, err);
+        }
+      }));
+      interiorManifest = manifest;
+      return manifest;
+    } catch (err) {
+      console.warn('Failed to load Modern Interiors manifest:', err);
+      return null;
+    }
+  })();
+  return interiorPromise;
+}
+
+/** Sync accessor for the manifest. Returns null until
+ *  `loadInteriorSheets` has resolved. Callers in render loops should
+ *  fall back gracefully when null — usually that just means the
+ *  loader hasn't finished yet, render will retry next frame. */
+export function getInteriorManifest(): InteriorManifest | null {
+  return interiorManifest;
+}
+
+/** True if the given tile key belongs to a sheet whose `blocking`
+ *  flag is set. CollisionSystem uses this for `mi:` keys; the legacy
+ *  TileType walls keep their hardcoded checks. */
+export function isInteriorTileBlocking(tileType: string): boolean {
+  if (!tileType.startsWith('mi:')) return false;
+  const sheetId = tileType.slice(3, tileType.indexOf('/'));
+  return blockingSheetIds.has(sheetId);
+}
+
 // Modern Interiors premade-character textures load from a single
 // atlas PNG (`me-char-atlas.png`) in `loadCharacterAtlas` below — see
 // scripts/slice-premade-characters.mjs for how the atlas is baked.
@@ -234,8 +360,18 @@ export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Text
 
   for (const key of spriteKeys) {
     if (textureCache.has(key)) continue;
-    if (key.startsWith('me:')) {
+    if (key.startsWith('me:') || key.startsWith('mi-s:')) {
       packKeys.push(key);
+      continue;
+    }
+    if (key.startsWith('mi:')) {
+      // Modern Interiors sub-tiles are sliced into textureCache by
+      // loadInteriorSheets() at boot. If we land here it's because
+      // the manifest wasn't loaded before this map's tiles asked for
+      // their textures — kick the loader, then skip. The renderer's
+      // per-frame retry in getTileTexture will fill in once the
+      // sheets resolve.
+      void loadInteriorSheets();
       continue;
     }
     const path = spriteManifest[key];
@@ -349,7 +485,17 @@ export function getPackTileCellDims(key: string): { cols: number; rows: number }
  * auto-aligns. Pack singles (`me:<theme>/<file>`) resolve to a full PNG under
  * `/assets/me/`, lazy-loaded on first request. */
 export function getTileTexture(tileType: string, row: number, col: number): Texture | undefined {
-  if (tileType.startsWith('me:')) {
+  if (tileType.startsWith('mi:')) {
+    // Modern Interiors sub-tiles are sliced into textureCache by
+    // loadInteriorSheets() at boot. If the sheet hasn't finished
+    // loading yet, kick the load and return undefined — the
+    // renderer naturally retries next frame.
+    const cached = textureCache.get(tileType);
+    if (cached) return cached;
+    void loadInteriorSheets();
+    return undefined;
+  }
+  if (tileType.startsWith('me:') || tileType.startsWith('mi-s:')) {
     const cached = textureCache.get(tileType);
     if (!cached) {
       void loadPackSingle(tileType); // kick off load, render will retry next frame

@@ -56,7 +56,18 @@ function collidesWithTiles(map: MapData, box: WorldBox): boolean {
         tile === TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT ||
         tile === TileType.WALL_BRICK ||
         tile === TileType.WATER ||
-        tile === TileType.VOID
+        tile === TileType.VOID ||
+        // Modern Interiors painted tiles — every cell of the
+        // walls/baseboards/borders sheets blocks; floors don't.
+        // Borders carry windows + door-unit decals that sit IN a
+        // wall cell, so they must block for the same reason walls
+        // do (the player would otherwise walk through the window).
+        // Keeping this an inline prefix check matches the rest of
+        // the rule and lets src/core/ stay free of renderer-layer
+        // imports.
+        tile.startsWith('mi:walls/') ||
+        tile.startsWith('mi:baseboards/') ||
+        tile.startsWith('mi:borders/')
       ) return true;
     }
   }

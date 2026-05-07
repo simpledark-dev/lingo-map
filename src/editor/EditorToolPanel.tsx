@@ -5,6 +5,7 @@ import { TileType } from '../core/types';
 import { EditorAction, EditorState, getAllObjects } from './editorState';
 import { TILE_ITEMS, OBJECT_CATEGORIES, BUILDING_ITEMS } from './objectDefaults';
 import PackPicker from './PackPicker';
+import InteriorPicker from './InteriorPicker';
 import { getTexture } from '../renderer/AssetLoader';
 import { CAR_SPRITE_SETS } from '../core/CarSystem';
 
@@ -13,7 +14,7 @@ interface Props {
   dispatch: React.Dispatch<EditorAction>;
 }
 
-type PaletteTab = 'placeholder' | 'pack';
+type PaletteTab = 'placeholder' | 'pack' | 'interiors' | 'furniture';
 
 export default function EditorToolPanel({ state, dispatch }: Props) {
   const [paletteTab, setPaletteTab] = useState<PaletteTab>('pack');
@@ -263,9 +264,11 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
 
       {/* Palette source tabs — Placeholder (the local sprite sets we built up
           while prototyping) vs. Pack (Modern Exteriors master sheets). */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #333', paddingBottom: 6 }}>
+      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #333', paddingBottom: 6, flexWrap: 'wrap' }}>
         <PaletteTab active={paletteTab === 'placeholder'} onClick={() => setPaletteTab('placeholder')} label="Placeholder" />
         <PaletteTab active={paletteTab === 'pack'}        onClick={() => setPaletteTab('pack')}        label="Pack" />
+        <PaletteTab active={paletteTab === 'interiors'}   onClick={() => setPaletteTab('interiors')}   label="Interiors" />
+        <PaletteTab active={paletteTab === 'furniture'}   onClick={() => setPaletteTab('furniture')}   label="Furniture" />
       </div>
 
       {/* Palette content fills the remaining vertical space and scrolls
@@ -273,6 +276,30 @@ export default function EditorToolPanel({ state, dispatch }: Props) {
       <div style={{ flex: 1, minHeight: 0, overflow: paletteTab === 'placeholder' ? 'auto' : 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {paletteTab === 'placeholder' && (
           <PlaceholderPalette state={state} dispatch={dispatch} />
+        )}
+
+        {paletteTab === 'interiors' && (
+          <InteriorPicker
+            selectedStamp={state.selectedTileStamp}
+            dispatch={dispatch}
+          />
+        )}
+
+        {paletteTab === 'furniture' && (
+          <PackPicker
+            selectedTileType={state.selectedTileType}
+            selectedObjectKey={state.selectedObjectKey}
+            activeLayerKind={(() => {
+              const k = state.layers.find(l => l.id === state.activeLayerId)?.kind;
+              return k === 'tile' ? 'tile' : 'object';
+            })()}
+            dispatch={dispatch}
+            themesEndpoint="/api/mi/themes"
+            keyPrefix="mi-s:"
+            thumbnailBase="/assets/mi-singles/"
+            thumbnailExt=".png"
+            storageKey="editor:furniture-theme"
+          />
         )}
 
         {paletteTab === 'pack' && (

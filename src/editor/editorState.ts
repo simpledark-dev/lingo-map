@@ -12,6 +12,21 @@ export interface EditorState {
 
   activeTool: 'tile' | 'object' | 'building' | 'select' | 'eraser' | 'area-erase' | 'area-select' | 'car-path';
   selectedTileType: string;
+  /** Optional rectangle-stamp overlay on top of `selectedTileType`. When
+   *  set (via the Modern Interiors palette's drag-pick), every paint
+   *  click stamps a `width×height` rectangle starting at the cursor
+   *  cell, with each cell of the stamp resolving to a unique sub-tile
+   *  key `mi:<sheetId>/<startCol+di>_<startRow+dj>`. Lets the player
+   *  pick a multi-cell wall section in the sheet and paint it as one
+   *  unit so 2-tall walls don't end up "cut in half". Null means the
+   *  paint code falls back to the legacy single-tile path. */
+  selectedTileStamp: {
+    sheetId: string;
+    startCol: number;
+    startRow: number;
+    width: number;
+    height: number;
+  } | null;
   selectedObjectKey: string | null;
   selectedBuildingKey: string | null;
   /** Currently-selected entity IDs (objects or building). Plural so users can
@@ -87,6 +102,7 @@ export function createInitialState(width = 50, height = 50): EditorState {
     buildings: [],
     activeTool: 'tile',
     selectedTileType: TileType.DIRT,
+    selectedTileStamp: null,
     selectedObjectKey: null,
     selectedBuildingKey: null,
     selectedObjectIds: [],
@@ -169,6 +185,8 @@ export function getActiveTiles(state: EditorState): string[][] {
 export type EditorAction =
   | { type: 'SET_TILE'; row: number; col: number; tileType: string }
   | { type: 'PAINT_TILES'; cells: { row: number; col: number }[]; tileType: string }
+  | { type: 'STAMP_TILES'; cells: { row: number; col: number; tileType: string }[] }
+  | { type: 'SET_SELECTED_TILE_STAMP'; stamp: EditorState['selectedTileStamp'] }
   | { type: 'CLEAR_AREA'; row1: number; col1: number; row2: number; col2: number }
   | { type: 'SET_SELECTION_AREA'; area: { row1: number; col1: number; row2: number; col2: number } | null }
   | { type: 'MOVE_AREA'; sourceArea: { row1: number; col1: number; row2: number; col2: number }; dRow: number; dCol: number }
@@ -426,6 +444,46 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         redoStack: [],
       };
     }
+
+    case 'STAMP_TILES': {
+      // Like PAINT_TILES but each cell carries its own tileType — used
+      // by the Modern Interiors rectangle-stamp so a 2×2 wall block
+      // paints four DIFFERENT sub-tile keys (top-left, top-right,
+      // bottom-left, bottom-right) in a single action and a single
+      // undo step. PAINT_TILES couldn't do this without changing its
+      // contract; keeping them separate avoids breaking every caller.
+      const { cells } = action;
+      if (isActiveTileLayerLocked(state)) return state;
+      const primary = getActiveTileLayer(state);
+      if (!primary) return state;
+      const oldCells: { row: number; col: number; oldType: string; newType: string }[] = [];
+      const newTiles = primary.tiles.map(r => [...r]);
+      for (const { row, col, tileType } of cells) {
+        if (row < 0 || row >= state.mapHeight || col < 0 || col >= state.mapWidth) continue;
+        const oldType = newTiles[row][col];
+        if (oldType !== tileType) {
+          oldCells.push({ row, col, oldType, newType: tileType });
+          newTiles[row][col] = tileType;
+        }
+      }
+      if (oldCells.length === 0) return state;
+      return {
+        ...withActiveTileGrid(state, () => newTiles),
+        undoStack: [...state.undoStack, { type: 'STAMP_TILES', data: { cells: oldCells } }],
+        redoStack: [],
+      };
+    }
+
+    case 'SET_SELECTED_TILE_STAMP':
+      // Setting a stamp implicitly switches to the tile tool — the
+      // stamp is meaningless outside paint mode. Clear the legacy
+      // single-tile selection so the canvas's stamp branch wins on
+      // the next click without a stale single-tile fall-through.
+      return {
+        ...state,
+        selectedTileStamp: action.stamp,
+        activeTool: action.stamp ? 'tile' : state.activeTool,
+      };
 
     case 'CLEAR_AREA': {
       // Reset every tile in the rectangle to GRASS and remove any objects /
@@ -978,7 +1036,10 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     }
 
     case 'SET_SELECTED_TILE':
-      return { ...state, selectedTileType: action.tileType, activeTool: 'tile' };
+      // Clear any active interior stamp — picking a single tile means
+      // the player wants single-cell painting, not the previous
+      // multi-cell stamp.
+      return { ...state, selectedTileType: action.tileType, selectedTileStamp: null, activeTool: 'tile' };
 
     case 'SET_SELECTED_OBJECT':
       return { ...state, selectedObjectKey: action.spriteKey, activeTool: 'object' };
@@ -1359,6 +1420,19 @@ function applyUndo(state: EditorState, entry: UndoEntry, newUndo: UndoEntry[]): 
       });
       return { ...next, undoStack: newUndo, redoStack: [...state.redoStack, { type: 'PAINT_TILES', data: { cells: redoCells, tileType } }] };
     }
+    case 'STAMP_TILES': {
+      const { cells } = data as { cells: { row: number; col: number; oldType: string; newType: string }[] };
+      const redoCells: { row: number; col: number; tileType: string }[] = [];
+      const next = withActiveTileGrid(state, tiles => {
+        const grid = tiles.map(r => [...r]);
+        for (const { row, col, oldType, newType } of cells) {
+          redoCells.push({ row, col, tileType: newType });
+          grid[row][col] = oldType;
+        }
+        return grid;
+      });
+      return { ...next, undoStack: newUndo, redoStack: [...state.redoStack, { type: 'STAMP_TILES', data: { cells: redoCells } }] };
+    }
     case 'CLEAR_AREA': {
       const { oldCells, removedObjects, removedBuildings } = data as {
         oldCells: { row: number; col: number; oldType: string }[];
@@ -1641,6 +1715,19 @@ function applyRedo(state: EditorState, entry: UndoEntry, newRedo: UndoEntry[]): 
         return grid;
       });
       return { ...next, redoStack: newRedo, undoStack: [...state.undoStack, { type: 'PAINT_TILES', data: { oldCells, tileType } }] };
+    }
+    case 'STAMP_TILES': {
+      const { cells } = data as { cells: { row: number; col: number; tileType: string }[] };
+      const undoCells: { row: number; col: number; oldType: string; newType: string }[] = [];
+      const next = withActiveTileGrid(state, tiles => {
+        const grid = tiles.map(r => [...r]);
+        for (const { row, col, tileType } of cells) {
+          undoCells.push({ row, col, oldType: grid[row][col], newType: tileType });
+          grid[row][col] = tileType;
+        }
+        return grid;
+      });
+      return { ...next, redoStack: newRedo, undoStack: [...state.undoStack, { type: 'STAMP_TILES', data: { cells: undoCells } }] };
     }
     case 'CLEAR_AREA_REDO': {
       const { oldCells, removedObjects, removedBuildings } = data as {

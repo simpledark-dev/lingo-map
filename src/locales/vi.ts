@@ -146,7 +146,7 @@ export const vi: Record<string, string> = {
   "dialogue.mim.giveSandwich": "Đưa bánh mì 🥪",
   "dialogue.mim.notYet": "Con chờ thêm chút nữa",
   "dialogue.mim.preFirstPaycheck": "Ba ơi… mình ổn chứ ba?",
-  "dialogue.mim.thanksNow": "Dạ! Cảm ơn ba!",
+  "dialogue.mim.thanksNow": "Ngon quá! Cảm ơn ba!",
   "dialogue.mim.noSandwich": "Ơ? Đâu ạ? Ba chưa mua mà…",
 
   // ── Translator-offer ──
