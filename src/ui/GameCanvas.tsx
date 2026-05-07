@@ -1770,13 +1770,13 @@ export default function GameCanvas() {
             @keyframes lingoMapSpin { to { transform: rotate(360deg); } }
             @keyframes lingoMapPulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
             /* Character 7 walk-down cycle: idle → walk1 → idle → walk2.
-               Atlas is 192×640 at native scale; at 4× we display 768×2560
+               Atlas is 512×640 at native scale; at 4× we display 2048×2560
                and the down row sits at y=192 → -768px in 4× space. */
             @keyframes lingoMapWalkDown {
               0%, 24.99%  { background-position:    0px -768px; }
-              25%, 49.99% { background-position:  -64px -768px; }
+              25%, 49.99% { background-position: -384px -768px; }
               50%, 74.99% { background-position:    0px -768px; }
-              75%, 100%   { background-position: -128px -768px; }
+              75%, 100%   { background-position: -448px -768px; }
             }
           `}</style>
           <div
@@ -1809,7 +1809,7 @@ export default function GameCanvas() {
               height: 128,
               backgroundImage: "url(/assets/me-char-atlas.webp)",
               backgroundRepeat: "no-repeat",
-              backgroundSize: "768px 2560px",
+              backgroundSize: "2048px 2560px",
               imageRendering: "pixelated",
               animation: "lingoMapWalkDown 0.6s steps(1, end) infinite",
             }}

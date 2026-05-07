@@ -15,6 +15,8 @@ import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
 // things like lampposts" preference.
 const MIN_OCCLUDER_WIDTH = 75;
 const MIN_OCCLUDER_HEIGHT = 32;
+const IDLE_FRAME_COUNT = 6;
+const IDLE_FRAME_DURATION = 0.28; // seconds per frame; slow enough to read as breathing
 
 interface AnimData {
   baseX: number;
@@ -144,9 +146,12 @@ export class RenderSystem {
   // Player walk animation state
   private playerWalkTimer = 0;
   private playerWalkFrame = 0; // 0 = idle, 1 = walk1, 2 = walk2
+  private playerIdleTimer = 0;
+  private playerIdleFrame = 0;
   private playerLastX = 0;
   private playerLastY = 0;
   private readonly WALK_FRAME_DURATION = 0.15; // seconds per frame
+  private npcMotion = new Map<string, { facing: Direction; walking: boolean; walkFrame: 0 | 1 }>();
 
   constructor(app: Application) {
     this.app = app;
@@ -254,6 +259,7 @@ export class RenderSystem {
     this.objectSprites.clear();
     this.buildingBaseSprites.clear();
     this.npcSprites.clear();
+    this.npcMotion.clear();
     this.roofSprites.clear();
     this.occludingObjectSprites.clear();
     this.treeAnims.clear();
@@ -360,6 +366,7 @@ export class RenderSystem {
       sprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, npc.sortY);
       this.entityLayer.addChild(sprite);
       this.npcSprites.set(npc.id, sprite);
+      this.npcMotion.set(npc.id, { facing: 'down', walking: false, walkFrame: 0 });
 
       // NPC idle bob — very subtle vertical movement
       npcSeed = (npcSeed * 1103515245 + 12345) & 0x7fffffff;
@@ -508,6 +515,10 @@ export class RenderSystem {
     this.playerSprite.anchor.set(player.anchor.x, player.anchor.y);
     this.playerSprite.x = player.x;
     this.playerSprite.y = player.y;
+    this.playerLastX = player.x;
+    this.playerLastY = player.y;
+    this.playerIdleTimer = 0;
+    this.playerIdleFrame = 0;
     const layers = this.currentMap ? getLayers(this.currentMap) : [];
     this.playerSprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, player.sortY);
     this.entityLayer.addChild(this.playerSprite);
@@ -527,6 +538,8 @@ export class RenderSystem {
     let spriteKey = player.spriteKey; // e.g. 'player-down'
 
     if (isMoving && delta > 0) {
+      this.playerIdleTimer = 0;
+      this.playerIdleFrame = 0;
       this.playerWalkTimer += delta;
       if (this.playerWalkTimer >= this.WALK_FRAME_DURATION) {
         this.playerWalkTimer -= this.WALK_FRAME_DURATION;
@@ -538,9 +551,19 @@ export class RenderSystem {
       }
       // frame 1 = idle (use base spriteKey, already set)
     } else {
-      // Standing still — reset to idle
+      // Standing still — cycle through the Modern Interiors idle
+      // frames when available. Legacy sprites fall back to the base
+      // directional texture below.
       this.playerWalkTimer = 0;
       this.playerWalkFrame = 0;
+      if (delta > 0) {
+        this.playerIdleTimer += delta;
+        while (this.playerIdleTimer >= IDLE_FRAME_DURATION) {
+          this.playerIdleTimer -= IDLE_FRAME_DURATION;
+          this.playerIdleFrame = (this.playerIdleFrame + 1) % IDLE_FRAME_COUNT;
+        }
+      }
+      spriteKey = `${player.spriteKey}-idle${this.playerIdleFrame + 1}`;
     }
 
     // Try walk frame, fall back to base sprite if not found
@@ -883,9 +906,9 @@ export class RenderSystem {
   /** Update an NPC sprite's position (for wandering). When the NPC's
    *  spriteKey resolves to a directional set (`<key>-<dir>` exists),
    *  the renderer also swaps the texture based on `facing` and the
-   *  walking-frame state — alternating idle ↔ walk1, same convention
-   *  as the player. Legacy single-texture NPCs ignore the directional
-   *  args and keep their static texture. */
+   *  walking-frame state. Idle frames are advanced in updateAnimations
+   *  so static NPCs animate too. Legacy single-texture NPCs ignore the
+   *  directional args and keep their static texture. */
   updateNPC(
     npcId: string,
     x: number,
@@ -910,6 +933,11 @@ export class RenderSystem {
     // sprite set. We probe `<key>-down` once to decide; if absent, we
     // leave the original (legacy) texture untouched.
     if (!facing) return;
+    this.npcMotion.set(npcId, {
+      facing,
+      walking: walking === true,
+      walkFrame: walkFrame ?? 0,
+    });
     const npc = this.currentMap?.npcs.find(n => n.id === npcId);
     if (!npc) return;
     const baseDir = getTexture(`${npc.spriteKey}-${facing}`);
@@ -980,6 +1008,23 @@ export class RenderSystem {
       }
       sprite.y = entry.baseY + bob;
       if (label) label.y = entry.labelBaseY + bob;
+    }
+
+    // Modern Interiors NPC idle texture loop. Static NPCs default to
+    // facing down; wandering NPCs keep the last facing reported by
+    // NPCWanderSystem.
+    for (const npc of this.currentMap?.npcs ?? []) {
+      const sprite = this.npcSprites.get(npc.id);
+      if (!sprite) continue;
+      const motion = this.npcMotion.get(npc.id) ?? { facing: 'down' as Direction, walking: false, walkFrame: 0 as 0 | 1 };
+      if (motion.walking) continue;
+      const baseDir = getTexture(`${npc.spriteKey}-${motion.facing}`);
+      if (!baseDir) continue;
+      const anim = this.npcAnims.get(npc.id);
+      const phase = anim?.phase ?? 0;
+      const frame = Math.floor((time + phase) / IDLE_FRAME_DURATION) % IDLE_FRAME_COUNT;
+      const tex = getTexture(`${npc.spriteKey}-${motion.facing}-idle${frame + 1}`) ?? baseDir;
+      sprite.texture = tex;
     }
 
     // NPC idle bob — disabled temporarily

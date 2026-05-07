@@ -1,13 +1,11 @@
 // Bakes all 20 Modern Interiors premade-character sheets into a
 // single atlas PNG + JSON manifest at public/assets/me-char-atlas.*.
-// The atlas is laid out as a 12 × 20 grid of 16×32 cells:
+// The atlas is laid out as a 32 × 20 grid of 16×32 cells:
 //   row r       = character r+1 (1..20)
-//   cols 0..2   = down (idle, walk1, walk2)
-//   cols 3..5   = up   (idle, walk1, walk2)
-//   cols 6..8   = left (idle, walk1, walk2)
-//   cols 9..11  = right(idle, walk1, walk2)
+//   per dir     = base/idle1, idle2, idle3, idle4, idle5, idle6, walk1, walk2
+//   dirs        = down, up, left, right
 // At runtime AssetLoader fetches the atlas ONCE and synthesises the
-// 240 named textures by frame Rectangle, replacing 240 individual
+// named textures by frame Rectangle, replacing hundreds of individual
 // PNG fetches that used to dominate cold start.
 //
 // Source-sheet layout (Premade_Character_NN.png, verified by visual
@@ -17,7 +15,7 @@
 //   row 2 = walk anim, 6 frames per direction
 //   direction order along source row:
 //     RIGHT (cols 0-5), UP (6-11), LEFT (12-17), DOWN (18-23)
-import { createCanvas, loadImage } from 'canvas';
+import sharp from 'sharp';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -30,13 +28,13 @@ const ATLAS_JSON = path.join(OUT_DIR, 'me-char-atlas.json');
 const CELL_W = 16;
 const CELL_H = 32;
 const NUM_CHARACTERS = 20;
-// Output atlas grid: 12 frames per character (4 dirs × 3 frames).
-const ATLAS_COLS = 12;
+// Output atlas grid: 32 frames per character (4 dirs × 8 unique frame slots).
+const ATLAS_COLS = 32;
 const ATLAS_ROWS = NUM_CHARACTERS;
 
 // Source-sheet column offsets per direction. Each direction is 6
-// adjacent frames in the source; we sample idx 0 (idle) and idx 1/4
-// (mid-stride alternating-leg poses) for the 3 atlas frames.
+// adjacent frames in the source. Row 1 contains the full idle loop;
+// row 2 contains the walk loop.
 const SRC_DIRS = [
   { name: 'right', base: 0  },
   { name: 'up',    base: 6  },
@@ -49,13 +47,10 @@ const SRC_DIRS = [
 // atlas PNG. The runtime keys read the manifest, not the order, so
 // rearranging this list never breaks the renderer.
 const ATLAS_DIR_ORDER = ['down', 'up', 'left', 'right'];
-const FRAME_SUFFIX = ['', '-walk1', '-walk2'];
-
-const atlas = createCanvas(ATLAS_COLS * CELL_W, ATLAS_ROWS * CELL_H);
-const aCtx = atlas.getContext('2d');
-aCtx.imageSmoothingEnabled = false;
+const SLOTS_PER_DIR = 8;
 
 const frames = {}; // key → [x, y, w, h]
+const composites = [];
 
 for (let n = 1; n <= NUM_CHARACTERS; n++) {
   const id = String(n).padStart(2, '0');
@@ -64,36 +59,56 @@ for (let n = 1; n <= NUM_CHARACTERS; n++) {
     console.warn(`  skipping (missing): ${src}`);
     continue;
   }
-  const img = await loadImage(src);
   const row = n - 1;
 
   for (let d = 0; d < ATLAS_DIR_ORDER.length; d++) {
     const dirName = ATLAS_DIR_ORDER[d];
     const srcDir = SRC_DIRS.find(x => x.name === dirName);
-    // The 3 source cells for this direction's idle / walk1 / walk2.
     const sourceCells = [
-      { col: srcDir.base + 0, row: 1 }, // idle (row 1, frame 0)
-      { col: srcDir.base + 1, row: 2 }, // walk1 (row 2, frame 1)
-      { col: srcDir.base + 4, row: 2 }, // walk2 (row 2, frame 4)
+      // First atlas slot is the historical base directional key and
+      // also idle frame 1. Keep both names mapped to this same frame
+      // so existing runtime code keeps working with older assumptions.
+      { suffixes: ['', '-idle1'], col: srcDir.base + 0, row: 1 },
+      { suffixes: ['-idle2'], col: srcDir.base + 1, row: 1 },
+      { suffixes: ['-idle3'], col: srcDir.base + 2, row: 1 },
+      { suffixes: ['-idle4'], col: srcDir.base + 3, row: 1 },
+      { suffixes: ['-idle5'], col: srcDir.base + 4, row: 1 },
+      { suffixes: ['-idle6'], col: srcDir.base + 5, row: 1 },
+      // Preserve the current walk selections so walking visuals stay
+      // unchanged while idle gains its own loop.
+      { suffixes: ['-walk1'], col: srcDir.base + 1, row: 2 },
+      { suffixes: ['-walk2'], col: srcDir.base + 4, row: 2 },
     ];
-    for (let f = 0; f < 3; f++) {
-      const sCol = sourceCells[f].col;
-      const sRow = sourceCells[f].row;
-      const aCol = d * 3 + f;
+    for (let f = 0; f < sourceCells.length; f++) {
+      const { col: sCol, row: sRow, suffixes } = sourceCells[f];
+      const aCol = d * SLOTS_PER_DIR + f;
       const aX = aCol * CELL_W;
       const aY = row * CELL_H;
-      aCtx.drawImage(
-        img,
-        sCol * CELL_W, sRow * CELL_H, CELL_W, CELL_H, // src on the source sheet
-        aX, aY, CELL_W, CELL_H,                       // dest on the atlas
-      );
-      const key = `me-char-${id}-${dirName}${FRAME_SUFFIX[f]}`;
-      frames[key] = [aX, aY, CELL_W, CELL_H];
+      const input = await sharp(src)
+        .extract({ left: sCol * CELL_W, top: sRow * CELL_H, width: CELL_W, height: CELL_H })
+        .png()
+        .toBuffer();
+      composites.push({ input, left: aX, top: aY });
+      for (const suffix of suffixes) {
+        const key = `me-char-${id}-${dirName}${suffix}`;
+        frames[key] = [aX, aY, CELL_W, CELL_H];
+      }
     }
   }
 }
 
-fs.writeFileSync(ATLAS_PNG, atlas.toBuffer('image/png'));
+await sharp({
+  create: {
+    width: ATLAS_COLS * CELL_W,
+    height: ATLAS_ROWS * CELL_H,
+    channels: 4,
+    background: { r: 0, g: 0, b: 0, alpha: 0 },
+  },
+})
+  .composite(composites)
+  .png()
+  .toFile(ATLAS_PNG);
+
 fs.writeFileSync(ATLAS_JSON, JSON.stringify({
   image: 'me-char-atlas.png',
   cellWidth: CELL_W,
