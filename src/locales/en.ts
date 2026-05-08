@@ -300,6 +300,7 @@ export const en: Record<string, string> = {
   // ── Quest HUD ──
   "questHud.activeOverview": "Active quests overview",
   "questHud.openDetails": "Open quest details: {title}",
+  "questHud.newBadge": "NEW",
 
   // ── HUD ──
   "hud.bag": "Bag",

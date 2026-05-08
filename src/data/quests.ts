@@ -437,3 +437,97 @@ export function useQuestStatuses(): StatusMap {
   }, []);
   return s;
 }
+
+// ── Quest acknowledgement ─────────────────────────────────────────
+// Tracks which quest IDs the player has visibly clicked on at least
+// once after they became active. The HUD uses this to pulse the row
+// and show a "NEW" badge until the player taps the quest, telling
+// them where to look when a fresh objective arrives. Persisted
+// separately from the status map so the existing schema stays
+// untouched and back-compat reads keep working.
+const ACK_KEY = "lingo-quests:acknowledged:v1";
+let ackCached: Set<string> | null = null;
+type AckListener = (acknowledged: ReadonlySet<string>) => void;
+const ackListeners = new Set<AckListener>();
+
+function readAck(): Set<string> {
+  if (ackCached !== null) return ackCached;
+  if (typeof window === "undefined") {
+    ackCached = new Set();
+    return ackCached;
+  }
+  try {
+    const raw = window.localStorage.getItem(ACK_KEY);
+    if (!raw) {
+      // First read on this device. Pre-populate with every quest
+      // already in `active` or `completed` so existing players don't
+      // see a pulse-storm on every previously-started quest after
+      // they update. Fresh saves have no quests yet, so this is a
+      // no-op for them — only quests STARTED after first boot will
+      // get the "NEW" treatment.
+      const seeded = new Set<string>();
+      const statuses = read();
+      for (const id of Object.keys(statuses)) {
+        if (statuses[id] === "active" || statuses[id] === "completed") {
+          seeded.add(id);
+        }
+      }
+      writeAck(seeded);
+      return seeded;
+    }
+    const parsed = JSON.parse(raw);
+    ackCached = new Set(
+      Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [],
+    );
+  } catch {
+    ackCached = new Set();
+  }
+  return ackCached;
+}
+
+function writeAck(value: Set<string>): void {
+  ackCached = value;
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ACK_KEY, JSON.stringify([...value]));
+  } catch {
+    /* silent */
+  }
+}
+
+function emitAck(): void {
+  const snapshot: ReadonlySet<string> = new Set(readAck());
+  for (const l of ackListeners) l(snapshot);
+}
+
+/** Mark a quest as "the player has seen the new objective." Idempotent. */
+export function acknowledgeQuest(id: string): void {
+  const set = readAck();
+  if (set.has(id)) return;
+  const next = new Set(set);
+  next.add(id);
+  writeAck(next);
+  emitAck();
+}
+
+export function isQuestAcknowledged(id: string): boolean {
+  return readAck().has(id);
+}
+
+export function subscribeQuestAck(listener: AckListener): () => void {
+  ackListeners.add(listener);
+  return () => {
+    ackListeners.delete(listener);
+  };
+}
+
+/** React hook — returns the acknowledged set, re-rendering when it
+ *  changes. */
+export function useQuestAcknowledged(): ReadonlySet<string> {
+  const [s, setS] = useState<ReadonlySet<string>>(() => new Set(readAck()));
+  useEffect(() => {
+    setS(new Set(readAck()));
+    return subscribeQuestAck(setS);
+  }, []);
+  return s;
+}

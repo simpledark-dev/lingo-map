@@ -287,6 +287,7 @@ export const vi: Record<string, string> = {
   // ── Quest HUD ──
   "questHud.activeOverview": "Tổng quan nhiệm vụ đang làm",
   "questHud.openDetails": "Mở chi tiết nhiệm vụ: {title}",
+  "questHud.newBadge": "MỚI",
 
   // ── HUD ──
   "hud.bag": "Túi",
