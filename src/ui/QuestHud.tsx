@@ -209,27 +209,63 @@ function QuestRow({
   return (
     <>
       <style>{`
-        @keyframes lingoMapQuestRowPulse {
-          0%, 100% {
-            box-shadow:
-              inset 1px 1px 0 0 ${COLORS.parchment},
-              0 3px 0 0 ${COLORS.cardBorder},
-              0 0 0 2px rgba(255, 246, 210, 0.7),
-              0 0 0 4px ${accent}66;
-          }
-          50% {
-            box-shadow:
-              inset 1px 1px 0 0 ${COLORS.parchment},
-              0 3px 0 0 ${COLORS.cardBorder},
-              0 0 0 2px rgba(255, 246, 210, 0.85),
-              0 0 0 8px ${accent}33;
-          }
+        /* Two arrows that flank an unacknowledged active quest row,
+           pointing inward at it and bouncing toward the row in
+           sync. Pulse-only feedback was too subtle in playtest —
+           the arrows are unmissable while still leaving the row
+           itself unchanged. Cleared on first tap. */
+        @keyframes lingoMapQuestArrowL {
+          0%, 100% { transform: translateX(0);   opacity: 0.85; }
+          50%      { transform: translateX(6px); opacity: 1;    }
         }
-        @keyframes lingoMapQuestBadgePulse {
-          0%, 100% { transform: scale(1); }
-          50%      { transform: scale(1.08); }
+        @keyframes lingoMapQuestArrowR {
+          0%, 100% { transform: translateX(0);    opacity: 0.85; }
+          50%      { transform: translateX(-6px); opacity: 1;    }
         }
       `}</style>
+    {isNew ? (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, pointerEvents: 'none' }}>
+        <span
+          aria-hidden
+          style={{
+            fontSize: 22,
+            lineHeight: 1,
+            color: accent,
+            textShadow: `0 0 6px rgba(0,0,0,0.4)`,
+            filter: `drop-shadow(0 1px 0 ${COLORS.parchmentLight})`,
+            animation: 'lingoMapQuestArrowL 1s ease-in-out infinite',
+            flexShrink: 0,
+          }}
+        >
+          ▶
+        </span>
+        {renderRowInner()}
+        <span
+          aria-hidden
+          style={{
+            fontSize: 22,
+            lineHeight: 1,
+            color: accent,
+            textShadow: `0 0 6px rgba(0,0,0,0.4)`,
+            filter: `drop-shadow(0 1px 0 ${COLORS.parchmentLight})`,
+            animation: 'lingoMapQuestArrowR 1s ease-in-out infinite',
+            flexShrink: 0,
+          }}
+        >
+          ◀
+        </span>
+      </div>
+    ) : (
+      renderRowInner()
+    )}
+    </>
+  );
+
+  // Inline helper so the arrow + no-arrow branches render the same
+  // pill markup. Closed over the QuestRow scope so it sees the
+  // existing accent / title / progress / onClick / etc.
+  function renderRowInner() {
+    return (
     <div
       onClick={onClick}
       onKeyDown={(e) => {
@@ -259,7 +295,6 @@ function QuestRow({
         maxWidth: '92vw',
         pointerEvents: onClick ? 'auto' : 'none',
         cursor: onClick ? 'pointer' : 'default',
-        animation: isNew ? 'lingoMapQuestRowPulse 1.4s ease-in-out infinite' : undefined,
       }}
     >
       {effectiveBadge && (
@@ -273,7 +308,6 @@ function QuestRow({
             padding: '1px 6px',
             borderRadius: 3,
             flexShrink: 0,
-            animation: isNew ? 'lingoMapQuestBadgePulse 1.4s ease-in-out infinite' : undefined,
           }}
         >
           {effectiveBadge}
@@ -387,6 +421,6 @@ function QuestRow({
         </span>
       )}
     </div>
-    </>
-  );
+    );
+  }
 }
