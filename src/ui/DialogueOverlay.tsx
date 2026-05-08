@@ -326,6 +326,12 @@ export default function DialogueOverlay({
               pop. */}
           {hasOptions && optionsSettled ? (
             <div
+              className={
+                'lingo-dlg-options' +
+                (dialogue.options!.some((o) => TRANSLATE_MODE_OPTION_COLORS[o.id])
+                  ? ' is-mode-grid'
+                  : '')
+              }
               style={{
                 ...theme.optionsStyle,
                 animation: 'lingoMapDialogueOptionsIn 220ms ease-out',
@@ -352,6 +358,13 @@ export default function DialogueOverlay({
                   <button
                     key={opt.id}
                     type="button"
+                    className={
+                      modeOptionColors
+                        ? 'lingo-dlg-mode-option'
+                        : leaveKind
+                          ? 'lingo-dlg-leave-option'
+                          : undefined
+                    }
                     disabled={isDisabled}
                     aria-disabled={isDisabled}
                     // stopPropagation keeps the outer parchment's click
@@ -511,6 +524,37 @@ export default function DialogueOverlay({
           @keyframes lingoMapDialogueOptionsIn {
             0%   { opacity: 0; transform: translateY(4px); }
             100% { opacity: 1; transform: translateY(0); }
+          }
+
+          /* ── Landscape compaction for the mode picker ──
+             4 stacked rows + the back row blow past the
+             ~400px landscape height on phones (iOS) and the
+             dialogue gets clipped above. Fold the four mode
+             options into a 2×2 grid; the back option spans
+             both columns below them. Only triggers when the
+             dialogue is the mode-picker (has-mode-grid class
+             on the container) so single-option / yes-no
+             dialogues still render full-width. */
+          @media (orientation: landscape) and (max-height: 540px) {
+            .lingo-dlg-options.is-mode-grid {
+              display: grid !important;
+              grid-template-columns: 1fr 1fr;
+              gap: 6px !important;
+              margin-top: 2px !important;
+            }
+            .lingo-dlg-options.is-mode-grid .lingo-dlg-leave-option {
+              grid-column: 1 / -1;
+            }
+            .lingo-dlg-options.is-mode-grid > button {
+              padding: 6px 10px !important;
+            }
+            .lingo-dlg-options.is-mode-grid .lingo-dlg-mode-option > div:first-child {
+              font-size: 13px !important;
+            }
+            .lingo-dlg-options.is-mode-grid .lingo-dlg-mode-option > div:last-child {
+              font-size: 10px !important;
+              margin-top: 2px !important;
+            }
           }
         `}</style>
       </div>
