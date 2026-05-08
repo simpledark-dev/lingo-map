@@ -26,6 +26,7 @@ const STORAGE_KEYS = [
   'lingo-event-flags:v1',
   'lingo-quests:v1',
   'lingo-quests:completion-order',
+  'lingo-quests:acknowledged:v1',
   'lingo-profile:v1',
   'lingo-locale',
   'lingo-locale:picked',

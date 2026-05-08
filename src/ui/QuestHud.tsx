@@ -16,7 +16,14 @@
  * board player gets a clean HUD.
  */
 import { useMemo } from 'react';
-import { QUESTS, useQuestStatuses, FIRST_PAYCHECK_THRESHOLD_CENTS, getTitle } from '../data/quests';
+import {
+  QUESTS,
+  useQuestStatuses,
+  useQuestAcknowledged,
+  acknowledgeQuest,
+  FIRST_PAYCHECK_THRESHOLD_CENTS,
+  getTitle,
+} from '../data/quests';
 import { useLifetimeEarnings, formatBalance } from '../data/wallet';
 import { t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
@@ -40,6 +47,11 @@ interface QuestHudProps {
 
 export default function QuestHud({ onOpenLog, liftedForModal = false }: QuestHudProps) {
   const statuses = useQuestStatuses();
+  // Acknowledgement set — quests the player has tapped on at least
+  // once after they became active. Untapped active quests get a
+  // pulsing border + "NEW" badge so the player notices when a fresh
+  // objective lands. First tap clears it permanently for that quest.
+  const acknowledged = useQuestAcknowledged();
   // Subscribed even when no quest cares about it — the hook is
   // cheap, and this way the strip rerenders live as cents tick up
   // for any future progress-aware quest.
@@ -133,15 +145,32 @@ export default function QuestHud({ onOpenLog, liftedForModal = false }: QuestHud
       }}
       aria-label={t('questHud.activeOverview')}
     >
-      {active.map((q) => (
-        <QuestRow
-          key={q.id}
-          accent={COLORS.active}
-          title={getTitle(q)}
-          progress={progressForQuest(q.id)}
-          onClick={onOpenLog ? () => onOpenLog(q.id) : undefined}
-        />
-      ))}
+      {active.map((q) => {
+        const isNew = !acknowledged.has(q.id);
+        // Row is tappable when it can DO something — open the log,
+        // or at least dismiss the "NEW" pulse. If neither applies
+        // we leave onClick undefined so the wrapper stays
+        // pointer-events:none and clicks fall through to the
+        // canvas (preserving the original behaviour).
+        const hasAction = isNew || !!onOpenLog;
+        return (
+          <QuestRow
+            key={q.id}
+            accent={COLORS.active}
+            title={getTitle(q)}
+            progress={progressForQuest(q.id)}
+            isNew={isNew}
+            onClick={
+              hasAction
+                ? () => {
+                    if (isNew) acknowledgeQuest(q.id);
+                    onOpenLog?.(q.id);
+                  }
+                : undefined
+            }
+          />
+        );
+      })}
     </div>
     </>
   );
@@ -152,6 +181,7 @@ function QuestRow({
   title,
   badge,
   progress,
+  isNew,
   onClick,
 }: {
   accent: string;
@@ -161,13 +191,45 @@ function QuestRow({
    *  "$1.23 / $5.00"). Null/undefined for quests without a numeric
    *  goal — the title stands alone in that case. */
   progress?: QuestProgress | null;
+  /** True for active quests the player hasn't tapped yet. Drives the
+   *  pulsing border + "NEW" badge so a fresh objective is
+   *  unmissable. Cleared on first tap (parent calls
+   *  acknowledgeQuest). */
+  isNew?: boolean;
   /** Tap handler — when set, the pill itself becomes the only
    *  click-intercepting element in the strip. The wrapper above
    *  stays pointer-events:none so the rest of the screen passes
    *  taps straight through to the canvas. */
   onClick?: () => void;
 }) {
+  // Show the auto-derived "NEW" badge unless the caller explicitly
+  // passed one (legacy `badge` prop wins). Lets future callers still
+  // override copy without losing the new-quest signal.
+  const effectiveBadge = badge ?? (isNew ? t('questHud.newBadge') : undefined);
   return (
+    <>
+      <style>{`
+        @keyframes lingoMapQuestRowPulse {
+          0%, 100% {
+            box-shadow:
+              inset 1px 1px 0 0 ${COLORS.parchment},
+              0 3px 0 0 ${COLORS.cardBorder},
+              0 0 0 2px rgba(255, 246, 210, 0.7),
+              0 0 0 4px ${accent}66;
+          }
+          50% {
+            box-shadow:
+              inset 1px 1px 0 0 ${COLORS.parchment},
+              0 3px 0 0 ${COLORS.cardBorder},
+              0 0 0 2px rgba(255, 246, 210, 0.85),
+              0 0 0 8px ${accent}33;
+          }
+        }
+        @keyframes lingoMapQuestBadgePulse {
+          0%, 100% { transform: scale(1); }
+          50%      { transform: scale(1.08); }
+        }
+      `}</style>
     <div
       onClick={onClick}
       onKeyDown={(e) => {
@@ -197,9 +259,10 @@ function QuestRow({
         maxWidth: '92vw',
         pointerEvents: onClick ? 'auto' : 'none',
         cursor: onClick ? 'pointer' : 'default',
+        animation: isNew ? 'lingoMapQuestRowPulse 1.4s ease-in-out infinite' : undefined,
       }}
     >
-      {badge && (
+      {effectiveBadge && (
         <span
           style={{
             fontSize: 9,
@@ -210,9 +273,10 @@ function QuestRow({
             padding: '1px 6px',
             borderRadius: 3,
             flexShrink: 0,
+            animation: isNew ? 'lingoMapQuestBadgePulse 1.4s ease-in-out infinite' : undefined,
           }}
         >
-          {badge}
+          {effectiveBadge}
         </span>
       )}
       <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: accent }}>
@@ -323,5 +387,6 @@ function QuestRow({
         </span>
       )}
     </div>
+    </>
   );
 }
