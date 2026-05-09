@@ -222,9 +222,28 @@ function QuestRow({
           0%, 100% { transform: translateX(0);    opacity: 0.85; }
           50%      { transform: translateX(-6px); opacity: 1;    }
         }
+        /* Entrance animation for the whole row (and its flanking
+           arrows when the quest is new). Runs once on mount because
+           React mounts a fresh QuestRow when a status flips to
+           active. Mirrors the QuestToast slide-down-and-fade-in
+           keyframe exactly so the toast and the HUD row feel like
+           one composed entrance — same easing, same translate
+           distance, no spring overshoot. */
+        @keyframes lingoMapQuestRowEnter {
+          0%   { opacity: 0; transform: translateY(-12px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
     {isNew ? (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, pointerEvents: 'none' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          pointerEvents: 'none',
+          animation: 'lingoMapQuestRowEnter 320ms ease-out both',
+        }}
+      >
         <span
           aria-hidden
           style={{

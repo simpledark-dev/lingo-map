@@ -40,6 +40,7 @@ import {
   getQuestStatus,
   useQuestStatuses,
   subscribeQuestTransitions,
+  setQuestVisibilityDeferred,
   FIRST_PAYCHECK_THRESHOLD_CENTS,
   FIRST_PAYCHECK_BONUS_CENTS,
 } from "../data/quests";
@@ -153,6 +154,31 @@ export default function GameCanvas() {
     getVirtualDPadEnabled,
   );
   const [dialogue, setDialogue] = useState<DialogueState | null>(null);
+  // While a dialogue is on screen, hold any new-quest pulse / quest-
+  // toast that fires from a completeQuest or startQuest happening
+  // inside the dialogue handler. The QuestHud and QuestToast resume
+  // the moment the player dismisses the dialogue — gives an NPC's
+  // wrap-up line ("Thank you, dad!") room to land before the next
+  // "📜 NEW QUEST" beat overlaps it.
+  //
+  // Asymmetric timing: opening a dialogue silences instantly so a
+  // toast that hasn't yet started its slide-in cancels mid-flight.
+  // Closing a dialogue waits 400ms before flushing — the dialogue
+  // overlay needs time to visually clear before the toast slides
+  // down from the top, otherwise the two animations collide and
+  // the player's eye doesn't have a moment to pivot. The 400ms beat
+  // also reads as an intentional "and now…" pause rather than a
+  // chained side effect.
+  useEffect(() => {
+    if (dialogue !== null) {
+      setQuestVisibilityDeferred(true);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setQuestVisibilityDeferred(false);
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [dialogue]);
   /** When the player picks "Let me look them over first" from a
    *  translator-offer dialogue, we capture the pack id + the NPC's
    *  name here and render `VocabularyListView` over the world. The

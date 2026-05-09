@@ -1,10 +1,34 @@
-import { Application, Container, Graphics, RenderTexture, Sprite, Text, Texture } from 'pixi.js';
-import { Direction, Entity, MapData, MapLayer, PlayerState } from '../core/types';
-import { PLAYER_LAYER_ID, PLAYER_SPRITE_PREFIX } from '../core/constants';
-import { getEffectiveZIndex, getLayers, getPrimaryTileLayer, getTileLayers } from '../core/Layers';
-import { getTexture, getTileTexture, loadAssets, loadPackSingle } from './AssetLoader';
-import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from './TransitionTiles';
-import { buildAutoTileLayer, isAutoTilesetReady } from './AutoTileset';
+import {
+  Application,
+  Container,
+  Graphics,
+  RenderTexture,
+  Sprite,
+  Text,
+  Texture,
+} from "pixi.js";
+import {
+  Direction,
+  Entity,
+  MapData,
+  MapLayer,
+  PlayerState,
+} from "../core/types";
+import { PLAYER_LAYER_ID, PLAYER_SPRITE_PREFIX } from "../core/constants";
+import {
+  getEffectiveZIndex,
+  getLayers,
+  getPrimaryTileLayer,
+  getTileLayers,
+} from "../core/Layers";
+import {
+  getTexture,
+  getTileTexture,
+  loadAssets,
+  loadPackSingle,
+} from "./AssetLoader";
+import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from "./TransitionTiles";
+import { buildAutoTileLayer, isAutoTilesetReady } from "./AutoTileset";
 
 // Filter thresholds for the occlusion-fade candidate list. Object
 // sprites narrower than `MIN_OCCLUDER_WIDTH` or shorter than
@@ -21,8 +45,8 @@ const IDLE_FRAME_DURATION = 0.28; // seconds per frame; slow enough to read as b
 interface AnimData {
   baseX: number;
   baseY: number;
-  phase: number;     // random offset so each sprite sways independently
-  speed: number;     // oscillation speed
+  phase: number; // random offset so each sprite sways independently
+  speed: number; // oscillation speed
   rotAmount: number; // max rotation in radians
   swayAmount: number; // max X sway in pixels
 }
@@ -84,7 +108,8 @@ export class RenderSystem {
   // checks every frame on stationary content is wasted work. Dynamic
   // entities (player, NPCs, cars) are still re-culled every frame
   // because they can walk into a stationary camera's viewport.
-  private lastStaticCullKey: { col: number; row: number; zoom: number } | null = null;
+  private lastStaticCullKey: { col: number; row: number; zoom: number } | null =
+    null;
   // RenderTexture holding the entire static map art baked once at
   // scene mount. After the bake, ground/transition/autotile/floor
   // containers are emptied and a single Sprite of this texture renders
@@ -115,31 +140,34 @@ export class RenderSystem {
    *  on PixiApp; the renderer just owns the sprite container + the
    *  bob animation. Cleared on every `setMap` so a marker pointing
    *  at the previous scene's coords doesn't bleed into the new one. */
-  private questMarkers = new Map<string, {
-    sprite: Sprite;
-    label: Text | null;
-    /** Constant Y baseline relative to the marker's home X — only
-     *  used when `followNpcId` is null. When the marker follows a
-     *  moving NPC, baseY is recomputed each frame from the NPC
-     *  sprite's current position so the bob still anchors at the
-     *  same offset above its head. */
-    baseY: number;
-    /** Vertical offset of the label above the sprite's top edge.
-     *  Captured once at create time so we don't have to re-read
-     *  texture height every frame. */
-    labelOffset: number;
-    phase: number;
-    /** When set, the marker tracks the NPC sprite with this id —
-     *  position updates each frame from `npcSprites`. The original
-     *  (m.x, m.y) at create time is interpreted as the OFFSET from
-     *  the NPC's anchor (typically 0, -28 for "above the head"). */
-    followNpcId: string | null;
-    /** Stored offsets relative to the followed NPC. Applied each
-     *  frame as `npcSprite.x + offsetX`, `npcSprite.y + offsetY`. */
-    offsetX: number;
-    offsetY: number;
-    labelBaseY: number;
-  }>();
+  private questMarkers = new Map<
+    string,
+    {
+      sprite: Sprite;
+      label: Text | null;
+      /** Constant Y baseline relative to the marker's home X — only
+       *  used when `followNpcId` is null. When the marker follows a
+       *  moving NPC, baseY is recomputed each frame from the NPC
+       *  sprite's current position so the bob still anchors at the
+       *  same offset above its head. */
+      baseY: number;
+      /** Vertical offset of the label above the sprite's top edge.
+       *  Captured once at create time so we don't have to re-read
+       *  texture height every frame. */
+      labelOffset: number;
+      phase: number;
+      /** When set, the marker tracks the NPC sprite with this id —
+       *  position updates each frame from `npcSprites`. The original
+       *  (m.x, m.y) at create time is interpreted as the OFFSET from
+       *  the NPC's anchor (typically 0, -28 for "above the head"). */
+      followNpcId: string | null;
+      /** Stored offsets relative to the followed NPC. Applied each
+       *  frame as `npcSprite.x + offsetX`, `npcSprite.y + offsetY`. */
+      offsetX: number;
+      offsetY: number;
+      labelBaseY: number;
+    }
+  >();
   private questMarkerLayer: Container | null = null;
   animationsEnabled = true;
 
@@ -151,7 +179,10 @@ export class RenderSystem {
   private playerLastX = 0;
   private playerLastY = 0;
   private readonly WALK_FRAME_DURATION = 0.15; // seconds per frame
-  private npcMotion = new Map<string, { facing: Direction; walking: boolean; walkFrame: 0 | 1 }>();
+  private npcMotion = new Map<
+    string,
+    { facing: Direction; walking: boolean; walkFrame: 0 | 1 }
+  >();
 
   constructor(app: Application) {
     this.app = app;
@@ -243,10 +274,18 @@ export class RenderSystem {
     // typically "Ground". Higher tile layers (e.g. Walls) don't participate.
     const primary = getPrimaryTileLayer(map);
     const primaryGrid = primary?.tiles ?? map.tiles;
-    const transitions = buildTransitionLayer({ ...map, tiles: primaryGrid }, false);
+    const transitions = buildTransitionLayer(
+      { ...map, tiles: primaryGrid },
+      false,
+    );
     this.transitionLayer.addChild(transitions);
     if (isAutoTilesetReady()) {
-      const autoTiles = buildAutoTileLayer(primaryGrid, map.width, map.height, map.tileSize);
+      const autoTiles = buildAutoTileLayer(
+        primaryGrid,
+        map.width,
+        map.height,
+        map.tileSize,
+      );
       this.autoTileLayer.addChild(autoTiles);
     }
   }
@@ -289,7 +328,7 @@ export class RenderSystem {
       const texture = getTexture(obj.spriteKey);
       if (texture) {
         this.createObjectSprite(obj, texture, layers, treeSeedRef);
-      } else if (obj.spriteKey.startsWith('me:')) {
+      } else if (obj.spriteKey.startsWith("me:")) {
         const targetMap = map;
         loadPackSingle(obj.spriteKey)
           .then((tex) => {
@@ -305,7 +344,9 @@ export class RenderSystem {
             if (this.objectSprites.has(obj.id)) return;
             this.createObjectSprite(obj, final, layers, treeSeedRef);
           })
-          .catch(() => { /* AssetLoader logs */ });
+          .catch(() => {
+            /* AssetLoader logs */
+          });
       }
       // Non-pack key with missing texture — nothing to lazy-load,
       // sprite stays absent. Same behaviour as before C4.
@@ -322,7 +363,11 @@ export class RenderSystem {
         sprite.y = building.y;
         // Buildings always render on the props layer alongside the player so
         // Y-sort lets you walk visually behind them.
-        sprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, building.sortY);
+        sprite.zIndex = getEffectiveZIndex(
+          layers,
+          PLAYER_LAYER_ID,
+          building.sortY,
+        );
         if (scale !== 1) sprite.scale.set(scale);
         this.entityLayer.addChild(sprite);
         this.buildingBaseSprites.set(building.id, sprite);
@@ -330,7 +375,9 @@ export class RenderSystem {
 
       // Roof — managed collection for future per-roof control. Skipped if the
       // building is drawn as a single sprite (no separate roof).
-      const roofTexture = building.roofSpriteKey ? getTexture(building.roofSpriteKey) : undefined;
+      const roofTexture = building.roofSpriteKey
+        ? getTexture(building.roofSpriteKey)
+        : undefined;
       if (roofTexture) {
         const roofSprite = new Sprite(roofTexture);
         roofSprite.anchor.set(building.anchor.x, 1.0);
@@ -357,7 +404,8 @@ export class RenderSystem {
       // Modern-Interiors `me-char-NN` characters which animate by
       // facing. Otherwise it's a single static texture (legacy NPCs:
       // "npc", "npc-blue"). Default to facing down at scene mount.
-      const texture = getTexture(`${npc.spriteKey}-down`) ?? getTexture(npc.spriteKey);
+      const texture =
+        getTexture(`${npc.spriteKey}-down`) ?? getTexture(npc.spriteKey);
       if (!texture) continue;
       const sprite = new Sprite(texture);
       sprite.anchor.set(npc.anchor.x, npc.anchor.y);
@@ -366,14 +414,18 @@ export class RenderSystem {
       sprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, npc.sortY);
       this.entityLayer.addChild(sprite);
       this.npcSprites.set(npc.id, sprite);
-      this.npcMotion.set(npc.id, { facing: 'down', walking: false, walkFrame: 0 });
+      this.npcMotion.set(npc.id, {
+        facing: "down",
+        walking: false,
+        walkFrame: 0,
+      });
 
       // NPC idle bob — very subtle vertical movement
       npcSeed = (npcSeed * 1103515245 + 12345) & 0x7fffffff;
       this.npcAnims.set(npc.id, {
         baseX: npc.x,
         baseY: npc.y,
-        phase: (npcSeed % 1000) / 1000 * Math.PI * 2,
+        phase: ((npcSeed % 1000) / 1000) * Math.PI * 2,
         speed: 1.2 + (npcSeed % 400) / 1000, // 1.2–1.6
         rotAmount: 0,
         swayAmount: 0.8, // subtle vertical bob in pixels
@@ -408,7 +460,7 @@ export class RenderSystem {
     // below entityLayer (R4). zIndex is still set above for the few
     // code paths that read it (debug overlay), but the renderer never
     // sorts these children — order is addChild order.
-    if (obj.layer === 'floor') {
+    if (obj.layer === "floor") {
       this.floorContainer.addChild(sprite);
     } else {
       this.entityLayer.addChild(sprite);
@@ -426,9 +478,10 @@ export class RenderSystem {
     // floor layer bakes into a static RT and would freeze the bob).
     // Phase derived from the entity id so two arrows side-by-side
     // bob out of sync, which reads as more "alive."
-    if (obj.spriteKey?.startsWith('edge-arrow-') && obj.layer !== 'floor') {
+    if (obj.spriteKey?.startsWith("edge-arrow-") && obj.layer !== "floor") {
       let h = 0;
-      for (let i = 0; i < obj.id.length; i++) h = ((h * 31) + obj.id.charCodeAt(i)) | 0;
+      for (let i = 0; i < obj.id.length; i++)
+        h = (h * 31 + obj.id.charCodeAt(i)) | 0;
       this.arrowAnims.set(obj.id, {
         baseY: obj.y,
         phase: ((h % 1000) / 1000) * Math.PI * 2,
@@ -436,13 +489,13 @@ export class RenderSystem {
     }
     // Tree anim — only fires for the literal 'tree' placeholder sprite
     // key, so lazy-loaded pack-key objects never hit this branch.
-    if (obj.spriteKey === 'tree') {
+    if (obj.spriteKey === "tree") {
       treeSeedRef.value = (treeSeedRef.value * 1103515245 + 12345) & 0x7fffffff;
       const seed = treeSeedRef.value;
       this.treeAnims.set(obj.id, {
         baseX: obj.x,
         baseY: obj.y,
-        phase: (seed % 1000) / 1000 * Math.PI * 2,
+        phase: ((seed % 1000) / 1000) * Math.PI * 2,
         speed: 0.8 + (seed % 500) / 1000,
         rotAmount: 0.015 + (seed % 300) / 30000,
         swayAmount: 0.5 + (seed % 200) / 400,
@@ -468,7 +521,7 @@ export class RenderSystem {
 
     const bakeTexture = RenderTexture.create({ width: w, height: h });
     // Pixel-art look — no interpolation when the bake is upscaled.
-    bakeTexture.source.scaleMode = 'nearest';
+    bakeTexture.source.scaleMode = "nearest";
 
     // Multi-pass: clear on the first one, accumulate on the rest. Order
     // matches the original z-stack so the bake looks identical to the
@@ -482,7 +535,11 @@ export class RenderSystem {
     let first = true;
     for (const c of staticContainers) {
       if (c.children.length === 0) continue;
-      this.app.renderer.render({ container: c, target: bakeTexture, clear: first });
+      this.app.renderer.render({
+        container: c,
+        target: bakeTexture,
+        clear: first,
+      });
       first = false;
     }
     if (first) {
@@ -520,7 +577,11 @@ export class RenderSystem {
     this.playerIdleTimer = 0;
     this.playerIdleFrame = 0;
     const layers = this.currentMap ? getLayers(this.currentMap) : [];
-    this.playerSprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, player.sortY);
+    this.playerSprite.zIndex = getEffectiveZIndex(
+      layers,
+      PLAYER_LAYER_ID,
+      player.sortY,
+    );
     this.entityLayer.addChild(this.playerSprite);
   }
 
@@ -547,7 +608,7 @@ export class RenderSystem {
         this.playerWalkFrame = (this.playerWalkFrame + 1) % 2;
       }
       if (this.playerWalkFrame === 0) {
-        spriteKey = player.spriteKey + '-walk1';
+        spriteKey = player.spriteKey + "-walk1";
       }
       // frame 1 = idle (use base spriteKey, already set)
     } else {
@@ -574,7 +635,11 @@ export class RenderSystem {
     this.playerSprite.x = player.x;
     this.playerSprite.y = player.y;
     const layers = this.currentMap ? getLayers(this.currentMap) : [];
-    this.playerSprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, player.sortY);
+    this.playerSprite.zIndex = getEffectiveZIndex(
+      layers,
+      PLAYER_LAYER_ID,
+      player.sortY,
+    );
   }
 
   /** Mask rectangle that clips `worldContainer` to a centered sub-region of
@@ -620,7 +685,9 @@ export class RenderSystem {
         this.worldContainer.mask = this.viewportMask;
       }
       this.viewportMask.clear();
-      this.viewportMask.rect(offsetX, offsetY, cappedScreenW, cappedScreenH).fill(0xffffff);
+      this.viewportMask
+        .rect(offsetX, offsetY, cappedScreenW, cappedScreenH)
+        .fill(0xffffff);
     } else if (this.viewportMask) {
       this.worldContainer.mask = null;
       this.viewportMask.destroy();
@@ -633,7 +700,13 @@ export class RenderSystem {
     this.cullViewport(cameraX, cameraY, zoom, canvasW, canvasH);
   }
 
-  private cullViewport(camX: number, camY: number, zoom: number, canvasW: number, canvasH: number): void {
+  private cullViewport(
+    camX: number,
+    camY: number,
+    zoom: number,
+    canvasW: number,
+    canvasH: number,
+  ): void {
     const margin = 128; // extra margin to avoid pop-in
     const vw = canvasW / zoom + margin * 2;
     const vh = canvasH / zoom + margin * 2;
@@ -652,7 +725,11 @@ export class RenderSystem {
     // ~125 sprites instead of ~600.
     for (const child of this.entityLayer.children) {
       if (child === this.playerSprite) continue;
-      child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 32 > top && child.y - 192 < bottom;
+      child.visible =
+        child.x + 128 > left &&
+        child.x - 128 < right &&
+        child.y + 32 > top &&
+        child.y - 192 < bottom;
     }
 
     // ── Static layers: re-cull only when the camera crosses a tile ──
@@ -663,7 +740,13 @@ export class RenderSystem {
     const cellCol = Math.floor(camX / T);
     const cellRow = Math.floor(camY / T);
     const last = this.lastStaticCullKey;
-    if (last && last.col === cellCol && last.row === cellRow && last.zoom === zoom) return;
+    if (
+      last &&
+      last.col === cellCol &&
+      last.row === cellRow &&
+      last.zoom === zoom
+    )
+      return;
     this.lastStaticCullKey = { col: cellCol, row: cellRow, zoom };
 
     // Cull ground tiles. After R5 bakes the static map, this container
@@ -673,24 +756,30 @@ export class RenderSystem {
     for (const child of this.groundLayer.children) {
       const cw = (child as Sprite).width || T;
       const ch = (child as Sprite).height || T;
-      child.visible = child.x + cw > left && child.x < right && child.y + ch > top && child.y < bottom;
+      child.visible =
+        child.x + cw > left &&
+        child.x < right &&
+        child.y + ch > top &&
+        child.y < bottom;
     }
 
     // Cull transition layer
     for (const child of this.transitionLayer.children) {
       // Transition layer has a single container child
-      if ('children' in child) {
+      if ("children" in child) {
         for (const tc of (child as Container).children) {
-          tc.visible = tc.x + T > left && tc.x < right && tc.y + T > top && tc.y < bottom;
+          tc.visible =
+            tc.x + T > left && tc.x < right && tc.y + T > top && tc.y < bottom;
         }
       }
     }
 
     // Cull auto-tile layer (same nested structure as transitions)
     for (const child of this.autoTileLayer.children) {
-      if ('children' in child) {
+      if ("children" in child) {
         for (const tc of (child as Container).children) {
-          tc.visible = tc.x + T > left && tc.x < right && tc.y + T > top && tc.y < bottom;
+          tc.visible =
+            tc.x + T > left && tc.x < right && tc.y + T > top && tc.y < bottom;
         }
       }
     }
@@ -698,12 +787,20 @@ export class RenderSystem {
     // Cull flat floor decor — same bbox-extend approach. These live in
     // their own non-sortable container after the layer split (R4).
     for (const child of this.floorContainer.children) {
-      child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 32 > top && child.y - 192 < bottom;
+      child.visible =
+        child.x + 128 > left &&
+        child.x - 128 < right &&
+        child.y + 32 > top &&
+        child.y - 192 < bottom;
     }
 
     // Cull roofs (buildings don't move, so static)
     for (const child of this.roofLayer.children) {
-      child.visible = child.x + 128 > left && child.x - 128 < right && child.y + 128 > top && child.y - 128 < bottom;
+      child.visible =
+        child.x + 128 > left &&
+        child.x - 128 < right &&
+        child.y + 128 > top &&
+        child.y - 128 < bottom;
     }
   }
 
@@ -765,8 +862,12 @@ export class RenderSystem {
       const top = sprite.y - sprite.anchor.y * h;
       const right = left + w;
       const bottom = top + h;
-      return playerLeft >= left && playerRight <= right
-          && playerTop >= top && playerBottom <= bottom;
+      return (
+        playerLeft >= left &&
+        playerRight <= right &&
+        playerTop >= top &&
+        playerBottom <= bottom
+      );
     };
 
     const checkEntitySprite = (sprite: Sprite) => {
@@ -784,8 +885,10 @@ export class RenderSystem {
     // out at scene load (in renderObjects) so they never reach this
     // per-frame loop. Their alpha stays at the initial 1.0 — no need
     // to lerp them since they were never going to be faded anyway.
-    for (const sprite of this.occludingObjectSprites.values()) checkEntitySprite(sprite);
-    for (const sprite of this.buildingBaseSprites.values()) checkEntitySprite(sprite);
+    for (const sprite of this.occludingObjectSprites.values())
+      checkEntitySprite(sprite);
+    for (const sprite of this.buildingBaseSprites.values())
+      checkEntitySprite(sprite);
 
     // Roofs — separate container always above entityLayer, so skip the
     // zIndex test and only do the area-ratio check.
@@ -798,12 +901,24 @@ export class RenderSystem {
    * they walk visually behind tall objects like the player. If the
    * sprite key isn't loaded, fall back to a solid red rectangle so the
    * car is still visible while the user drops in the real art. */
-  setCar(id: string, x: number, y: number, spriteKey: string, tileSize: number): void {
+  setCar(
+    id: string,
+    x: number,
+    y: number,
+    spriteKey: string,
+    tileSize: number,
+  ): void {
     const layers = this.currentMap ? getLayers(this.currentMap) : [];
     const zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, y);
     const tex = getTexture(spriteKey);
-    if (process.env.NODE_ENV === 'development' && !tex && !this.warnedMissingCarKeys.has(spriteKey)) {
-      console.warn(`[RenderSystem] car sprite "${spriteKey}" not loaded — falling back to red rect. Check that the pack file exists at /assets/me/${spriteKey.startsWith('me:') ? spriteKey.slice(3) : spriteKey}.png`);
+    if (
+      process.env.NODE_ENV === "development" &&
+      !tex &&
+      !this.warnedMissingCarKeys.has(spriteKey)
+    ) {
+      console.warn(
+        `[RenderSystem] car sprite "${spriteKey}" not loaded — falling back to red rect. Check that the pack file exists at /assets/me/${spriteKey.startsWith("me:") ? spriteKey.slice(3) : spriteKey}.png`,
+      );
       this.warnedMissingCarKeys.add(spriteKey);
     }
     if (tex) {
@@ -833,7 +948,9 @@ export class RenderSystem {
     let g = this.carFallbacks.get(id);
     if (!g) {
       g = new Graphics();
-      g.rect(-tileSize / 2, -tileSize / 2, tileSize, tileSize).fill({ color: 0xff4444 });
+      g.rect(-tileSize / 2, -tileSize / 2, tileSize, tileSize).fill({
+        color: 0xff4444,
+      });
       if (this.mapBoundsMask) g.mask = this.mapBoundsMask;
       this.entityLayer.addChild(g);
       this.carFallbacks.set(id, g);
@@ -864,7 +981,13 @@ export class RenderSystem {
    * world-space box with a color. Called once per frame from PixiApp
    * when the debug toggle is on; the previous frame's drawing is wiped
    * and replaced wholesale to avoid leaking stale boxes. */
-  drawDebugCollisions(items: Array<{ box: { left: number; top: number; right: number; bottom: number }; color: number; label?: string }>): void {
+  drawDebugCollisions(
+    items: Array<{
+      box: { left: number; top: number; right: number; bottom: number };
+      color: number;
+      label?: string;
+    }>,
+  ): void {
     if (!this.debugCollisionGraphics) {
       this.debugCollisionGraphics = new Graphics();
       // Add ABOVE the entity layer + roof layer so debug rects sit on
@@ -938,7 +1061,7 @@ export class RenderSystem {
       walking: walking === true,
       walkFrame: walkFrame ?? 0,
     });
-    const npc = this.currentMap?.npcs.find(n => n.id === npcId);
+    const npc = this.currentMap?.npcs.find((n) => n.id === npcId);
     if (!npc) return;
     const baseDir = getTexture(`${npc.spriteKey}-${facing}`);
     if (!baseDir) return; // not a directional NPC — leave static texture alone
@@ -968,11 +1091,12 @@ export class RenderSystem {
     // ~0.5 Hz so it reads as a friendly "tap me" cue rather than a
     // distracting flicker. Independent of the tree anim params.
     const ARROW_SPEED = 3.2; // rad/sec
-    const ARROW_AMP = 2;     // pixels
+    const ARROW_AMP = 2; // pixels
     for (const [id, anim] of this.arrowAnims) {
       const sprite = this.objectSprites.get(id);
       if (!sprite) continue;
-      sprite.y = anim.baseY + Math.sin(time * ARROW_SPEED + anim.phase) * ARROW_AMP;
+      sprite.y =
+        anim.baseY + Math.sin(time * ARROW_SPEED + anim.phase) * ARROW_AMP;
     }
 
     // Quest-marker bob — slightly more emphatic than the edge-arrow
@@ -982,7 +1106,15 @@ export class RenderSystem {
     const Q_SPEED = 2.4;
     const Q_AMP = 4;
     for (const entry of this.questMarkers.values()) {
-      const { sprite, label, labelOffset, phase, followNpcId, offsetX, offsetY } = entry;
+      const {
+        sprite,
+        label,
+        labelOffset,
+        phase,
+        followNpcId,
+        offsetX,
+        offsetY,
+      } = entry;
       const bob = Math.sin(time * Q_SPEED + phase) * Q_AMP;
       // For NPC-following markers, recompute the anchor from the
       // NPC sprite each frame so the marker walks with them.
@@ -1016,14 +1148,21 @@ export class RenderSystem {
     for (const npc of this.currentMap?.npcs ?? []) {
       const sprite = this.npcSprites.get(npc.id);
       if (!sprite) continue;
-      const motion = this.npcMotion.get(npc.id) ?? { facing: 'down' as Direction, walking: false, walkFrame: 0 as 0 | 1 };
+      const motion = this.npcMotion.get(npc.id) ?? {
+        facing: "down" as Direction,
+        walking: false,
+        walkFrame: 0 as 0 | 1,
+      };
       if (motion.walking) continue;
       const baseDir = getTexture(`${npc.spriteKey}-${motion.facing}`);
       if (!baseDir) continue;
       const anim = this.npcAnims.get(npc.id);
       const phase = anim?.phase ?? 0;
-      const frame = Math.floor((time + phase) / IDLE_FRAME_DURATION) % IDLE_FRAME_COUNT;
-      const tex = getTexture(`${npc.spriteKey}-${motion.facing}-idle${frame + 1}`) ?? baseDir;
+      const frame =
+        Math.floor((time + phase) / IDLE_FRAME_DURATION) % IDLE_FRAME_COUNT;
+      const tex =
+        getTexture(`${npc.spriteKey}-${motion.facing}-idle${frame + 1}`) ??
+        baseDir;
       sprite.texture = tex;
     }
 
@@ -1073,7 +1212,8 @@ export class RenderSystem {
     const gen = ++this.markerGen;
     this.clearQuestMarkers();
     const apply = () => {
-      if (this.destroyed || this.markerGen !== gen || !this.questMarkerLayer) return;
+      if (this.destroyed || this.markerGen !== gen || !this.questMarkerLayer)
+        return;
       for (const m of markers) {
         const tex = getTexture(m.spriteKey);
         if (!tex) continue;
@@ -1091,7 +1231,8 @@ export class RenderSystem {
         sprite.y = initY;
         // Phase derived from id so two markers don't bob in lockstep.
         let h = 0;
-        for (let i = 0; i < m.id.length; i++) h = ((h * 31) + m.id.charCodeAt(i)) | 0;
+        for (let i = 0; i < m.id.length; i++)
+          h = (h * 31 + m.id.charCodeAt(i)) | 0;
         const phase = ((h % 1000) / 1000) * Math.PI * 2;
         this.questMarkerLayer.addChild(sprite);
 
@@ -1108,12 +1249,12 @@ export class RenderSystem {
           label = new Text({
             text: m.label,
             style: {
-              fontFamily: 'monospace',
-              fontSize: 8,
-              fontWeight: '700',
+              fontFamily: "monospace",
+              fontSize: 6,
+              fontWeight: "700",
               fill: 0xfdf6e0,
-              stroke: { color: 0x1a1008, width: 3, join: 'round' },
-              align: 'center',
+              stroke: { color: 0x1a1008, width: 3, join: "round" },
+              align: "center",
             },
           });
           label.anchor.set(0.5, 1);
@@ -1139,11 +1280,17 @@ export class RenderSystem {
     // list (no entity uses them), so we kick a lazy `loadAssets` and
     // apply once textures resolve. Already-loaded sprites are a free
     // no-op and `apply` runs synchronously via the resolved promise.
-    const needed = markers.map((m) => m.spriteKey).filter((k) => !getTexture(k));
+    const needed = markers
+      .map((m) => m.spriteKey)
+      .filter((k) => !getTexture(k));
     if (needed.length === 0) {
       apply();
     } else {
-      loadAssets(needed).then(apply).catch(() => { /* silent */ });
+      loadAssets(needed)
+        .then(apply)
+        .catch(() => {
+          /* silent */
+        });
     }
   }
 
@@ -1167,9 +1314,11 @@ export class RenderSystem {
 
   /** Total number of sprites currently in the scene graph. */
   getSpriteCount(): number {
-    return this.groundLayer.children.length
-      + this.entityLayer.children.length
-      + this.roofLayer.children.length;
+    return (
+      this.groundLayer.children.length +
+      this.entityLayer.children.length +
+      this.roofLayer.children.length
+    );
   }
 
   static getRequiredAssets(map: MapData): string[] {
@@ -1189,12 +1338,16 @@ export class RenderSystem {
       for (const t of row) tileTypes.add(t);
     }
     for (const t of tileTypes) {
-      if (t === 'floor-pattern') {
-        keys.add('floor-tl'); keys.add('floor-tr');
-        keys.add('floor-bl'); keys.add('floor-br');
-      } else if (t === 'wall-brick') {
-        keys.add('wall-brick-tl'); keys.add('wall-brick-tr');
-        keys.add('wall-brick-bl'); keys.add('wall-brick-br');
+      if (t === "floor-pattern") {
+        keys.add("floor-tl");
+        keys.add("floor-tr");
+        keys.add("floor-bl");
+        keys.add("floor-br");
+      } else if (t === "wall-brick") {
+        keys.add("wall-brick-tl");
+        keys.add("wall-brick-tr");
+        keys.add("wall-brick-bl");
+        keys.add("wall-brick-br");
       } else {
         keys.add(t);
       }
@@ -1211,8 +1364,9 @@ export class RenderSystem {
     // Non-pack object spriteKeys (placeholder PNGs in spriteManifest)
     // also stay sync since they're cheap.
     for (const obj of map.objects) {
-      const isPackKey = obj.spriteKey.startsWith('me:');
-      const hasCollision = obj.collisionBox.width > 0 && obj.collisionBox.height > 0;
+      const isPackKey = obj.spriteKey.startsWith("me:");
+      const hasCollision =
+        obj.collisionBox.width > 0 && obj.collisionBox.height > 0;
       if (isPackKey && !hasCollision) continue;
       keys.add(obj.spriteKey);
     }
@@ -1228,7 +1382,7 @@ export class RenderSystem {
       // gate keeps `loadAssets` from warning about non-existent
       // `<legacy-key>-down` lookups.
       if (/^me-char-\d{2}$/.test(npc.spriteKey)) {
-        for (const dir of ['down', 'up', 'left', 'right'] as const) {
+        for (const dir of ["down", "up", "left", "right"] as const) {
           keys.add(`${npc.spriteKey}-${dir}`);
           keys.add(`${npc.spriteKey}-${dir}-walk1`);
         }
@@ -1237,7 +1391,7 @@ export class RenderSystem {
       }
     }
 
-    for (const dir of ['down', 'up', 'left', 'right']) {
+    for (const dir of ["down", "up", "left", "right"]) {
       keys.add(`${PLAYER_SPRITE_PREFIX}-${dir}`);
       keys.add(`${PLAYER_SPRITE_PREFIX}-${dir}-walk1`);
       keys.add(`${PLAYER_SPRITE_PREFIX}-${dir}-walk2`);

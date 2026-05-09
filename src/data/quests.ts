@@ -362,13 +362,62 @@ function write(value: StatusMap): void {
   }
 }
 
+/** When true, status + transition listeners do NOT fire immediately —
+ *  GameCanvas turns this on while a dialogue is open so the QuestHud
+ *  "NEW" pulse and the QuestToast popup don't appear behind the
+ *  parchment box while the player is still reading the NPC's
+ *  follow-up line. Internal state (read()) updates immediately, so
+ *  any code path that calls `getQuestStatus()` directly still sees
+ *  the latest answer.
+ *
+ *  `pendingStatusEmit` is a dirty flag rather than a queued list
+ *  because emitStatuses always emits the CURRENT snapshot — there's
+ *  no point storing intermediate states the player will never see.
+ *  `pendingTransitions` IS a list because each transition is its
+ *  own toast: completing one quest then starting another fires two
+ *  separate notifications when we drain. */
+let visibilityDeferred = false;
+let pendingStatusEmit = false;
+const pendingTransitions: QuestTransition[] = [];
+
 function emitStatuses(): void {
+  if (visibilityDeferred) {
+    pendingStatusEmit = true;
+    return;
+  }
   const snapshot = { ...read() };
   for (const l of statusListeners) l(snapshot);
 }
 
 function emitTransition(event: QuestTransition): void {
+  if (visibilityDeferred) {
+    pendingTransitions.push(event);
+    return;
+  }
   for (const l of transitionListeners) l(event);
+}
+
+/** Pause / resume player-visible quest notifications. Call with `true`
+ *  when a dialogue opens; `false` when it closes. While paused, every
+ *  `completeQuest` / `startQuest` still mutates state but its toast
+ *  and HUD-update wait. Resuming flushes a single status snapshot
+ *  (so subscribers see the ENDING state, not each intermediate flip)
+ *  followed by every queued transition in FIFO order. */
+export function setQuestVisibilityDeferred(deferred: boolean): void {
+  if (visibilityDeferred === deferred) return;
+  visibilityDeferred = deferred;
+  if (deferred) return;
+  if (pendingStatusEmit) {
+    pendingStatusEmit = false;
+    const snapshot = { ...read() };
+    for (const l of statusListeners) l(snapshot);
+  }
+  if (pendingTransitions.length > 0) {
+    const drain = pendingTransitions.splice(0);
+    for (const ev of drain) {
+      for (const l of transitionListeners) l(ev);
+    }
+  }
 }
 
 export function getQuestStatus(id: string): QuestStatus {
