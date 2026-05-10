@@ -140,9 +140,10 @@ const npcs: NPCData[] = [
   // waiting on the new translator. Three-word pack so the first
   // job is short. The CEO points the player here right after the
   // hire wrap-up; finishing this session completes the intro
-  // quest and chains into first-paycheck (Saba on the street).
-  // dialogueKind routes through the React layer for stage-aware
-  // lines (pre-hire / hired-not-done / post-session).
+  // quest and chains into first-paycheck. dialogueKind routes
+  // through the React layer for stage-aware lines (pre-hire /
+  // hired-not-done / post-session) AND for Eli-only mode lock
+  // (Read & translate; no listen/write/speak choices).
   {
     id: 'office-npc-tutor',
     x: tx(15),
@@ -159,6 +160,47 @@ const npcs: NPCData[] = [
     vocabularyOfferLine:
       "Hey, the new translator. I've been waiting — only got three words for you, mind running them with me?",
     vocabularyOfferLineKey: 'dialogue.eli.offerLine',
+  },
+  // Listen-mode tutor (second-paycheck quest). Sits across from
+  // Eli on the upper row so the player visually follows the chain
+  // left-to-right along the same desk line. Reads-fine-but-
+  // can't-hear is the framing — the dialogue builder forces
+  // Listen mode only.
+  {
+    id: 'office-npc-listen-tutor',
+    x: tx(5),
+    y: ty(7),
+    spriteKey: 'me-char-09',
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(7),
+    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
+    name: 'Rina',
+    dialogue: ["Reading? Easy. Audio? Disaster."],
+    dialogueKeys: ['dialogue.listenTutor.offer'],
+    dialogueKind: 'office-tutor-listen',
+    vocabularyPackId: 'office-listen-tutor-pack',
+    vocabularyOfferLine:
+      "Reading these is fine — the second I HEAR them I'm lost. Drill some by ear?",
+    vocabularyOfferLineKey: 'dialogue.listenTutor.offer',
+  },
+  // Write-mode tutor (third-paycheck quest). Anchored on the
+  // opposite side so the office reads as three distinct desks.
+  {
+    id: 'office-npc-write-tutor',
+    x: tx(15),
+    y: ty(11),
+    spriteKey: 'me-char-15',
+    anchor: { x: 0.5, y: 1.0 },
+    sortY: ty(11),
+    collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
+    name: 'Yusuf',
+    dialogue: ["Recognise yes — actually USE them, no."],
+    dialogueKeys: ['dialogue.writeTutor.offer'],
+    dialogueKind: 'office-tutor-write',
+    vocabularyPackId: 'office-write-tutor-pack',
+    vocabularyOfferLine:
+      "I know these words when I see them, but I freeze when I have to use one. Help me practise spelling them out from the meaning?",
+    vocabularyOfferLineKey: 'dialogue.writeTutor.offer',
   },
 ];
 

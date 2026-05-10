@@ -79,13 +79,13 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
     });
   }
   if (status === 'inactive') {
-    // Auto-start ONLY when the chain prereq is satisfied. Without
-    // this guard, talking to Mim before first-paycheck completes
-    // (e.g. in the brief window between cutscene-end and the
-    // apartment monologue starting the intro quest) would kick
-    // off the sandwich quest out of order — showing "I'm hungry"
-    // before the player has even taken the translator job.
-    if (getQuestStatus('first-paycheck') === 'completed') {
+    // Auto-start ONLY when the FULL office tutorial (Eli → Rina
+    // → Yusuf) is complete. Earlier this gated on `first-paycheck`,
+    // which meant the moment the player claimed their first
+    // paycheck they could walk home and Mim would kick off the
+    // sandwich quest mid-tutorial. The home thread should not
+    // open until the office arc is closed.
+    if (getQuestStatus('third-paycheck') === 'completed') {
       startQuest('child-sandwich');
       return withChildName({
         lines: [
@@ -208,6 +208,11 @@ export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
     };
   }
 
+  // Standard offer shape: help / view dictionary / decline. The
+  // mode-lock to read-only happens DOWNSTREAM in GameCanvas's
+  // 'help' handler, which inspects `dialogueKind` and renders only
+  // the matching mode in the picker. Keeps the offer-then-pick
+  // flow consistent with every other translator NPC.
   return {
     ...stub,
     lines: [
@@ -215,6 +220,85 @@ export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
     ],
     currentLine: 0,
     vocabularyPackId: 'office-tutor-pack',
+    vocabularyWordCount: 3,
+    options: [
+      {
+        id: 'help',
+        label: t('dialogue.offer.help'),
+        hint: t('dialogue.offer.helpHint'),
+      },
+      {
+        id: 'view',
+        label: t('dialogue.offer.view', { count: 3 }),
+        hint: t('dialogue.offer.viewHint'),
+      },
+      {
+        id: 'decline',
+        label: t('dialogue.offer.decline'),
+        hint: '',
+      },
+    ],
+  };
+}
+
+/** Listen-mode tutor (second-paycheck quest). Same shape as Eli's
+ *  builder but locked to `mode-listen` and using the listen pack.
+ *  Pre-hire branch is identical text-for-text — the player
+ *  shouldn't get pitched a translation job by an NPC before they
+ *  have the job. */
+export function buildListenTutorDialogue(stub: DialogueState): DialogueState {
+  const introDone = getQuestStatus('intro-translator-job') === 'completed';
+  if (!introDone) {
+    return {
+      ...stub,
+      lines: [t('dialogue.listenTutor.preHire')],
+      currentLine: 0,
+    };
+  }
+  return {
+    ...stub,
+    lines: [t('dialogue.listenTutor.offer')],
+    currentLine: 0,
+    vocabularyPackId: 'office-listen-tutor-pack',
+    vocabularyWordCount: 3,
+    options: [
+      {
+        id: 'help',
+        label: t('dialogue.offer.help'),
+        hint: t('dialogue.offer.helpHint'),
+      },
+      {
+        id: 'view',
+        label: t('dialogue.offer.view', { count: 3 }),
+        hint: t('dialogue.offer.viewHint'),
+      },
+      {
+        id: 'decline',
+        label: t('dialogue.offer.decline'),
+        hint: '',
+      },
+    ],
+  };
+}
+
+/** Write-mode tutor (third-paycheck quest). Same shape as the
+ *  listen tutor — the mode lock to `mode-write` is enforced by
+ *  GameCanvas's help handler reading `dialogueKind`, not by
+ *  shortening the offer options here. */
+export function buildWriteTutorDialogue(stub: DialogueState): DialogueState {
+  const introDone = getQuestStatus('intro-translator-job') === 'completed';
+  if (!introDone) {
+    return {
+      ...stub,
+      lines: [t('dialogue.writeTutor.preHire')],
+      currentLine: 0,
+    };
+  }
+  return {
+    ...stub,
+    lines: [t('dialogue.writeTutor.offer')],
+    currentLine: 0,
+    vocabularyPackId: 'office-write-tutor-pack',
     vocabularyWordCount: 3,
     options: [
       {

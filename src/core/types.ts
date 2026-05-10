@@ -142,7 +142,13 @@ export interface NPCData {
    *  3.5 adds `'lender'` for Theo; the intro-cutscene flow adds
    *  `'ceo-intro'` for the office CEO who closes the tutorial
    *  quest. */
-  dialogueKind?: 'child-sandwich' | 'lender' | 'ceo-intro' | 'office-tutor';
+  dialogueKind?:
+    | 'child-sandwich'
+    | 'lender'
+    | 'ceo-intro'
+    | 'office-tutor'
+    | 'office-tutor-listen'
+    | 'office-tutor-write';
 }
 
 // ── Map ──
@@ -359,7 +365,21 @@ export interface DialogueState {
    *  on game state (inventory / event flags / debt / quest). Mirrors
    *  `NPCData.dialogueKind`; the engine just hands the marker off,
    *  it doesn't interpret the value. */
-  dialogueKind?: 'child-sandwich' | 'lender' | 'ceo-intro' | 'office-tutor';
+  dialogueKind?:
+    | 'child-sandwich'
+    | 'lender'
+    | 'ceo-intro'
+    | 'office-tutor'
+    | 'office-tutor-listen'
+    | 'office-tutor-write';
+  /** Synthetic React-only dialogue that the engine never opened —
+   *  e.g. the locked-district notice or the post-session thank-you
+   *  fired from `handleCloseTranslateView`. The advance handler
+   *  closes locally instead of pushing `ADVANCE_DIALOGUE` to the
+   *  engine (which would no-op because the engine has no record
+   *  of this dialogue) and the player would be stuck staring at
+   *  the box. */
+  clientOnly?: boolean;
 }
 
 /** Decoupled from `disabled`: a disabled option only dims the row.

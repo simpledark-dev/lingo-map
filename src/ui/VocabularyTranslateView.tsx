@@ -46,6 +46,8 @@ import { cancelDialogueSpeech } from './tts';
 import { speakVocabWord } from './wordSpeak';
 import { playSfx, SFX } from './sfx';
 import { consumeEnergy } from '../data/energy';
+import { addQuestEarnings } from '../data/questEarnings';
+import { getQuestStatus } from '../data/quests';
 import { useInventory } from '../data/inventory';
 import { ITEMS } from '../data/items';
 import { getUiTheme } from './uiThemes';
@@ -90,6 +92,28 @@ function buildRound(pack: VocabularyPack, progress: VocabProgress): Round {
   const prompt = pickPromptEntry(pack, progress);
   const choices = buildChoices(pack, prompt);
   return { prompt, choices };
+}
+
+/** Office tutorial chain mapping: each translate mode is owned by
+ *  exactly one paycheck quest. Listen / write sessions credit
+ *  positive earnings to their owning quest's per-quest counter
+ *  (only if that quest is currently active), so the chain auto-
+ *  completes ONLY on work done with the right NPC in the right
+ *  mode. Read mode is intentionally absent — first-paycheck
+ *  completes via the CEO claim flow, not via auto-tally. */
+const MODE_TO_QUEST: Partial<Record<'read' | 'listen' | 'write', string>> = {
+  listen: 'second-paycheck',
+  write: 'third-paycheck',
+};
+
+function creditQuestEarningsIfMatched(
+  mode: 'read' | 'listen' | 'write',
+  cents: number,
+): void {
+  const questId = MODE_TO_QUEST[mode];
+  if (!questId) return;
+  if (getQuestStatus(questId) !== 'active') return;
+  addQuestEarnings(questId, cents);
 }
 
 export default function VocabularyTranslateView({ pack, npcName, mode = 'read', onClose }: VocabularyTranslateViewProps) {
@@ -246,8 +270,15 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       // counts toward the lifetime-earned milestone (first-paycheck
       // quest etc.); penalties stay as plain balance changes —
       // losing money doesn't un-earn what you already made.
-      if (isCorrect) creditEarnings(delta);
-      else addBalance(delta);
+      if (isCorrect) {
+        creditEarnings(delta);
+        // ALSO credit the office-tutorial chain's per-quest counter
+        // when this session belongs to one of those quests. Listen
+        // sessions count toward second-paycheck; write toward third.
+        // Read does not auto-tally — first-paycheck completes at
+        // the CEO claim flow.
+        creditQuestEarningsIfMatched(mode, delta);
+      } else addBalance(delta);
       setLastDelta(delta);
       setWriteOutcome(isCorrect ? 'correct' : 'wrong');
       setProgress((p) => {
@@ -285,8 +316,10 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       setSelectedTarget(chosen.target);
       const isCorrect = chosen.target === round.prompt.target;
       const delta = isCorrect ? getRewardPerCorrect() : -PENALTY_PER_WRONG;
-      if (isCorrect) creditEarnings(delta);
-      else addBalance(delta);
+      if (isCorrect) {
+        creditEarnings(delta);
+        creditQuestEarningsIfMatched(mode, delta);
+      } else addBalance(delta);
       setLastDelta(delta);
       // Update the per-word memory state — this is what feeds the
       // wrong-queue + recency-aware picker on the next round.

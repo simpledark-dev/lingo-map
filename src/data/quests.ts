@@ -32,19 +32,32 @@ const STORAGE_KEY = "lingo-quests:v1";
  *  separate key so the existing status-map schema stays untouched
  *  and back-compat reads keep working. */
 const ORDER_KEY = "lingo-quests:completion-order";
+/** Per-quest "lifetime cents at activation" snapshots. Lets phase-
+ *  delta quests (second + third paychecks) measure earnings made
+ *  WHILE the quest was active rather than total lifetime — without
+ *  this, a player who already earned $4+ before the chain reached
+ *  the second paycheck would auto-complete it (and chained third
+ *  paycheck) the instant they unlocked. */
+const START_LIFETIME_KEY = "lingo-quests:start-lifetime:v1";
 
 export type QuestStatus = "inactive" | "active" | "completed";
 
-/** Cents the player must earn (translation work only — penalties +
- *  borrows don't count) before the CEO will hand over the first
- *  paycheck. Lives here next to the quest catalog rather than in
- *  GameCanvas so the QuestHud can read it without pulling in a
- *  circular import. Set to $1.00 (35 correct translations at the
- *  current $0.30 reward, with room to absorb a few wrongs) so the
- *  first session can plausibly close the loop. */
-export const FIRST_PAYCHECK_THRESHOLD_CENTS = 100;
+/** First paycheck: cumulative lifetime cents required before the
+ *  CEO will claim the bonus. This one stays cumulative because the
+ *  player completes it manually at the CEO; the threshold just
+ *  gates whether the claim option lights up. */
+export const FIRST_PAYCHECK_THRESHOLD_CENTS = 200;
+/** Second + third paychecks: PHASE deltas in cents — earnings the
+ *  player must accumulate WHILE the quest is active. Snapshots
+ *  taken at quest-start (see `ensureQuestStartLifetime`) anchor the
+ *  delta so a stale save with high cumulative earnings doesn't
+ *  auto-complete these the moment they unlock. */
+export const SECOND_PAYCHECK_PHASE_CENTS = 200;
+export const THIRD_PAYCHECK_PHASE_CENTS = 200;
 /** Bonus paid on top of the cents already earned when the
- *  first-paycheck quest is claimed. */
+ *  first-paycheck quest is claimed. (Second / third paychecks
+ *  auto-complete on phase-delta without a CEO claim — they're
+ *  pure mode tutorials, no narrative bonus.) */
 export const FIRST_PAYCHECK_BONUS_CENTS = 100;
 
 export interface QuestDef {
@@ -215,13 +228,16 @@ export const QUESTS: Record<string, QuestDef> = {
     completedSummary: "You brought your child a sandwich.",
     computeCompletedSummary: () =>
       t("quest.childSandwich.completedSummary", { child: childDisplayName() }),
-    // Auto-chained after the first paycheck — the player has the
-    // money + the workflow muscle memory by then, and Mim's request
+    // Auto-chained after the FULL office tutorial (Eli → Rina →
+    // Yusuf), not after first-paycheck alone — the sandwich beat
+    // shouldn't arrive while the player is still mid-tutorial in
+    // the office. By the time third-paycheck completes the player
+    // has earnings + workflow muscle memory, and Mim's request
     // closes the loop on "you came to the city to feed your kid".
     // No `availableHint` is intentional: the chain auto-starts via
     // GameCanvas's catch-up effect, so the quest skips the
     // Available tier entirely and lands directly in In Progress.
-    requiresCompleted: ["first-paycheck"],
+    requiresCompleted: ["third-paycheck"],
   },
   "intro-translator-job": {
     id: "intro-translator-job",
@@ -237,9 +253,9 @@ export const QUESTS: Record<string, QuestDef> = {
     id: "first-paycheck",
     title: "Earn Your First Paycheck",
     computeTitle: () => t("quest.firstPaycheck.title"),
-    objective: "Eli's at the office. Earn $1.00 and return to the CEO.",
+    objective: "Eli's at the office. Earn $2.00 and return to the CEO.",
     computeObjective: () =>
-      t("quest.firstPaycheck.objective", { threshold: "$1.00" }),
+      t("quest.firstPaycheck.objective", { threshold: "$2.00" }),
     availableHint: "The CEO promised a paycheck.",
     computeAvailableHint: () => t("quest.firstPaycheck.availableHint"),
     completedSummary: "You earned your first paycheck.",
@@ -248,6 +264,37 @@ export const QUESTS: Record<string, QuestDef> = {
     // catch-up effect), but prereq is set anyway so a stale save
     // mid-intro doesn't accidentally surface this in Available.
     requiresCompleted: ["intro-translator-job"],
+  },
+  // Mode-tutorial chain. Each office-floor NPC offers exactly ONE
+  // translate mode (read → listen → write), introducing them one
+  // at a time so the player learns each option in isolation. Both
+  // auto-complete the moment lifetime earnings cross the threshold
+  // — no CEO claim, since the narrative bonus already fired with
+  // first-paycheck. Same lifetime counter is reused so the player
+  // doesn't have to "reset" their work after the first paycheck.
+  "second-paycheck": {
+    id: "second-paycheck",
+    title: "Listen & Translate",
+    computeTitle: () => t("quest.secondPaycheck.title"),
+    objective:
+      "A new tutor in the office struggles with audio — earn another $2.00 in Listen mode.",
+    computeObjective: () =>
+      t("quest.secondPaycheck.objective", { threshold: "$2.00" }),
+    completedSummary: "You learned to translate by listening.",
+    computeCompletedSummary: () => t("quest.secondPaycheck.completedSummary"),
+    requiresCompleted: ["first-paycheck"],
+  },
+  "third-paycheck": {
+    id: "third-paycheck",
+    title: "Write from Meaning",
+    computeTitle: () => t("quest.thirdPaycheck.title"),
+    objective:
+      "The third tutor wants to USE words, not just recognise them — earn another $2.00 in Write mode.",
+    computeObjective: () =>
+      t("quest.thirdPaycheck.objective", { threshold: "$2.00" }),
+    completedSummary: "You learned to write the words you've learned.",
+    computeCompletedSummary: () => t("quest.thirdPaycheck.completedSummary"),
+    requiresCompleted: ["second-paycheck"],
   },
 };
 
@@ -377,56 +424,45 @@ function write(value: StatusMap): void {
   }
 }
 
-/** When true, status + transition listeners do NOT fire immediately —
- *  GameCanvas turns this on while a dialogue is open so the QuestHud
- *  "NEW" pulse and the QuestToast popup don't appear behind the
- *  parchment box while the player is still reading the NPC's
- *  follow-up line. Internal state (read()) updates immediately, so
- *  any code path that calls `getQuestStatus()` directly still sees
- *  the latest answer.
+/** When true, the QuestToast banner is silenced — the chain
+ *  `started`/`completed` events get queued instead of firing
+ *  immediately. GameCanvas turns this on while a dialogue is open
+ *  so the toast doesn't pop behind the parchment box while the
+ *  NPC is still talking, and flushes the queue when the dialogue
+ *  closes.
  *
- *  `pendingStatusEmit` is a dirty flag rather than a queued list
- *  because emitStatuses always emits the CURRENT snapshot — there's
- *  no point storing intermediate states the player will never see.
- *  `pendingTransitions` IS a list because each transition is its
- *  own toast: completing one quest then starting another fires two
- *  separate notifications when we drain. */
-let visibilityDeferred = false;
-let pendingStatusEmit = false;
+ *  IMPORTANT: status emits (the snapshot subscribers like QuestHud
+ *  / QuestLog / the chain useEffect listen to) are NOT deferred —
+ *  only the toast events. Earlier the deferral covered both, which
+ *  meant claiming the first-paycheck bonus didn't actually update
+ *  the QuestHud, the markers, or chain into second-paycheck until
+ *  the dialogue closed AND 400ms passed. Now state propagates
+ *  immediately; only the visible "🎉 New Quest" banner waits. */
+let toastDeferred = false;
 const pendingTransitions: QuestTransition[] = [];
 
 function emitStatuses(): void {
-  if (visibilityDeferred) {
-    pendingStatusEmit = true;
-    return;
-  }
   const snapshot = { ...read() };
   for (const l of statusListeners) l(snapshot);
 }
 
 function emitTransition(event: QuestTransition): void {
-  if (visibilityDeferred) {
+  if (toastDeferred) {
     pendingTransitions.push(event);
     return;
   }
   for (const l of transitionListeners) l(event);
 }
 
-/** Pause / resume player-visible quest notifications. Call with `true`
- *  when a dialogue opens; `false` when it closes. While paused, every
- *  `completeQuest` / `startQuest` still mutates state but its toast
- *  and HUD-update wait. Resuming flushes a single status snapshot
- *  (so subscribers see the ENDING state, not each intermediate flip)
- *  followed by every queued transition in FIFO order. */
+/** Pause / resume the QuestToast banner. Call with `true` when a
+ *  dialogue opens; `false` when it closes. While paused, every
+ *  `completeQuest` / `startQuest` still mutates state and notifies
+ *  the status subscribers — only the toast event waits. Resuming
+ *  drains queued transitions in FIFO order. */
 export function setQuestVisibilityDeferred(deferred: boolean): void {
-  if (visibilityDeferred === deferred) return;
-  visibilityDeferred = deferred;
+  if (toastDeferred === deferred) return;
+  toastDeferred = deferred;
   if (deferred) return;
-  if (pendingStatusEmit) {
-    pendingStatusEmit = false;
-    const snapshot = { ...read() };
-    for (const l of statusListeners) l(snapshot);
-  }
   if (pendingTransitions.length > 0) {
     const drain = pendingTransitions.splice(0);
     for (const ev of drain) {
@@ -437,6 +473,71 @@ export function setQuestVisibilityDeferred(deferred: boolean): void {
 
 export function getQuestStatus(id: string): QuestStatus {
   return read()[id] ?? "inactive";
+}
+
+// ── Quest start-lifetime snapshots ──
+// Used by phase-delta quests (second / third paychecks) so the
+// auto-complete check measures earnings made WHILE active, not
+// total lifetime. Same module-cache + localStorage pattern as the
+// status map above.
+
+let cachedStartLifetimes: Record<string, number> | null = null;
+
+function readStartLifetimes(): Record<string, number> {
+  if (cachedStartLifetimes !== null) return cachedStartLifetimes;
+  if (typeof window === "undefined") {
+    cachedStartLifetimes = {};
+    return cachedStartLifetimes;
+  }
+  try {
+    const raw = window.localStorage.getItem(START_LIFETIME_KEY);
+    cachedStartLifetimes = raw ? (JSON.parse(raw) as Record<string, number>) : {};
+  } catch {
+    cachedStartLifetimes = {};
+  }
+  return cachedStartLifetimes;
+}
+
+function writeStartLifetimes(map: Record<string, number>): void {
+  cachedStartLifetimes = map;
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(START_LIFETIME_KEY, JSON.stringify(map));
+  } catch {
+    /* quota / private mode — drop silently */
+  }
+}
+
+/** Record the player's lifetime-earnings number at the moment a
+ *  quest goes active. Idempotent — a quest's snapshot is set ONCE
+ *  on first activation; later callers re-passing a value are
+ *  ignored so the baseline doesn't drift. Pass `currentLifetime`
+ *  from the wallet to keep this module wallet-import-free. */
+export function ensureQuestStartLifetime(
+  id: string,
+  currentLifetime: number,
+): void {
+  const map = readStartLifetimes();
+  if (map[id] !== undefined) return;
+  map[id] = currentLifetime;
+  writeStartLifetimes(map);
+}
+
+/** Read the snapshot. Returns `fallback` (and writes it back as
+ *  the snapshot) when no entry exists — covers stale saves where
+ *  a quest was already active before this tracking was added.
+ *  Writing the fallback prevents the next call from drifting if
+ *  lifetime grows between calls. */
+export function getOrInitQuestStartLifetime(
+  id: string,
+  fallback: number,
+): number {
+  const map = readStartLifetimes();
+  const v = map[id];
+  if (v !== undefined) return v;
+  map[id] = fallback;
+  writeStartLifetimes(map);
+  return fallback;
 }
 
 /** Start a quest. No-op if it's already active or completed (so

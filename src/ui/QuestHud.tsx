@@ -22,8 +22,11 @@ import {
   useQuestAcknowledged,
   acknowledgeQuest,
   FIRST_PAYCHECK_THRESHOLD_CENTS,
+  SECOND_PAYCHECK_PHASE_CENTS,
+  THIRD_PAYCHECK_PHASE_CENTS,
   getTitle,
 } from '../data/quests';
+import { useQuestEarnings } from '../data/questEarnings';
 import { useLifetimeEarnings, formatBalance } from '../data/wallet';
 import { t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
@@ -56,6 +59,11 @@ export default function QuestHud({ onOpenLog, liftedForModal = false }: QuestHud
   // cheap, and this way the strip rerenders live as cents tick up
   // for any future progress-aware quest.
   const lifetimeEarnings = useLifetimeEarnings();
+  // Per-quest counters drive the office tutorial chain's progress
+  // bars. Subscribed via hooks so the bar fills live as the
+  // player nails each correct answer.
+  const secondPaycheckEarnings = useQuestEarnings('second-paycheck');
+  const thirdPaycheckEarnings = useQuestEarnings('third-paycheck');
   const active = useMemo(
     // Strip is intentionally ACTIVE-only. Available / new quests
     // are surfaced through the in-world dialogue + the quest log
@@ -76,6 +84,27 @@ export default function QuestHud({ onOpenLog, liftedForModal = false }: QuestHud
       return {
         label: `${formatBalance(earned)} / ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)}`,
         ratio: earned / FIRST_PAYCHECK_THRESHOLD_CENTS,
+      };
+    }
+    // Second / third paychecks read directly from per-quest
+    // earnings counters that ONLY tick when the right NPC's mode
+    // is being worked (see questEarnings + VocabularyTranslateView).
+    // No lifetime / snapshot games — the bar shows exactly how much
+    // listen / write work has banked toward this quest.
+    if (questId === 'second-paycheck') {
+      const phaseSize = SECOND_PAYCHECK_PHASE_CENTS;
+      const earned = Math.min(phaseSize, secondPaycheckEarnings);
+      return {
+        label: `${formatBalance(earned)} / ${formatBalance(phaseSize)}`,
+        ratio: earned / phaseSize,
+      };
+    }
+    if (questId === 'third-paycheck') {
+      const phaseSize = THIRD_PAYCHECK_PHASE_CENTS;
+      const earned = Math.min(phaseSize, thirdPaycheckEarnings);
+      return {
+        label: `${formatBalance(earned)} / ${formatBalance(phaseSize)}`,
+        ratio: earned / phaseSize,
       };
     }
     return null;

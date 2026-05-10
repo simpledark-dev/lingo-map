@@ -176,6 +176,15 @@ export const MIRA_PACK: VocabularyPack = {
     { target: 'guzon', english: 'market', vi: 'chợ', pos: 'noun' },
     { target: 'riste', english: 'bank', vi: 'ngân hàng', pos: 'noun' },
 
+    // ── Work / commerce (3) ──
+    // Used by the office tutorial trio (Eli / Rina / Yusuf) — all
+    // three NPCs share these three words so the player learns the
+    // SAME vocabulary in three different modes (read → listen →
+    // write), reinforcing the words while teaching the modes.
+    { target: 'tarven', english: 'work', vi: 'công việc', pos: 'noun' },
+    { target: 'koldi', english: 'money', vi: 'tiền', pos: 'noun' },
+    { target: 'numera', english: 'office', vi: 'văn phòng', pos: 'noun' },
+
     // ── Nature (9) ──
     { target: 'larin', english: 'sun', vi: 'mặt trời', pos: 'noun' },
     { target: 'senpa', english: 'moon', vi: 'mặt trăng', pos: 'noun' },
@@ -336,11 +345,36 @@ export const PIO_PACK: VocabularyPack = {
  *  walk through both Practice and Read flows without grinding. The
  *  words are picked from MIRA_PACK so we don't have to author new
  *  audio / examples; theme just labels what they're learning. */
+/** Shared 3-word vocabulary for the office tutorial trio.
+ *  All three NPCs (Eli → read, Rina → listen, Yusuf → write)
+ *  drill the SAME words so the player walks out of the office
+ *  having learned `tarven` / `koldi` / `numera` in every mode —
+ *  reinforcing recall while teaching the modes themselves. The
+ *  three packs differ only by id + theme so the translate view's
+ *  per-pack progress UI can still distinguish them. */
+const OFFICE_TUTOR_TARGETS = ['tarven', 'koldi', 'numera'];
+
 export const OFFICE_TUTOR_PACK: VocabularyPack = {
   id: 'office-tutor-pack',
   theme: 'Trainer warm-up',
   entries: MIRA_PACK.entries.filter((e) =>
-    ['grano', 'mira', 'solpi'].includes(e.target),
+    OFFICE_TUTOR_TARGETS.includes(e.target),
+  ),
+};
+
+export const OFFICE_LISTEN_TUTOR_PACK: VocabularyPack = {
+  id: 'office-listen-tutor-pack',
+  theme: 'Listening warm-up',
+  entries: MIRA_PACK.entries.filter((e) =>
+    OFFICE_TUTOR_TARGETS.includes(e.target),
+  ),
+};
+
+export const OFFICE_WRITE_TUTOR_PACK: VocabularyPack = {
+  id: 'office-write-tutor-pack',
+  theme: 'Writing warm-up',
+  entries: MIRA_PACK.entries.filter((e) =>
+    OFFICE_TUTOR_TARGETS.includes(e.target),
   ),
 };
 
@@ -350,6 +384,8 @@ export const VOCABULARY_PACKS: Record<string, VocabularyPack> = {
   [SABA_PACK.id]: SABA_PACK,
   [PIO_PACK.id]: PIO_PACK,
   [OFFICE_TUTOR_PACK.id]: OFFICE_TUTOR_PACK,
+  [OFFICE_LISTEN_TUTOR_PACK.id]: OFFICE_LISTEN_TUTOR_PACK,
+  [OFFICE_WRITE_TUTOR_PACK.id]: OFFICE_WRITE_TUTOR_PACK,
 };
 
 export function getVocabularyPack(id: string): VocabularyPack | undefined {
