@@ -10,6 +10,7 @@ import DialogueOverlay from "./DialogueOverlay";
 import VocabularyListView from "./VocabularyListView";
 import VocabularyTranslateView from "./VocabularyTranslateView";
 import ShopView from "./ShopView";
+import ComputerUpgradeView from "./ComputerUpgradeView";
 import { getVocabularyPack } from "../data/vocabularyPacks";
 import {
   useWalletBalance,
@@ -42,8 +43,11 @@ import {
   subscribeQuestTransitions,
   setQuestVisibilityDeferred,
   FIRST_PAYCHECK_THRESHOLD_CENTS,
+  SECOND_PAYCHECK_PHASE_CENTS,
+  THIRD_PAYCHECK_PHASE_CENTS,
   FIRST_PAYCHECK_BONUS_CENTS,
 } from "../data/quests";
+import { getQuestEarnings, useQuestEarnings } from "../data/questEarnings";
 import QuestToast from "./QuestToast";
 import QuestLog from "./QuestLog";
 import InventoryView from "./InventoryView";
@@ -70,6 +74,7 @@ import {
   setMusicEnabled as persistMusicEnabled,
   setVirtualDPadEnabled as persistVirtualDPadEnabled,
 } from "../data/settings";
+import { getComputerUpgradeLevel } from "../data/computerUpgrade";
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -84,6 +89,8 @@ import {
   buildLenderDialogue,
   buildCeoIntroDialogue,
   buildOfficeTutorDialogue,
+  buildListenTutorDialogue,
+  buildWriteTutorDialogue,
   APARTMENT_DIALOGUE,
 } from './dialogueBuilders';
 
@@ -101,6 +108,8 @@ const QUEST_TALK_TARGETS: ReadonlyArray<{
 }> = [
   { questId: "intro-translator-job", npcName: "CEO", mapId: "office" },
   { questId: "first-paycheck", npcName: "Eli", mapId: "office" },
+  { questId: "second-paycheck", npcName: "Rina", mapId: "office" },
+  { questId: "third-paycheck", npcName: "Yusuf", mapId: "office" },
   { questId: "child-sandwich", npcName: "Mim", mapId: "pokemon-house-1f" },
   { questId: "tutorial-borrow", npcName: "Theo", mapId: "pokemon" },
   { questId: "tutorial-buy-food", npcName: "Shopkeeper", mapId: "grocer-1f" },
@@ -212,6 +221,10 @@ export default function GameCanvas() {
    *  the catalog lives in `src/data/items.ts` and is shared across
    *  every shop. Null = closed. */
   const [shopView, setShopView] = useState<{ shopName: string } | null>(null);
+  /** Computer upgrade modal — opened from the apartment computer's
+   *  object dialogue. Null/false means the world can resume unless
+   *  some other overlay is active. */
+  const [computerUpgradeOpen, setComputerUpgradeOpen] = useState(false);
   /** Quest log modal — opened via the HUD scroll button. */
   const [questLogOpen, setQuestLogOpen] = useState(false);
   const [questLogFocusId, setQuestLogFocusId] = useState<string | null>(null);
@@ -333,6 +346,14 @@ export default function GameCanvas() {
   const lifetimeEarnings = useLifetimeEarnings();
   const debt = useDebt();
   const questStatuses = useQuestStatuses();
+  // Per-quest earnings counters drive the office tutorial chain's
+  // auto-complete (see questEarnings.ts). Hook-subscribed here so
+  // the chain useEffect re-runs the moment a translate session
+  // banks another correct answer for the right mode — that's the
+  // ONLY thing that should advance the chain past read → listen
+  // → write.
+  const secondPaycheckEarnings = useQuestEarnings('second-paycheck');
+  const thirdPaycheckEarnings = useQuestEarnings('third-paycheck');
 
   // Pulse-the-quest-button driver. Listens for `started` transitions
   // and flips the unread flag; the QuestLog open handler clears it.
@@ -369,6 +390,7 @@ export default function GameCanvas() {
     vocabularyView ||
     translateView ||
     shopView ||
+    computerUpgradeOpen ||
     questLogOpen ||
     inventoryOpen ||
     settingsOpen ||
@@ -379,6 +401,7 @@ export default function GameCanvas() {
     vocabularyView ||
     translateView ||
     shopView ||
+    computerUpgradeOpen ||
     questLogOpen ||
     inventoryOpen ||
     settingsOpen ||
@@ -399,12 +422,67 @@ export default function GameCanvas() {
     ) {
       startQuest("first-paycheck");
     }
-    // First paycheck → sandwich for Mim. Chained so the player
-    // sees a fresh quest light up the moment they complete the
-    // paycheck closer, instead of having to walk back home and
-    // discover it via Mim's dialogue first.
+    // first-paycheck → second-paycheck → third-paycheck. Each
+    // tutor introduces a new translate mode and the chain enforces
+    // strict ordering: a quest only auto-completes once the player
+    // has banked $2 of work IN ITS OWN MODE (listen for second,
+    // write for third), tracked via a per-quest earnings counter
+    // updated only by VocabularyTranslateView when the session's
+    // mode matches. This means dev cheats, read-mode grinding, or
+    // any other lifetime gain CANNOT close out second / third —
+    // the player must actually do listen sessions on Rina and
+    // write sessions on Yusuf, in order.
+    //
+    // Auto-complete + auto-start for the office tutorial chain
+    // (second / third paycheck) are gated on
+    // `!translateView && !dialogue`:
+    //   - while a session is open, threshold-crossing must NOT
+    //     start the next quest behind the live UI;
+    //   - while a dialogue is open (e.g. the NPC's post-session
+    //     thank-you set in `handleCloseTranslateView`), the chain
+    //     waits so the new-quest toast + HUD row don't pop on top
+    //     of the wrap-up line.
+    // The first-paycheck → second-paycheck START step is also
+    // gated on dialogue because the CEO claim flow itself opens
+    // a dialogue — we want the "New Quest: Listen & Translate"
+    // beat to land after the CEO line closes, not during it.
+    const officeChainGate = !translateView && !dialogue;
     if (
+      officeChainGate &&
       questStatuses["first-paycheck"] === "completed" &&
+      !questStatuses["second-paycheck"]
+    ) {
+      startQuest("second-paycheck");
+    }
+    if (
+      officeChainGate &&
+      questStatuses["second-paycheck"] === "active" &&
+      getQuestEarnings("second-paycheck") >= SECOND_PAYCHECK_PHASE_CENTS
+    ) {
+      completeQuest("second-paycheck");
+    }
+    if (
+      officeChainGate &&
+      questStatuses["second-paycheck"] === "completed" &&
+      !questStatuses["third-paycheck"]
+    ) {
+      startQuest("third-paycheck");
+    }
+    if (
+      officeChainGate &&
+      questStatuses["third-paycheck"] === "active" &&
+      getQuestEarnings("third-paycheck") >= THIRD_PAYCHECK_PHASE_CENTS
+    ) {
+      completeQuest("third-paycheck");
+    }
+    // After the office tutorial chain completes (Eli → Rina →
+    // Yusuf), the home thread picks up: Mim asks for a sandwich.
+    // Previously chained off `first-paycheck`, which meant the
+    // sandwich quest popped up right after Eli's job — before
+    // the player had even met Rina or Yusuf. Gating on the LAST
+    // tutorial keeps the office arc self-contained.
+    if (
+      questStatuses["third-paycheck"] === "completed" &&
       !questStatuses["child-sandwich"]
     ) {
       startQuest("child-sandwich");
@@ -432,7 +510,12 @@ export default function GameCanvas() {
     ) {
       startQuest("tutorial-eat");
     }
-  }, [questStatuses]);
+    // secondPaycheckEarnings / thirdPaycheckEarnings are referenced
+    // implicitly via getQuestEarnings() inside the body — listing
+    // them in deps forces the effect to re-run when their counters
+    // increment, so auto-complete fires the same render the
+    // threshold is crossed.
+  }, [questStatuses, lifetimeEarnings, secondPaycheckEarnings, thirdPaycheckEarnings, translateView, dialogue]);
   const energy = useEnergy();
   const energyMax = getMaxEnergy();
   const inventory = useInventory();
@@ -809,6 +892,10 @@ export default function GameCanvas() {
               setDialogue(buildCeoIntroDialogue(event.dialogue));
             } else if (event.dialogue.dialogueKind === "office-tutor") {
               setDialogue(buildOfficeTutorDialogue(event.dialogue));
+            } else if (event.dialogue.dialogueKind === "office-tutor-listen") {
+              setDialogue(buildListenTutorDialogue(event.dialogue));
+            } else if (event.dialogue.dialogueKind === "office-tutor-write") {
+              setDialogue(buildWriteTutorDialogue(event.dialogue));
             } else if (
               event.dialogue.vocabularyPackId &&
               getQuestStatus("intro-translator-job") !== "completed"
@@ -1148,7 +1235,14 @@ export default function GameCanvas() {
     const paycheckReadyToClaim =
       paycheckActive &&
       getLifetimeEarnings() >= FIRST_PAYCHECK_THRESHOLD_CENTS;
-    if ((introActive || paycheckActive) && currentMapId === "pokemon") {
+    // Mode-tutorial quests (second / third paycheck) also live in
+    // the office, so the outdoor "Office" chevron should keep
+    // pointing there until the player has finished the whole
+    // tutorial chain.
+    const modeQuestActive =
+      questStatuses["second-paycheck"] === "active" ||
+      questStatuses["third-paycheck"] === "active";
+    if ((introActive || paycheckActive || modeQuestActive) && currentMapId === "pokemon") {
       const office = collectObjects("pokemon").find(
         (o) => o.transition?.incomingSpawnId === "outdoor-office",
       );
@@ -1297,6 +1391,19 @@ export default function GameCanvas() {
       setDialogue(null);
       return;
     }
+    // Generic React-only / synthetic dialogue path — same problem as
+    // locked-district above. Walk the lines locally, then close.
+    // Marked via `clientOnly: true` when the dialogue was opened by
+    // React without an engine-side dialogueStart event (e.g. the
+    // post-session NPC thank-yous from `handleCloseTranslateView`).
+    if (dialogue?.clientOnly) {
+      if (dialogue.currentLine < dialogue.lines.length - 1) {
+        setDialogue({ ...dialogue, currentLine: dialogue.currentLine + 1 });
+        return;
+      }
+      setDialogue(null);
+      return;
+    }
     // Intro apartment back-and-forth is React-managed — walk
     // currentLine locally and swap npcName as the speaker changes.
     // On the final tap, close, start the intro quest (deferred
@@ -1408,6 +1515,36 @@ export default function GameCanvas() {
         return;
       }
       if (optionId === "shop-leave") {
+        closeDialogueEverywhere();
+        return;
+      }
+      // Apartment computer routes — Study swaps the object menu for
+      // a one-line result, Upgrade opens the modal, Leave closes.
+      if (optionId === "computer-study") {
+        const canStudy = getComputerUpgradeLevel() > 0;
+        const studyDialogue: DialogueState = {
+          npcId: "object-computer-study",
+          npcName: t("computer.name"),
+          lines: [
+            canStudy
+              ? t("computer.study.ready")
+              : t("computer.study.broken"),
+          ],
+          currentLine: 0,
+        };
+        setDialogue(studyDialogue);
+        pixiAppRef.current?.commandQueue.push({
+          type: "SET_DIALOGUE",
+          dialogue: studyDialogue,
+        });
+        return;
+      }
+      if (optionId === "computer-upgrade") {
+        setComputerUpgradeOpen(true);
+        closeDialogueEverywhere();
+        return;
+      }
+      if (optionId === "computer-leave") {
         closeDialogueEverywhere();
         return;
       }
@@ -1594,48 +1731,80 @@ export default function GameCanvas() {
         return;
       }
       if (optionId === "help" && packId) {
-        // Step 2: pick the translation mode. Only `mode-read` is wired
-        // up — the other three render disabled with a "SOON" badge so
-        // the player can see the full menu coming.
+        // Step 2: pick the translation mode. The office tutorial
+        // NPCs lock the picker to a single mode (Eli → read, Rina →
+        // listen, Yusuf → write) so each NPC introduces ONE option
+        // at a time. Lookup is by `dialogueKind`; everyone else
+        // (Saba, Pio, future translator NPCs) sees the full
+        // four-mode picker. The lock is purely a presentational
+        // filter — `mode-read` etc. still go through the same
+        // option handlers below.
+        const kindToLockedMode: Record<string, 'read' | 'listen' | 'write'> = {
+          'office-tutor': 'read',
+          'office-tutor-listen': 'listen',
+          'office-tutor-write': 'write',
+        };
+        const lockedMode = dialogue.dialogueKind
+          ? kindToLockedMode[dialogue.dialogueKind] ?? null
+          : null;
+        const allModeOptions = [
+          {
+            id: "mode-read",
+            label: t('dialogue.offer.modeRead'),
+            // Cost suffix on every paid mode so the player always
+            // sees the entry fee before they tap. Practice is exempt
+            // (and accessed via the dictionary view) so it stays
+            // unannotated. Session-cost, not per-round — same fee
+            // whether they drill 5 words or 50.
+            hint: t('dialogue.offer.modeReadHint'),
+            mode: 'read' as const,
+          },
+          {
+            id: "mode-listen",
+            label: t('dialogue.offer.modeListen'),
+            hint: t('dialogue.offer.modeListenHint'),
+            mode: 'listen' as const,
+          },
+          {
+            id: "mode-write",
+            label: t('dialogue.offer.modeWrite'),
+            hint: t('dialogue.offer.modeWriteHint'),
+            mode: 'write' as const,
+          },
+          {
+            id: "mode-speak",
+            label: t('dialogue.offer.modeSpeak'),
+            hint: t('dialogue.offer.modeSpeakHint'),
+            comingSoon: true,
+            mode: 'speak' as const,
+          },
+        ];
+        const modeOptions = lockedMode
+          ? allModeOptions
+              .filter((m) => m.mode === lockedMode)
+              .map(({ mode: _mode, ...rest }) => rest)
+          : allModeOptions.map(({ mode: _mode, ...rest }) => rest);
         translationModeReturnDialogueRef.current = {
           ...dialogue,
           currentLine: 0,
           skipTypewriter: true,
         };
+        // Office tutors get a different prompt line above the
+        // mode picker — "This is what I struggle with" reads
+        // better than "I need help with one of these" when the
+        // picker only has ONE option to begin with.
+        const modePromptKey = lockedMode
+          ? 'dialogue.officeTutor.modePrompt'
+          : 'dialogue.offer.modePrompt';
         setDialogue({
           npcId: dialogue.npcId,
           npcName: dialogue.npcName,
-          lines: [t('dialogue.offer.modePrompt')],
+          lines: [t(modePromptKey)],
           currentLine: 0,
           vocabularyPackId: packId,
           vocabularyWordCount: dialogue.vocabularyWordCount,
           options: [
-            {
-              id: "mode-read",
-              label: t('dialogue.offer.modeRead'),
-              // Cost suffix on every paid mode so the player always
-              // sees the entry fee before they tap. Practice is exempt
-              // (and accessed via the dictionary view) so it stays
-              // unannotated. Session-cost, not per-round — same fee
-              // whether they drill 5 words or 50.
-              hint: t('dialogue.offer.modeReadHint'),
-            },
-            {
-              id: "mode-listen",
-              label: t('dialogue.offer.modeListen'),
-              hint: t('dialogue.offer.modeListenHint'),
-            },
-            {
-              id: "mode-write",
-              label: t('dialogue.offer.modeWrite'),
-              hint: t('dialogue.offer.modeWriteHint'),
-            },
-            {
-              id: "mode-speak",
-              label: t('dialogue.offer.modeSpeak'),
-              hint: t('dialogue.offer.modeSpeakHint'),
-              comingSoon: true,
-            },
+            ...modeOptions,
             {
               id: "mode-back",
               label: t('dialogue.offer.modeBack'),
@@ -1683,7 +1852,40 @@ export default function GameCanvas() {
   }, []);
 
   const handleCloseTranslateView = useCallback(() => {
-    setTranslateView(null);
+    // When the session crossed the active office-tutorial quest's
+    // earnings threshold, route the player through the NPC's
+    // thank-you line BEFORE the chain advances. The chain's
+    // auto-complete + auto-start are gated on (!translateView &&
+    // !dialogue), so opening this dialogue here keeps the next
+    // quest's toast + HUD row from popping until the player has
+    // dismissed the wrap-up beat. If the threshold wasn't crossed,
+    // session ends silently as before.
+    setTranslateView((prev) => {
+      if (!prev) return null;
+      const { mode, npcName } = prev;
+      if (mode === 'listen' &&
+          getQuestStatus('second-paycheck') === 'active' &&
+          getQuestEarnings('second-paycheck') >= SECOND_PAYCHECK_PHASE_CENTS) {
+        setDialogue({
+          npcId: 'office-npc-listen-tutor',
+          npcName,
+          lines: [t('dialogue.listenTutor.thanks')],
+          currentLine: 0,
+          clientOnly: true,
+        });
+      } else if (mode === 'write' &&
+          getQuestStatus('third-paycheck') === 'active' &&
+          getQuestEarnings('third-paycheck') >= THIRD_PAYCHECK_PHASE_CENTS) {
+        setDialogue({
+          npcId: 'office-npc-write-tutor',
+          npcName,
+          lines: [t('dialogue.writeTutor.thanks')],
+          currentLine: 0,
+          clientOnly: true,
+        });
+      }
+      return null;
+    });
   }, []);
 
   const handleOpenMinimap = useCallback(() => {
@@ -2343,6 +2545,12 @@ export default function GameCanvas() {
               shopName={shopView.shopName}
               onClose={() => setShopView(null)}
             />
+          </div>
+        )}
+
+        {computerUpgradeOpen && (
+          <div style={{ pointerEvents: "auto" }}>
+            <ComputerUpgradeView onClose={() => setComputerUpgradeOpen(false)} />
           </div>
         )}
 

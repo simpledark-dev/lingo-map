@@ -120,6 +120,37 @@ export const vi: Record<string, string> = {
   "dialogue.eli.offerLine":
     "Ê phiên dịch viên mới! Tôi đợi anh nãy giờ — ba từ thôi, làm chung không?",
   "dialogue.eli.fallback": "Ê anh phiên dịch mới! Rảnh chút không?",
+  "dialogue.eli.modeReadOnly": "1. Đọc & dịch",
+  "dialogue.eli.modeReadOnlyHint": "Đọc từ rồi chọn nghĩa của nó.",
+  "dialogue.eli.modeDecline": "Để sau",
+  "dialogue.eli.modeDeclineHint": "Tôi vẫn ngồi bàn này.",
+
+  // ── Office tutorial NPCs (Eli / Rina / Yusuf) ──
+  "dialogue.officeTutor.modePrompt": "Đây là chỗ tôi yếu.",
+  "dialogue.listenTutor.thanks":
+    "Giúp được rồi — giờ tôi nghe thấy mấy từ này rõ luôn. Cảm ơn anh nha.",
+  "dialogue.writeTutor.thanks":
+    "Hiểu rồi. Giờ chắc tôi tự viết được mấy từ này luôn. Cảm ơn anh đã kiên nhẫn nhé.",
+
+  // ── Listen tutor (second-paycheck NPC) ──
+  "dialogue.listenTutor.preHire":
+    "Tôi đang đợi phiên dịch viên — anh nói chuyện với sếp trước đi.",
+  "dialogue.listenTutor.offer":
+    "Đọc thì tôi hiểu được, nhưng nghe nói ra là chịu. Giúp tôi luyện qua âm thanh được không?",
+  "dialogue.listenTutor.modeListen": "2. Nghe & dịch",
+  "dialogue.listenTutor.modeListenHint": "Nghe rồi chọn nghĩa.",
+  "dialogue.listenTutor.modeDecline": "Để sau",
+  "dialogue.listenTutor.modeDeclineHint": "Anh quay lại lúc nào cũng được.",
+
+  // ── Write tutor (third-paycheck NPC) ──
+  "dialogue.writeTutor.preHire":
+    "Phiên dịch viên chưa tới — anh nói chuyện với sếp trước đi.",
+  "dialogue.writeTutor.offer":
+    "Tôi nhìn từ thì nhận ra, nhưng mà tới lúc cần dùng là quên sạch. Giúp tôi tập viết từ theo nghĩa được không?",
+  "dialogue.writeTutor.modeWrite": "3. Viết theo nghĩa",
+  "dialogue.writeTutor.modeWriteHint": "Thấy nghĩa thì gõ từ.",
+  "dialogue.writeTutor.modeDecline": "Để sau",
+  "dialogue.writeTutor.modeDeclineHint": "Lúc nào cũng được nhé.",
 
   // ── Theo (lender) ──
   "dialogue.theo.youOwe": "Anh còn nợ tôi {debt}. Muốn vay thêm hay trả bớt?",
@@ -253,6 +284,16 @@ export const vi: Record<string, string> = {
     "Nhận lương lần đầu. Sếp cho thêm chút thưởng.",
   "quest.firstPaycheck.availableHint":
     "Sếp hứa có lương khi bạn đã chứng minh được — cứ tiếp tục dịch.",
+  "quest.secondPaycheck.title": "Nghe & Dịch",
+  "quest.secondPaycheck.objective":
+    "Anh tutor mới ở văn phòng kẹt phần nghe — kiếm thêm {threshold} ở chế độ Nghe.",
+  "quest.secondPaycheck.completedSummary":
+    "Bạn đã học cách dịch qua tai.",
+  "quest.thirdPaycheck.title": "Viết Theo Nghĩa",
+  "quest.thirdPaycheck.objective":
+    "Anh tutor thứ ba muốn DÙNG được từ — kiếm thêm {threshold} ở chế độ Viết.",
+  "quest.thirdPaycheck.completedSummary":
+    "Bạn đã học cách viết từ đã biết.",
 
   "quest.childSandwich.title": "Bánh Mì Cho {child}",
   "quest.childSandwich.objectivePreAsk":
@@ -509,6 +550,42 @@ export const vi: Record<string, string> = {
   "item.milk.description": "Hộp sữa lạnh, uống mát lạnh.",
   "item.cookie.name": "Bánh quy",
   "item.cookie.description": "Bánh quy socola chip. Ăn cho đỡ thèm.",
+
+  // ── Apartment computer ──
+  "computer.name": "Máy tính",
+  "computer.dialogue.prompt": "Máy tính nằm trên bàn, phủ bụi và im lặng.",
+  "computer.option.study": "Học",
+  "computer.option.upgrade": "Nâng cấp",
+  "computer.option.leave": "Rời đi",
+  "computer.study.broken":
+    "Máy không bật lên. Màn hình vẫn đen thui. Cần có máy tính dùng được trước khi học ở đây.",
+  "computer.study.ready":
+    "Máy tính khởi động ổn. Chế độ học ở nhà sẽ sớm nằm ở đây.",
+  "computer.upgrade.title": "Nâng cấp máy tính",
+  "computer.upgrade.subtitle":
+    "Nâng cấp góc bàn để căn phòng này thành nơi học thật sự.",
+  "computer.upgrade.closeAria": "Đóng nâng cấp máy tính",
+  "computer.upgrade.current": "Hiện tại",
+  "computer.upgrade.owned": "Đã có",
+  "computer.upgrade.next": "Tiếp theo",
+  "computer.upgrade.locked": "Chưa mở",
+  "computer.upgrade.button": "Nâng cấp với {price}",
+  "computer.upgrade.maxedButton": "Đã nâng cấp tối đa",
+  "computer.upgrade.success": "Đã nâng cấp thành {item}.",
+  "computer.upgrade.needMoney": "Cần thêm {amount}.",
+  "computer.upgrade.maxed": "Máy tính này đã nâng cấp tối đa rồi.",
+  "computer.level.broken.name": "Máy tính hỏng",
+  "computer.level.broken.description":
+    "Màn hình chết, bàn phím cũ, chưa học được gì.",
+  "computer.level.usedLaptop.name": "Laptop cũ",
+  "computer.level.usedLaptop.description":
+    "Cũ và trầy xước, nhưng bật được và học bài cơ bản được.",
+  "computer.level.homePc.name": "Máy bàn",
+  "computer.level.homePc.description":
+    "Máy bàn đàng hoàng, đủ nhanh để học lâu hơn.",
+  "computer.level.studyRig.name": "Góc học xịn",
+  "computer.level.studyRig.description":
+    "Nhanh, gọn, thoải mái. Một góc học ngôn ngữ thật sự.",
 
   // ── Errors / fallbacks ──
   "common.unknown": "…",

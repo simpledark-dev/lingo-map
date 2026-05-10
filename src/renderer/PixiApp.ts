@@ -1,10 +1,10 @@
 import { Application, loadTextures } from 'pixi.js';
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DECOR_SPRITE_KEYS, MIN_ZOOM, MAX_ZOOM } from '../core/constants';
-import { Direction, GameState, MapData, TileType } from '../core/types';
+import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, DECOR_SPRITE_KEYS, MIN_ZOOM, MAX_ZOOM, INTERACTION_RANGE } from '../core/constants';
+import { DialogueState, Direction, Entity, GameState, MapData, Position, TileType } from '../core/types';
 import { loadMap, getSpawnPoint } from '../core/MapLoader';
 import { buildStressMap, StressOptions } from '../core/MapStress';
 import { createPlayer, updatePlayer } from '../core/PlayerSystem';
-import { resolveMovement, WorldBox } from '../core/CollisionSystem';
+import { getWorldCollisionBox, resolveMovement, WorldBox } from '../core/CollisionSystem';
 import { updateCamera, getViewportWorldSize } from '../core/CameraSystem';
 import { checkDoorTriggers } from '../core/TriggerSystem';
 import { checkInteraction, advanceDialogue } from '../core/InteractionSystem';
@@ -28,6 +28,7 @@ import { DebugOverlay } from './DebugOverlay';
 import { TapFeedback } from './TapFeedback';
 import { BGMManager } from './BGMManager';
 import { SavedWorldState, saveWorldState } from '../data/worldSave';
+import { t } from '../data/i18n';
 
 export type PixiAppOptions = StressOptions & {
   musicEnabled?: boolean;
@@ -100,6 +101,85 @@ export class PixiApp {
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
   private debugOverlay: DebugOverlay | null = null;
+
+  private findF1Computer(): Entity | null {
+    if (!this.gameState || this.gameState.currentMapId !== 'pokemon-house-1f') return null;
+    return this.gameState.entities.find((entity) => entity.spriteKey === 'computer-desk') ?? null;
+  }
+
+  private getComputerWorldBox(computer: Entity): WorldBox {
+    return getWorldCollisionBox(
+      computer.x,
+      computer.y,
+      computer.collisionBox,
+      computer.scale ?? 1,
+    );
+  }
+
+  private expandBox(box: WorldBox, amount: number): WorldBox {
+    return {
+      x: box.x - amount,
+      y: box.y - amount,
+      width: box.width + amount * 2,
+      height: box.height + amount * 2,
+    };
+  }
+
+  private pointInBox(point: Position, box: WorldBox): boolean {
+    return (
+      point.x >= box.x &&
+      point.x <= box.x + box.width &&
+      point.y >= box.y &&
+      point.y <= box.y + box.height
+    );
+  }
+
+  private isPlayerNearBox(box: WorldBox): boolean {
+    if (!this.gameState) return false;
+    const player = this.gameState.player;
+    const nearestX = Math.max(box.x, Math.min(player.x, box.x + box.width));
+    const nearestY = Math.max(box.y, Math.min(player.y, box.y + box.height));
+    const dx = player.x - nearestX;
+    const dy = player.y - nearestY;
+    return dx * dx + dy * dy <= INTERACTION_RANGE * INTERACTION_RANGE;
+  }
+
+  private buildComputerDialogue(): DialogueState {
+    return {
+      npcId: 'object-computer',
+      npcName: t('computer.name'),
+      lines: [t('computer.dialogue.prompt')],
+      currentLine: 0,
+      options: [
+        { id: 'computer-study', label: t('computer.option.study') },
+        { id: 'computer-upgrade', label: t('computer.option.upgrade') },
+        { id: 'computer-leave', label: t('computer.option.leave') },
+      ],
+    };
+  }
+
+  private maybeHandleComputerInteraction(input: { interact: boolean; moveTarget: Position | null }, map: MapData): DialogueState | null {
+    const computer = this.findF1Computer();
+    if (!computer) return null;
+    const box = this.getComputerWorldBox(computer);
+    const tapBox = this.expandBox(box, map.tileSize * 0.75);
+    const tappedComputer = input.moveTarget ? this.pointInBox(input.moveTarget, tapBox) : false;
+    const nearComputer = this.isPlayerNearBox(tapBox);
+
+    if ((input.interact || tappedComputer) && nearComputer) {
+      input.moveTarget = null;
+      return this.buildComputerDialogue();
+    }
+
+    if (tappedComputer && !nearComputer) {
+      input.moveTarget = {
+        x: box.x + box.width / 2,
+        y: Math.min(map.height * map.tileSize, box.y + box.height + map.tileSize * 0.65),
+      };
+    }
+
+    return null;
+  }
 
   private resolveCarCollisionBox(key: string): CarCollisionBox | null {
     const override = this.carCollisionOverrides[key];
@@ -750,6 +830,10 @@ export class PixiApp {
         this.inputAdapter.clearTransientInput({ suppressInteractUntilRelease: true });
         dialogueClosedThisFrame = true;
         this.bridge.emit({ type: 'dialogueEnd' });
+      } else if (cmd.type === 'SET_DIALOGUE') {
+        this.gameState.activeDialogue = cmd.dialogue;
+        this.inputAdapter.clearTransientInput({ suppressInteractUntilRelease: true });
+        this.bridge.emit({ type: 'dialogueAdvance', dialogue: cmd.dialogue });
       }
     }
 
@@ -808,6 +892,17 @@ export class PixiApp {
       this.gameState.activeDialogue = dialogueEvent;
       this.bridge.emit({ type: 'dialogueStart', dialogue: dialogueEvent });
       // Don't process movement this frame
+      const capInteract = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
+      this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capInteract);
+      this.renderSystem.updatePlayer(this.gameState.player, delta);
+      this.renderSystem.updateCamera(this.gameState.camera.x, this.gameState.camera.y, this.inputAdapter.zoom, map.maxViewTiles ? capInteract : undefined);
+      return;
+    }
+
+    const computerDialogue = this.maybeHandleComputerInteraction(input, map);
+    if (computerDialogue) {
+      this.gameState.activeDialogue = computerDialogue;
+      this.bridge.emit({ type: 'dialogueStart', dialogue: computerDialogue });
       const capInteract = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
       this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, capInteract);
       this.renderSystem.updatePlayer(this.gameState.player, delta);

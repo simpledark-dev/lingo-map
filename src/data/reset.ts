@@ -1,6 +1,7 @@
 import { SETTINGS_STORAGE_KEY } from './settings';
 import { WORLD_SAVE_STORAGE_KEY } from './worldSave';
 import { REWARD_PER_CORRECT_STORAGE_KEY } from './wallet';
+import { COMPUTER_UPGRADE_STORAGE_KEY } from './computerUpgrade';
 
 /**
  * One-call full reset for the game. Wipes every localStorage key
@@ -27,9 +28,12 @@ const STORAGE_KEYS = [
   'lingo-quests:v1',
   'lingo-quests:completion-order',
   'lingo-quests:acknowledged:v1',
+  'lingo-quests:start-lifetime:v1',
+  'lingo-quest-earnings:v1',
   'lingo-profile:v1',
   'lingo-locale',
   'lingo-locale:picked',
+  COMPUTER_UPGRADE_STORAGE_KEY,
   WORLD_SAVE_STORAGE_KEY,
   SETTINGS_STORAGE_KEY,
 ];

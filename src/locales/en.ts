@@ -125,6 +125,51 @@ export const en: Record<string, string> = {
   "dialogue.eli.offerLine":
     "Hey, the new translator. I've been waiting — only got three words for you, mind running them with me?",
   "dialogue.eli.fallback": "Hey, the new translator! Got a sec?",
+  "dialogue.eli.modeReadOnly": "1. Read & translate",
+  "dialogue.eli.modeReadOnlyHint":
+    "See each word in writing, pick its meaning.",
+  "dialogue.eli.modeDecline": "Not now",
+  "dialogue.eli.modeDeclineHint": "I'll be at this desk.",
+
+  // ── Office tutorial NPCs (Eli / Rina / Yusuf) ──
+  // Custom mode-picker prompt — the office tutors only expose ONE
+  // mode each, so the generic "I need help with one of these"
+  // copy reads wrong (there's only one option). This line frames
+  // the single-option picker as the NPC narrowing in on their
+  // specific weakness.
+  "dialogue.officeTutor.modePrompt": "This is what I struggle with.",
+  // Post-session thank-you lines — fired when the player ends a
+  // session that crossed the quest's phase threshold. Holds the
+  // narrative beat (NPC closes the loop) BEFORE the next-quest
+  // toast lands, so the chain reads as Eli ✓ → "thanks" → Rina
+  // unlocks rather than a silent dollar number triggering a
+  // banner mid-session.
+  "dialogue.listenTutor.thanks":
+    "That really helped — I can actually HEAR these now. Thank you.",
+  "dialogue.writeTutor.thanks":
+    "Got it. I think I can actually USE these words now. Thanks for your patience.",
+
+  // ── Listen tutor (second-paycheck NPC) ──
+  "dialogue.listenTutor.preHire":
+    "I'm waiting on the office translator — talk to the CEO first.",
+  "dialogue.listenTutor.offer":
+    "I can read these words just fine, but the moment someone says them out loud I'm lost. Mind drilling some with me by ear?",
+  "dialogue.listenTutor.modeListen": "2. Listen & translate",
+  "dialogue.listenTutor.modeListenHint":
+    "Hear each word spoken, pick its meaning.",
+  "dialogue.listenTutor.modeDecline": "Not now",
+  "dialogue.listenTutor.modeDeclineHint": "Come back when you have a minute.",
+
+  // ── Write tutor (third-paycheck NPC) ──
+  "dialogue.writeTutor.preHire":
+    "Translator's not in yet — talk to the CEO first.",
+  "dialogue.writeTutor.offer":
+    "I recognise these words when I see them, but the second I have to USE one I freeze up. Help me practise spelling them out from the meaning?",
+  "dialogue.writeTutor.modeWrite": "3. Write from meaning",
+  "dialogue.writeTutor.modeWriteHint":
+    "See the meaning — type the word.",
+  "dialogue.writeTutor.modeDecline": "Not now",
+  "dialogue.writeTutor.modeDeclineHint": "Anytime is fine.",
 
   // ── Theo (lender) ──
   "dialogue.theo.youOwe":
@@ -263,6 +308,16 @@ export const en: Record<string, string> = {
     "You earned your first paycheck. The CEO threw in a small bonus on top.",
   "quest.firstPaycheck.availableHint":
     "The CEO promised a paycheck once you’ve earned your stripes — keep translating.",
+  "quest.secondPaycheck.title": "Listen & Translate",
+  "quest.secondPaycheck.objective":
+    "A new tutor in the office struggles with audio — earn another {threshold} in Listen mode.",
+  "quest.secondPaycheck.completedSummary":
+    "You learned to translate by listening.",
+  "quest.thirdPaycheck.title": "Write from Meaning",
+  "quest.thirdPaycheck.objective":
+    "The third tutor wants to USE words, not just recognise them — earn another {threshold} in Write mode.",
+  "quest.thirdPaycheck.completedSummary":
+    "You learned to write the words you've learned.",
   "quest.childSandwich.title": "A Sandwich for {child}",
   "quest.childSandwich.objectivePreAsk":
     "{child} wanted to talk to you. Head home.",
@@ -526,6 +581,42 @@ export const en: Record<string, string> = {
   "item.milk.description": "Cold carton, slightly damp on the outside.",
   "item.cookie.name": "Cookie",
   "item.cookie.description": "Chocolate-chip. The cheap, reliable comfort.",
+
+  // ── Apartment computer ──
+  "computer.name": "Computer",
+  "computer.dialogue.prompt": "The computer sits on the desk, dusty and quiet.",
+  "computer.option.study": "Study",
+  "computer.option.upgrade": "Upgrade",
+  "computer.option.leave": "Leave",
+  "computer.study.broken":
+    "It will not turn on. The screen stays black. You need a working computer before you can study here.",
+  "computer.study.ready":
+    "The computer boots up cleanly. Home study mode will be ready here soon.",
+  "computer.upgrade.title": "Computer Upgrade",
+  "computer.upgrade.subtitle":
+    "Upgrade the desk setup so this room can become a real place to study.",
+  "computer.upgrade.closeAria": "Close computer upgrade",
+  "computer.upgrade.current": "Current",
+  "computer.upgrade.owned": "Owned",
+  "computer.upgrade.next": "Next",
+  "computer.upgrade.locked": "Locked",
+  "computer.upgrade.button": "Upgrade for {price}",
+  "computer.upgrade.maxedButton": "Fully upgraded",
+  "computer.upgrade.success": "Upgraded to {item}.",
+  "computer.upgrade.needMoney": "You need {amount} more.",
+  "computer.upgrade.maxed": "This computer is already fully upgraded.",
+  "computer.level.broken.name": "Broken Computer",
+  "computer.level.broken.description":
+    "Dead screen, tired keyboard, no chance of studying.",
+  "computer.level.usedLaptop.name": "Used Laptop",
+  "computer.level.usedLaptop.description":
+    "Old and scratched, but it turns on and can run basic lessons.",
+  "computer.level.homePc.name": "Home PC",
+  "computer.level.homePc.description":
+    "A proper desktop with enough speed for long study sessions.",
+  "computer.level.studyRig.name": "Study Rig",
+  "computer.level.studyRig.description":
+    "Fast, clean, and comfortable. A real language-learning station.",
 
   // ── Errors / fallbacks ──
   "common.unknown": "…",
