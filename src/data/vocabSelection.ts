@@ -18,6 +18,8 @@
  *     come back-to-back unless we deliberately pulled it from the
  *     queue (queue overrides recency, otherwise the queue would be
  *     starved when its words are also in the recent buffer).
+ *   – A one-shot retry slot: a wrong answer is forced as the very
+ *     next prompt, then the rest of the queue/recency model resumes.
  *   – Distractors: 2 from the same part-of-speech as the target,
  *     1 from any other POS — forces real recognition without
  *     making every choice feel adversarial.
@@ -54,6 +56,10 @@ export interface VocabProgress {
    *  room. Order matters only for the FIFO eviction; picks within
    *  the queue are random. */
   wrongQueue: string[];
+  /** One-shot immediate retry. Set on a wrong answer so the next
+   *  prompt is exactly that word before normal queue/recency logic
+   *  resumes. Cleared when the player answers that retry correctly. */
+  retryNext: string | null;
   /** Last N prompts shown, oldest first. Used to bias new picks
    *  away from recent prompts — keeps conversations feeling varied. */
   recentUsed: string[];
@@ -92,7 +98,7 @@ const QUEUE_ONLY_EXIT_AT = 1;
 const STORAGE_PREFIX = 'vocab-progress:';
 
 export function createInitialProgress(): VocabProgress {
-  return { byWord: {}, wrongQueue: [], recentUsed: [], queueOnlyMode: false };
+  return { byWord: {}, wrongQueue: [], retryNext: null, recentUsed: [], queueOnlyMode: false };
 }
 
 /** Read the saved progress for a pack from localStorage, or return
@@ -130,6 +136,7 @@ export function loadProgress(packId: string): VocabProgress {
     return {
       byWord,
       wrongQueue: parsed.wrongQueue,
+      retryNext: typeof parsed.retryNext === 'string' ? parsed.retryNext : null,
       recentUsed: parsed.recentUsed,
       queueOnlyMode: parsed.queueOnlyMode === true,
     } as VocabProgress;
@@ -207,6 +214,10 @@ export function pickPromptEntry(
 ): VocabularyEntry {
   const playable = playableEntries(pack);
   const playableSet = new Set(playable.map((e) => e.target));
+  if (progress.retryNext && playableSet.has(progress.retryNext)) {
+    const retry = playable.find((e) => e.target === progress.retryNext);
+    if (retry) return retry;
+  }
   const queueSize = progress.wrongQueue.length;
   const playableQueue = progress.wrongQueue.filter((t) => playableSet.has(t));
   if (
@@ -312,13 +323,16 @@ export function recordAnswer(
 
   const byWord: Record<string, WordState> = { ...progress.byWord, [target]: next };
   let wrongQueue = progress.wrongQueue.slice();
+  let retryNext = progress.retryNext ?? null;
 
   if (correct) {
+    if (retryNext === target) retryNext = null;
     if (next.inWrongQueue && next.streak >= GRADUATION_STREAK) {
       next.inWrongQueue = false;
       wrongQueue = wrongQueue.filter((t) => t !== target);
     }
   } else {
+    retryNext = target;
     if (!next.inWrongQueue) {
       next.inWrongQueue = true;
       wrongQueue = [...wrongQueue, target];
@@ -349,7 +363,7 @@ export function recordAnswer(
     queueOnlyMode = false;
   }
 
-  return { byWord, wrongQueue, recentUsed, queueOnlyMode };
+  return { byWord, wrongQueue, retryNext, recentUsed, queueOnlyMode };
 }
 
 /** Track that the player saw a prompt without answering yet — used
