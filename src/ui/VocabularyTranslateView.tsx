@@ -663,7 +663,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
               >
                 <span>{formatBalance(coins)}</span>
               </div>
-              <PixelButton onClick={() => setSessionEnded(true)} small>
+              <PixelButton onClick={() => setSessionEnded(true)} small tone="danger">
                 {t('translate.endButton')}
               </PixelButton>
             </div>
@@ -1213,7 +1213,19 @@ function renderHighlighted(sentence: string, target: string) {
   return out;
 }
 
-function PixelButton({ children, onClick, small }: { children: React.ReactNode; onClick: () => void; small?: boolean }) {
+function PixelButton({ children, onClick, small, tone = 'default' }: {
+  children: React.ReactNode;
+  onClick: () => void;
+  small?: boolean;
+  /** `'danger'` paints the button red so destructive / leave-the-flow
+   *  actions (e.g. End session) read as "stop now" at a glance.
+   *  `'default'` is the parchment tone used everywhere else. */
+  tone?: 'default' | 'danger';
+}) {
+  const isDanger = tone === 'danger';
+  const bg = isDanger ? COLORS.wrong : COLORS.cardRest;
+  const border = isDanger ? COLORS.wrong : COLORS.cardBorder;
+  const text = isDanger ? COLORS.parchmentLight : COLORS.text;
   return (
     <button
       type="button"
@@ -1222,10 +1234,10 @@ function PixelButton({ children, onClick, small }: { children: React.ReactNode; 
         fontFamily: 'inherit',
         fontSize: small ? 13 : 14,
         fontWeight: 700,
-        color: COLORS.text,
-        background: COLORS.cardRest,
-        border: `2px solid ${COLORS.cardBorder}`,
-        boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
+        color: text,
+        background: bg,
+        border: `2px solid ${border}`,
+        boxShadow: `inset 1px 1px 0 0 ${isDanger ? COLORS.wrongBg : COLORS.parchmentLight}, 0 2px 0 0 ${border}`,
         padding: small ? '6px 12px' : '8px 14px',
         cursor: 'pointer',
       }}

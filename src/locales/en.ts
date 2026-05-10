@@ -59,6 +59,10 @@ export const en: Record<string, string> = {
   "apartment.line.home": "This is our home. For now.",
   "apartment.line.smallButRent":
     "It's small. Bare. But the rent's paid for a month.",
+  "apartment.line.childHungry":
+    "Dad, I'm hungry. There's nothing in the fridge.",
+  "apartment.line.foodAndFix":
+    "I know. We'll need food first. And that broken computer in the corner — we'll have to replace it soon, too.",
   "apartment.line.needMoney": "After that... I need money. Quickly.",
   "apartment.line.sawAd":
     "I saw an ad in the paper — translation office on Mart Street. I'm going to apply.",

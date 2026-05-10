@@ -54,6 +54,10 @@ export const vi: Record<string, string> = {
   "apartment.line.home": "Đây là nhà mình. Tạm thời thôi.",
   "apartment.line.smallButRent":
     "Nhỏ, đủ sống, và tiền nhà đã trả trước một tháng rồi.",
+  "apartment.line.childHungry":
+    "Ba ơi, con đói. Tủ lạnh không còn gì hết.",
+  "apartment.line.foodAndFix":
+    "Ba biết. Mình phải mua đồ ăn trước. Cái máy tính cũ ngoài kia hỏng rồi — cũng phải thay sớm thôi.",
   "apartment.line.needMoney": "Giờ thì… ba phải kiếm tiền gấp.",
   "apartment.line.sawAd":
     "Ba thấy báo có đăng tin tuyển phiên dịch ở phố Mart. Ba định đi thử.",

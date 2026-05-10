@@ -87,6 +87,13 @@ export interface QuestDef {
    *  shouldn't even know they exist yet. Empty / omitted = no
    *  prereq, the quest is gated only by `availableHint`. */
   requiresCompleted?: string[];
+  /** When true, the quest is parked: `startQuest` no-ops, `isAvailable`
+   *  returns false, and the player never sees it in the HUD or log.
+   *  Lets us temporarily retire a quest that's been authored but
+   *  doesn't fit the current beat (e.g. the borrow / buy / eat
+   *  tutorial chain while the survival loop is being reworked) without
+   *  deleting its def — flip back to false to re-enable. */
+  disabled?: boolean;
 }
 
 function childDisplayName(): string {
@@ -129,6 +136,7 @@ export function arePrereqsMet(
  *  has all prereqs satisfied — i.e. would render under the
  *  "Available" tier in the quest log / HUD. */
 export function isAvailable(quest: QuestDef, statuses: StatusMap): boolean {
+  if (quest.disabled) return false;
   if (statuses[quest.id]) return false;
   if (!quest.availableHint) return false;
   return arePrereqsMet(quest.requiresCompleted, statuses);
@@ -146,6 +154,10 @@ export const QUESTS: Record<string, QuestDef> = {
   // the relevant action handler (Theo's borrow, ShopView's buy,
   // inventory.eatItem) so the trigger is unambiguous and tied to
   // the actual interaction, not a status snapshot.
+  // Tutorial trio (borrow → buy → eat) is parked while the survival
+  // loop is being reworked. Defs stay so the locale strings and any
+  // future re-enable land cleanly; `disabled: true` keeps them off
+  // the HUD, the log, and out of `startQuest` until we flip it.
   "tutorial-borrow": {
     id: "tutorial-borrow",
     title: "Borrow from Theo",
@@ -156,6 +168,7 @@ export const QUESTS: Record<string, QuestDef> = {
     completedSummary: "You borrowed from Theo.",
     computeCompletedSummary: () => t("quest.tutorialBorrow.completedSummary"),
     requiresCompleted: ["child-sandwich"],
+    disabled: true,
   },
   "tutorial-buy-food": {
     id: "tutorial-buy-food",
@@ -166,6 +179,7 @@ export const QUESTS: Record<string, QuestDef> = {
     completedSummary: "You bought a snack.",
     computeCompletedSummary: () => t("quest.tutorialBuyFood.completedSummary"),
     requiresCompleted: ["tutorial-borrow"],
+    disabled: true,
   },
   "tutorial-eat": {
     id: "tutorial-eat",
@@ -176,6 +190,7 @@ export const QUESTS: Record<string, QuestDef> = {
     completedSummary: "You ate to refill energy.",
     computeCompletedSummary: () => t("quest.tutorialEat.completedSummary"),
     requiresCompleted: ["tutorial-buy-food"],
+    disabled: true,
   },
   "child-sandwich": {
     id: "child-sandwich",
@@ -431,6 +446,10 @@ export function getQuestStatus(id: string): QuestStatus {
 export function startQuest(id: string): void {
   const def = QUESTS[id];
   if (!def) return;
+  // Disabled quests are silently skipped — keeps chain-trigger code
+  // (e.g. "after sandwich, start tutorial-borrow") working without
+  // having to gate every call site.
+  if (def.disabled) return;
   const current = read();
   if (current[id] === "active" || current[id] === "completed") return;
   const next: StatusMap = { ...current, [id]: "active" };

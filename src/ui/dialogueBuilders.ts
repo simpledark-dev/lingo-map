@@ -329,6 +329,13 @@ export const APARTMENT_DIALOGUE: ReadonlyArray<{
 }> = [
   { speaker: 'parent', text: () => t('apartment.line.home') },
   { speaker: 'parent', text: () => t('apartment.line.smallButRent') },
+  // Establish the concrete needs (food + broken computer) early so
+  // the player has a why for the upcoming "I need money" beat. The
+  // child's hunger sets up the sandwich quest later; the broken
+  // computer is the first home-upgrade objective the loop will lean
+  // on once the tutorial chain wires up.
+  { speaker: 'child',  text: () => t('apartment.line.childHungry') },
+  { speaker: 'parent', text: () => t('apartment.line.foodAndFix') },
   { speaker: 'parent', text: () => t('apartment.line.needMoney') },
   { speaker: 'parent', text: () => t('apartment.line.sawAd') },
   { speaker: 'child',  text: () => t('apartment.line.childObjection') },
