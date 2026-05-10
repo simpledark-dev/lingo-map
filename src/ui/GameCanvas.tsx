@@ -54,12 +54,12 @@ import InventoryView from "./InventoryView";
 import IntroCutscene from "./IntroCutscene";
 import WelcomeScreen from "./WelcomeScreen";
 import LocalePickerScreen from "./LocalePickerScreen";
-import { hasPickedLocale, useLocale, t } from "../data/i18n";
+import { hasPickedLocale, markLocalePicked, useLocale, t } from "../data/i18n";
 import QuestHud from "./QuestHud";
 import SettingsView from "./SettingsView";
 import WordStatsView from "./WordStatsView";
 import { hasFlag, setFlag, FLAGS } from "../data/eventFlags";
-import { getPlayerName, getChildName } from "../data/profile";
+import { getPlayerName, getChildName, setProfile } from "../data/profile";
 import Minimap from "./Minimap";
 import VirtualDPad from "./VirtualDPad";
 import { APP_VERSION } from "../version";
@@ -74,7 +74,7 @@ import {
   setMusicEnabled as persistMusicEnabled,
   setVirtualDPadEnabled as persistVirtualDPadEnabled,
 } from "../data/settings";
-import { getComputerUpgradeLevel } from "../data/computerUpgrade";
+import { getComputerUpgradeLevel, useComputerUpgradeLevel } from "../data/computerUpgrade";
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -354,6 +354,10 @@ export default function GameCanvas() {
   // → write.
   const secondPaycheckEarnings = useQuestEarnings('second-paycheck');
   const thirdPaycheckEarnings = useQuestEarnings('third-paycheck');
+  // Computer upgrade level — drives the auto-complete check for
+  // the `upgrade-computer` quest. Hook-subscribed here so the
+  // chain useEffect re-runs the moment the player buys an upgrade.
+  const computerLevel = useComputerUpgradeLevel();
 
   // Pulse-the-quest-button driver. Listens for `started` transitions
   // and flips the unread flag; the QuestLog open handler clears it.
@@ -487,6 +491,29 @@ export default function GameCanvas() {
     ) {
       startQuest("child-sandwich");
     }
+    // child-sandwich → upgrade-computer. Same gating discipline as
+    // the office tutorial chain: don't auto-start the next quest
+    // while a dialogue or modal is open (e.g. Mim's "thanks dad"
+    // line that closes child-sandwich, or the upgrade modal
+    // itself), and don't auto-COMPLETE the quest mid-modal — let
+    // the player close the upgrade modal first so the toast
+    // doesn't fire behind it. Auto-complete fires when the player
+    // has reached level 1 (i.e. bought ANY upgrade past broken).
+    const upgradeChainGate = !computerUpgradeOpen && !dialogue;
+    if (
+      upgradeChainGate &&
+      questStatuses["child-sandwich"] === "completed" &&
+      !questStatuses["upgrade-computer"]
+    ) {
+      startQuest("upgrade-computer");
+    }
+    if (
+      upgradeChainGate &&
+      questStatuses["upgrade-computer"] === "active" &&
+      computerLevel >= 1
+    ) {
+      completeQuest("upgrade-computer");
+    }
     // Sandwich → tutorial chain (borrow → buy → eat). Each step
     // teaches one piece of the survival loop. Completion of each
     // step is fired from the relevant action handler so the
@@ -515,7 +542,7 @@ export default function GameCanvas() {
     // them in deps forces the effect to re-run when their counters
     // increment, so auto-complete fires the same render the
     // threshold is crossed.
-  }, [questStatuses, lifetimeEarnings, secondPaycheckEarnings, thirdPaycheckEarnings, translateView, dialogue]);
+  }, [questStatuses, lifetimeEarnings, secondPaycheckEarnings, thirdPaycheckEarnings, translateView, dialogue, computerLevel, computerUpgradeOpen]);
   const energy = useEnergy();
   const energyMax = getMaxEnergy();
   const inventory = useInventory();
@@ -1253,6 +1280,42 @@ export default function GameCanvas() {
           y: markerYForLocation(currentMapId, office),
           spriteKey: "edge-arrow-south-red",
           label: t('mapMarker.office'),
+        });
+      }
+    }
+
+    // ── upgrade-computer wayfinding ──
+    // Outdoor: chevron over the home door so the player knows
+    // where to go. Inside 1F: chevron over the computer-desk so
+    // they don't have to hunt for the right object. Both fire
+    // only while the quest is `active` — completed/inactive
+    // states drop the markers.
+    const upgradeComputerActive =
+      questStatuses["upgrade-computer"] === "active";
+    if (upgradeComputerActive && currentMapId === "pokemon") {
+      const home = collectObjects("pokemon").find(
+        (o) => o.transition?.incomingSpawnId === "outdoor-houseA-door",
+      );
+      if (home) {
+        addMarker({
+          id: `location-${currentMapId}-${home.id}`,
+          x: markerXForLocation(home),
+          y: markerYForLocation(currentMapId, home),
+          spriteKey: "edge-arrow-south-red",
+          label: t('mapMarker.home'),
+        });
+      }
+    }
+    if (upgradeComputerActive && currentMapId === "pokemon-house-1f") {
+      const computer = collectObjects("pokemon-house-1f").find(
+        (o) => o.spriteKey === "computer-desk",
+      );
+      if (computer) {
+        addMarker({
+          id: `location-${currentMapId}-${computer.id}`,
+          x: markerXForLocation(computer),
+          y: markerYForLocation(currentMapId, computer),
+          spriteKey: "edge-arrow-south-red",
         });
       }
     }
@@ -2638,6 +2701,33 @@ export default function GameCanvas() {
         {cutsceneActive && !localePickerActive && (welcomeFading || !welcomeActive) && (
           <div style={{ pointerEvents: "auto" }}>
             <IntroCutscene
+              versionLabel={APP_VERSION}
+              onSkipAll={() => {
+                // Dev fast-forward: jump straight to post-intro
+                // state. Defaults stand in for the names the
+                // cutscene would have collected; flags trip the
+                // gates that normally fire as part of the apartment
+                // monologue's dismiss handler so the player lands
+                // exactly where they would have after tapping
+                // through the whole opening.
+                if (!getPlayerName()) {
+                  setProfile("Papa", getChildName() ?? "Mim");
+                }
+                markLocalePicked();
+                setFlag(FLAGS.INTRO_CUTSCENE_SEEN);
+                setFlag(FLAGS.INTRO_APARTMENT_SEEN);
+                startQuest("intro-translator-job");
+                // Tear down every overlay layer in order:
+                // welcome (already off in this branch), locale
+                // picker (defensive, in case the user paused on
+                // it), cutscene, intro gap. World is already
+                // booted with the in-house spawn override.
+                setWelcomeActive(false);
+                setWelcomeFading(false);
+                setLocalePickerActive(false);
+                setCutsceneActive(false);
+                setIntroGapActive(false);
+              }}
               onComplete={() => {
                 // No teleport needed — the engine already booted with
                 // startMapId/startSpawnId pointing inside the house

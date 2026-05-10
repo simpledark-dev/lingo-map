@@ -325,6 +325,11 @@ export const en: Record<string, string> = {
     "{child} is hungry. Buy a sandwich at the Mart and bring it home.",
   "quest.childSandwich.completedSummary":
     "{child} ate. One less thing to worry about today.",
+  "quest.upgradeComputer.title": "Replace the Broken Computer",
+  "quest.upgradeComputer.objective":
+    "The computer at home is dead. Tap it and pick Upgrade to swap it for something that actually works.",
+  "quest.upgradeComputer.completedSummary":
+    "You replaced the broken computer. Studying from home is finally possible.",
   "quest.tutorialBorrow.title": "Borrow Some Cash",
   "quest.tutorialBorrow.objective":
     "Out of pocket money? Theo on the street can spot you a small loan.",

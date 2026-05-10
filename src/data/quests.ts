@@ -239,6 +239,25 @@ export const QUESTS: Record<string, QuestDef> = {
     // Available tier entirely and lands directly in In Progress.
     requiresCompleted: ["third-paycheck"],
   },
+  // Replace the broken computer at home. Chained off child-sandwich
+  // so the home thread reads as: feed the kid → fix what's broken →
+  // unlock home study. Auto-completes when the player upgrades the
+  // computer past level 0 (i.e. buys ANY upgrade tier) — see the
+  // chain useEffect in GameCanvas. Intentionally no `availableHint`
+  // for the same reason as child-sandwich (chain auto-starts; the
+  // quest skips the Available tier and lands directly in active).
+  "upgrade-computer": {
+    id: "upgrade-computer",
+    title: "Replace the Broken Computer",
+    computeTitle: () => t("quest.upgradeComputer.title"),
+    objective:
+      "The computer at home is dead. Save up and upgrade it so the family can study.",
+    computeObjective: () => t("quest.upgradeComputer.objective"),
+    completedSummary: "You replaced the broken computer.",
+    computeCompletedSummary: () =>
+      t("quest.upgradeComputer.completedSummary"),
+    requiresCompleted: ["child-sandwich"],
+  },
   "intro-translator-job": {
     id: "intro-translator-job",
     title: "Apply for the Translator Job",

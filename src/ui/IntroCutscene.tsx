@@ -23,7 +23,7 @@
  * component doesn't have to bootstrap a PixiJS app for two images.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { setProfile } from '../data/profile';
 import { setFlag, FLAGS } from '../data/eventFlags';
 import { t } from '../data/i18n';
@@ -44,6 +44,17 @@ interface IntroCutsceneProps {
    *  the profile (already done by this component), and start the
    *  intro quest. */
   onComplete: () => void;
+  /** Dev-only: double-click the bottom-left version pill to jump
+   *  past the entire cutscene + apartment monologue and land in
+   *  post-intro game state. GameCanvas's handler is responsible
+   *  for setting default names, tripping the apartment-seen flag,
+   *  starting the intro quest, and closing every overlay. */
+  onSkipAll?: () => void;
+  /** Build version string rendered in the bottom-left corner.
+   *  Defaults to nothing — caller passes APP_VERSION when they
+   *  want the pill visible (cuts the version import out of this
+   *  file). */
+  versionLabel?: string;
 }
 
 /** Sub-types that drive the linear scene runner. Each scene either
@@ -147,6 +158,8 @@ export default function IntroCutscene({
   parentSpriteKey = 'me-char-07-down',
   childSpriteKey = 'me-char-12-down',
   onComplete,
+  onSkipAll,
+  versionLabel,
 }: IntroCutsceneProps) {
   const [sceneIndex, setSceneIndex] = useState(0);
   // Index of the currently-revealed line within a `lines` scene.
@@ -167,6 +180,7 @@ export default function IntroCutscene({
   const [child, setChild] = useState('');
   // Live input field text (reset between scenes).
   const [inputDraft, setInputDraft] = useState('');
+  const typewriterTimerRef = useRef<number | null>(null);
 
   // SCENES rebuilt per render so t() picks up locale changes.
   const scenes = getScenes();
@@ -189,20 +203,28 @@ export default function IntroCutscene({
   // a stale interval.
   useEffect(() => {
     if (currentLineText === null) return;
+    if (typewriterTimerRef.current !== null) {
+      window.clearTimeout(typewriterTimerRef.current);
+      typewriterTimerRef.current = null;
+    }
     setRevealedCount(0);
     let i = 0;
     const tick = () => {
       i += 1;
       if (i >= currentLineText.length) {
         setRevealedCount(currentLineText.length);
+        typewriterTimerRef.current = null;
         return;
       }
       setRevealedCount(i);
-      timer = window.setTimeout(tick, TYPEWRITER_MS_PER_CHAR);
+      typewriterTimerRef.current = window.setTimeout(tick, TYPEWRITER_MS_PER_CHAR);
     };
-    let timer = window.setTimeout(tick, TYPEWRITER_MS_PER_CHAR);
+    typewriterTimerRef.current = window.setTimeout(tick, TYPEWRITER_MS_PER_CHAR);
     return () => {
-      window.clearTimeout(timer);
+      if (typewriterTimerRef.current !== null) {
+        window.clearTimeout(typewriterTimerRef.current);
+        typewriterTimerRef.current = null;
+      }
     };
   }, [currentLineText]);
 
@@ -211,6 +233,10 @@ export default function IntroCutscene({
     // Mid-reveal: fast-forward instead of advancing. Same affordance
     // as the in-game DialogueOverlay's tap-to-skip-typewriter.
     if (currentLineText !== null && revealedCount < currentLineText.length) {
+      if (typewriterTimerRef.current !== null) {
+        window.clearTimeout(typewriterTimerRef.current);
+        typewriterTimerRef.current = null;
+      }
       setRevealedCount(currentLineText.length);
       return;
     }
@@ -305,6 +331,40 @@ export default function IntroCutscene({
         if (scene.kind === 'lines') advanceLine();
       }}
     >
+      {/* Dev fast-forward — bottom-left version pill. Double-click
+          to skip the entire cutscene + apartment monologue and land
+          in post-intro state. stopPropagation on every click so the
+          first click of the double-click doesn't ALSO advance the
+          current line via the wrapper's onClick above. */}
+      {versionLabel && onSkipAll && !fadingOut && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            onSkipAll();
+          }}
+          title="Double-click to skip the intro (dev)"
+          style={{
+            position: 'absolute',
+            left: 12,
+            bottom: 12,
+            padding: '4px 8px',
+            fontSize: 11,
+            fontWeight: 700,
+            color: COLORS.hintText,
+            background: 'rgba(255, 255, 255, 0.55)',
+            border: `1px solid ${COLORS.cardBorder}`,
+            borderRadius: 4,
+            cursor: 'pointer',
+            userSelect: 'none',
+            // Higher than the wrapper's children so it's always
+            // tappable even while the typewriter is mid-line.
+            zIndex: 1,
+          }}
+        >
+          v{versionLabel}
+        </div>
+      )}
       {/* Character row — fills the upper space, shrinks on short
           viewports so the dialogue panel always fits. */}
       <div
@@ -336,7 +396,10 @@ export default function IntroCutscene({
           submission to progress. Tap-to-advance on the wrapper has
           stopPropagation here so the input-mode form doesn't double-fire. */}
       <div
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (scene.kind === 'lines') advanceLine();
+        }}
         style={{
           width: '100%',
           maxWidth: 720,
@@ -441,7 +504,10 @@ function LinesView({
         {isFullyRevealed && (
           <button
             type="button"
-            onClick={onAdvance}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdvance();
+            }}
             style={{
               background: COLORS.accentGold,
               color: '#fdf6e0',

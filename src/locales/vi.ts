@@ -301,6 +301,11 @@ export const vi: Record<string, string> = {
   "quest.childSandwich.objective":
     "{child} đang đói. Mua bánh mì ở Mart mang về cho con.",
   "quest.childSandwich.completedSummary": "{child} đã no bụng. Bớt một nỗi lo.",
+  "quest.upgradeComputer.title": "Thay Cái Máy Tính Cũ",
+  "quest.upgradeComputer.objective":
+    "Cái máy tính ở nhà chết queo rồi. Chạm vào nó và chọn Nâng cấp để đổi sang cái còn chạy được.",
+  "quest.upgradeComputer.completedSummary":
+    "Bạn đã thay máy tính mới. Cuối cùng cũng học được ở nhà.",
 
   "quest.tutorialBorrow.title": "Vay Tiền Tạm",
   "quest.tutorialBorrow.objective":
