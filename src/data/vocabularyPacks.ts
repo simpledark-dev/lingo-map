@@ -20,6 +20,7 @@
  */
 
 import { getLocale } from './i18n';
+import { getTarget, type TargetLanguage } from './target';
 
 export interface VocabularyEntry {
   /** The target-language word as it appears on screen and is spoken. */
@@ -48,6 +49,11 @@ export interface VocabularyPack {
   id: string;
   /** Free-form theme label shown in the dictionary view. */
   theme: string;
+  /** Which target language this pack's `target` field is written
+   *  in. Multiple variants of the same logical pack (same id)
+   *  coexist in the registry keyed by this field. Defaults to
+   *  `'lingo'` on legacy literals that omit it. */
+  target?: TargetLanguage;
   entries: VocabularyEntry[];
   /** Optional target → audio URL map. Words listed here play the
    *  recorded MP3 when the speaker icon (or auto-speak in listen
@@ -66,6 +72,7 @@ export interface VocabularyPack {
 export const MIRA_PACK: VocabularyPack = {
   id: 'mira-pack-1',
   theme: 'Everyday basics',
+  target: 'lingo',
   entries: [
     // ── Pronouns (8) ──
     { target: 'mira', english: 'I', vi: 'tôi', pos: 'pronoun' },
@@ -272,6 +279,7 @@ export const MIRA_PACK: VocabularyPack = {
 export const SABA_PACK: VocabularyPack = {
   id: 'saba-pack-1',
   theme: 'Numbers 1-20',
+  target: 'lingo',
   entries: [
     // 1-10 — pulled directly from Mira's pack so any future
     // re-spelling there propagates here automatically.
@@ -335,6 +343,7 @@ export const SABA_PACK: VocabularyPack = {
 export const PIO_PACK: VocabularyPack = {
   id: 'pio-pack-1',
   theme: 'Daily verbs',
+  target: 'lingo',
   entries: MIRA_PACK.entries.filter((e) =>
     ['mufra', 'naren', 'solpi', 'demba', 'palba'].includes(e.target),
   ),
@@ -354,42 +363,91 @@ export const PIO_PACK: VocabularyPack = {
  *  per-pack progress UI can still distinguish them. */
 const OFFICE_TUTOR_TARGETS = ['tarven', 'koldi', 'numera'];
 
-export const OFFICE_TUTOR_PACK: VocabularyPack = {
-  id: 'office-tutor-pack',
-  theme: 'Trainer warm-up',
-  entries: MIRA_PACK.entries.filter((e) =>
-    OFFICE_TUTOR_TARGETS.includes(e.target),
-  ),
+/** Office tutorial entries per target language. All three office
+ *  NPCs (Eli / Rina / Yusuf) drill the SAME 3 words in different
+ *  modes, so the entries are defined once per target and reused by
+ *  each of the three pack ids below. Native-language meanings
+ *  (`english`, `vi`) are constant across targets — only the target
+ *  word itself changes. */
+const OFFICE_TUTOR_ENTRIES: Record<TargetLanguage, VocabularyEntry[]> = {
+  lingo: MIRA_PACK.entries.filter((e) => OFFICE_TUTOR_TARGETS.includes(e.target)),
+  french: [
+    { target: 'travail', english: 'work', vi: 'công việc', pos: 'noun' },
+    { target: 'argent', english: 'money', vi: 'tiền', pos: 'noun' },
+    { target: 'bureau', english: 'office', vi: 'văn phòng', pos: 'noun' },
+  ],
+  english: [
+    { target: 'work', english: 'work', vi: 'công việc', pos: 'noun' },
+    { target: 'money', english: 'money', vi: 'tiền', pos: 'noun' },
+    { target: 'office', english: 'office', vi: 'văn phòng', pos: 'noun' },
+  ],
 };
 
-export const OFFICE_LISTEN_TUTOR_PACK: VocabularyPack = {
-  id: 'office-listen-tutor-pack',
-  theme: 'Listening warm-up',
-  entries: MIRA_PACK.entries.filter((e) =>
-    OFFICE_TUTOR_TARGETS.includes(e.target),
-  ),
+function makeOfficePack(
+  id: string,
+  theme: string,
+  target: TargetLanguage,
+): VocabularyPack {
+  return { id, theme, target, entries: OFFICE_TUTOR_ENTRIES[target] };
+}
+
+export const OFFICE_TUTOR_PACK: VocabularyPack = makeOfficePack(
+  'office-tutor-pack',
+  'Trainer warm-up',
+  'lingo',
+);
+export const OFFICE_LISTEN_TUTOR_PACK: VocabularyPack = makeOfficePack(
+  'office-listen-tutor-pack',
+  'Listening warm-up',
+  'lingo',
+);
+export const OFFICE_WRITE_TUTOR_PACK: VocabularyPack = makeOfficePack(
+  'office-write-tutor-pack',
+  'Writing warm-up',
+  'lingo',
+);
+
+/** Per-target pack registry. NPCs reference packs by id; the
+ *  active `TargetLanguage` (from `getTarget()`) selects which
+ *  variant resolves at lookup time. Packs that have no variant
+ *  for the active target fall back to the `lingo` variant — keeps
+ *  the game playable on a partial-content target without the NPC
+ *  panic-crashing on a missing pack. */
+type PackRegistry = Record<string, Partial<Record<TargetLanguage, VocabularyPack>>>;
+
+const PACK_REGISTRY: PackRegistry = {
+  [MIRA_PACK.id]: { lingo: MIRA_PACK },
+  [SABA_PACK.id]: { lingo: SABA_PACK },
+  [PIO_PACK.id]: { lingo: PIO_PACK },
+  'office-tutor-pack': {
+    lingo: OFFICE_TUTOR_PACK,
+    french: makeOfficePack('office-tutor-pack', 'Trainer warm-up', 'french'),
+    english: makeOfficePack('office-tutor-pack', 'Trainer warm-up', 'english'),
+  },
+  'office-listen-tutor-pack': {
+    lingo: OFFICE_LISTEN_TUTOR_PACK,
+    french: makeOfficePack('office-listen-tutor-pack', 'Listening warm-up', 'french'),
+    english: makeOfficePack('office-listen-tutor-pack', 'Listening warm-up', 'english'),
+  },
+  'office-write-tutor-pack': {
+    lingo: OFFICE_WRITE_TUTOR_PACK,
+    french: makeOfficePack('office-write-tutor-pack', 'Writing warm-up', 'french'),
+    english: makeOfficePack('office-write-tutor-pack', 'Writing warm-up', 'english'),
+  },
 };
 
-export const OFFICE_WRITE_TUTOR_PACK: VocabularyPack = {
-  id: 'office-write-tutor-pack',
-  theme: 'Writing warm-up',
-  entries: MIRA_PACK.entries.filter((e) =>
-    OFFICE_TUTOR_TARGETS.includes(e.target),
-  ),
-};
-
-/** All packs keyed by id. NPCs reference packs via `vocabularyPackId`. */
-export const VOCABULARY_PACKS: Record<string, VocabularyPack> = {
-  [MIRA_PACK.id]: MIRA_PACK,
-  [SABA_PACK.id]: SABA_PACK,
-  [PIO_PACK.id]: PIO_PACK,
-  [OFFICE_TUTOR_PACK.id]: OFFICE_TUTOR_PACK,
-  [OFFICE_LISTEN_TUTOR_PACK.id]: OFFICE_LISTEN_TUTOR_PACK,
-  [OFFICE_WRITE_TUTOR_PACK.id]: OFFICE_WRITE_TUTOR_PACK,
-};
+/** Back-compat export — some surfaces (debug overlays, future
+ *  pack browser) iterate VOCABULARY_PACKS by id. Returns the
+ *  lingo variant for each id since that's the legacy shape. */
+export const VOCABULARY_PACKS: Record<string, VocabularyPack> = Object.fromEntries(
+  Object.entries(PACK_REGISTRY)
+    .map(([id, variants]) => [id, variants.lingo])
+    .filter(([, pack]) => pack !== undefined),
+) as Record<string, VocabularyPack>;
 
 export function getVocabularyPack(id: string): VocabularyPack | undefined {
-  return VOCABULARY_PACKS[id];
+  const target = getTarget();
+  return PACK_REGISTRY[id]?.[target] ?? PACK_REGISTRY[id]?.lingo;
 }
 
 /**

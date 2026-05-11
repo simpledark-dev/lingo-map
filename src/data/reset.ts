@@ -33,6 +33,8 @@ const STORAGE_KEYS = [
   'lingo-profile:v1',
   'lingo-locale',
   'lingo-locale:picked',
+  'lingo-target',
+  'lingo-target:picked',
   COMPUTER_UPGRADE_STORAGE_KEY,
   WORLD_SAVE_STORAGE_KEY,
   SETTINGS_STORAGE_KEY,

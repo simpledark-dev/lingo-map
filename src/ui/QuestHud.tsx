@@ -37,6 +37,9 @@ const COLORS = UI_THEME.colors;
 type QuestProgress = {
   label: string;
   ratio: number;
+  ready?: boolean;
+  readyTitle?: string;
+  badge?: string;
 };
 
 interface QuestHudProps {
@@ -81,9 +84,15 @@ export default function QuestHud({ onOpenLog, liftedForModal = false }: QuestHud
   const progressForQuest = (questId: string): QuestProgress | null => {
     if (questId === 'first-paycheck') {
       const earned = Math.min(lifetimeEarnings, FIRST_PAYCHECK_THRESHOLD_CENTS);
+      const ready = lifetimeEarnings >= FIRST_PAYCHECK_THRESHOLD_CENTS;
       return {
-        label: `${formatBalance(earned)} / ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)}`,
+        label: ready
+          ? t('questHud.paycheckReadyAction')
+          : `${formatBalance(earned)} / ${formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS)}`,
         ratio: earned / FIRST_PAYCHECK_THRESHOLD_CENTS,
+        ready,
+        readyTitle: ready ? t('questHud.paycheckReadyTitle') : undefined,
+        badge: ready ? t('questHud.readyBadge') : undefined,
       };
     }
     // Second / third paychecks read directly from per-quest
@@ -94,17 +103,27 @@ export default function QuestHud({ onOpenLog, liftedForModal = false }: QuestHud
     if (questId === 'second-paycheck') {
       const phaseSize = SECOND_PAYCHECK_PHASE_CENTS;
       const earned = Math.min(phaseSize, secondPaycheckEarnings);
+      const ready = secondPaycheckEarnings >= phaseSize;
       return {
-        label: `${formatBalance(earned)} / ${formatBalance(phaseSize)}`,
+        label: ready
+          ? t('questHud.targetReached')
+          : `${formatBalance(earned)} / ${formatBalance(phaseSize)}`,
         ratio: earned / phaseSize,
+        ready,
+        badge: ready ? t('questHud.readyBadge') : undefined,
       };
     }
     if (questId === 'third-paycheck') {
       const phaseSize = THIRD_PAYCHECK_PHASE_CENTS;
       const earned = Math.min(phaseSize, thirdPaycheckEarnings);
+      const ready = thirdPaycheckEarnings >= phaseSize;
       return {
-        label: `${formatBalance(earned)} / ${formatBalance(phaseSize)}`,
+        label: ready
+          ? t('questHud.targetReached')
+          : `${formatBalance(earned)} / ${formatBalance(phaseSize)}`,
         ratio: earned / phaseSize,
+        ready,
+        badge: ready ? t('questHud.readyBadge') : undefined,
       };
     }
     return null;
@@ -176,6 +195,8 @@ export default function QuestHud({ onOpenLog, liftedForModal = false }: QuestHud
     >
       {active.map((q) => {
         const isNew = !acknowledged.has(q.id);
+        const progress = progressForQuest(q.id);
+        const isReady = !!progress?.ready;
         // Row is tappable when it can DO something — open the log,
         // or at least dismiss the "NEW" pulse. If neither applies
         // we leave onClick undefined so the wrapper stays
@@ -185,10 +206,12 @@ export default function QuestHud({ onOpenLog, liftedForModal = false }: QuestHud
         return (
           <QuestRow
             key={q.id}
-            accent={COLORS.active}
-            title={getTitle(q)}
-            progress={progressForQuest(q.id)}
+            accent={isReady ? COLORS.done : COLORS.active}
+            title={progress?.readyTitle ?? getTitle(q)}
+            badge={progress?.badge}
+            progress={progress}
             isNew={isNew}
+            isReady={isReady}
             onClick={
               hasAction
                 ? () => {
@@ -211,6 +234,7 @@ function QuestRow({
   badge,
   progress,
   isNew,
+  isReady,
   onClick,
 }: {
   accent: string;
@@ -225,6 +249,10 @@ function QuestRow({
    *  unmissable. Cleared on first tap (parent calls
    *  acknowledgeQuest). */
   isNew?: boolean;
+  /** True when the numeric target has been hit but the quest is
+   *  still active. Renders a stronger success state so the player
+   *  understands the job changed from "earn" to "go claim / finish". */
+  isReady?: boolean;
   /** Tap handler — when set, the pill itself becomes the only
    *  click-intercepting element in the strip. The wrapper above
    *  stays pointer-events:none so the rest of the screen passes
@@ -235,6 +263,10 @@ function QuestRow({
   // passed one (legacy `badge` prop wins). Lets future callers still
   // override copy without losing the new-quest signal.
   const effectiveBadge = badge ?? (isNew ? t('questHud.newBadge') : undefined);
+  const showAttentionArrows = isNew || isReady;
+  const progressRatio = progress
+    ? Math.max(0, Math.min(1, progress.ratio))
+    : 0;
   return (
     <>
       <style>{`
@@ -262,8 +294,12 @@ function QuestRow({
           0%   { opacity: 0; transform: translateY(-12px); }
           100% { opacity: 1; transform: translateY(0); }
         }
+        @keyframes lingoMapQuestReadyGlow {
+          0%, 100% { box-shadow: inset 1px 1px 0 0 ${COLORS.parchment}, 0 3px 0 0 ${COLORS.cardBorder}, 0 0 0 2px rgba(255, 246, 210, 0.7), 0 0 0 0 rgba(93, 138, 58, 0.0); }
+          50%      { box-shadow: inset 1px 1px 0 0 ${COLORS.parchment}, 0 3px 0 0 ${COLORS.cardBorder}, 0 0 0 2px rgba(255, 246, 210, 0.9), 0 0 14px 3px rgba(93, 138, 58, 0.45); }
+        }
       `}</style>
-    {isNew ? (
+    {showAttentionArrows ? (
       <div
         style={{
           display: 'flex',
@@ -332,13 +368,14 @@ function QuestRow({
         alignItems: 'center',
         gap: 8,
         padding: '6px 12px',
-        background: COLORS.parchmentLight,
+        background: isReady ? COLORS.cardActive : COLORS.parchmentLight,
         border: `2px solid ${accent}`,
         borderRadius: 6,
         color: COLORS.text,
         fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
         textShadow: 'none',
         boxShadow: `inset 1px 1px 0 0 ${COLORS.parchment}, 0 3px 0 0 ${COLORS.cardBorder}, 0 0 0 2px rgba(255, 246, 210, 0.7)`,
+        animation: isReady ? 'lingoMapQuestReadyGlow 1.15s ease-in-out infinite' : undefined,
         userSelect: 'none',
         maxWidth: '92vw',
         pointerEvents: onClick ? 'auto' : 'none',
@@ -384,7 +421,7 @@ function QuestRow({
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuenow={Math.round(progress.ratio * 100)}
+          aria-valuenow={Math.round(progressRatio * 100)}
           aria-label={progress.label}
           style={{
             position: 'relative',
@@ -397,7 +434,7 @@ function QuestRow({
             fontSize: 11,
             fontWeight: 800,
             color: COLORS.text,
-            background: COLORS.cardRest,
+            background: progress.ready ? COLORS.parchmentLight : COLORS.cardRest,
             border: `1px solid ${accent}`,
             padding: '0 7px',
             borderRadius: 4,
@@ -411,8 +448,10 @@ function QuestRow({
             style={{
               position: 'absolute',
               inset: 0,
-              right: `${Math.max(0, Math.min(1, 1 - progress.ratio)) * 100}%`,
-              background: `linear-gradient(90deg, rgba(72, 132, 69, 0.58), rgba(92, 156, 78, 0.42))`,
+              right: `${(1 - progressRatio) * 100}%`,
+              background: progress.ready
+                ? `linear-gradient(90deg, rgba(93, 138, 58, 0.88), rgba(217, 164, 41, 0.62))`
+                : `linear-gradient(90deg, rgba(72, 132, 69, 0.58), rgba(92, 156, 78, 0.42))`,
             }}
           />
           <span

@@ -42,6 +42,8 @@ import {
   useQuestStatuses,
   subscribeQuestTransitions,
   setQuestVisibilityDeferred,
+  getQuestDef,
+  type QuestTransition,
   FIRST_PAYCHECK_THRESHOLD_CENTS,
   SECOND_PAYCHECK_PHASE_CENTS,
   THIRD_PAYCHECK_PHASE_CENTS,
@@ -54,7 +56,14 @@ import InventoryView from "./InventoryView";
 import IntroCutscene from "./IntroCutscene";
 import WelcomeScreen from "./WelcomeScreen";
 import LocalePickerScreen from "./LocalePickerScreen";
-import { hasPickedLocale, markLocalePicked, useLocale, t } from "../data/i18n";
+import { hasPickedLocale, markLocalePicked, setLocale, useLocale, t } from "../data/i18n";
+import {
+  hasPickedTarget,
+  markTargetPicked,
+  setTarget,
+  type TargetLanguage,
+} from "../data/target";
+import TargetPickerScreen from "./TargetPickerScreen";
 import QuestHud from "./QuestHud";
 import SettingsView from "./SettingsView";
 import WordStatsView from "./WordStatsView";
@@ -140,6 +149,37 @@ function readInitialObjectMultiplier(): number {
       : null,
   );
   return normalizeObjectMultiplier(value);
+}
+
+/** Apply boot-time URL parameters to the language settings. Runs
+ *  AT MOST ONCE per page load (guarded by `urlParamsApplied`) and
+ *  is intentionally called from the picker useState initializers
+ *  so the gates evaluate AFTER the params have been written —
+ *  prevents a one-frame flash of the picker before the URL takes
+ *  effect.
+ *
+ *  Supported params:
+ *    `?native=en|vi`              — pre-pick the native locale.
+ *    `?target=lingo|french|english` — pre-pick the target language.
+ *  Both also trip `markLocalePicked` / `markTargetPicked` so the
+ *  pickers skip on this AND every subsequent load (localStorage
+ *  persists even after the link is closed). */
+let urlParamsApplied = false;
+function applyLanguageUrlParamsOnce(): void {
+  if (urlParamsApplied) return;
+  if (typeof window === "undefined") return;
+  urlParamsApplied = true;
+  const params = new URLSearchParams(window.location.search);
+  const native = params.get("native");
+  if (native === "en" || native === "vi") {
+    setLocale(native);
+    markLocalePicked();
+  }
+  const target = params.get("target");
+  if (target === "lingo" || target === "french" || target === "english") {
+    setTarget(target as TargetLanguage);
+    markTargetPicked();
+  }
 }
 
 function isTextEntryTarget(target: EventTarget | null): boolean {
@@ -291,9 +331,25 @@ export default function GameCanvas() {
   // overlay layer so the cutscene only mounts after the player
   // has explicitly chosen English or Vietnamese. Returning
   // players who've already picked skip this screen entirely.
+  //
+  // Calls `applyLanguageUrlParamsOnce` BEFORE reading `hasPickedLocale`
+  // so a link like `?native=vi` skips the picker on this same render
+  // (no one-frame flash). Same trick for the target picker initializer
+  // below — both share the same idempotent one-shot helper.
   const [localePickerActive, setLocalePickerActive] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
+    applyLanguageUrlParamsOnce();
     return !hasPickedLocale();
+  });
+  // Target-language picker — same shape as the locale picker but
+  // chooses what the player is LEARNING (lingo / french / english).
+  // Mounted after the locale picker so the player picks native
+  // first, then target. The target picker's option list filters
+  // out the locale they just picked to prevent native===target.
+  const [targetPickerActive, setTargetPickerActive] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    applyLanguageUrlParamsOnce();
+    return !hasPickedTarget();
   });
   // useLocale subscription forces a re-render of the whole
   // GameCanvas tree whenever the player flips the language —
@@ -358,6 +414,8 @@ export default function GameCanvas() {
   // the `upgrade-computer` quest. Hook-subscribed here so the
   // chain useEffect re-runs the moment the player buys an upgrade.
   const computerLevel = useComputerUpgradeLevel();
+  const firstPaycheckTargetToastShownRef = useRef(false);
+  const [questToastEvent, setQuestToastEvent] = useState<QuestTransition | null>(null);
 
   // Pulse-the-quest-button driver. Listens for `started` transitions
   // and flips the unread flag; the QuestLog open handler clears it.
@@ -369,6 +427,24 @@ export default function GameCanvas() {
       try { localStorage.setItem('lingo-quest:has-unread', '1'); } catch {}
     });
   }, []);
+
+  useEffect(() => {
+    const firstPaycheckActive = questStatuses["first-paycheck"] === "active";
+    if (!firstPaycheckActive) {
+      firstPaycheckTargetToastShownRef.current = false;
+      return;
+    }
+    if (
+      lifetimeEarnings >= FIRST_PAYCHECK_THRESHOLD_CENTS &&
+      !firstPaycheckTargetToastShownRef.current
+    ) {
+      firstPaycheckTargetToastShownRef.current = true;
+      const def = getQuestDef("first-paycheck");
+      if (def) {
+        setQuestToastEvent({ kind: "target-reached", def });
+      }
+    }
+  }, [questStatuses, lifetimeEarnings]);
 
   const openQuestLog = useCallback((questId?: string) => {
     setQuestLogFocusId(questId ?? null);
@@ -389,6 +465,7 @@ export default function GameCanvas() {
     // overlays makes input gating identical to dialogue overlays.
     welcomeActive ||
     localePickerActive ||
+    targetPickerActive ||
     cutsceneActive ||
     introGapActive ||
     vocabularyView ||
@@ -1279,7 +1356,9 @@ export default function GameCanvas() {
           x: markerXForLocation(office),
           y: markerYForLocation(currentMapId, office),
           spriteKey: "edge-arrow-south-red",
-          label: t('mapMarker.office'),
+          label: paycheckReadyToClaim
+            ? t('mapMarker.collectPaycheck')
+            : t('mapMarker.office'),
         });
       }
     }
@@ -1377,6 +1456,7 @@ export default function GameCanvas() {
           x: 0,
           y: -28,
           spriteKey: "edge-arrow-south-red",
+          label: t('mapMarker.collectPaycheck'),
           followNpcId: ceoNpc.id,
         });
       }
@@ -2656,7 +2736,7 @@ export default function GameCanvas() {
             so it picks up events from any source (dialogue, future
             world triggers). pointer-events: none on the wrapper so
             it never blocks the canvas. */}
-        <QuestToast />
+        <QuestToast event={questToastEvent} />
 
         {/* Persistent ACTIVE-quests strip. Replaces the standalone
             IntroHintBanner since the intro quest's title alone
@@ -2698,7 +2778,16 @@ export default function GameCanvas() {
             <LocalePickerScreen onComplete={() => setLocalePickerActive(false)} />
           </div>
         )}
-        {cutsceneActive && !localePickerActive && (welcomeFading || !welcomeActive) && (
+        {/* Target-language picker — mounts after the locale picker
+            closes, before the cutscene. Same overlay shape so the
+            two pickers feel like one boot flow rather than two
+            unrelated screens. */}
+        {!localePickerActive && targetPickerActive && (welcomeFading || !welcomeActive) && (
+          <div style={{ pointerEvents: "auto" }}>
+            <TargetPickerScreen onComplete={() => setTargetPickerActive(false)} />
+          </div>
+        )}
+        {cutsceneActive && !localePickerActive && !targetPickerActive && (welcomeFading || !welcomeActive) && (
           <div style={{ pointerEvents: "auto" }}>
             <IntroCutscene
               versionLabel={APP_VERSION}
@@ -2714,17 +2803,19 @@ export default function GameCanvas() {
                   setProfile("Papa", getChildName() ?? "Mim");
                 }
                 markLocalePicked();
+                markTargetPicked();
                 setFlag(FLAGS.INTRO_CUTSCENE_SEEN);
                 setFlag(FLAGS.INTRO_APARTMENT_SEEN);
                 startQuest("intro-translator-job");
                 // Tear down every overlay layer in order:
-                // welcome (already off in this branch), locale
-                // picker (defensive, in case the user paused on
-                // it), cutscene, intro gap. World is already
+                // welcome (already off in this branch), locale +
+                // target pickers (defensive, in case the user paused
+                // on either), cutscene, intro gap. World is already
                 // booted with the in-house spawn override.
                 setWelcomeActive(false);
                 setWelcomeFading(false);
                 setLocalePickerActive(false);
+                setTargetPickerActive(false);
                 setCutsceneActive(false);
                 setIntroGapActive(false);
               }}

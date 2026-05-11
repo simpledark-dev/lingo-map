@@ -13,7 +13,7 @@
  * stacking when slice 2 has at most a handful of quests). For
  * higher volume we'd swap to a FIFO queue.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   QuestTransition,
   getTitle,
@@ -27,30 +27,59 @@ const HOLD_MS = 3200;
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
 
-export default function QuestToast() {
+interface QuestToastProps {
+  /** Optional direct toast event for UI-driven beats like
+   *  "target reached". Quest lifecycle events still arrive through
+   *  subscribeQuestTransitions below; this prop exists for moments
+   *  that are derived from live UI state and should not be missed if
+   *  the global event bus fires before a subscriber is ready. */
+  event?: QuestTransition | null;
+}
+
+export default function QuestToast({ event }: QuestToastProps) {
   const [active, setActive] = useState<QuestTransition | null>(null);
+  const timerRef = useRef<number | null>(null);
+
+  const showToast = useCallback((next: QuestTransition) => {
+    setActive(next);
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      setActive(null);
+      timerRef.current = null;
+    }, HOLD_MS);
+  }, []);
 
   useEffect(() => {
-    let timer: number | null = null;
-    const unsub = subscribeQuestTransitions((event) => {
-      setActive(event);
-      if (timer !== null) window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        setActive(null);
-        timer = null;
-      }, HOLD_MS);
-    });
+    const unsub = subscribeQuestTransitions(showToast);
     return () => {
       unsub();
-      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [showToast]);
+
+  useEffect(() => {
+    if (event) showToast(event);
+  }, [event, showToast]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     };
   }, []);
 
   if (!active) return null;
 
   const isStart = active.kind === 'started';
-  const labelTop = isStart ? t('questToast.newQuest') : t('questToast.questComplete');
+  const isTargetReached = active.kind === 'target-reached';
+  const labelTop = isStart
+    ? t('questToast.newQuest')
+    : isTargetReached
+      ? t('questToast.targetReached')
+      : t('questToast.questComplete');
   const accentColor = isStart ? COLORS.active : COLORS.done;
+  const icon = isStart ? '📜' : isTargetReached ? '🎯' : '✅';
+  const title = isTargetReached && active.def.id === 'first-paycheck'
+    ? t('questToast.firstPaycheckReady')
+    : getTitle(active.def);
 
   return (
     <div
@@ -61,7 +90,10 @@ export default function QuestToast() {
         right: 0,
         display: 'flex',
         justifyContent: 'center',
-        zIndex: 900,
+        // Above QuestHud even when the HUD is lifted over modals
+        // at z-index 900; target-reached and quest-complete beats
+        // need to read as full-screen notifications, not HUD text.
+        zIndex: 1200,
         pointerEvents: 'none',
         // Top-edge inset so it doesn't hit the iOS notch when the
         // game is in standalone PWA mode.
@@ -96,7 +128,7 @@ export default function QuestToast() {
           }}
           aria-hidden
         >
-          {isStart ? '📜' : '✅'}
+          {icon}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
@@ -111,7 +143,7 @@ export default function QuestToast() {
             {labelTop}
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.parchment, lineHeight: 1.25 }}>
-            {getTitle(active.def)}
+            {title}
           </div>
         </div>
       </div>

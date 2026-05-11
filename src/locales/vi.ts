@@ -16,6 +16,15 @@ export const vi: Record<string, string> = {
   "localePicker.vietnamese": "Tiếng Việt",
   "localePicker.continue": "Tiếp tục ▶",
 
+  // ── Target-language picker ──
+  "targetPicker.title": "Bạn muốn học ngôn ngữ nào?",
+  "targetPicker.subtitle": "Sau này đổi trong Cài đặt cũng được.",
+  "targetPicker.lingo": "Lingo (ngôn ngữ thử nghiệm)",
+  "targetPicker.french": "Tiếng Pháp",
+  "targetPicker.english": "Tiếng Anh",
+  "targetPicker.continue": "Tiếp tục ▶",
+  "settings.targetLanguage": "Ngôn ngữ muốn học",
+
   // ── Welcome splash ──
   "welcome.title": "Survive Lingo",
   "welcome.tagline": "Sinh tồn ở thành phố mới. Học ngôn ngữ của họ.",
@@ -268,6 +277,7 @@ export const vi: Record<string, string> = {
   "mapMarker.exit": "Lối ra",
   "mapMarker.upstairs": "Lầu trên",
   "mapMarker.downstairs": "Lầu dưới",
+  "mapMarker.collectPaycheck": "Nhận lương",
   "dialogue.fallback.hiThere": "Chào bạn.",
 
   // ── Quest titles & objectives ──
@@ -333,11 +343,17 @@ export const vi: Record<string, string> = {
 
   "questToast.newQuest": "Nhiệm vụ mới",
   "questToast.questComplete": "Hoàn thành",
+  "questToast.targetReached": "Đủ mục tiêu",
+  "questToast.firstPaycheckReady": "Quay lại gặp sếp để nhận lương.",
 
   // ── Quest HUD ──
   "questHud.activeOverview": "Tổng quan nhiệm vụ đang làm",
   "questHud.openDetails": "Mở chi tiết nhiệm vụ: {title}",
   "questHud.newBadge": "MỚI",
+  "questHud.readyBadge": "XONG",
+  "questHud.paycheckReadyTitle": "Có Lương Rồi",
+  "questHud.paycheckReadyAction": "Gặp sếp",
+  "questHud.targetReached": "Đủ mục tiêu",
 
   // ── HUD ──
   "hud.bag": "Túi",

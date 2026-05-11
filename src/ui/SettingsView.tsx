@@ -21,6 +21,12 @@ import {
   formatBalance,
 } from '../data/wallet';
 import { Locale, setLocale, useLocale, t } from '../data/i18n';
+import {
+  TARGET_LANGUAGES,
+  TargetLanguage,
+  setTarget,
+  useTarget,
+} from '../data/target';
 import { getUiTheme } from './uiThemes';
 
 const UI_THEME = getUiTheme();
@@ -130,6 +136,24 @@ export default function SettingsView({
           {t('settings.language')}
         </div>
         <LanguagePicker />
+
+        {/* Target-language picker — mirrors the boot-time
+            TargetPickerScreen. Live switching means a player can
+            try a different target mid-play; the next NPC dialogue
+            resolves its pack against the new target via
+            getVocabularyPack(). */}
+        <div
+          style={{
+            fontSize: 10,
+            textTransform: 'uppercase',
+            letterSpacing: 1.2,
+            fontWeight: 700,
+            color: COLORS.hintText,
+          }}
+        >
+          {t('settings.targetLanguage')}
+        </div>
+        <TargetPicker />
 
         <div
           style={{
@@ -426,6 +450,58 @@ export default function SettingsView({
   );
 }
 
+
+const TARGET_LABEL_KEYS: Record<TargetLanguage, string> = {
+  lingo: 'targetPicker.lingo',
+  french: 'targetPicker.french',
+  english: 'targetPicker.english',
+};
+
+/** Target-language picker row used inside the Settings modal.
+ *  Same shape as LanguagePicker (native locale) but for the
+ *  target — filters out the locale matching the active native so
+ *  the player can't switch into a native===target state.
+ *  Subscribes via useTarget so the active button highlights live;
+ *  setTarget propagates through every useTarget subscriber AND
+ *  any next getVocabularyPack() resolution, so a fresh dialogue
+ *  with an NPC after the switch hands back the new target's pack. */
+function TargetPicker() {
+  const native = useLocale();
+  const current = useTarget();
+  const visible = TARGET_LANGUAGES.filter(
+    (target) => !(target === 'english' && native === 'en'),
+  );
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {visible.map((target) => {
+        const active = current === target;
+        return (
+          <button
+            key={target}
+            type="button"
+            onClick={() => setTarget(target)}
+            aria-pressed={active}
+            style={{
+              flex: 1,
+              minWidth: 90,
+              fontFamily: 'inherit',
+              fontSize: 13,
+              fontWeight: 700,
+              color: active ? '#fdf6e0' : COLORS.text,
+              background: active ? COLORS.accentGold : COLORS.parchmentLight,
+              border: `2px solid ${active ? COLORS.accentGoldDark : COLORS.cardBorder}`,
+              borderRadius: 6,
+              padding: '8px 12px',
+              cursor: 'pointer',
+            }}
+          >
+            {t(TARGET_LABEL_KEYS[target])}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 /** Language picker row used inside the Settings modal. Subscribes
  *  via useLocale so its own button-pressed state updates live, and

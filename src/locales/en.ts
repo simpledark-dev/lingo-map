@@ -23,6 +23,18 @@ export const en: Record<string, string> = {
   "localePicker.vietnamese": "Tiếng Việt",
   "localePicker.continue": "Continue ▶",
 
+  // ── Target-language picker ──
+  "targetPicker.title": "What do you want to learn?",
+  "targetPicker.subtitle": "You can change this later in Settings.",
+  "targetPicker.lingo": "Lingo (test language)",
+  "targetPicker.french": "French",
+  "targetPicker.english": "English",
+  "targetPicker.continue": "Continue ▶",
+  // Settings section labels — mirror the existing language picker
+  // so the in-Settings selector reads the same way as the boot
+  // picker.
+  "settings.targetLanguage": "Language to learn",
+
   // ── Welcome splash ──
   "welcome.title": "Survive Lingo",
   "welcome.tagline": "Survive a new city. Learn its language.",
@@ -293,6 +305,7 @@ export const en: Record<string, string> = {
   "mapMarker.exit": "Exit",
   "mapMarker.upstairs": "Upstairs",
   "mapMarker.downstairs": "Downstairs",
+  "mapMarker.collectPaycheck": "Collect Paycheck",
   "dialogue.fallback.hiThere": "Hi there.",
 
   // ── Quest titles ──
@@ -360,11 +373,17 @@ export const en: Record<string, string> = {
   // ── Quest toast ──
   "questToast.newQuest": "New Quest",
   "questToast.questComplete": "Quest Complete",
+  "questToast.targetReached": "Target Reached",
+  "questToast.firstPaycheckReady": "Return to the CEO for your paycheck.",
 
   // ── Quest HUD ──
   "questHud.activeOverview": "Active quests overview",
   "questHud.openDetails": "Open quest details: {title}",
   "questHud.newBadge": "NEW",
+  "questHud.readyBadge": "READY",
+  "questHud.paycheckReadyTitle": "Paycheck Ready",
+  "questHud.paycheckReadyAction": "Talk to CEO",
+  "questHud.targetReached": "Target reached",
 
   // ── HUD ──
   "hud.bag": "Bag",

@@ -328,7 +328,8 @@ const statusListeners = new Set<StatusListener>();
 
 export type QuestTransition =
   | { kind: "started"; def: QuestDef }
-  | { kind: "completed"; def: QuestDef };
+  | { kind: "completed"; def: QuestDef }
+  | { kind: "target-reached"; def: QuestDef };
 
 type TransitionListener = (event: QuestTransition) => void;
 const transitionListeners = new Set<TransitionListener>();
