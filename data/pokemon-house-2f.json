@@ -393,9 +393,9 @@
             "targetSpawnId": "from-2f",
             "incomingSpawnId": "from-1f",
             "triggerBox": {
-              "offsetX": -16,
+              "offsetX": -17,
               "offsetY": -28,
-              "width": 32,
+              "width": 34,
               "height": 29
             }
           }

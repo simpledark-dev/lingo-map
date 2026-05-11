@@ -211,7 +211,7 @@ const npcs: NPCData[] = [
   // misleading when the override isn't applied.
   {
     id: "1f-npc-child",
-    x: tx(8),
+    x: tx(9),
     y: ty(8),
     spriteKey: "me-char-12",
     anchor: { x: 0.5, y: 1.0 },
@@ -245,7 +245,7 @@ export const pokemonHouse1fMap: MapData = {
     // through (BL-10).
   ],
   spawnPoints: [
-    { id: "entrance", x: tx(9) + 8, y: ty(H - 3), facing: "up" },
+    { id: "entrance", x: tx(10) + 8, y: ty(H - 3), facing: "up" },
     { id: "from-2f", x: tx(17), y: ty(7), facing: "down" },
     // Intro flow start — player spawns next to Mim, facing left so
     // they're visually facing each other for the apartment monologue.

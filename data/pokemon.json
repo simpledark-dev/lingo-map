@@ -14689,9 +14689,9 @@
             "targetMapId": "office",
             "targetSpawnId": "entrance",
             "triggerBox": {
-              "offsetX": -16,
+              "offsetX": -18,
               "offsetY": -31,
-              "width": 32,
+              "width": 36,
               "height": 32
             },
             "incomingSpawnId": "outdoor-office"
@@ -14738,10 +14738,10 @@
             "targetMapId": "pokemon-house-1f",
             "targetSpawnId": "entrance",
             "triggerBox": {
-              "offsetX": -29,
+              "offsetX": -33,
               "offsetY": -33,
-              "width": 20,
-              "height": 34
+              "width": 29,
+              "height": 35
             },
             "incomingSpawnId": "outdoor-houseA-door"
           }
