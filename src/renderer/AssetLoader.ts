@@ -341,6 +341,72 @@ export function isInteriorTileBlocking(tileType: string): boolean {
   return blockingSheetIds.has(sheetId);
 }
 
+// ── Modern Interiors UI icon atlas (ui:) ────────────────────────────────
+// `UI_16x16.png` is a 288×256 sheet of 16×16 icons — speech bubbles,
+// hearts, exclamation marks, etc. Loaded once at boot and sliced
+// into `ui:<col>_<row>` sub-textures (18 cols × 16 rows = 288 cells).
+// Same Pixi pattern as the character atlas + interior sheets: one
+// HTTP request, one shared BaseTexture, many sub-Texture views.
+//
+// Named aliases below give friendly handles for the icons we
+// actually reference from code — `ui:exclamation-red` is the
+// "go talk to this NPC" marker, more aliases get added as new
+// icons land. Each alias registers an EXTRA texture-cache entry
+// pointing at the same sub-texture, so callers can use either
+// the alias or the raw `(col, row)` key.
+
+const UI_ATLAS_URL = '/assets/ui/UI_16x16.png';
+const UI_ATLAS_COLS = 18;
+const UI_ATLAS_ROWS = 16;
+const UI_ATLAS_TILE = 16;
+
+/** Named aliases. Add new ones here when you need a friendly handle
+ *  for a UI icon. Each entry maps a semantic name to its cell
+ *  (column, row) in UI_16x16.png. Resolving the alias gives the
+ *  same texture as `ui:<col>_<row>` — both are registered. */
+const UI_ALIASES: Record<string, { col: number; row: number }> = {
+  'exclamation-red': { col: 10, row: 4 },
+};
+
+let uiAtlasPromise: Promise<void> | null = null;
+
+export function loadUiAtlas(): Promise<void> {
+  if (uiAtlasPromise) return uiAtlasPromise;
+  uiAtlasPromise = (async () => {
+    try {
+      const sheet = await Assets.load<Texture>(UI_ATLAS_URL);
+      sheet.source.scaleMode = 'nearest';
+      // Slice every cell — even ones we'll never reference. Sub-
+      // textures share the base source, so this costs basically
+      // nothing in GPU memory.
+      for (let row = 0; row < UI_ATLAS_ROWS; row++) {
+        for (let col = 0; col < UI_ATLAS_COLS; col++) {
+          const sub = new Texture({
+            source: sheet.source,
+            frame: new Rectangle(
+              col * UI_ATLAS_TILE,
+              row * UI_ATLAS_TILE,
+              UI_ATLAS_TILE,
+              UI_ATLAS_TILE,
+            ),
+          });
+          textureCache.set(`ui:${col}_${row}`, sub);
+        }
+      }
+      // Register friendly aliases as extra cache entries pointing
+      // at the same sub-texture. Lookup by alias OR by cell coord
+      // both work.
+      for (const [alias, { col, row }] of Object.entries(UI_ALIASES)) {
+        const tex = textureCache.get(`ui:${col}_${row}`);
+        if (tex) textureCache.set(`ui:${alias}`, tex);
+      }
+    } catch (err) {
+      console.warn('Failed to load UI atlas:', err);
+    }
+  })();
+  return uiAtlasPromise;
+}
+
 // Modern Interiors premade-character textures load from a single
 // atlas PNG (`me-char-atlas.png`) in `loadCharacterAtlas` below — see
 // scripts/slice-premade-characters.mjs for how the atlas is baked.
@@ -372,6 +438,15 @@ export async function loadAssets(spriteKeys: string[]): Promise<Map<string, Text
       // per-frame retry in getTileTexture will fill in once the
       // sheets resolve.
       void loadInteriorSheets();
+      continue;
+    }
+    if (key.startsWith('ui:')) {
+      // UI icons live in the atlas pre-sliced by loadUiAtlas() at
+      // boot. The atlas is awaited in PixiApp's init Promise.all
+      // before any scene mounts, so reaching here normally means
+      // we're already past boot — kick the loader defensively and
+      // skip, same retry pattern as the mi: branch above.
+      void loadUiAtlas();
       continue;
     }
     const path = spriteManifest[key];

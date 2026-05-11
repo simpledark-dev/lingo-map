@@ -13,7 +13,7 @@ import { CommandQueue } from '../core/CommandQueue';
 import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
 import { buildCarNetwork, carAABB, CAR_SPRITE_SETS, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
-import { getTexture, loadAssets, loadCharacterAtlas, loadInteriorSheets, loadPackSingle } from './AssetLoader';
+import { getTexture, loadAssets, loadCharacterAtlas, loadInteriorSheets, loadPackSingle, loadUiAtlas } from './AssetLoader';
 import { getNpcFirstDialogueLine } from '../data/npcDialogue';
 
 /** localStorage key kept in sync with `data/car-collisions.json` by the
@@ -375,7 +375,7 @@ export class PixiApp {
     // start; the atlas load also pre-populates 240 NPC/player
     // sub-textures so loadAssets later has nothing to fetch for
     // `me-char-*` keys.
-    await Promise.all([loadAutoTileset(), loadCharacterAtlas(), loadInteriorSheets()]);
+    await Promise.all([loadAutoTileset(), loadCharacterAtlas(), loadInteriorSheets(), loadUiAtlas()]);
 
     const startMapId = this.options.startMapId ?? 'pokemon';
     const startWorldState = this.options.startWorldState?.mapId === startMapId

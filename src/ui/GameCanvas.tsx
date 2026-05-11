@@ -1431,7 +1431,12 @@ export default function GameCanvas() {
         id: `talk-target-${target.questId}`,
         x: 0,
         y: -28,
-        spriteKey: "edge-arrow-south-red",
+        // Red exclamation from the Modern Interiors UI atlas. Marks
+        // "go talk to this NPC" — distinct from the chevron used
+        // for buildings / scene-transition objects below so the
+        // player can tell at a glance "a person wants you" vs
+        // "this place wants you".
+        spriteKey: "ui:exclamation-red",
         followNpcId: npc.id,
       });
     }
@@ -1455,8 +1460,10 @@ export default function GameCanvas() {
           id: "paycheck-ceo",
           x: 0,
           y: -28,
-          spriteKey: "edge-arrow-south-red",
-          label: t('mapMarker.collectPaycheck'),
+          // Same red-exclamation as the regular talk-target loop.
+          // No caption — the icon over CEO's head is enough; the
+          // "Collect paycheck" copy stays in the quest log.
+          spriteKey: "ui:exclamation-red",
           followNpcId: ceoNpc.id,
         });
       }

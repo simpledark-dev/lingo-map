@@ -12419,7 +12419,7 @@
       "name": "Decor",
       "kind": "object",
       "visible": true,
-      "locked": true,
+      "locked": false,
       "objects": [
         {
           "id": "obj-moh684e8-xg2fh",
@@ -13251,101 +13251,6 @@
           "layer": "props"
         },
         {
-          "id": "obj-moi4oj71-e5d8y",
-          "x": 192,
-          "y": 624,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 624,
-          "collisionBox": {
-            "offsetX": -16,
-            "offsetY": -96,
-            "width": 32,
-            "height": 96
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moi4omrc-j7y7d",
-          "x": 224,
-          "y": 624,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_3",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 624,
-          "collisionBox": {
-            "offsetX": -16,
-            "offsetY": -96,
-            "width": 32,
-            "height": 96
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moi4pglq-n7pwp",
-          "x": 248,
-          "y": 624,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_4",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 624,
-          "collisionBox": {
-            "offsetX": -8,
-            "offsetY": -96,
-            "width": 16,
-            "height": 96
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moi4q4dp-2pvzh",
-          "x": 200,
-          "y": 624,
-          "spriteKey": "me:6_Garage_Sales_Singles_16x16/ME_Singles_Garage_Sales_16x16_Shutter_6",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 624,
-          "collisionBox": {
-            "offsetX": 0,
-            "offsetY": 0,
-            "width": 0,
-            "height": 0
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
-          "id": "obj-moi4r4g6-ta3pa",
-          "x": 312,
-          "y": 624,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_3_46",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 624,
-          "collisionBox": {
-            "offsetX": -56,
-            "offsetY": -144,
-            "width": 112,
-            "height": 144
-          },
-          "scale": 1,
-          "layer": "props"
-        },
-        {
           "id": "obj-moi4zddx-45qjo",
           "x": 584,
           "y": 624,
@@ -13373,66 +13278,6 @@
               "height": 39
             },
             "incomingSpawnId": "outdoor-b"
-          }
-        },
-        {
-          "id": "obj-moi4o9f5-io5mn",
-          "x": 152,
-          "y": 624,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_1_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 624,
-          "collisionBox": {
-            "offsetX": -24,
-            "offsetY": -96,
-            "width": 48,
-            "height": 96
-          },
-          "scale": 1,
-          "layer": "props",
-          "transition": {
-            "targetMapId": "office",
-            "targetSpawnId": "entrance",
-            "triggerBox": {
-              "offsetX": -12,
-              "offsetY": -31,
-              "width": 25,
-              "height": 33
-            },
-            "incomingSpawnId": "outdoor-office"
-          }
-        },
-        {
-          "id": "obj-moi4mr4s-6hfad",
-          "x": 80,
-          "y": 624,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/prebuilt_generic_building.",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 624,
-          "collisionBox": {
-            "offsetX": -48,
-            "offsetY": -95,
-            "width": 95,
-            "height": 95
-          },
-          "scale": 1,
-          "layer": "props",
-          "transition": {
-            "targetMapId": "pokemon-house-1f",
-            "targetSpawnId": "entrance",
-            "triggerBox": {
-              "offsetX": -35,
-              "offsetY": -30,
-              "width": 24,
-              "height": 32
-            },
-            "incomingSpawnId": "outdoor-houseA-door"
           }
         },
         {
@@ -14821,6 +14666,85 @@
           },
           "scale": 1,
           "layer": "props"
+        },
+        {
+          "id": "obj-mp170k35-ca0v7",
+          "x": 191.6127742144633,
+          "y": 623.8443247686524,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/office",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 623.8443247686524,
+          "collisionBox": {
+            "offsetX": -68,
+            "offsetY": -95,
+            "width": 134,
+            "height": 95
+          },
+          "scale": 0.8,
+          "layer": "props",
+          "transition": {
+            "targetMapId": "office",
+            "targetSpawnId": "entrance",
+            "triggerBox": {
+              "offsetX": -16,
+              "offsetY": -31,
+              "width": 32,
+              "height": 32
+            },
+            "incomingSpawnId": "outdoor-office"
+          }
+        },
+        {
+          "id": "obj-mp185y3d-u3vi6",
+          "x": 312.1867878394526,
+          "y": 623.9278627665119,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/convenience-store",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 623.9278627665119,
+          "collisionBox": {
+            "offsetX": -55,
+            "offsetY": -118,
+            "width": 109,
+            "height": 118
+          },
+          "scale": 0.52,
+          "layer": "props"
+        },
+        {
+          "id": "obj-mp1a20z3-5zlth",
+          "x": 79.6679015192312,
+          "y": 623.7266489455403,
+          "spriteKey": "me:4_Generic_Building_Singles_16x16/apartment",
+          "anchor": {
+            "x": 0.5,
+            "y": 1
+          },
+          "sortY": 623.7266489455403,
+          "collisionBox": {
+            "offsetX": -48,
+            "offsetY": -101,
+            "width": 95,
+            "height": 101
+          },
+          "scale": 0.8,
+          "layer": "props",
+          "transition": {
+            "targetMapId": "pokemon-house-1f",
+            "targetSpawnId": "entrance",
+            "triggerBox": {
+              "offsetX": -29,
+              "offsetY": -33,
+              "width": 20,
+              "height": 34
+            },
+            "incomingSpawnId": "outdoor-houseA-door"
+          }
         }
       ]
     },
@@ -14829,7 +14753,7 @@
       "name": "Above",
       "kind": "object",
       "visible": true,
-      "locked": true,
+      "locked": false,
       "objects": [
         {
           "id": "obj-moigfeav-duk9p",
@@ -14852,7 +14776,7 @@
         },
         {
           "id": "obj-moigfhgz-t0y4d",
-          "x": 64,
+          "x": 288,
           "y": 480,
           "spriteKey": "me:3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Structure_Roof_Prop_3",
           "anchor": {
@@ -14887,101 +14811,6 @@
           },
           "scale": 1,
           "layer": "above"
-        },
-        {
-          "id": "obj-mojj83i4-4bjfc",
-          "x": 231.137265625,
-          "y": 527.615390625,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_9_Poster_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 527.615390625,
-          "collisionBox": {
-            "offsetX": -8,
-            "offsetY": -8,
-            "width": 16,
-            "height": 8
-          },
-          "scale": 1,
-          "layer": "above"
-        },
-        {
-          "id": "obj-mojj85cg-146zg",
-          "x": 200,
-          "y": 528,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_9_Poster_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 528,
-          "collisionBox": {
-            "offsetX": -8,
-            "offsetY": -8,
-            "width": 16,
-            "height": 8
-          },
-          "scale": 1,
-          "layer": "above"
-        },
-        {
-          "id": "obj-mojjl1y8-oktvy",
-          "x": 96,
-          "y": 480,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_6_Roof_Air_Unit",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 480,
-          "collisionBox": {
-            "offsetX": -16,
-            "offsetY": -16,
-            "width": 32,
-            "height": 16
-          },
-          "scale": 1,
-          "layer": "above"
-        },
-        {
-          "id": "obj-mojjm754-lmn2z",
-          "x": 200,
-          "y": 560,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_9_Poster_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 560,
-          "collisionBox": {
-            "offsetX": -8,
-            "offsetY": -8,
-            "width": 16,
-            "height": 8
-          },
-          "scale": 1,
-          "layer": "above"
-        },
-        {
-          "id": "obj-mojjmec0-nbvyn",
-          "x": 231.41921875000003,
-          "y": 560.04078125,
-          "spriteKey": "me:4_Generic_Building_Singles_16x16/ME_Singles_Generic_Building_16x16_Condo_9_Poster_1",
-          "anchor": {
-            "x": 0.5,
-            "y": 1
-          },
-          "sortY": 560.04078125,
-          "collisionBox": {
-            "offsetX": -8,
-            "offsetY": -8,
-            "width": 16,
-            "height": 8
-          },
-          "scale": 1,
-          "layer": "above"
         }
       ]
     },
@@ -14989,7 +14818,7 @@
       "id": "layer-mojny5t0-2eor",
       "name": "Car Path",
       "kind": "car-path",
-      "visible": true,
+      "visible": false,
       "locked": false,
       "exits": {
         "17,3": [
