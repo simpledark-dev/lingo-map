@@ -860,6 +860,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           && oldT.targetSpawnId === newT.targetSpawnId
           && oldT.incomingSpawnId === newT.incomingSpawnId
           && oldT.lockedTitle === newT.lockedTitle
+          && oldT.returnDir === newT.returnDir
+          && oldT.requiresFacing === newT.requiresFacing
           && sameBox);
       if (same) return state;
       const coalesce = shouldCoalesceUndo(state.undoStack, 'SET_OBJECT_TRANSITION', action.id);

@@ -1143,6 +1143,59 @@ function DoorEditor({
               lands the player back here.
             </span>
           </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 10, color: '#888' }}>
+            Requires facing <span style={{ color: '#555' }}>(direction player must approach from)</span>
+            <select
+              value={t.requiresFacing ?? 'auto'}
+              onChange={e => {
+                const v = e.target.value;
+                const next = { ...t };
+                if (v === 'auto') delete next.requiresFacing;
+                else next.requiresFacing = v as 'up' | 'down' | 'left' | 'right';
+                setT(next);
+              }}
+              style={inputStyle}
+            >
+              <option value="auto">Auto (derive from geometry)</option>
+              <option value="up">Up (walk north into trigger)</option>
+              <option value="down">Down (walk south into trigger)</option>
+              <option value="left">Left (walk west into trigger)</option>
+              <option value="right">Right (walk east into trigger)</option>
+            </select>
+            <span style={{ color: '#666', fontSize: 9, lineHeight: 1.4 }}>
+              Which direction the player must be moving / facing to
+              fire this trigger. <strong>Auto</strong> picks based on
+              trigger position (works for edge-of-map and wall-mounted
+              triggers); set explicitly when the trigger sits in open
+              space with multiple walkable approaches and you want one
+              specific direction.
+            </span>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 10, color: '#888' }}>
+            Return direction <span style={{ color: '#555' }}>(side player lands on when coming back)</span>
+            <select
+              value={t.returnDir ?? 'south'}
+              onChange={e => {
+                const v = e.target.value as 'north' | 'south' | 'east' | 'west';
+                const next = { ...t };
+                if (v === 'south') delete next.returnDir;
+                else next.returnDir = v;
+                setT(next);
+              }}
+              style={inputStyle}
+            >
+              <option value="south">South (default — below trigger)</option>
+              <option value="north">North (above)</option>
+              <option value="east">East (right)</option>
+              <option value="west">West (left)</option>
+            </select>
+            <span style={{ color: '#666', fontSize: 9, lineHeight: 1.4 }}>
+              Where the auto-spawn parks the player on return. They land
+              one tile away from the chosen edge of the trigger box,
+              facing that direction (so it reads as &quot;just walked out&quot;).
+              Only matters when <strong>Incoming spawn id</strong> is set.
+            </span>
+          </label>
           <div style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>Trigger zone</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             <NumberRow

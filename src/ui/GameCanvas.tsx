@@ -72,7 +72,7 @@ import { getPlayerName, getChildName, setProfile } from "../data/profile";
 import Minimap from "./Minimap";
 import VirtualDPad from "./VirtualDPad";
 import { APP_VERSION } from "../version";
-import { playSfx, SFX } from "./sfx";
+// import { playSfx, SFX } from "./sfx";
 import EnergyCostBurst from "./EnergyCostBurst";
 import { getUiTheme } from "./uiThemes";
 import { clearWorldSave, loadWorldSave } from "../data/worldSave";
@@ -852,9 +852,9 @@ export default function GameCanvas() {
     }
 
     // Fetch disk-persisted map edits, register them as overrides, then start the game.
-    // We only take the edited parts (tiles/objects/buildings/dimensions) — triggers,
-    // spawnPoints and NPCs always come from the compiled map so gameplay logic
-    // isn't broken by a stale version.
+    // Tiles/objects/buildings/dimensions come from disk. Triggers and spawnPoints
+    // stay compiled; NPC behavior also stays compiled, but placement can come from
+    // disk so edited room layouts can move NPCs without stale JSON wiping quest logic.
     const applyOverride = (mapData: {
       id?: string;
       width?: number;
@@ -863,6 +863,7 @@ export default function GameCanvas() {
       tiles?: unknown;
       objects?: unknown[];
       buildings?: unknown[];
+      npcs?: unknown[];
       layers?: unknown[];
     }) => {
       // Either `layers` (current editor) or `tiles` (legacy mirror) is enough
@@ -921,6 +922,35 @@ export default function GameCanvas() {
         }
         return o;
       });
+      const diskNpcs = Array.isArray(mapData.npcs)
+        ? (mapData.npcs as Partial<MapData["npcs"][number]>[])
+        : [];
+      const diskNpcById = new Map(
+        diskNpcs
+          .filter((npc): npc is Partial<MapData["npcs"][number]> & { id: string } =>
+            typeof npc.id === "string",
+          )
+          .map((npc) => [npc.id, npc]),
+      );
+      const npcs: MapData["npcs"] = compiled?.npcs
+        ? compiled.npcs.map((npc) => {
+            const diskNpc = diskNpcById.get(npc.id);
+            if (!diskNpc) return npc;
+            return {
+              ...npc,
+              x: typeof diskNpc.x === "number" ? diskNpc.x : npc.x,
+              y: typeof diskNpc.y === "number" ? diskNpc.y : npc.y,
+              spriteKey:
+                typeof diskNpc.spriteKey === "string"
+                  ? diskNpc.spriteKey
+                  : npc.spriteKey,
+              anchor: diskNpc.anchor ?? npc.anchor,
+              sortY:
+                typeof diskNpc.sortY === "number" ? diskNpc.sortY : npc.sortY,
+              collisionBox: diskNpc.collisionBox ?? npc.collisionBox,
+            };
+          })
+        : (diskNpcs as MapData["npcs"]);
 
       registerMap(mapData.id, {
         id: mapData.id,
@@ -935,7 +965,7 @@ export default function GameCanvas() {
         objects,
         buildings:
           (mapData.buildings as MapData["buildings"] | undefined) ?? [],
-        npcs: compiled?.npcs ?? [],
+        npcs,
         triggers: compiled?.triggers ?? [],
         spawnPoints: compiled?.spawnPoints ?? [
           { id: "default", x: 0, y: 0, facing: "down" },
@@ -1026,12 +1056,8 @@ export default function GameCanvas() {
             setDialogue(null);
             break;
           case "sceneTransitionStart":
-            // Audible "door slam" cue paired with the fade-out that
-            // already kicks off here. `sceneTransitionStart` only
-            // fires on player-initiated door / staircase crossings,
-            // never on the boot scene load — so a page refresh
-            // doesn't trip the sound.
-            playSfx(SFX.SWITCH_MAP);
+            // Map-transition sound intentionally disabled.
+            // playSfx(SFX.SWITCH_MAP);
             setTransitionFade(true);
             break;
           case "sceneChange":

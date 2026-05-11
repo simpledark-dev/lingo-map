@@ -225,6 +225,12 @@ const spriteManifest: Record<string, string> = {
   'rug-large': `${ASSET_BASE}rug-large.webp`,
   'rug-medium': `${ASSET_BASE}rug-medium.webp`,
   'doormat': `${ASSET_BASE}doormat.webp`,
+  // System primitive — 16×16 PNG with a small yellow triangle so
+  // the user can place an invisible-ish interaction zone (door
+  // trigger, dialogue trigger, scene-change marker) anywhere on a
+  // map. Lives in the placeholder folder rather than a pack so
+  // it's always one click away in the editor.
+  'trigger-zone': `${ASSET_BASE}trigger-zone.png`,
   'floor-clock': `${ASSET_BASE}floor-clock.webp`,
   'plant-pot-2': `${ASSET_BASE}plant-pot-2.webp`,
   'lamp-table': `${ASSET_BASE}lamp-table.webp`,

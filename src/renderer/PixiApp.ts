@@ -604,7 +604,11 @@ export class PixiApp {
           type: 'door' as const,
           targetMapId: o.transition!.targetMapId,
           targetSpawnId: o.transition!.targetSpawnId,
-          requiresFacing: deriveRequiresFacing(x, y, tb.width, tb.height),
+          // Explicit editor override wins; otherwise fall through
+          // to the geometry-based auto-derivation (legacy behaviour).
+          requiresFacing:
+            o.transition!.requiresFacing
+            ?? deriveRequiresFacing(x, y, tb.width, tb.height),
           lockedTitle: o.transition!.lockedTitle,
         }];
       }
@@ -630,7 +634,9 @@ export class PixiApp {
         type: 'door' as const,
         targetMapId: o.transition!.targetMapId,
         targetSpawnId: o.transition!.targetSpawnId,
-        requiresFacing: deriveRequiresFacing(x, y, width, height),
+        requiresFacing:
+          o.transition!.requiresFacing
+          ?? deriveRequiresFacing(x, y, width, height),
         lockedTitle: o.transition!.lockedTitle,
       }];
     });
@@ -644,22 +650,44 @@ export class PixiApp {
       .filter(o => o.transition!.incomingSpawnId)
       .map(o => {
         const tb = o.transition!.triggerBox;
+        // `returnDir` picks which side of the trigger the player
+        // materialises on, with a one-tile buffer so they don't
+        // immediately re-fire the trigger. Facing matches the
+        // direction (player walked OUT through that edge). Defaults
+        // to 'south' for back-compat with the legacy hardcoded
+        // behaviour.
+        const dir = o.transition!.returnDir ?? 'south';
         let x: number, y: number;
+        let facing: 'up' | 'down' | 'left' | 'right';
         if (tb && tb.width > 0 && tb.height > 0) {
-          // Land player just below the trigger zone, centred on it.
-          // `+ T` keeps a one-tile buffer so spawning doesn't immediately
-          // re-fire the door trigger and bounce the player back inside.
-          x = o.x + tb.offsetX + tb.width / 2;
-          y = o.y + tb.offsetY + tb.height + T;
+          const cx = o.x + tb.offsetX + tb.width / 2;
+          const cy = o.y + tb.offsetY + tb.height / 2;
+          const top = o.y + tb.offsetY;
+          const bottom = o.y + tb.offsetY + tb.height;
+          const left = o.x + tb.offsetX;
+          const right = o.x + tb.offsetX + tb.width;
+          if (dir === 'north') {
+            x = cx; y = top - T; facing = 'up';
+          } else if (dir === 'east') {
+            x = right + T; y = cy; facing = 'right';
+          } else if (dir === 'west') {
+            x = left - T; y = cy; facing = 'left';
+          } else {
+            x = cx; y = bottom + T; facing = 'down';
+          }
         } else {
-          x = o.x;
-          y = o.y + T;
+          // No trigger box — derive from entity anchor with the same
+          // one-tile buffer in the requested direction.
+          if (dir === 'north')      { x = o.x;     y = o.y - T; facing = 'up'; }
+          else if (dir === 'east')  { x = o.x + T; y = o.y;     facing = 'right'; }
+          else if (dir === 'west')  { x = o.x - T; y = o.y;     facing = 'left'; }
+          else                      { x = o.x;     y = o.y + T; facing = 'down'; }
         }
         return {
           id: o.transition!.incomingSpawnId!,
           x,
           y,
-          facing: 'down' as const,
+          facing,
         };
       });
     const mergedSpawns = dynamicSpawns.length > 0

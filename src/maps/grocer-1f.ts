@@ -105,7 +105,7 @@ const objects: Entity[] = [
 const npcs: NPCData[] = [
   {
     id: "grocer-1f-npc-shopkeeper",
-    x: tx(15) + T / 2,
+    x: tx(14) + T / 2,
     y: ty(6),
     spriteKey: "me-char-15",
     anchor: { x: 0.5, y: 1.0 },

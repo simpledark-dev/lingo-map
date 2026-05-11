@@ -48,6 +48,12 @@ export const OBJECT_DEFAULTS: Record<string, ObjectDefault> = {
   'edge-arrow-south':   { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
   'edge-arrow-east':    { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
   'edge-arrow-west':    { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
+  // System primitive — 16×16 marker the user drops to define an
+  // interaction zone (door / scene change / future dialogue
+  // trigger). No collision (player walks ONTO it to fire the
+  // trigger), and isDecor so it depth-sorts below the player
+  // rather than rendering on top.
+  'trigger-zone':       { anchor: { x: 0.5, y: 1.0 }, collisionBox: { offsetX: 0, offsetY: 0, width: 0, height: 0 }, isDecor: true },
 };
 
 export interface BuildingDefault {
@@ -228,6 +234,12 @@ export const OBJECT_CATEGORIES = [
       { key: 'edge-arrow-south', label: 'Arrow ↓', path: '/assets/placeholder/edge-arrow-south.png' },
       { key: 'edge-arrow-east',  label: 'Arrow →', path: '/assets/placeholder/edge-arrow-east.png' },
       { key: 'edge-arrow-west',  label: 'Arrow ←', path: '/assets/placeholder/edge-arrow-west.png' },
+    ],
+  },
+  {
+    label: 'Triggers',
+    items: [
+      { key: 'trigger-zone', label: 'Trigger', path: '/assets/placeholder/trigger-zone.png' },
     ],
   },
   {

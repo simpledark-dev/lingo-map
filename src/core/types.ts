@@ -55,6 +55,23 @@ export interface Entity {
     targetSpawnId: string;
     incomingSpawnId?: string;
     triggerBox?: CollisionBox;
+    /** Which side of the triggerBox the auto-registered incoming
+     *  spawn lands on. The player materialises one tile away from
+     *  that edge AND faces that direction (i.e. away from the
+     *  trigger, as if they just walked out of it). Defaults to
+     *  `'south'` when omitted — matches the legacy behaviour where
+     *  the spawn was hardcoded one tile below the door. Use other
+     *  values for triggers placed on side or top walls. */
+    returnDir?: 'north' | 'south' | 'east' | 'west';
+    /** Optional override for the direction the player has to be
+     *  moving / facing to FIRE this trigger. Without it the engine
+     *  auto-derives from trigger geometry (edge-of-map / walkable
+     *  neighbour / fallback to 'up'), which is correct for most
+     *  cases but wrong when e.g. a door sits in open grass with
+     *  every side walkable. Setting this explicitly via the editor
+     *  lets the author say "approach from BELOW" (requiresFacing:
+     *  'up'), "from the LEFT" (requiresFacing: 'right'), etc. */
+    requiresFacing?: 'up' | 'down' | 'left' | 'right';
     /** When set, the transition is GATED — instead of loading the
      *  target map, walking onto the trigger pops a placeholder
      *  dialogue (`You must reach <lockedTitle> to visit this

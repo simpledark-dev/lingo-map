@@ -35,7 +35,7 @@
     },
     {
       "id": "1f-npc-child",
-      "x": 136,
+      "x": 152,
       "y": 144,
       "spriteKey": "me-char-12",
       "anchor": {
@@ -63,7 +63,7 @@
   "spawnPoints": [
     {
       "id": "entrance",
-      "x": 160,
+      "x": 176,
       "y": 224,
       "facing": "up"
     },
