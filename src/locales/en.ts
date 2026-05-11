@@ -110,7 +110,7 @@ export const en: Record<string, string> = {
   "dialogue.ceo.hireBonus":
     "Earn {threshold} translating and circle back — there’s a bonus waiting on top.",
   "dialogue.ceo.hireOffYouGo":
-    "Eli's at the desk waiting on you — only three words, easy first job. Get those done and circle back if you want a bigger street route.",
+    "Eli's at the desk waiting on you — only four words, easy first job. Get those done and circle back if you want a bigger street route.",
   "dialogue.ceo.paycheckClaimL1":
     "{name}! Word is you've cleared {threshold} translating. That's a real paycheck.",
   "dialogue.ceo.paycheckClaimL2":
@@ -123,9 +123,9 @@ export const en: Record<string, string> = {
   "dialogue.ceo.paycheckCheckin2":
     "Hit {threshold} earned and there's a bonus waiting for you on top of what you've already pocketed.",
   "dialogue.ceo.paycheckClaimedL1":
-    "There you go — {bonus} bonus. Family eats tonight.",
+    "There you go — {bonus} bonus. Not bad for your first real run.",
   "dialogue.ceo.paycheckClaimedL2":
-    "Keep at it. Town's got plenty more words that need translating.",
+    "Next up is Rina. Exact same four words Eli had, but she struggles when she has to listen to them.",
   "dialogue.ceo.standard":
     "Come back when you are ready for your first contract.",
 
@@ -133,9 +133,9 @@ export const en: Record<string, string> = {
   "dialogue.eli.preHire":
     "I'll wait for an actual translator — talk to the CEO first.",
   "dialogue.eli.offer":
-    "Hey, the translator! Got three words to drill — quick run?",
+    "Hey, the translator! Got four words to drill — quick run?",
   "dialogue.eli.offerLine":
-    "Hey, the new translator. I've been waiting — only got three words for you, mind running them with me?",
+    "Hey, the new translator. I've been waiting — only got four words for you, mind running them with me?",
   "dialogue.eli.fallback": "Hey, the new translator! Got a sec?",
   "dialogue.eli.modeReadOnly": "1. Read & translate",
   "dialogue.eli.modeReadOnlyHint":
@@ -157,7 +157,7 @@ export const en: Record<string, string> = {
   // unlocks rather than a silent dollar number triggering a
   // banner mid-session.
   "dialogue.listenTutor.thanks":
-    "That really helped — I can actually HEAR these now. Thank you.",
+    "That really helped — I can actually HEAR these now. If you can, help Yusuf next. Same four words, but he freezes when he has to recall and type them.",
   "dialogue.writeTutor.thanks":
     "Got it. I think I can actually USE these words now. Thanks for your patience.",
 
@@ -316,7 +316,7 @@ export const en: Record<string, string> = {
     "You talked your way into the translator role — fluency optional.",
   "quest.firstPaycheck.title": "Earn Your First Paycheck",
   "quest.firstPaycheck.objective":
-    "Eli's at the office with a three-word job — drill it as many times as you need. Earn {threshold} total, then return to the CEO for your bonus.",
+    "Eli's at the office with a four-word job — drill it as many times as you need. Earn {threshold} total, then return to the CEO for your bonus.",
   "quest.firstPaycheck.completedSummary":
     "You earned your first paycheck. The CEO threw in a small bonus on top.",
   "quest.firstPaycheck.availableHint":

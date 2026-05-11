@@ -103,7 +103,7 @@ export const vi: Record<string, string> = {
   "dialogue.ceo.hireBonus":
     "Anh hãy kiếm đủ {threshold} rồi sau đó quay lại đây nhận thưởng thêm.",
   "dialogue.ceo.hireOffYouGo":
-    "Eli đang ngồi bàn kia đợi anh — chỉ 3 từ thôi, việc đầu dễ lắm. Làm xong quay lại đây nhé.",
+    "Eli đang ngồi bàn kia đợi anh — chỉ 4 từ thôi, việc đầu dễ lắm. Làm xong quay lại đây nhé.",
   "dialogue.ceo.paycheckClaimL1":
     "{name}! Nghe nói anh đã kiếm được {threshold} rồi. Cũng ra hồn đấy.",
   "dialogue.ceo.paycheckClaimL2":
@@ -116,18 +116,18 @@ export const vi: Record<string, string> = {
   "dialogue.ceo.paycheckCheckin2":
     "Đạt {threshold} là có thưởng thêm trên số anh đã kiếm.",
   "dialogue.ceo.paycheckClaimedL1":
-    "Đây — thưởng {bonus}. Tối nay hai cha con có gì bỏ bụng rồi.",
+    "Đây — thưởng {bonus}. Lần đầu chạy việc mà vậy là không tệ.",
   "dialogue.ceo.paycheckClaimedL2":
-    "Cứ làm tiếp đi. Trong thị trấn này còn rất nhiều người đang chờ được giúp đỡ.",
+    "Tiếp theo là Rina. Vẫn đúng bốn từ của Eli, nhưng cô ấy kẹt ở phần nghe.",
   "dialogue.ceo.standard":
     "Khi nào sẵn sàng nhận hợp đồng đầu tiên thì quay lại.",
 
   // ── Eli ──
   "dialogue.eli.preHire":
     "Tôi chờ phiên dịch viên chính thức đây. Anh nói chuyện với sếp trước đi.",
-  "dialogue.eli.offer": "Ê anh phiên dịch! Có ba từ thôi, làm nhanh không?",
+  "dialogue.eli.offer": "Ê anh phiên dịch! Có bốn từ thôi, làm nhanh không?",
   "dialogue.eli.offerLine":
-    "Ê phiên dịch viên mới! Tôi đợi anh nãy giờ — ba từ thôi, làm chung không?",
+    "Ê phiên dịch viên mới! Tôi đợi anh nãy giờ — bốn từ thôi, làm chung không?",
   "dialogue.eli.fallback": "Ê anh phiên dịch mới! Rảnh chút không?",
   "dialogue.eli.modeReadOnly": "1. Đọc & dịch",
   "dialogue.eli.modeReadOnlyHint": "Đọc từ rồi chọn nghĩa của nó.",
@@ -137,7 +137,7 @@ export const vi: Record<string, string> = {
   // ── Office tutorial NPCs (Eli / Rina / Yusuf) ──
   "dialogue.officeTutor.modePrompt": "Đây là chỗ tôi yếu.",
   "dialogue.listenTutor.thanks":
-    "Giúp được rồi — giờ tôi nghe thấy mấy từ này rõ luôn. Cảm ơn anh nha.",
+    "Giúp được rồi — giờ tôi nghe thấy mấy từ này rõ luôn. Nếu được thì giúp Yusuf tiếp nhé. Vẫn bốn từ đó, nhưng anh ấy bị khựng khi phải nhớ lại và gõ ra.",
   "dialogue.writeTutor.thanks":
     "Hiểu rồi. Giờ chắc tôi tự viết được mấy từ này luôn. Cảm ơn anh đã kiên nhẫn nhé.",
 
@@ -289,7 +289,7 @@ export const vi: Record<string, string> = {
 
   "quest.firstPaycheck.title": "Lương Đầu Tiên",
   "quest.firstPaycheck.objective":
-    "Làm job 3 từ với Eli. Kiếm đủ {threshold} rồi quay lại gặp sếp nhận thưởng.",
+    "Làm job 4 từ với Eli. Kiếm đủ {threshold} rồi quay lại gặp sếp nhận thưởng.",
   "quest.firstPaycheck.completedSummary":
     "Nhận lương lần đầu. Sếp cho thêm chút thưởng.",
   "quest.firstPaycheck.availableHint":

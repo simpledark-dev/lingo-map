@@ -183,14 +183,15 @@ export const MIRA_PACK: VocabularyPack = {
     { target: 'guzon', english: 'market', vi: 'chợ', pos: 'noun' },
     { target: 'riste', english: 'bank', vi: 'ngân hàng', pos: 'noun' },
 
-    // ── Work / commerce (3) ──
+    // ── Work / commerce (4) ──
     // Used by the office tutorial trio (Eli / Rina / Yusuf) — all
-    // three NPCs share these three words so the player learns the
+    // three NPCs share these four words so the player learns the
     // SAME vocabulary in three different modes (read → listen →
     // write), reinforcing the words while teaching the modes.
     { target: 'tarven', english: 'work', vi: 'công việc', pos: 'noun' },
     { target: 'koldi', english: 'money', vi: 'tiền', pos: 'noun' },
     { target: 'numera', english: 'office', vi: 'văn phòng', pos: 'noun' },
+    { target: 'vorba', english: 'word', vi: 'từ', pos: 'noun' },
 
     // ── Nature (9) ──
     { target: 'larin', english: 'sun', vi: 'mặt trời', pos: 'noun' },
@@ -472,10 +473,10 @@ export const PIO_PACK: VocabularyPack = {
  *  reinforcing recall while teaching the modes themselves. The
  *  three packs differ only by id + theme so the translate view's
  *  per-pack progress UI can still distinguish them. */
-const OFFICE_TUTOR_TARGETS = ['tarven', 'koldi', 'numera'];
+const OFFICE_TUTOR_TARGETS = ['tarven', 'koldi', 'numera', 'vorba'];
 
 /** Office tutorial entries per target language. All three office
- *  NPCs (Eli / Rina / Yusuf) drill the SAME 3 words in different
+ *  NPCs (Eli / Rina / Yusuf) drill the SAME 4 words in different
  *  modes, so the entries are defined once per target and reused by
  *  each of the three pack ids below. Native-language meanings
  *  (`english`, `vi`) are constant across targets — only the target
@@ -486,11 +487,13 @@ const OFFICE_TUTOR_ENTRIES: Record<TargetLanguage, VocabularyEntry[]> = {
     { target: 'travail', english: 'work', vi: 'công việc', pos: 'noun' },
     { target: 'argent', english: 'money', vi: 'tiền', pos: 'noun' },
     { target: 'bureau', english: 'office', vi: 'văn phòng', pos: 'noun' },
+    { target: 'mot', english: 'word', vi: 'từ', pos: 'noun' },
   ],
   english: [
     { target: 'work', english: 'work', vi: 'công việc', pos: 'noun' },
     { target: 'money', english: 'money', vi: 'tiền', pos: 'noun' },
     { target: 'office', english: 'office', vi: 'văn phòng', pos: 'noun' },
+    { target: 'word', english: 'word', vi: 'từ', pos: 'noun' },
   ],
 };
 

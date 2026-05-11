@@ -158,7 +158,7 @@ const npcs: NPCData[] = [
     dialogueKind: 'office-tutor',
     vocabularyPackId: 'office-tutor-pack',
     vocabularyOfferLine:
-      "Hey, the new translator. I've been waiting — only got three words for you, mind running them with me?",
+      "Hey, the new translator. I've been waiting — only got four words for you, mind running them with me?",
     vocabularyOfferLineKey: 'dialogue.eli.offerLine',
   },
   // Listen-mode tutor (second-paycheck quest). Sits across from

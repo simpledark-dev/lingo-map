@@ -220,7 +220,7 @@ export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
     ],
     currentLine: 0,
     vocabularyPackId: 'office-tutor-pack',
-    vocabularyWordCount: 3,
+    vocabularyWordCount: 4,
     options: [
       {
         id: 'help',
@@ -260,7 +260,7 @@ export function buildListenTutorDialogue(stub: DialogueState): DialogueState {
     lines: [t('dialogue.listenTutor.offer')],
     currentLine: 0,
     vocabularyPackId: 'office-listen-tutor-pack',
-    vocabularyWordCount: 3,
+    vocabularyWordCount: 4,
     options: [
       {
         id: 'help',
@@ -299,7 +299,7 @@ export function buildWriteTutorDialogue(stub: DialogueState): DialogueState {
     lines: [t('dialogue.writeTutor.offer')],
     currentLine: 0,
     vocabularyPackId: 'office-write-tutor-pack',
-    vocabularyWordCount: 3,
+    vocabularyWordCount: 4,
     options: [
       {
         id: 'help',

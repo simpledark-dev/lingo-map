@@ -138,6 +138,17 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
     setWriteOutcome(null);
   }, [pack]);
 
+  useEffect(() => {
+    if (!waitingOnNext) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      e.preventDefault();
+      advanceToNextRound();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [waitingOnNext, advanceToNextRound]);
+
   /** Write-mode submit — case-insensitive comparison against the
    *  target. Mirrors `handlePick` for scoring + wrong-queue side
    *  effects but routes through its own state since the input
@@ -812,6 +823,7 @@ function PracticeWriteForm({
   outcome: 'correct' | 'wrong' | null;
   disabled: boolean;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const trimmed = value.trim();
   const canSubmit = trimmed.length > 0 && !disabled;
   const borderColor = outcome === 'correct'
@@ -824,6 +836,14 @@ function PracticeWriteForm({
     : outcome === 'wrong'
       ? COLORS.wrongBg
       : COLORS.parchmentLight;
+  useEffect(() => {
+    if (disabled || outcome !== null) return;
+    const timer = window.setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [disabled, outcome, target]);
   return (
     <form
       onSubmit={(e) => {
@@ -834,6 +854,7 @@ function PracticeWriteForm({
       style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
     >
       <input
+        ref={inputRef}
         type="text"
         autoFocus
         value={value}
