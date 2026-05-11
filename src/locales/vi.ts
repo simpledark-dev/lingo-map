@@ -14,6 +14,7 @@ export const vi: Record<string, string> = {
   "localePicker.subtitle": "Sau này đổi trong Cài đặt cũng được nhé.",
   "localePicker.english": "English",
   "localePicker.vietnamese": "Tiếng Việt",
+  "localePicker.selected": "Đang chọn",
   "localePicker.continue": "Tiếp tục ▶",
 
   // ── Target-language picker ──
@@ -22,6 +23,7 @@ export const vi: Record<string, string> = {
   "targetPicker.lingo": "Lingo (ngôn ngữ thử nghiệm)",
   "targetPicker.french": "Tiếng Pháp",
   "targetPicker.english": "Tiếng Anh",
+  "targetPicker.selected": "Đang chọn",
   "targetPicker.continue": "Tiếp tục ▶",
   "settings.targetLanguage": "Ngôn ngữ muốn học",
 

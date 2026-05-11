@@ -13,7 +13,7 @@ export const ZOOM_STEP = 0.1;
 /** Default viewport cap for interior maps — how many tiles of world are
  * visible at once. The rest of the canvas renders black until the player
  * moves toward an edge and the camera scrolls. Outdoor maps ignore this. */
-export const INTERIOR_VIEW_TILES = { width: 20, height: 14 };
+export const INTERIOR_VIEW_TILES = { width: 20, height: 20 };
 
 // ── Render layers (entity z-ordering) ─────────────────────────────────────
 // A map's `layers[]` controls the gross render order of entities. Layers

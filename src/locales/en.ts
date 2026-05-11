@@ -21,6 +21,7 @@ export const en: Record<string, string> = {
   "localePicker.subtitle": "You can change this later in Settings.",
   "localePicker.english": "English",
   "localePicker.vietnamese": "Tiếng Việt",
+  "localePicker.selected": "Selected",
   "localePicker.continue": "Continue ▶",
 
   // ── Target-language picker ──
@@ -29,6 +30,7 @@ export const en: Record<string, string> = {
   "targetPicker.lingo": "Lingo (test language)",
   "targetPicker.french": "French",
   "targetPicker.english": "English",
+  "targetPicker.selected": "Selected",
   "targetPicker.continue": "Continue ▶",
   // Settings section labels — mirror the existing language picker
   // so the in-Settings selector reads the same way as the boot

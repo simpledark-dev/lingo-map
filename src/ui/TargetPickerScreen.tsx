@@ -129,24 +129,50 @@ export default function TargetPickerScreen({ onComplete }: TargetPickerScreenPro
                   fontSize: 15,
                   fontWeight: 700,
                   color: COLORS.text,
-                  background: isPicked ? COLORS.cardActive : COLORS.cardRest,
-                  border: `2px solid ${isPicked ? COLORS.active : COLORS.cardBorder}`,
+                  background: isPicked
+                    ? `linear-gradient(180deg, ${COLORS.correctBg} 0%, ${COLORS.parchmentLight} 100%)`
+                    : COLORS.cardRest,
+                  border: `2px solid ${isPicked ? COLORS.done : COLORS.cardBorder}`,
                   borderRadius: 6,
                   padding: '10px 14px',
                   cursor: 'pointer',
                   boxShadow: isPicked
-                    ? `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 0 0 2px rgba(83, 138, 74, 0.22)`
+                    ? `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 3px 0 0 ${COLORS.done}, 0 0 0 4px rgba(93, 138, 58, 0.24)`
                     : `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
-                  transition: 'background 120ms ease-out, color 120ms ease-out',
-                  display: 'flex',
+                  transform: isPicked ? 'translateY(-1px)' : 'none',
+                  transition: 'background 120ms ease-out, border-color 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out',
+                  display: 'grid',
+                  gridTemplateColumns: '32px minmax(0, 1fr) auto',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
+                  gap: 10,
+                  textAlign: 'left',
                 }}
                 aria-pressed={isPicked}
               >
-                <span aria-hidden style={{ fontSize: 18, lineHeight: 1 }}>{flag}</span>
-                {t(labelKey)}
+                <span aria-hidden style={{ fontSize: 19, lineHeight: 1, textAlign: 'center' }}>{flag}</span>
+                <span>{t(labelKey)}</span>
+                {isPicked && (
+                  <span
+                    aria-hidden
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      color: '#fdf6e0',
+                      background: COLORS.done,
+                      border: `1px solid ${COLORS.cardBorder}`,
+                      borderRadius: 999,
+                      padding: '3px 8px',
+                      fontSize: 10,
+                      fontWeight: 900,
+                      letterSpacing: 0.5,
+                      textTransform: 'uppercase',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ✓ {t('targetPicker.selected')}
+                  </span>
+                )}
               </button>
             );
           })}
