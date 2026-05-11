@@ -268,6 +268,75 @@ export const MIRA_PACK: VocabularyPack = {
     { target: 'gansu', english: 'name', vi: 'tên', pos: 'noun' },
   ],
 };
+// Attach lingo audio map AFTER the literal so it can read its own
+// entries. Audio paths follow the same `/assets/audio/<target>/<word>.mp3`
+// convention as every other pack.
+MIRA_PACK.audio = audioMapFor('lingo', MIRA_PACK.entries);
+
+/** French + English starter variants of Mira's pack. Smaller than
+ *  the lingo variant on purpose — translating 160 entries to a
+ *  real language is a content task, so initial coverage focuses on
+ *  the pronouns / greetings / basic nouns Cleo's player is most
+ *  likely to encounter in early sessions. Extend by adding entries
+ *  to the relevant list below; the audio paths and pack registry
+ *  are derived from `entries` automatically.
+ *
+ *  Audio convention identical to every other pack — drop an MP3
+ *  at `/assets/audio/french/<word>.mp3` (or `/assets/audio/english/…`)
+ *  and it plays. */
+const MIRA_FRENCH_ENTRIES: VocabularyEntry[] = [
+  { target: 'je', english: 'I', vi: 'tôi', pos: 'pronoun' },
+  { target: 'tu', english: 'you', vi: 'bạn', pos: 'pronoun' },
+  { target: 'il', english: 'he', vi: 'anh ấy', pos: 'pronoun' },
+  { target: 'elle', english: 'she', vi: 'cô ấy', pos: 'pronoun' },
+  { target: 'nous', english: 'we', vi: 'chúng tôi', pos: 'pronoun' },
+  { target: 'ils', english: 'they', vi: 'họ', pos: 'pronoun' },
+  { target: 'bonjour', english: 'hello', vi: 'xin chào', pos: 'greeting' },
+  { target: 'merci', english: 'thank you', vi: 'cảm ơn', pos: 'greeting' },
+  { target: 'oui', english: 'yes', vi: 'có', pos: 'greeting' },
+  { target: 'non', english: 'no', vi: 'không', pos: 'greeting' },
+  { target: 'chien', english: 'dog', vi: 'chó', pos: 'noun' },
+  { target: 'chat', english: 'cat', vi: 'mèo', pos: 'noun' },
+  { target: 'eau', english: 'water', vi: 'nước', pos: 'noun' },
+  { target: 'maison', english: 'house', vi: 'nhà', pos: 'noun' },
+  { target: 'manger', english: 'to eat', vi: 'ăn', pos: 'verb' },
+  { target: 'boire', english: 'to drink', vi: 'uống', pos: 'verb' },
+  { target: 'aller', english: 'to go', vi: 'đi', pos: 'verb' },
+  { target: 'voir', english: 'to see', vi: 'thấy', pos: 'verb' },
+];
+
+const MIRA_ENGLISH_ENTRIES: VocabularyEntry[] = [
+  { target: 'I', english: 'I', vi: 'tôi', pos: 'pronoun' },
+  { target: 'you', english: 'you', vi: 'bạn', pos: 'pronoun' },
+  { target: 'he', english: 'he', vi: 'anh ấy', pos: 'pronoun' },
+  { target: 'she', english: 'she', vi: 'cô ấy', pos: 'pronoun' },
+  { target: 'we', english: 'we', vi: 'chúng tôi', pos: 'pronoun' },
+  { target: 'they', english: 'they', vi: 'họ', pos: 'pronoun' },
+  { target: 'hello', english: 'hello', vi: 'xin chào', pos: 'greeting' },
+  { target: 'thank you', english: 'thank you', vi: 'cảm ơn', pos: 'greeting' },
+  { target: 'yes', english: 'yes', vi: 'có', pos: 'greeting' },
+  { target: 'no', english: 'no', vi: 'không', pos: 'greeting' },
+  { target: 'dog', english: 'dog', vi: 'chó', pos: 'noun' },
+  { target: 'cat', english: 'cat', vi: 'mèo', pos: 'noun' },
+  { target: 'water', english: 'water', vi: 'nước', pos: 'noun' },
+  { target: 'house', english: 'house', vi: 'nhà', pos: 'noun' },
+  { target: 'to eat', english: 'to eat', vi: 'ăn', pos: 'verb' },
+  { target: 'to drink', english: 'to drink', vi: 'uống', pos: 'verb' },
+  { target: 'to go', english: 'to go', vi: 'đi', pos: 'verb' },
+  { target: 'to see', english: 'to see', vi: 'thấy', pos: 'verb' },
+];
+
+function makeMiraVariant(target: 'french' | 'english'): VocabularyPack {
+  const entries =
+    target === 'french' ? MIRA_FRENCH_ENTRIES : MIRA_ENGLISH_ENTRIES;
+  return {
+    id: 'mira-pack-1',
+    theme: 'Everyday basics',
+    target,
+    entries,
+    audio: audioMapFor(target, entries),
+  };
+}
 
 /**
  * Saba's pack — numbers 1 through 20. Reuses the ten number entries
@@ -276,16 +345,31 @@ export const MIRA_PACK: VocabularyPack = {
  * session, the kind a player goes back to repeatedly until the count
  * sequence sticks.
  */
-export const SABA_PACK: VocabularyPack = {
-  id: 'saba-pack-1',
-  theme: 'Numbers 1-20',
-  target: 'lingo',
-  entries: [
-    // 1-10 — pulled directly from Mira's pack so any future
-    // re-spelling there propagates here automatically.
-    ...MIRA_PACK.entries.filter((e) => e.pos === 'number'),
-    // 11-20 — new. Same CV/CVC shape, intentionally distinct from
-    // 1-10 by more than one letter so similar-sounding pairs don't
+/** Saba's pack — numbers 1-20 — across all three target languages.
+ *  Native-language meanings stay constant; only the target word
+ *  changes per variant. Entries are defined per target rather than
+ *  derived (e.g. by filtering MIRA_PACK), because real languages
+ *  have their own 1-20 forms that don't share a "base concept" we
+ *  could parametrise. Audio paths follow the standard convention
+ *  via `audioMapFor`: drop an MP3 at `/assets/audio/<target>/<word>.mp3`
+ *  and it plays; nothing else to wire. */
+const SABA_ENTRIES: Record<TargetLanguage, VocabularyEntry[]> = {
+  lingo: [
+    // 1-10 — re-stated here (no longer reusing MIRA_PACK.filter)
+    // so the lingo variant of this pack is self-contained and
+    // future content edits to MIRA stay isolated to Cleo's deck.
+    { target: 'ena', english: 'one', vi: 'một', pos: 'number' },
+    { target: 'dura', english: 'two', vi: 'hai', pos: 'number' },
+    { target: 'solva', english: 'three', vi: 'ba', pos: 'number' },
+    { target: 'mekta', english: 'four', vi: 'bốn', pos: 'number' },
+    { target: 'galpi', english: 'five', vi: 'năm', pos: 'number' },
+    { target: 'tumo', english: 'six', vi: 'sáu', pos: 'number' },
+    { target: 'resta', english: 'seven', vi: 'bảy', pos: 'number' },
+    { target: 'jolen', english: 'eight', vi: 'tám', pos: 'number' },
+    { target: 'kavu', english: 'nine', vi: 'chín', pos: 'number' },
+    { target: 'ponek', english: 'ten', vi: 'mười', pos: 'number' },
+    // 11-20 — same CV/CVC shape, intentionally distinct from 1-10
+    // by more than one letter so similar-sounding pairs don't
     // sabotage early recognition.
     { target: 'naltu', english: 'eleven', vi: 'mười một', pos: 'number' },
     { target: 'bonta', english: 'twelve', vi: 'mười hai', pos: 'number' },
@@ -298,37 +382,64 @@ export const SABA_PACK: VocabularyPack = {
     { target: 'milto', english: 'nineteen', vi: 'mười chín', pos: 'number' },
     { target: 'opasu', english: 'twenty', vi: 'hai mươi', pos: 'number' },
   ],
-  // Recorded mp3s in /public/assets/audio/numbers/ — one per
-  // target word, named `<target>.mp3`. Entries without an audio
-  // URL are skipped by the selection picker so the player never
-  // lands on a word they can't hear (TTS is too unreliable as a
-  // fallback in practice — stuck Chrome subprocess, iOS audio-
-  // session contention). Listed here as a map of target → URL
-  // rather than auto-derived so a missing file is a typed
-  // absence, not a 404 surprise.
-  audio: {
-    ena:    '/assets/audio/numbers/ena.mp3',
-    dura:   '/assets/audio/numbers/dura.mp3',
-    solva:  '/assets/audio/numbers/solva.mp3',
-    mekta:  '/assets/audio/numbers/mekta.mp3',
-    galpi:  '/assets/audio/numbers/galpi.mp3',
-    tumo:   '/assets/audio/numbers/tumo.mp3',
-    resta:  '/assets/audio/numbers/resta.mp3',
-    jolen:  '/assets/audio/numbers/jolen.mp3',
-    kavu:   '/assets/audio/numbers/kavu.mp3',
-    ponek:  '/assets/audio/numbers/ponek.mp3',
-    naltu:  '/assets/audio/numbers/naltu.mp3',
-    bonta:  '/assets/audio/numbers/bonta.mp3',
-    silvu:  '/assets/audio/numbers/silvu.mp3',
-    frenta: '/assets/audio/numbers/frenta.mp3',
-    demni:  '/assets/audio/numbers/demni.mp3',
-    vorhi:  '/assets/audio/numbers/vorhi.mp3',
-    undri:  '/assets/audio/numbers/undri.mp3',
-    kembo:  '/assets/audio/numbers/kembo.mp3',
-    milto:  '/assets/audio/numbers/milto.mp3',
-    opasu:  '/assets/audio/numbers/opasu.mp3',
-  },
+  french: [
+    { target: 'un', english: 'one', vi: 'một', pos: 'number' },
+    { target: 'deux', english: 'two', vi: 'hai', pos: 'number' },
+    { target: 'trois', english: 'three', vi: 'ba', pos: 'number' },
+    { target: 'quatre', english: 'four', vi: 'bốn', pos: 'number' },
+    { target: 'cinq', english: 'five', vi: 'năm', pos: 'number' },
+    { target: 'six', english: 'six', vi: 'sáu', pos: 'number' },
+    { target: 'sept', english: 'seven', vi: 'bảy', pos: 'number' },
+    { target: 'huit', english: 'eight', vi: 'tám', pos: 'number' },
+    { target: 'neuf', english: 'nine', vi: 'chín', pos: 'number' },
+    { target: 'dix', english: 'ten', vi: 'mười', pos: 'number' },
+    { target: 'onze', english: 'eleven', vi: 'mười một', pos: 'number' },
+    { target: 'douze', english: 'twelve', vi: 'mười hai', pos: 'number' },
+    { target: 'treize', english: 'thirteen', vi: 'mười ba', pos: 'number' },
+    { target: 'quatorze', english: 'fourteen', vi: 'mười bốn', pos: 'number' },
+    { target: 'quinze', english: 'fifteen', vi: 'mười lăm', pos: 'number' },
+    { target: 'seize', english: 'sixteen', vi: 'mười sáu', pos: 'number' },
+    { target: 'dix-sept', english: 'seventeen', vi: 'mười bảy', pos: 'number' },
+    { target: 'dix-huit', english: 'eighteen', vi: 'mười tám', pos: 'number' },
+    { target: 'dix-neuf', english: 'nineteen', vi: 'mười chín', pos: 'number' },
+    { target: 'vingt', english: 'twenty', vi: 'hai mươi', pos: 'number' },
+  ],
+  english: [
+    { target: 'one', english: 'one', vi: 'một', pos: 'number' },
+    { target: 'two', english: 'two', vi: 'hai', pos: 'number' },
+    { target: 'three', english: 'three', vi: 'ba', pos: 'number' },
+    { target: 'four', english: 'four', vi: 'bốn', pos: 'number' },
+    { target: 'five', english: 'five', vi: 'năm', pos: 'number' },
+    { target: 'six', english: 'six', vi: 'sáu', pos: 'number' },
+    { target: 'seven', english: 'seven', vi: 'bảy', pos: 'number' },
+    { target: 'eight', english: 'eight', vi: 'tám', pos: 'number' },
+    { target: 'nine', english: 'nine', vi: 'chín', pos: 'number' },
+    { target: 'ten', english: 'ten', vi: 'mười', pos: 'number' },
+    { target: 'eleven', english: 'eleven', vi: 'mười một', pos: 'number' },
+    { target: 'twelve', english: 'twelve', vi: 'mười hai', pos: 'number' },
+    { target: 'thirteen', english: 'thirteen', vi: 'mười ba', pos: 'number' },
+    { target: 'fourteen', english: 'fourteen', vi: 'mười bốn', pos: 'number' },
+    { target: 'fifteen', english: 'fifteen', vi: 'mười lăm', pos: 'number' },
+    { target: 'sixteen', english: 'sixteen', vi: 'mười sáu', pos: 'number' },
+    { target: 'seventeen', english: 'seventeen', vi: 'mười bảy', pos: 'number' },
+    { target: 'eighteen', english: 'eighteen', vi: 'mười tám', pos: 'number' },
+    { target: 'nineteen', english: 'nineteen', vi: 'mười chín', pos: 'number' },
+    { target: 'twenty', english: 'twenty', vi: 'hai mươi', pos: 'number' },
+  ],
 };
+
+function makeSabaPack(target: TargetLanguage): VocabularyPack {
+  const entries = SABA_ENTRIES[target];
+  return {
+    id: 'saba-pack-1',
+    theme: 'Numbers 1-20',
+    target,
+    entries,
+    audio: audioMapFor(target, entries),
+  };
+}
+
+export const SABA_PACK: VocabularyPack = makeSabaPack('lingo');
 
 /**
  * Pio's pack — five everyday-life verbs, themed around the room
@@ -383,12 +494,38 @@ const OFFICE_TUTOR_ENTRIES: Record<TargetLanguage, VocabularyEntry[]> = {
   ],
 };
 
+/** Audio path convention: `/assets/audio/<targetLang>/<targetWord>.mp3`.
+ *  Files are looked up by the entry's `target` field. Missing files
+ *  silently fall back to browser TTS at runtime (see wordSpeak.ts),
+ *  so listing a path here BEFORE the file exists is harmless —
+ *  it'll just keep using TTS until you drop the MP3 in. Adding a
+ *  new pack? Pass its entry list through this helper and store
+ *  the result as `pack.audio`. */
+function audioMapFor(
+  target: TargetLanguage,
+  entries: readonly VocabularyEntry[],
+): Record<string, string> {
+  return Object.fromEntries(
+    entries.map((entry) => [
+      entry.target,
+      `/assets/audio/${target}/${entry.target}.mp3`,
+    ]),
+  );
+}
+
 function makeOfficePack(
   id: string,
   theme: string,
   target: TargetLanguage,
 ): VocabularyPack {
-  return { id, theme, target, entries: OFFICE_TUTOR_ENTRIES[target] };
+  const entries = OFFICE_TUTOR_ENTRIES[target];
+  return {
+    id,
+    theme,
+    target,
+    entries,
+    audio: audioMapFor(target, entries),
+  };
 }
 
 export const OFFICE_TUTOR_PACK: VocabularyPack = makeOfficePack(
@@ -416,8 +553,16 @@ export const OFFICE_WRITE_TUTOR_PACK: VocabularyPack = makeOfficePack(
 type PackRegistry = Record<string, Partial<Record<TargetLanguage, VocabularyPack>>>;
 
 const PACK_REGISTRY: PackRegistry = {
-  [MIRA_PACK.id]: { lingo: MIRA_PACK },
-  [SABA_PACK.id]: { lingo: SABA_PACK },
+  [MIRA_PACK.id]: {
+    lingo: MIRA_PACK,
+    french: makeMiraVariant('french'),
+    english: makeMiraVariant('english'),
+  },
+  [SABA_PACK.id]: {
+    lingo: SABA_PACK,
+    french: makeSabaPack('french'),
+    english: makeSabaPack('english'),
+  },
   [PIO_PACK.id]: { lingo: PIO_PACK },
   'office-tutor-pack': {
     lingo: OFFICE_TUTOR_PACK,
