@@ -356,23 +356,28 @@ export class EditorApp {
     this.transitionLayer.addChild(layer);
   }
 
-  /** Find every Modern Exteriors pack key referenced by the current editor
-   * state and ensure each one is loaded into PixiJS. Called before rendering
-   * so saved pack tiles/objects show up the first time the editor opens (the
-   * placeholder preload doesn't know about pack singles, and `getTexture`
-   * misses don't re-trigger loads). Idempotent — cached singles short-circuit
-   * inside `loadPackSingle`. */
+  /** Find every pack-single key referenced by the current editor
+   * state and ensure each one is loaded into PixiJS. Covers both
+   * Modern Exteriors (`me:<theme>/<file>`) and Modern Interiors
+   * furniture singles (`mi-s:<theme>/<file>`) — both resolve through
+   * the same `loadPackSingle` path. Called before rendering so saved
+   * pack tiles/objects show up the first time the editor opens (the
+   * placeholder preload doesn't know about pack singles, and
+   * `getTexture` misses don't re-trigger loads). Idempotent —
+   * cached singles short-circuit inside `loadPackSingle`. */
   async ensurePackAssets(state: { tiles: string[][]; objects: Entity[]; buildings: Building[] }): Promise<void> {
     const keys = new Set<string>();
+    const isPackKey = (k: string): boolean =>
+      k.startsWith('me:') || k.startsWith('mi-s:');
     for (const row of state.tiles) {
-      for (const t of row) if (t.startsWith('me:')) keys.add(t);
+      for (const t of row) if (isPackKey(t)) keys.add(t);
     }
     for (const o of state.objects) {
-      if (o.spriteKey.startsWith('me:')) keys.add(o.spriteKey);
+      if (isPackKey(o.spriteKey)) keys.add(o.spriteKey);
     }
     for (const b of state.buildings) {
-      if (b.baseSpriteKey.startsWith('me:')) keys.add(b.baseSpriteKey);
-      if (b.roofSpriteKey?.startsWith('me:')) keys.add(b.roofSpriteKey);
+      if (isPackKey(b.baseSpriteKey)) keys.add(b.baseSpriteKey);
+      if (b.roofSpriteKey && isPackKey(b.roofSpriteKey)) keys.add(b.roofSpriteKey);
     }
     if (keys.size === 0) return;
     await Promise.all([...keys].map(k => loadPackSingle(k)));

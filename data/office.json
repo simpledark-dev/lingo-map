@@ -56,8 +56,64 @@
       ],
       "dialogueKind": "office-tutor",
       "vocabularyPackId": "office-tutor-pack",
-      "vocabularyOfferLine": "Hey, the new translator. I've been waiting — only got three words for you, mind running them with me?",
+      "vocabularyOfferLine": "Hey, the new translator. I've been waiting — only got four words for you, mind running them with me?",
       "vocabularyOfferLineKey": "dialogue.eli.offerLine"
+    },
+    {
+      "id": "office-npc-listen-tutor",
+      "x": 88,
+      "y": 128,
+      "spriteKey": "me-char-09",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 128,
+      "collisionBox": {
+        "offsetX": -4,
+        "offsetY": -6,
+        "width": 8,
+        "height": 6
+      },
+      "name": "Rina",
+      "dialogue": [
+        "Reading? Easy. Audio? Disaster."
+      ],
+      "dialogueKeys": [
+        "dialogue.listenTutor.offer"
+      ],
+      "dialogueKind": "office-tutor-listen",
+      "vocabularyPackId": "office-listen-tutor-pack",
+      "vocabularyOfferLine": "Reading these is fine — the second I HEAR them I'm lost. Drill some by ear?",
+      "vocabularyOfferLineKey": "dialogue.listenTutor.offer"
+    },
+    {
+      "id": "office-npc-write-tutor",
+      "x": 248,
+      "y": 192,
+      "spriteKey": "me-char-15",
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "sortY": 192,
+      "collisionBox": {
+        "offsetX": -4,
+        "offsetY": -6,
+        "width": 8,
+        "height": 6
+      },
+      "name": "Yusuf",
+      "dialogue": [
+        "Recognise yes — actually USE them, no."
+      ],
+      "dialogueKeys": [
+        "dialogue.writeTutor.offer"
+      ],
+      "dialogueKind": "office-tutor-write",
+      "vocabularyPackId": "office-write-tutor-pack",
+      "vocabularyOfferLine": "I know these words when I see them, but I freeze when I have to use one. Help me practise spelling them out from the meaning?",
+      "vocabularyOfferLineKey": "dialogue.writeTutor.offer"
     }
   ],
   "triggers": [],
