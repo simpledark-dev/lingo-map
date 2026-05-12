@@ -65,8 +65,7 @@ export const vi: Record<string, string> = {
   "apartment.line.home": "Đây là nhà mình. Tạm thời thôi.",
   "apartment.line.smallButRent":
     "Nhỏ, đủ sống, và tiền nhà đã trả trước một tháng rồi.",
-  "apartment.line.childHungry":
-    "Ba ơi, con đói. Tủ lạnh không còn gì hết.",
+  "apartment.line.childHungry": "Ba ơi, con đói. Tủ lạnh không còn gì hết.",
   "apartment.line.foodAndFix":
     "Ba biết. Mình phải mua đồ ăn trước. Cái máy tính cũ ngoài kia hỏng rồi — cũng phải thay sớm thôi.",
   "apartment.line.needMoney": "Giờ thì… ba phải kiếm tiền gấp.",
@@ -299,13 +298,11 @@ export const vi: Record<string, string> = {
   "quest.secondPaycheck.title": "Nghe & Dịch",
   "quest.secondPaycheck.objective":
     "Anh tutor mới ở văn phòng kẹt phần nghe — kiếm thêm {threshold} ở chế độ Nghe.",
-  "quest.secondPaycheck.completedSummary":
-    "Bạn đã học cách dịch qua tai.",
+  "quest.secondPaycheck.completedSummary": "Bạn đã học cách dịch qua tai.",
   "quest.thirdPaycheck.title": "Viết Theo Nghĩa",
   "quest.thirdPaycheck.objective":
     "Anh tutor thứ ba muốn DÙNG được từ — kiếm thêm {threshold} ở chế độ Viết.",
-  "quest.thirdPaycheck.completedSummary":
-    "Bạn đã học cách viết từ đã biết.",
+  "quest.thirdPaycheck.completedSummary": "Bạn đã học cách viết từ đã biết.",
 
   "quest.childSandwich.title": "Bánh Mì Cho {child}",
   "quest.childSandwich.objectivePreAsk":
@@ -603,7 +600,7 @@ export const vi: Record<string, string> = {
   "computer.upgrade.locked": "Chưa mở",
   "computer.upgrade.button": "Bắt đầu nâng cấp — {price}",
   "computer.upgrade.runningButton": "Đang nâng cấp… {time}",
-  "computer.upgrade.speedupButton": "⚡ Tăng tốc — Dịch từ",
+  "computer.upgrade.speedupButton": "⚡ Muốn tăng tốc? Hãy dịch từ!",
   "computer.speedup.title": "Tăng tốc",
   "computer.speedup.back": "← Quay lại",
   "computer.speedup.question": "“{word}” nghĩa là gì?",

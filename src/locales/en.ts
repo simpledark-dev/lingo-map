@@ -180,8 +180,7 @@ export const en: Record<string, string> = {
   "dialogue.writeTutor.offer":
     "I recognise these words when I see them, but the second I have to USE one I freeze up. Help me practise spelling them out from the meaning?",
   "dialogue.writeTutor.modeWrite": "3. Write from meaning",
-  "dialogue.writeTutor.modeWriteHint":
-    "See the meaning — type the word.",
+  "dialogue.writeTutor.modeWriteHint": "See the meaning — type the word.",
   "dialogue.writeTutor.modeDecline": "Not now",
   "dialogue.writeTutor.modeDeclineHint": "Anytime is fine.",
 
@@ -637,7 +636,7 @@ export const en: Record<string, string> = {
   "computer.upgrade.locked": "Locked",
   "computer.upgrade.button": "Start Upgrade — {price}",
   "computer.upgrade.runningButton": "Upgrading… {time}",
-  "computer.upgrade.speedupButton": "⚡ Speed Up — Translate Words",
+  "computer.upgrade.speedupButton": "⚡ Want to speed up? Translate words!",
   "computer.speedup.title": "Speed Up",
   "computer.speedup.back": "← Back",
   "computer.speedup.question": "What does “{word}” mean?",

@@ -280,19 +280,22 @@ export default function DialogueOverlay({
       style={{
         position: "absolute",
         // Anchor strategy:
-        // • hasOptions → TOP-anchor 320px above container bottom so
-        //   the panel grows DOWNWARD when options arrive (or when
-        //   advancing to a longer line). The already-read text stays
-        //   put. 320px is sized for a 3-option dialogue + 1-3 lines
-        //   of text — when fully revealed the panel's bottom edge
-        //   sits ~16px above the viewport bottom (no big empty
-        //   space). Clamped to ≥40px from the top so the panel
-        //   never goes off-screen on tiny landscape phones. If a
-        //   dialogue ever needs 4+ options, bump this back up.
+        // • hasOptions → TOP-anchor so the panel grows DOWNWARD as
+        //   the typewriter reveals lines and options. Buffer is
+        //   sized to the option count so a 1-option dialogue sits
+        //   tight to the bottom too — fixed 320px would leave a
+        //   big empty gap below 1- or 2-option dialogues. Formula:
+        //   110px (name + text + paddings + ~16px bottom margin)
+        //   + 70px per option (button + gap, with headroom for
+        //   the occasional hint subtitle). 3 options → 320px,
+        //   matches the prior tuned value. Clamped to ≥40px from
+        //   the top so the panel never goes off-screen on tiny
+        //   landscape phones.
         // • no options → BOTTOM-anchor (legacy behaviour). One-shot
-        //   NPC quips sit naturally at the bottom of the screen
-        //   instead of floating high with empty space below.
-        top: hasOptions ? "max(40px, calc(100% - 320px))" : "auto",
+        //   NPC quips sit naturally at the bottom of the screen.
+        top: hasOptions
+          ? `max(40px, calc(100% - ${90 + (dialogue.options?.length ?? 0) * 70}px))`
+          : "auto",
         bottom: hasOptions ? "auto" : 16,
         left: 16,
         right: 16,
@@ -411,6 +414,7 @@ export default function DialogueOverlay({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isDisabled) return;
+                      playSfx(SFX.NEXT_DIALOGUE);
                       onSelectOption?.(opt.id);
                     }}
                     style={{
