@@ -403,6 +403,9 @@ export const vi: Record<string, string> = {
   "settings.virtualDpad": "Phím ảo",
   "settings.virtualDpadHint":
     "Hiện nút điều khiển di chuyển trên màn hình điện thoại.",
+  "settings.tapMoveSound": "Âm thanh chạm di chuyển",
+  "settings.tapMoveSoundHint":
+    "Phát tiếng click nhẹ mỗi lần chạm để di chuyển. Mặc định tắt.",
   "settings.dangerZone": "Vùng nguy hiểm",
   "settings.resetTitle": "Xoá toàn bộ tiến trình",
   "settings.resetWarning":

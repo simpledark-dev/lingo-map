@@ -73,7 +73,7 @@ import Minimap from "./Minimap";
 import VirtualDPad from "./VirtualDPad";
 import { APP_VERSION } from "../version";
 // import { playSfx, SFX } from "./sfx";
-import { preloadSfx, setSfxEnabled } from "./sfx";
+import { preloadSfx, setSfxEnabled, setTapMoveSfxEnabled } from "./sfx";
 import EnergyCostBurst from "./EnergyCostBurst";
 import { getUiTheme } from "./uiThemes";
 import { clearWorldSave, loadWorldSave } from "../data/worldSave";
@@ -81,9 +81,11 @@ import { resetAllGameData } from "../data/reset";
 import {
   getMusicEnabled,
   getMarkerLabelStyle,
+  getTapMoveSoundEnabled,
   getVirtualDPadEnabled,
   setMarkerLabelStyle as persistMarkerLabelStyle,
   setMusicEnabled as persistMusicEnabled,
+  setTapMoveSoundEnabled as persistTapMoveSoundEnabled,
   setVirtualDPadEnabled as persistVirtualDPadEnabled,
 } from "../data/settings";
 import { getComputerUpgradeLevel, useComputerUpgradeLevel } from "../data/computerUpgrade";
@@ -206,6 +208,9 @@ export default function GameCanvas() {
   const soundOnRef = useRef(soundOn);
   const [virtualDPadEnabled, setVirtualDPadEnabledState] = useState(
     getVirtualDPadEnabled,
+  );
+  const [tapMoveSoundEnabled, setTapMoveSoundEnabledState] = useState(
+    getTapMoveSoundEnabled,
   );
   const [markerLabelStyle, setMarkerLabelStyleState] = useState(
     getMarkerLabelStyle,
@@ -770,6 +775,22 @@ export default function GameCanvas() {
       pixiAppRef.current?.setVirtualDirection(null);
     }
   }, []);
+
+  const handleTapMoveSoundEnabledChange = useCallback((enabled: boolean) => {
+    setTapMoveSoundEnabledState(enabled);
+    persistTapMoveSoundEnabled(enabled);
+    // Push to the module-level flag in sfx.ts so InputAdapter's
+    // `playTapSfx()` calls (which fire from outside React) honour
+    // the new value immediately.
+    setTapMoveSfxEnabled(enabled);
+  }, []);
+
+  // Push the persisted tap-sound preference into the sfx module on
+  // mount so the very first tap-to-move honours the saved value
+  // (the InputAdapter's `playTapSfx` reads the module-level flag).
+  useEffect(() => {
+    setTapMoveSfxEnabled(tapMoveSoundEnabled);
+  }, [tapMoveSoundEnabled]);
 
   const handleMarkerLabelStyleChange = useCallback((style: MarkerLabelStyleId) => {
     setMarkerLabelStyleState(style);
@@ -2820,6 +2841,8 @@ export default function GameCanvas() {
             <SettingsView
               virtualDPadEnabled={virtualDPadEnabled}
               onVirtualDPadEnabledChange={handleVirtualDPadEnabledChange}
+              tapMoveSoundEnabled={tapMoveSoundEnabled}
+              onTapMoveSoundEnabledChange={handleTapMoveSoundEnabledChange}
               markerLabelStyle={markerLabelStyle}
               onMarkerLabelStyleChange={handleMarkerLabelStyleChange}
               onClose={() => setSettingsOpen(false)}

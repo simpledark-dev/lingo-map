@@ -782,14 +782,14 @@
         },
         {
           "id": "obj-mp1gx1u2-ccj9l",
-          "x": 233.98539500000004,
-          "y": 85.583805,
+          "x": 201.08776,
+          "y": 182.52941,
           "spriteKey": "mi-s:16_Grocery_Store_Singles/Grocery_Store_Singles_467",
           "anchor": {
             "x": 0.5,
             "y": 1
           },
-          "sortY": 85.583805,
+          "sortY": 182.52941,
           "collisionBox": {
             "offsetX": -8,
             "offsetY": -8,

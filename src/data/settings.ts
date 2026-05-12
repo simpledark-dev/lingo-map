@@ -8,12 +8,17 @@ export const SETTINGS_STORAGE_KEY = "lingo-settings:v1";
 
 export interface GameSettings {
   musicEnabled: boolean;
+  /** Plays a click cue on every tap-to-move. Default OFF — most
+   * players find it noisy after a few minutes; opt in from
+   * Settings for those who want the haptic-style feedback. */
+  tapMoveSoundEnabled: boolean;
   virtualDPadEnabled: boolean;
   markerLabelStyle: MarkerLabelStyleId;
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
   musicEnabled: true,
+  tapMoveSoundEnabled: false,
   virtualDPadEnabled: false,
   markerLabelStyle: DEFAULT_MARKER_LABEL_STYLE,
 };
@@ -26,6 +31,10 @@ function normalizeSettings(value: unknown): GameSettings {
       typeof parsed.musicEnabled === "boolean"
         ? parsed.musicEnabled
         : DEFAULT_SETTINGS.musicEnabled,
+    tapMoveSoundEnabled:
+      typeof parsed.tapMoveSoundEnabled === "boolean"
+        ? parsed.tapMoveSoundEnabled
+        : DEFAULT_SETTINGS.tapMoveSoundEnabled,
     virtualDPadEnabled:
       typeof parsed.virtualDPadEnabled === "boolean"
         ? parsed.virtualDPadEnabled
@@ -67,6 +76,14 @@ export function getMusicEnabled(): boolean {
 
 export function setMusicEnabled(enabled: boolean): void {
   saveGameSettings({ musicEnabled: enabled });
+}
+
+export function getTapMoveSoundEnabled(): boolean {
+  return loadGameSettings().tapMoveSoundEnabled;
+}
+
+export function setTapMoveSoundEnabled(enabled: boolean): void {
+  saveGameSettings({ tapMoveSoundEnabled: enabled });
 }
 
 export function getVirtualDPadEnabled(): boolean {

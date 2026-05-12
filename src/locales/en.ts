@@ -435,6 +435,8 @@ export const en: Record<string, string> = {
   "settings.controls": "Controls",
   "settings.virtualDpad": "Virtual D-pad",
   "settings.virtualDpadHint": "Show on-screen movement controls on mobile.",
+  "settings.tapMoveSound": "Tap-to-move sound",
+  "settings.tapMoveSoundHint": "Play a soft click on each tap to move. Off by default.",
   "settings.dangerZone": "Danger zone",
   "settings.resetTitle": "Reset game",
   "settings.resetWarning":

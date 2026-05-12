@@ -40,6 +40,8 @@ interface SettingsViewProps {
   onClose: () => void;
   virtualDPadEnabled: boolean;
   onVirtualDPadEnabledChange: (enabled: boolean) => void;
+  tapMoveSoundEnabled: boolean;
+  onTapMoveSoundEnabledChange: (enabled: boolean) => void;
   markerLabelStyle: MarkerLabelStyleId;
   onMarkerLabelStyleChange: (style: MarkerLabelStyleId) => void;
 }
@@ -48,6 +50,8 @@ export default function SettingsView({
   onClose,
   virtualDPadEnabled,
   onVirtualDPadEnabledChange,
+  tapMoveSoundEnabled,
+  onTapMoveSoundEnabledChange,
   markerLabelStyle,
   onMarkerLabelStyleChange,
 }: SettingsViewProps) {
@@ -276,6 +280,44 @@ export default function SettingsView({
             type="checkbox"
             checked={virtualDPadEnabled}
             onChange={(e) => onVirtualDPadEnabledChange(e.currentTarget.checked)}
+            style={{
+              width: 20,
+              height: 20,
+              margin: 0,
+              accentColor: COLORS.accentGoldDark,
+              cursor: 'pointer',
+            }}
+          />
+        </label>
+
+        {/* Tap-to-move sound toggle. Off by default — the click cue
+            gets noisy on rapid taps for some players; opt-in here
+            for those who like the haptic-style feedback. */}
+        <label
+          style={{
+            background: COLORS.parchmentLight,
+            border: `2px solid ${COLORS.cardBorder}`,
+            borderRadius: 6,
+            padding: '10px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            color: COLORS.text,
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 13, fontWeight: 700 }}>
+              {t('settings.tapMoveSound')}
+            </span>
+            <span style={{ display: 'block', fontSize: 11, lineHeight: 1.4, color: COLORS.hintText, marginTop: 3 }}>
+              {t('settings.tapMoveSoundHint')}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={tapMoveSoundEnabled}
+            onChange={(e) => onTapMoveSoundEnabledChange(e.currentTarget.checked)}
             style={{
               width: 20,
               height: 20,

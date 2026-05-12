@@ -571,7 +571,18 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
                 border: `2px solid ${COLORS.cardBorder}`,
                 borderRadius: 4,
                 overflow: "hidden",
+                cursor: progress.complete ? "default" : "pointer",
               }}
+              // DEV: double-tap / double-click the bar to instantly
+              // fast-forward the timer to completion. Lets me test
+              // the "Finish Upgrade" / FX path without waiting 30s+.
+              // `reduceUpgradeTimer` clamps internally so passing
+              // the full duration just maxes progress at 1.0.
+              onDoubleClick={() => {
+                if (!progress || progress.complete) return;
+                reduceUpgradeTimer(progress.remainingMs + 100);
+              }}
+              title="Dev: double-click to skip"
             >
               <div
                 style={{
@@ -582,6 +593,7 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
                   width: `${progress.progress01 * 100}%`,
                   background: COLORS.coinGold,
                   transition: "width 0.25s linear",
+                  pointerEvents: "none",
                 }}
               />
             </div>
