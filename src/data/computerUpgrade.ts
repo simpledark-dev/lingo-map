@@ -130,6 +130,22 @@ export function setComputerUpgradeLevel(level: number): number {
   return next;
 }
 
+/** Reset both the persisted level AND the in-memory cache, then
+ * notify subscribers. Companion to `resetUpgradeTimerCache` in
+ * `computerUpgradeTimer.ts`; called by `resetAllGameData()` so
+ * stale `cached` values don't leak through to React after a reset. */
+export function resetComputerUpgradeCache(): void {
+  cached = null;
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(COMPUTER_UPGRADE_STORAGE_KEY);
+    } catch {
+      // best-effort — quota / private mode
+    }
+  }
+  for (const listener of listeners) listener(0);
+}
+
 /** Step 1 of the two-step upgrade flow: deduct money, start the
  * countdown timer. The actual level change happens later via
  * `finishComputerUpgrade` once the timer completes. */

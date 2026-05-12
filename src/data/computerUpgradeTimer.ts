@@ -99,6 +99,24 @@ export function clearUpgradeTimer(): void {
   write(null);
 }
 
+/** Reset both the persisted timer AND the in-memory cache, then
+ * notify subscribers. Called by `resetAllGameData()` — without
+ * this, modules keep returning the pre-reset `cached` value to
+ * React even after the localStorage key has been wiped, which
+ * showed up as a stale "Lv X → Lv Y with countdown" on the
+ * upgrade modal right after a game reset. */
+export function resetUpgradeTimerCache(): void {
+  cached = null;
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(UPGRADE_TIMER_STORAGE_KEY);
+    } catch {
+      // best-effort — quota / private mode
+    }
+  }
+  for (const listener of listeners) listener(null);
+}
+
 /** Cut `reduceMs` off the remaining time by rolling the `startedAt`
  * stamp backwards. Used by the speed-up mini-quiz: each correct
  * translation answer calls this. Clamped so it never rolls so far

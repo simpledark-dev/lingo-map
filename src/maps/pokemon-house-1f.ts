@@ -247,13 +247,14 @@ export const pokemonHouse1fMap: MapData = {
   spawnPoints: [
     { id: "entrance", x: tx(10) + 8, y: ty(H - 3), facing: "up" },
     { id: "from-2f", x: tx(17), y: ty(7), facing: "down" },
-    // Intro flow start — player spawns next to Mim, facing left so
+    // Intro flow start — player spawns one tile right of Mim,
+    // facing left so
     // they're visually facing each other for the apartment monologue.
     // The world is paused during the dialogue (worldPausedByOverlay
     // includes `dialogue`), so being inside her INTERACTION_RANGE
     // doesn't matter here. The post-dialogue handler moves the
     // player south afterwards to avoid the "tap-near-Mim → interact
     // → reopen" loop on mobile.
-    { id: "intro-start", x: tx(9), y: ty(8), facing: "left" },
+    { id: "intro-start", x: tx(10), y: ty(8), facing: "left" },
   ],
 };

@@ -1,7 +1,14 @@
 import { SETTINGS_STORAGE_KEY } from './settings';
 import { WORLD_SAVE_STORAGE_KEY } from './worldSave';
 import { REWARD_PER_CORRECT_STORAGE_KEY } from './wallet';
-import { COMPUTER_UPGRADE_STORAGE_KEY } from './computerUpgrade';
+import {
+  COMPUTER_UPGRADE_STORAGE_KEY,
+  resetComputerUpgradeCache,
+} from './computerUpgrade';
+import {
+  UPGRADE_TIMER_STORAGE_KEY,
+  resetUpgradeTimerCache,
+} from './computerUpgradeTimer';
 
 /**
  * One-call full reset for the game. Wipes every localStorage key
@@ -36,6 +43,7 @@ const STORAGE_KEYS = [
   'lingo-target',
   'lingo-target:picked',
   COMPUTER_UPGRADE_STORAGE_KEY,
+  UPGRADE_TIMER_STORAGE_KEY,
   WORLD_SAVE_STORAGE_KEY,
   SETTINGS_STORAGE_KEY,
 ];
@@ -73,4 +81,12 @@ export function resetAllGameData(): void {
     // Quota / private mode — silent; the page reload below will
     // still drop the in-memory state and the user can retry.
   }
+  // Invalidate module-level caches that survive localStorage wipes.
+  // Without these, modules keep returning their pre-reset `cached`
+  // values to React for any render between this call and the
+  // subsequent page reload — and any codepath that doesn't reload
+  // (`?intro=replay`) sees stale state indefinitely. Each helper
+  // also re-emits to its subscribers so reactive hooks update.
+  resetComputerUpgradeCache();
+  resetUpgradeTimerCache();
 }
