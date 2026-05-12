@@ -196,7 +196,7 @@ export class PixiApp {
     const computer = this.findF1Computer();
     if (!computer) return null;
     const box = this.getComputerWorldBox(computer);
-    const tapBox = this.expandBox(box, map.tileSize * 0.75);
+    const tapBox = box;
     const tappedComputer = input.moveTarget ? this.pointInBox(input.moveTarget, tapBox) : false;
     const nearComputer = this.isPlayerNearBox(tapBox);
 
@@ -1382,7 +1382,7 @@ export class PixiApp {
     // Debug overlays — drawn after everything else so the rects sit
     // on top of sprites. Two toggles share the same draw call:
     //   `: collision boxes (player/NPC green, cars red, look-ahead yellow)
-    //   T: NPC tap zones (cyan) — what InputAdapter actually hit-tests
+    //   T: tap zones (cyan = NPCs, pink = object interactions)
     if (this.debugShowCollisions || this.debugShowTapZones) {
       const T = map.tileSize;
       const items: Array<{ box: { left: number; top: number; right: number; bottom: number }; color: number }> = [];
@@ -1429,6 +1429,19 @@ export class PixiApp {
               bottom: n.y + NPC_TAP_BOTTOM,
             },
             color: 0x00ccff,
+          });
+        }
+        const computer = this.findF1Computer();
+        if (computer) {
+          const box = this.getComputerWorldBox(computer);
+          items.push({
+            box: {
+              left: box.x,
+              top: box.y,
+              right: box.x + box.width,
+              bottom: box.y + box.height,
+            },
+            color: 0xff66cc,
           });
         }
       }

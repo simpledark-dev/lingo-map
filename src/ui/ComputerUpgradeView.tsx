@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   COMPUTER_LEVELS,
   ComputerLevel,
@@ -19,6 +19,29 @@ const COLORS = UI_THEME.colors;
 // Placeholder tier art. The two computer-desk images are reused — swap in
 // real per-tier sprites later by dropping new files under /public/assets/
 // and updating these paths.
+// Anything shorter than this (typically mobile landscape: ~375-430 px
+// tall) gets a compact layout — smaller paddings, no subtitle, the
+// "next description" collapsed to a one-line italic. Keeps the full
+// upgrade flow visible without scrolling.
+const COMPACT_HEIGHT_THRESHOLD = 500;
+
+function useCompactLayout(): boolean {
+  const [compact, setCompact] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerHeight < COMPACT_HEIGHT_THRESHOLD;
+  });
+  useEffect(() => {
+    const onChange = () => setCompact(window.innerHeight < COMPACT_HEIGHT_THRESHOLD);
+    window.addEventListener("resize", onChange);
+    window.addEventListener("orientationchange", onChange);
+    return () => {
+      window.removeEventListener("resize", onChange);
+      window.removeEventListener("orientationchange", onChange);
+    };
+  }, []);
+  return compact;
+}
+
 const TIER_IMG: Record<ComputerLevelId, string> = {
   broken: "/assets/placeholder/computer-desk-l0.png",
   "used-laptop": "/assets/placeholder/computer-desk-l1.png",
@@ -33,6 +56,7 @@ interface ComputerUpgradeViewProps {
 export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProps) {
   const level = useComputerUpgradeLevel();
   const balance = useWalletBalance();
+  const compact = useCompactLayout();
   const [message, setMessage] = useState<string | null>(null);
   // Flashes the Buy button gold for ~180ms on a successful purchase,
   // then closes so the world FX (desk flash + sparkles + pop) are
@@ -92,8 +116,8 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
           ...UI_THEME.modal.panelStyle,
           width: "min(480px, 100%)",
           maxHeight: "90dvh",
-          padding: 16,
-          gap: 12,
+          padding: compact ? 10 : 16,
+          gap: compact ? 6 : 12,
           overflowY: "auto",
         }}
       >
@@ -102,7 +126,7 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 18,
+                fontSize: compact ? 15 : 18,
                 fontWeight: 800,
                 color: COLORS.text,
                 letterSpacing: 0.5,
@@ -110,25 +134,27 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
             >
               {t("computer.upgrade.title")}
             </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: COLORS.hintText,
-                lineHeight: 1.35,
-                marginTop: 2,
-              }}
-            >
-              {t("computer.upgrade.subtitle")}
-            </div>
+            {!compact && (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: COLORS.hintText,
+                  lineHeight: 1.35,
+                  marginTop: 2,
+                }}
+              >
+                {t("computer.upgrade.subtitle")}
+              </div>
+            )}
           </div>
           <div
             style={{
-              fontSize: 14,
+              fontSize: compact ? 12 : 14,
               fontWeight: 700,
               color: COLORS.text,
               background: COLORS.parchmentLight,
               border: `2px solid ${COLORS.cardBorder}`,
-              padding: "4px 10px",
+              padding: compact ? "2px 8px" : "4px 10px",
               borderRadius: 4,
               whiteSpace: "nowrap",
             }}
@@ -140,13 +166,13 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
             onClick={onClose}
             aria-label={t("computer.upgrade.closeAria")}
             style={{
-              width: 28,
-              height: 28,
+              width: compact ? 24 : 28,
+              height: compact ? 24 : 28,
               background: COLORS.parchmentLight,
               border: `2px solid ${COLORS.cardBorder}`,
               borderRadius: 4,
               color: COLORS.text,
-              fontSize: 14,
+              fontSize: compact ? 12 : 14,
               fontWeight: 700,
               cursor: "pointer",
             }}
@@ -162,18 +188,19 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            padding: "6px 0",
+            padding: compact ? "0" : "6px 0",
           }}
         >
-          <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ display: "flex", gap: compact ? 4 : 6 }}>
             {COMPUTER_LEVELS.map((tier) => {
               const reached = tier.level <= level;
+              const dotSize = compact ? 8 : 10;
               return (
                 <span
                   key={tier.id}
                   style={{
-                    width: 10,
-                    height: 10,
+                    width: dotSize,
+                    height: dotSize,
                     borderRadius: "50%",
                     background: reached ? COLORS.coinGold : "transparent",
                     border: `2px solid ${reached ? COLORS.accentGoldDark : COLORS.cardBorder}`,
@@ -187,7 +214,7 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
           </div>
           <div
             style={{
-              fontSize: 11,
+              fontSize: compact ? 10 : 11,
               fontWeight: 800,
               letterSpacing: 0.5,
               textTransform: "uppercase",
@@ -204,18 +231,19 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
             display: "grid",
             gridTemplateColumns: "1fr auto 1fr",
             alignItems: "center",
-            gap: 10,
+            gap: compact ? 6 : 10,
           }}
         >
           <TierCard
             tier={currentLevel}
             label={t("computer.upgrade.current")}
             tone="current"
+            compact={compact}
           />
           <div
             aria-hidden
             style={{
-              fontSize: 28,
+              fontSize: compact ? 20 : 28,
               fontWeight: 900,
               color: isMaxed ? COLORS.hintText : COLORS.accentGoldDark,
               padding: "0 2px",
@@ -225,46 +253,76 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
             →
           </div>
           {isMaxed ? (
-            <MaxedCard />
+            <MaxedCard compact={compact} />
           ) : (
-            <TierCard tier={nextLevel} label={t("computer.upgrade.next")} tone="next" />
+            <TierCard
+              tier={nextLevel}
+              label={t("computer.upgrade.next")}
+              tone="next"
+              compact={compact}
+            />
           )}
         </div>
 
         {/* What you'll get — flavor text for the next tier */}
-        {!isMaxed && (
-          <div
-            style={{
-              background: COLORS.parchmentLight,
-              border: `2px solid ${COLORS.cardBorder}`,
-              borderRadius: 6,
-              padding: "8px 10px",
-              boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}`,
-            }}
-          >
+        {!isMaxed &&
+          (compact ? (
             <div
               style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 0.5,
-                textTransform: "uppercase",
-                color: COLORS.hintText,
-                marginBottom: 4,
-              }}
-            >
-              {t("computer.upgrade.next")}
-            </div>
-            <div
-              style={{
-                fontSize: 12,
+                fontSize: 11,
                 color: COLORS.text,
-                lineHeight: 1.4,
+                lineHeight: 1.35,
+                textAlign: "center",
+                padding: "0 4px",
               }}
             >
-              {t(nextLevel.descriptionKey)}
+              <span
+                style={{
+                  fontWeight: 800,
+                  color: COLORS.accentGoldDark,
+                  fontStyle: "normal",
+                  marginRight: 4,
+                }}
+              >
+                {t("computer.upgrade.next")}:
+              </span>
+              <span style={{ fontStyle: "italic" }}>
+                {t(nextLevel.descriptionKey)}
+              </span>
             </div>
-          </div>
-        )}
+          ) : (
+            <div
+              style={{
+                background: COLORS.parchmentLight,
+                border: `2px solid ${COLORS.cardBorder}`,
+                borderRadius: 6,
+                padding: "8px 10px",
+                boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                  color: COLORS.hintText,
+                  marginBottom: 4,
+                }}
+              >
+                {t("computer.upgrade.next")}
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: COLORS.text,
+                  lineHeight: 1.4,
+                }}
+              >
+                {t(nextLevel.descriptionKey)}
+              </div>
+            </div>
+          ))}
 
         {message && (
           <div
@@ -294,8 +352,8 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
             color: "#fdf6e0",
             border: `2px solid ${purchasing ? COLORS.accentGoldDark : COLORS.cardBorder}`,
             borderRadius: 4,
-            padding: "10px 12px",
-            fontSize: 14,
+            padding: compact ? "7px 10px" : "10px 12px",
+            fontSize: compact ? 13 : 14,
             fontWeight: 800,
             letterSpacing: 0.5,
             cursor: canAfford && !purchasing ? "pointer" : "not-allowed",
@@ -318,9 +376,10 @@ interface TierCardProps {
   tier: ComputerLevel;
   label: string;
   tone: "current" | "next";
+  compact: boolean;
 }
 
-function TierCard({ tier, label, tone }: TierCardProps) {
+function TierCard({ tier, label, tone, compact }: TierCardProps) {
   const isNext = tone === "next";
   return (
     <div
@@ -328,18 +387,18 @@ function TierCard({ tier, label, tone }: TierCardProps) {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 6,
+        gap: compact ? 3 : 6,
         background: isNext ? COLORS.cardActive : COLORS.cardRest,
         border: `2px solid ${isNext ? COLORS.accentGoldDark : COLORS.cardBorder}`,
         borderRadius: 6,
-        padding: "10px 8px",
+        padding: compact ? "6px 6px" : "10px 8px",
         boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
         minWidth: 0,
       }}
     >
       <div
         style={{
-          fontSize: 10,
+          fontSize: compact ? 9 : 10,
           fontWeight: 800,
           letterSpacing: 0.5,
           textTransform: "uppercase",
@@ -352,7 +411,7 @@ function TierCard({ tier, label, tone }: TierCardProps) {
         style={{
           width: "100%",
           aspectRatio: "1 / 1",
-          maxWidth: 120,
+          maxWidth: compact ? 64 : 120,
           background: COLORS.parchmentLight,
           border: `2px solid ${COLORS.cardBorder}`,
           borderRadius: 4,
@@ -374,18 +433,18 @@ function TierCard({ tier, label, tone }: TierCardProps) {
       </div>
       <div
         style={{
-          fontSize: 13,
+          fontSize: compact ? 12 : 13,
           fontWeight: 800,
           color: COLORS.text,
           textAlign: "center",
-          lineHeight: 1.2,
+          lineHeight: 1.15,
         }}
       >
         {t(tier.nameKey)}
       </div>
       <div
         style={{
-          fontSize: 10,
+          fontSize: compact ? 9 : 10,
           fontWeight: 700,
           color: COLORS.hintText,
           letterSpacing: 0.5,
@@ -397,24 +456,24 @@ function TierCard({ tier, label, tone }: TierCardProps) {
   );
 }
 
-function MaxedCard() {
+function MaxedCard({ compact }: { compact: boolean }) {
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 6,
+        gap: compact ? 3 : 6,
         background: COLORS.cardActive,
         border: `2px solid ${COLORS.accentGoldDark}`,
         borderRadius: 6,
-        padding: "10px 8px",
+        padding: compact ? "6px 6px" : "10px 8px",
         boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
       }}
     >
       <div
         style={{
-          fontSize: 10,
+          fontSize: compact ? 9 : 10,
           fontWeight: 800,
           letterSpacing: 0.5,
           textTransform: "uppercase",
@@ -427,13 +486,13 @@ function MaxedCard() {
         style={{
           width: "100%",
           aspectRatio: "1 / 1",
-          maxWidth: 120,
+          maxWidth: compact ? 64 : 120,
           background: COLORS.parchmentLight,
           border: `2px solid ${COLORS.cardBorder}`,
           borderRadius: 4,
           display: "grid",
           placeItems: "center",
-          fontSize: 40,
+          fontSize: compact ? 24 : 40,
           color: COLORS.coinGold,
         }}
       >
@@ -441,11 +500,11 @@ function MaxedCard() {
       </div>
       <div
         style={{
-          fontSize: 12,
+          fontSize: compact ? 11 : 12,
           fontWeight: 700,
           color: COLORS.text,
           textAlign: "center",
-          lineHeight: 1.2,
+          lineHeight: 1.15,
         }}
       >
         {t("computer.upgrade.maxedButton")}
