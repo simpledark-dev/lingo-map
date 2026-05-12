@@ -9,7 +9,11 @@ import {
 
 export const COMPUTER_UPGRADE_STORAGE_KEY = "lingo-computer:level";
 
-export type ComputerLevelId = "broken" | "used-laptop" | "home-pc" | "study-rig";
+export type ComputerLevelId =
+  | "broken"
+  | "used-laptop"
+  | "home-pc"
+  | "study-rig";
 
 export interface ComputerLevel {
   level: number;
@@ -44,7 +48,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     descriptionKey: "computer.level.usedLaptop.description",
     promptKey: "computer.dialogue.prompt.usedLaptop",
     costCents: 500,
-    upgradeDurationMs: 30_000, // 30s — easy to test
+    upgradeDurationMs: 120_000, // 2 min — easy to test
   },
   {
     level: 2,
@@ -53,7 +57,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     descriptionKey: "computer.level.homePc.description",
     promptKey: "computer.dialogue.prompt.homePc",
     costCents: 2500,
-    upgradeDurationMs: 60_000, // 1 min
+    upgradeDurationMs: 240_000, // 4 min
   },
   {
     level: 3,
@@ -62,7 +66,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     descriptionKey: "computer.level.studyRig.description",
     promptKey: "computer.dialogue.prompt.studyRig",
     costCents: 7500,
-    upgradeDurationMs: 120_000, // 2 min
+    upgradeDurationMs: 480_000, // 8 min
   },
 ];
 
@@ -151,7 +155,9 @@ export function startNextComputerUpgrade():
  * and clear the timer. Only succeeds when the timer has completed.
  * The level-change listener (PixiApp's subscriber) fires the
  * celebration FX from here. */
-export function finishComputerUpgrade(): { ok: true; level: ComputerLevel } | { ok: false; reason: "noTimer" | "notReady" } {
+export function finishComputerUpgrade():
+  | { ok: true; level: ComputerLevel }
+  | { ok: false; reason: "noTimer" | "notReady" } {
   const timer = getUpgradeTimer();
   if (!timer) return { ok: false, reason: "noTimer" };
   if (!isUpgradeTimerComplete(timer)) return { ok: false, reason: "notReady" };

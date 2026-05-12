@@ -99,6 +99,23 @@ export function clearUpgradeTimer(): void {
   write(null);
 }
 
+/** Cut `reduceMs` off the remaining time by rolling the `startedAt`
+ * stamp backwards. Used by the speed-up mini-quiz: each correct
+ * translation answer calls this. Clamped so it never rolls so far
+ * past the duration that progress > 1 — at the limit, the timer
+ * simply registers as complete. No-op when there's no timer. */
+export function reduceUpgradeTimer(reduceMs: number): UpgradeTimerState | null {
+  const current = read();
+  if (!current || reduceMs <= 0) return current;
+  const minStartedAt = Date.now() - current.durationMs;
+  const next: UpgradeTimerState = {
+    ...current,
+    startedAt: Math.max(minStartedAt, current.startedAt - reduceMs),
+  };
+  write(next);
+  return next;
+}
+
 export function subscribeUpgradeTimer(listener: Listener): () => void {
   listeners.add(listener);
   return () => {

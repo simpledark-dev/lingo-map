@@ -13,12 +13,57 @@ import {
 import {
   formatUpgradeRemaining,
   getUpgradeTimerProgress,
+  reduceUpgradeTimer,
   useNow,
   useUpgradeTimer,
 } from "../data/computerUpgradeTimer";
 import { t } from "../data/i18n";
+import {
+  getMeaning,
+  MIRA_PACK,
+  VocabularyEntry,
+} from "../data/vocabularyPacks";
 import { formatBalance, useWalletBalance } from "../data/wallet";
 import { getUiTheme } from "./uiThemes";
+
+// Source of words for the speed-up mini-quiz. Pinned to MIRA_PACK
+// because it's the broadest beginner-friendly deck; later we can
+// route to whatever pack the player is currently studying.
+const SPEEDUP_PACK = MIRA_PACK;
+// How much time each correct answer shaves off the timer.
+const SPEEDUP_REWARD_MS = 10_000;
+
+interface SpeedupQuestion {
+  correct: VocabularyEntry;
+  options: VocabularyEntry[];
+}
+
+function buildSpeedupQuestion(): SpeedupQuestion {
+  const pool = SPEEDUP_PACK.entries;
+  const correct = pool[Math.floor(Math.random() * pool.length)];
+  // Prefer same-POS distractors so the test is meaningful — fall
+  // back to any if the POS pool is too small.
+  const samePos = pool.filter(
+    (e) => e.target !== correct.target && e.pos === correct.pos,
+  );
+  const fallback = pool.filter((e) => e.target !== correct.target);
+  const distractorPool = samePos.length >= 3 ? samePos : fallback;
+  const distractors: VocabularyEntry[] = [];
+  const used = new Set<string>();
+  while (distractors.length < 3 && distractors.length < distractorPool.length) {
+    const candidate =
+      distractorPool[Math.floor(Math.random() * distractorPool.length)];
+    if (used.has(candidate.target)) continue;
+    used.add(candidate.target);
+    distractors.push(candidate);
+  }
+  const options = [correct, ...distractors];
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return { correct, options };
+}
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -70,6 +115,24 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
   const now = useNow(250);
   const [message, setMessage] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  // Modal has two body modes — the regular upgrade view (cards + Buy
+  // button) and the speed-up mini-quiz. The header (title, balance,
+  // close X) stays the same across both so the player can always bail
+  // out the same way.
+  const [view, setView] = useState<"upgrade" | "speedup">("upgrade");
+  const [question, setQuestion] = useState<SpeedupQuestion>(() =>
+    buildSpeedupQuestion(),
+  );
+  // After answering, freeze the buttons for a beat to show feedback
+  // (green for correct, red for wrong), then auto-advance to the
+  // next question.
+  const [answerState, setAnswerState] = useState<{
+    pickedTarget: string;
+    correct: boolean;
+  } | null>(null);
+  // "+10s" floater shown briefly on every correct answer. Lives in
+  // its own state so the timer in the header can also bump.
+  const [floater, setFloater] = useState<string | null>(null);
 
   const currentLevel = COMPUTER_LEVELS[level] ?? COMPUTER_LEVELS[0];
   const totalTiers = COMPUTER_LEVELS.length;
@@ -129,23 +192,65 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
     }, 280);
   };
 
+  const enterSpeedup = () => {
+    if (mode !== "running") return;
+    setQuestion(buildSpeedupQuestion());
+    setAnswerState(null);
+    setFloater(null);
+    setView("speedup");
+  };
+
+  const exitSpeedup = () => {
+    setView("upgrade");
+    setAnswerState(null);
+    setFloater(null);
+  };
+
+  const handlePickAnswer = (entry: VocabularyEntry) => {
+    // Lock the buttons until the feedback hold elapses and the next
+    // question mounts. Prevents double-clicks racing the auto-advance.
+    if (answerState) return;
+    const isCorrect = entry.target === question.correct.target;
+    setAnswerState({ pickedTarget: entry.target, correct: isCorrect });
+    if (isCorrect) {
+      reduceUpgradeTimer(SPEEDUP_REWARD_MS);
+      setFloater(
+        t("computer.speedup.timeAdded", {
+          seconds: Math.round(SPEEDUP_REWARD_MS / 1000),
+        }),
+      );
+    }
+    window.setTimeout(() => {
+      setFloater(null);
+      setQuestion(buildSpeedupQuestion());
+      setAnswerState(null);
+    }, 700);
+  };
+
+  // When the timer completes mid-quiz (player's last correct answer
+  // pushed it over the line, or it organically finished while they
+  // were translating), kick them back to the upgrade view so they
+  // can hit "Finish Upgrade." Otherwise the quiz keeps running on a
+  // timer that's already done.
+  useEffect(() => {
+    if (view === "speedup" && (!progress || progress.complete)) {
+      exitSpeedup();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, progress?.complete]);
+
   const handlePrimaryClick = () => {
     if (mode === "ready") handleFinish();
+    else if (mode === "running") enterSpeedup();
     else handleStart();
   };
 
   const primaryDisabled =
-    purchasing ||
-    (mode === "idle" && (!nextLevel || !canAfford)) ||
-    mode === "running";
+    purchasing || (mode === "idle" && (!nextLevel || !canAfford));
 
   const primaryLabel = (() => {
     if (mode === "ready") return t("computer.upgrade.finishButton");
-    if (mode === "running" && progress) {
-      return t("computer.upgrade.runningButton", {
-        time: formatUpgradeRemaining(progress.remainingMs),
-      });
-    }
+    if (mode === "running") return t("computer.upgrade.speedupButton");
     if (!nextLevel) return t("computer.upgrade.maxedButton");
     return t("computer.upgrade.button", {
       price: formatBalance(nextLevel.costCents),
@@ -237,6 +342,22 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
           </button>
         </div>
 
+        {view === "speedup" ? (
+          <SpeedupBody
+            compact={compact}
+            question={question}
+            answerState={answerState}
+            floater={floater}
+            remainingLabel={
+              progress
+                ? formatUpgradeRemaining(progress.remainingMs)
+                : "0:00"
+            }
+            onBack={exitSpeedup}
+            onPick={handlePickAnswer}
+          />
+        ) : (
+          <>
         {/* Progress dots */}
         <div
           style={{
@@ -466,12 +587,18 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
               ? COLORS.coinGold
               : mode === "ready"
                 ? COLORS.coinGold
-                : canAfford
-                  ? COLORS.buyEnabled
-                  : COLORS.buyDisabled,
+                : mode === "running"
+                  ? "#3a6fb5"
+                  : canAfford
+                    ? COLORS.buyEnabled
+                    : COLORS.buyDisabled,
             color: "#fdf6e0",
             border: `2px solid ${
-              purchasing || mode === "ready" ? COLORS.accentGoldDark : COLORS.cardBorder
+              purchasing || mode === "ready"
+                ? COLORS.accentGoldDark
+                : mode === "running"
+                  ? "#274d80"
+                  : COLORS.cardBorder
             }`,
             borderRadius: 4,
             padding: compact ? "7px 10px" : "10px 12px",
@@ -490,6 +617,8 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
         >
           {primaryLabel}
         </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -632,6 +761,205 @@ function MaxedCard({ compact }: { compact: boolean }) {
       >
         {t("computer.upgrade.maxedButton")}
       </div>
+    </div>
+  );
+}
+
+interface SpeedupBodyProps {
+  compact: boolean;
+  question: SpeedupQuestion;
+  answerState: { pickedTarget: string; correct: boolean } | null;
+  floater: string | null;
+  remainingLabel: string;
+  onBack: () => void;
+  onPick: (entry: VocabularyEntry) => void;
+}
+
+function SpeedupBody({
+  compact,
+  question,
+  answerState,
+  floater,
+  remainingLabel,
+  onBack,
+  onPick,
+}: SpeedupBodyProps) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: compact ? 8 : 12,
+      }}
+    >
+      {/* Header row inside the speedup view: back link + live timer */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <button
+          onClick={onBack}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: COLORS.accentGoldDark,
+            fontSize: compact ? 12 : 13,
+            fontWeight: 800,
+            letterSpacing: 0.5,
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          {t("computer.speedup.back")}
+        </button>
+        <div
+          style={{
+            position: "relative",
+            fontSize: compact ? 12 : 14,
+            fontWeight: 800,
+            color: COLORS.text,
+            fontVariantNumeric: "tabular-nums",
+            background: COLORS.parchmentLight,
+            border: `2px solid ${COLORS.cardBorder}`,
+            padding: compact ? "2px 8px" : "3px 10px",
+            borderRadius: 4,
+          }}
+        >
+          {remainingLabel}
+          {floater && (
+            <span
+              key={floater + Date.now()}
+              style={{
+                position: "absolute",
+                top: -22,
+                right: 0,
+                fontSize: compact ? 11 : 13,
+                fontWeight: 800,
+                color: "#3a8a3a",
+                whiteSpace: "nowrap",
+                animation: "lingoSpeedupFloat 0.7s ease-out forwards",
+              }}
+            >
+              {floater}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Prompt */}
+      <div
+        style={{
+          textAlign: "center",
+          padding: compact ? "6px 8px" : "10px 12px",
+          background: COLORS.parchmentLight,
+          border: `2px solid ${COLORS.cardBorder}`,
+          borderRadius: 6,
+        }}
+      >
+        <div
+          style={{
+            fontSize: compact ? 10 : 11,
+            fontWeight: 800,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            color: COLORS.hintText,
+            marginBottom: 4,
+          }}
+        >
+          {t("computer.speedup.title")}
+        </div>
+        <div
+          style={{
+            fontSize: compact ? 15 : 18,
+            fontWeight: 800,
+            color: COLORS.text,
+            lineHeight: 1.2,
+          }}
+        >
+          {t("computer.speedup.question", { word: question.correct.target })}
+        </div>
+      </div>
+
+      {/* Choices (2×2 grid) */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: compact ? 6 : 8,
+        }}
+      >
+        {question.options.map((opt) => {
+          const isPicked = answerState?.pickedTarget === opt.target;
+          const isCorrect = answerState?.correct && isPicked;
+          const isWrong = answerState && !answerState.correct && isPicked;
+          const revealCorrect =
+            answerState &&
+            !answerState.correct &&
+            opt.target === question.correct.target;
+          const bg = isCorrect
+            ? "#3a8a3a"
+            : isWrong
+              ? "#a83b3b"
+              : revealCorrect
+                ? "#3a8a3a"
+                : COLORS.cardRest;
+          const fg = isCorrect || isWrong || revealCorrect ? "#fdf6e0" : COLORS.text;
+          const borderColor = isCorrect || revealCorrect
+            ? "#1f5a1f"
+            : isWrong
+              ? "#5d1f1f"
+              : COLORS.cardBorder;
+          return (
+            <button
+              key={opt.target}
+              onClick={() => onPick(opt)}
+              disabled={!!answerState}
+              style={{
+                background: bg,
+                color: fg,
+                border: `2px solid ${borderColor}`,
+                borderRadius: 6,
+                padding: compact ? "9px 6px" : "12px 8px",
+                fontSize: compact ? 13 : 15,
+                fontWeight: 800,
+                letterSpacing: 0.3,
+                cursor: answerState ? "not-allowed" : "pointer",
+                transition: "background 0.15s ease-out",
+                minHeight: compact ? 36 : 44,
+                lineHeight: 1.15,
+              }}
+            >
+              {getMeaning(opt)}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Footer hint */}
+      <div
+        style={{
+          fontSize: compact ? 10 : 11,
+          color: COLORS.hintText,
+          textAlign: "center",
+          lineHeight: 1.3,
+        }}
+      >
+        {t("computer.speedup.hint", {
+          seconds: Math.round(SPEEDUP_REWARD_MS / 1000),
+        })}
+      </div>
+
+      {/* CSS keyframe for the +Xs floater */}
+      <style>{`
+        @keyframes lingoSpeedupFloat {
+          0%   { transform: translateY(0); opacity: 1; }
+          100% { transform: translateY(-18px); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
