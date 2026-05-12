@@ -1,4 +1,5 @@
-import { CollisionBox, Entity, Building, MapData, Position, TileType } from './types';
+import { CollisionBox, Entity, Building, MapData, Position } from './types';
+import { isBlockingTile } from './tileRules';
 
 export interface WorldBox {
   x: number;
@@ -39,36 +40,7 @@ function collidesWithTiles(map: MapData, box: WorldBox): boolean {
     for (let col = startCol; col <= endCol; col++) {
       // Out of bounds = blocked
       if (row < 0 || row >= map.height || col < 0 || col >= map.width) return true;
-      const tile = map.tiles[row][col];
-      if (
-        tile === TileType.WALL ||
-        tile === TileType.WALL_INTERIOR ||
-        tile === TileType.WALL_INTERIOR_TOP ||
-        tile === TileType.WALL_INTERIOR_TOP_LEFT ||
-        tile === TileType.WALL_INTERIOR_TOP_CORNER_BL ||
-        tile === TileType.WALL_INTERIOR_TOP_CORNER_INNER_TR ||
-        tile === TileType.WALL_INTERIOR_TOP_BL ||
-        tile === TileType.WALL_INTERIOR_TOP_BR ||
-        tile === TileType.WALL_INTERIOR_BOTTOM ||
-        tile === TileType.WALL_INTERIOR_LEFT ||
-        tile === TileType.WALL_INTERIOR_RIGHT ||
-        tile === TileType.WALL_INTERIOR_CORNER_BOTTOM_LEFT ||
-        tile === TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT ||
-        tile === TileType.WALL_BRICK ||
-        tile === TileType.WATER ||
-        tile === TileType.VOID ||
-        // Modern Interiors painted tiles — every cell of the
-        // walls/baseboards/borders sheets blocks; floors don't.
-        // Borders carry windows + door-unit decals that sit IN a
-        // wall cell, so they must block for the same reason walls
-        // do (the player would otherwise walk through the window).
-        // Keeping this an inline prefix check matches the rest of
-        // the rule and lets src/core/ stay free of renderer-layer
-        // imports.
-        tile.startsWith('mi:walls/') ||
-        tile.startsWith('mi:baseboards/') ||
-        tile.startsWith('mi:borders/')
-      ) return true;
+      if (isBlockingTile(map.tiles[row][col])) return true;
     }
   }
   return false;

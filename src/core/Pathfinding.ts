@@ -5,13 +5,13 @@ import {
   NPCData,
   Position,
   CollisionBox,
-  TileType,
 } from "./types";
 import {
   getWorldCollisionBox,
   checkAABBOverlap,
   WorldBox,
 } from "./CollisionSystem";
+import { isBlockingTile } from "./tileRules";
 
 // Pathfinding cell size in world pixels. Currently equal to the engine
 // tile size (16), so each path-grid cell maps 1:1 to a tile — paths
@@ -106,25 +106,7 @@ function isCellWalkable(
   for (let r = startRow; r <= endRow; r++) {
     for (let c = startCol; c <= endCol; c++) {
       if (r < 0 || r >= map.height || c < 0 || c >= map.width) return false;
-      const t = map.tiles[r][c];
-      if (
-        t === TileType.WALL ||
-        t === TileType.WALL_INTERIOR ||
-        t === TileType.WALL_INTERIOR_TOP ||
-        t === TileType.WALL_INTERIOR_TOP_LEFT ||
-        t === TileType.WALL_INTERIOR_TOP_CORNER_BL ||
-        t === TileType.WALL_INTERIOR_TOP_CORNER_INNER_TR ||
-        t === TileType.WALL_INTERIOR_TOP_BL ||
-        t === TileType.WALL_INTERIOR_TOP_BR ||
-        t === TileType.WALL_INTERIOR_BOTTOM ||
-        t === TileType.WALL_INTERIOR_LEFT ||
-        t === TileType.WALL_INTERIOR_RIGHT ||
-        t === TileType.WALL_INTERIOR_CORNER_BOTTOM_LEFT ||
-        t === TileType.WALL_INTERIOR_CORNER_BOTTOM_RIGHT ||
-        t === TileType.WATER ||
-        t === TileType.VOID
-      )
-        return false;
+      if (isBlockingTile(map.tiles[r][c])) return false;
     }
   }
 
