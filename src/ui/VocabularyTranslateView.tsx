@@ -186,6 +186,11 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
    *  instead of immediately closing so they can see how the
    *  session went before returning to the map. */
   const [sessionEnded, setSessionEnded] = useState(false);
+  /** Brief exit animation before mounting the summary. Without this
+   *  the work panel swaps to the summary in one frame, which makes
+   *  End feel abrupt. */
+  const [endingToSummary, setEndingToSummary] = useState(false);
+  const endSummaryTimerRef = useRef<number | null>(null);
   /** Energy is charged ONCE per session. Opening the view costs 1
    *  energy regardless of how many rounds the player drills, so a
    *  session is the unit of work and the player can chain rounds
@@ -226,8 +231,25 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
       if (advanceTimerRef.current !== null) {
         window.clearTimeout(advanceTimerRef.current);
       }
+      if (endSummaryTimerRef.current !== null) {
+        window.clearTimeout(endSummaryTimerRef.current);
+      }
     };
   }, []);
+
+  const handleEndSession = useCallback(() => {
+    if (endingToSummary || sessionEnded) return;
+    cancelDialogueSpeech();
+    if (advanceTimerRef.current !== null) {
+      window.clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+    setEndingToSummary(true);
+    endSummaryTimerRef.current = window.setTimeout(() => {
+      endSummaryTimerRef.current = null;
+      setSessionEnded(true);
+    }, 180);
+  }, [endingToSummary, sessionEnded]);
 
   const advanceToNextRound = useCallback(() => {
     if (advanceTimerRef.current !== null) {
@@ -459,17 +481,21 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
         onClick={(e) => e.stopPropagation()}
       >
           <div
+            className="vt-summary-panel"
             onClick={(e) => e.stopPropagation()}
             style={{
               ...UI_THEME.modal.panelStyle,
               padding: 18,
               width: '100%',
               maxWidth: 380,
-              maxHeight: '90dvh',
+              maxHeight: 'calc(100dvh - 32px)',
               gap: 14,
+              boxSizing: 'border-box',
+              minHeight: 0,
+              animation: 'lingoMapTranslateSummaryIn 240ms ease-out',
             }}
           >
-          <div style={{ textAlign: 'center' }}>
+          <div className="vt-summary-header" style={{ textAlign: 'center', flexShrink: 0 }}>
             <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.hintText, fontWeight: 700 }}>
               {t('translate.summary.title')}
             </div>
@@ -485,9 +511,10 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           ) : (
             <>
               {/* Big rate + tally row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'center' }}>
+              <div className="vt-summary-stats" style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'center', flexShrink: 0 }}>
                 <div style={{ textAlign: 'center' }}>
                   <div
+                    className="vt-summary-rate"
                     style={{
                       fontSize: 32,
                       fontWeight: 700,
@@ -497,12 +524,12 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   >
                     {successRate}%
                   </div>
-                  <div style={{ fontSize: 10, color: COLORS.hintText, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  <div className="vt-summary-rate-label" style={{ fontSize: 10, color: COLORS.hintText, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
                     {t('translate.summary.successLabel')}
                   </div>
                 </div>
                 <div style={{ width: 1, alignSelf: 'stretch', background: COLORS.cardBorder, opacity: 0.4 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
+                <div className="vt-summary-tallies" style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
                   <div><span style={{ color: COLORS.correct, fontWeight: 700 }}>✓</span> {t('translate.summary.correctRow', { count: correct })}</div>
                   <div><span style={{ color: COLORS.wrong, fontWeight: 700 }}>✕</span> {t('translate.summary.wrongRow', { count: wrong })}</div>
                   {idk > 0 && (
@@ -517,6 +544,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   constants so mid-session borrows / shop purchases
                   don't bleed into "what you actually made working." */}
               <div
+                className="vt-summary-money"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -526,6 +554,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   borderRadius: 4,
                   padding: '8px 12px',
                   fontSize: 12,
+                  flexShrink: 0,
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
@@ -546,6 +575,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                     {t('translate.summary.netLabel')}
                   </div>
                   <div
+                    className="vt-summary-net-value"
                     style={{
                       fontSize: 18,
                       fontWeight: 700,
@@ -558,14 +588,15 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
               </div>
 
               {topMissed.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.wrong, fontWeight: 700 }}>
+                <div className="vt-summary-review" style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0, flex: '1 1 auto' }}>
+                  <div className="vt-summary-review-title" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.2, color: COLORS.wrong, fontWeight: 700, flexShrink: 0 }}>
                     {t('translate.summary.wordsToReview')}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
+                  <div className="vt-summary-review-list" style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto', minHeight: 0 }}>
                     {topMissed.map((m) => (
                       <div
                         key={m.target}
+                        className="vt-summary-review-item"
                         style={{
                           display: 'flex',
                           alignItems: 'baseline',
@@ -597,6 +628,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           )}
 
           <button
+            className="vt-summary-close"
             onClick={onClose}
             style={{
               background: COLORS.accentGold,
@@ -608,11 +640,53 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
               fontWeight: 700,
               letterSpacing: 0.5,
               cursor: 'pointer',
+              flexShrink: 0,
             }}
           >
             {t('translate.summary.close')}
           </button>
         </div>
+        <style>{`
+          @keyframes lingoMapTranslateSummaryIn {
+            0%   { opacity: 0; transform: translateY(10px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          @media (max-height: 540px) {
+            .vt-summary-panel {
+              padding: 10px 14px 12px !important;
+              gap: 8px !important;
+              max-height: calc(100dvh - 18px) !important;
+            }
+            .vt-summary-header > div:first-child { font-size: 9px !important; }
+            .vt-summary-header > div:last-child { font-size: 14px !important; margin-top: 0 !important; }
+            .vt-summary-stats { gap: 10px !important; }
+            .vt-summary-rate { font-size: 26px !important; }
+            .vt-summary-rate-label { font-size: 9px !important; margin-top: 2px !important; }
+            .vt-summary-tallies { font-size: 11px !important; gap: 1px !important; }
+            .vt-summary-money {
+              padding: 6px 10px !important;
+              font-size: 11px !important;
+              gap: 10px !important;
+            }
+            .vt-summary-net-value { font-size: 16px !important; }
+            .vt-summary-review { gap: 4px !important; }
+            .vt-summary-review-title { font-size: 9px !important; }
+            .vt-summary-review-list { max-height: 56px; }
+            .vt-summary-review-item {
+              padding: 5px 8px !important;
+              font-size: 12px !important;
+            }
+            .vt-summary-close { padding: 7px 14px !important; }
+          }
+          @media (max-height: 390px) {
+            .vt-summary-panel {
+              padding: 8px 12px 10px !important;
+              gap: 6px !important;
+            }
+            .vt-summary-money { padding: 5px 8px !important; }
+            .vt-summary-review-list { max-height: 44px; }
+          }
+        `}</style>
       </div>
     );
   }
@@ -651,6 +725,10 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           width: '100%',
           maxWidth: 480,
           maxHeight: '90vh',
+          pointerEvents: endingToSummary ? 'none' : 'auto',
+          animation: endingToSummary
+            ? 'lingoMapTranslatePanelOut 180ms ease-in forwards'
+            : 'lingoMapTranslatePanelIn 180ms ease-out',
         }}
       >
         <div
@@ -715,7 +793,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                 <span style={{ color: COLORS.coinGold }}>●</span>
                 <span>{formatBalance(coins)}</span>
               </div>
-              <PixelButton onClick={() => setSessionEnded(true)} small tone="danger">
+              <PixelButton onClick={handleEndSession} small tone="danger">
                 {t('translate.endButton')}
               </PixelButton>
             </div>
@@ -1164,6 +1242,14 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           @keyframes lingoMapTranslateFadeIn {
             0%   { opacity: 0; transform: translateY(8px); }
             100% { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes lingoMapTranslatePanelIn {
+            0%   { opacity: 0; transform: translateY(8px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          @keyframes lingoMapTranslatePanelOut {
+            0%   { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-8px) scale(0.98); }
           }
           @keyframes lingoMapTranslateShake {
             0%, 100% { transform: translateX(0); }

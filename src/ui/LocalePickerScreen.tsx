@@ -16,6 +16,7 @@
 import { useState } from 'react';
 import { Locale, getLocale, setLocale, markLocalePicked, t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
+import { playSfx, SFX } from './sfx';
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -32,11 +33,13 @@ export default function LocalePickerScreen({ onComplete }: LocalePickerScreenPro
   const [pending, setPending] = useState<Locale>(getLocale());
 
   const pick = (locale: Locale) => {
+    playSfx(SFX.NEXT_DIALOGUE);
     setPending(locale);
     setLocale(locale);
   };
 
   const confirm = () => {
+    playSfx(SFX.NEXT_DIALOGUE);
     markLocalePicked();
     onComplete();
   };

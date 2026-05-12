@@ -28,6 +28,7 @@ import { setProfile } from '../data/profile';
 import { setFlag, FLAGS } from '../data/eventFlags';
 import { t } from '../data/i18n';
 import { getUiTheme } from './uiThemes';
+import { playSfx, SFX } from './sfx';
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -241,11 +242,13 @@ export default function IntroCutscene({
       return;
     }
     if (lineIndex < scene.lines.length - 1) {
+      playSfx(SFX.NEXT_DIALOGUE);
       setLineIndex((i) => i + 1);
       return;
     }
     // Past the last line of this scene — move to the next scene.
     if (isLast) {
+      playSfx(SFX.NEXT_DIALOGUE);
       // Final scene complete: persist names + start the fade-out.
       // The intro quest does NOT start here — the apartment
       // monologue (in GameCanvas) starts it on its own dismissal
@@ -259,6 +262,7 @@ export default function IntroCutscene({
       window.setTimeout(() => onComplete(), CUTSCENE_FADE_OUT_MS);
       return;
     }
+    playSfx(SFX.NEXT_DIALOGUE);
     setSceneIndex((i) => i + 1);
     setLineIndex(0);
   }, [scene, currentLineText, revealedCount, lineIndex, isLast, you, child, onComplete]);
@@ -267,6 +271,7 @@ export default function IntroCutscene({
     if (scene.kind !== 'input') return;
     const cleaned = inputDraft.trim();
     if (!cleaned) return; // Required — Continue button is disabled below
+    playSfx(SFX.NEXT_DIALOGUE);
     if (scene.field === 'you') setYou(cleaned);
     else setChild(cleaned);
     setInputDraft('');

@@ -73,7 +73,7 @@ import Minimap from "./Minimap";
 import VirtualDPad from "./VirtualDPad";
 import { APP_VERSION } from "../version";
 // import { playSfx, SFX } from "./sfx";
-import { preloadSfx } from "./sfx";
+import { preloadSfx, setSfxEnabled } from "./sfx";
 import EnergyCostBurst from "./EnergyCostBurst";
 import { getUiTheme } from "./uiThemes";
 import { clearWorldSave, loadWorldSave } from "../data/worldSave";
@@ -782,6 +782,11 @@ export default function GameCanvas() {
       app.setMusicEnabled(soundOn);
     }
     soundOnRef.current = soundOn;
+    // Mirror the music-toggle into the SFX-enabled flag so the
+    // audio icon also mutes click cues (tap-to-move, perfect chime,
+    // etc.). Runs on mount too, so the persisted setting is
+    // honoured before the player's first tap.
+    setSfxEnabled(soundOn);
   }, [soundOn]);
 
   useEffect(() => {

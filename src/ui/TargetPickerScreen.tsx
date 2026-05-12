@@ -26,6 +26,7 @@ import {
   markTargetPicked,
 } from '../data/target';
 import { getUiTheme } from './uiThemes';
+import { playSfx, SFX } from './sfx';
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -69,11 +70,13 @@ export default function TargetPickerScreen({ onComplete }: TargetPickerScreenPro
   });
 
   const pick = (target: TargetLanguage) => {
+    playSfx(SFX.NEXT_DIALOGUE);
     setPending(target);
     setTarget(target);
   };
 
   const confirm = () => {
+    playSfx(SFX.NEXT_DIALOGUE);
     markTargetPicked();
     onComplete();
   };

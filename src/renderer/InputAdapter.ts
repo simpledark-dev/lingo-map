@@ -6,6 +6,7 @@ import {
   DEFAULT_ZOOM,
   ZOOM_STEP,
 } from "../core/constants";
+import { playSfx, SFX } from "../ui/sfx";
 
 /** NPC tap-zone half-extents around the NPC's anchor (feet at the
  *  bottom-center of a 16w × 32h sprite). Exported so the debug
@@ -153,6 +154,10 @@ export class InputAdapter {
     }
 
     this._moveTarget = { x: worldX, y: worldY };
+    // Quick click cue on every tap-to-move. Fires only AFTER the
+    // NPC-tap short-circuit above so taps that open dialogue stay
+    // silent (the dialogue UI has its own cues).
+    playSfx(SFX.TAP);
   };
 
   private onPointerMove = (e: PointerEvent) => {
@@ -230,6 +235,7 @@ export class InputAdapter {
       }
     }
     this._moveTarget = { x: worldX, y: worldY };
+    playSfx(SFX.TAP);
   };
 
   private preventDefault = (e: Event) => {

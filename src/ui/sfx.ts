@@ -13,7 +13,23 @@
  */
 import { playAudioUrl, preloadAudio } from './audioEngine';
 
+// Module-level mute flag. Default ON; the audio-icon toggle in
+// GameCanvas calls `setSfxEnabled` to mirror the music-enabled
+// state, so muting BGM also mutes click cues. Kept local to this
+// module so callers don't need to thread a flag through every
+// `playSfx` site.
+let sfxEnabled = true;
+
+export function setSfxEnabled(enabled: boolean): void {
+  sfxEnabled = enabled;
+}
+
+export function isSfxEnabled(): boolean {
+  return sfxEnabled;
+}
+
 export function playSfx(url: string): void {
+  if (!sfxEnabled) return;
   playAudioUrl(url).catch(() => { /* swallow */ });
 }
 
@@ -32,6 +48,11 @@ export const SFX = {
   UPGRADE: '/assets/audio/pop.mp3?v=2',
   SWITCH_MAP: '/assets/audio/switch-map-sound.mp3?v=2',
   NEXT_DIALOGUE: '/assets/audio/next-dialogue-sound.mp3?v=2',
+  // Quick click cue fired on every tap-to-move. Kept short + soft so
+  // it doesn't fatigue on rapid movement; if it ever feels noisy,
+  // bump it down in volume by trimming the source MP3 rather than
+  // adding a gain node (one less moving part in audioEngine).
+  TAP: '/assets/audio/tap.mp3?v=2',
 } as const;
 
 /** Fetch + decode every entry in `SFX` so the first time the player
