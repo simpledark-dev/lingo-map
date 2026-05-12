@@ -1,11 +1,14 @@
 // Bump on every behavioural change so the activate handler purges the
 // old cache. (Browsers also refetch the SW when its bytes change.)
-const CACHE_NAME = 'lingo-map-v93';
+const CACHE_NAME = 'lingo-map-v94';
 
 // Bare-minimum precache: stuff every player needs on every map. Kept
 // short so install never fails — `cache.addAll` rejects atomically on
 // any 404, and a missing entry here used to wedge the SW in
 // "installing" state forever, defeating the cache strategy below.
+// SFX entries are included so the first chime on Vercel doesn't pay
+// a CDN round-trip — paired with `preloadSfx()` in the React layer,
+// which decodes them into AudioBuffers at mount.
 const PRECACHE_URLS = [
   '/assets/placeholder/grass.webp',
   '/assets/placeholder/path.webp',
@@ -17,6 +20,10 @@ const PRECACHE_URLS = [
   '/assets/placeholder/floor.webp',
   '/assets/placeholder/wall.webp',
   '/assets/me-char-atlas.webp',
+  '/assets/audio/perfect.mp3',
+  '/assets/audio/pop.mp3',
+  '/assets/audio/switch-map-sound.mp3',
+  '/assets/audio/next-dialogue-sound.mp3',
 ];
 
 self.addEventListener('install', (event) => {

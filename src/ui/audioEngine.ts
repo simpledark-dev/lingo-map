@@ -115,6 +115,16 @@ async function loadBuffer(url: string): Promise<AudioBuffer | null> {
   return p;
 }
 
+/** Fetch + decode `urls` and stash the resulting AudioBuffers, so
+ *  the first `playAudioUrl(url)` for any of them is instant (no
+ *  network roundtrip, no `decodeAudioData` cost on the trigger
+ *  frame). Safe to call before any user gesture — `decodeAudioData`
+ *  works on a suspended context. Failures are swallowed per-URL so
+ *  one missing/broken file doesn't take down the rest. */
+export function preloadAudio(urls: readonly string[]): Promise<void> {
+  return Promise.all(urls.map((u) => loadBuffer(u))).then(() => undefined);
+}
+
 /** Play `url` via Web Audio. Returns true on success, false if the
  *  engine is unavailable, the context can't unlock (no user gesture
  *  yet), or the bytes can't be decoded. Callers fall back to TTS or

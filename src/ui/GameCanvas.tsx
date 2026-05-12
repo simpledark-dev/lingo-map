@@ -73,6 +73,7 @@ import Minimap from "./Minimap";
 import VirtualDPad from "./VirtualDPad";
 import { APP_VERSION } from "../version";
 // import { playSfx, SFX } from "./sfx";
+import { preloadSfx } from "./sfx";
 import EnergyCostBurst from "./EnergyCostBurst";
 import { getUiTheme } from "./uiThemes";
 import { clearWorldSave, loadWorldSave } from "../data/worldSave";
@@ -434,6 +435,17 @@ export default function GameCanvas() {
       setQuestHasUnread(true);
       try { localStorage.setItem('lingo-quest:has-unread', '1'); } catch {}
     });
+  }, []);
+
+  // Warm the SFX cache once on mount — fetch + decodeAudioData every
+  // entry in `SFX` so the first time the player triggers a chime
+  // there's no network or decode cost. On Vercel the round-trip to
+  // the CDN was adding a noticeable delay to the first "correct
+  // answer" sound; on local dev the files are sub-ms so the lag
+  // was invisible. Fire-and-forget: any per-file failure is silently
+  // swallowed inside `preloadAudio`.
+  useEffect(() => {
+    void preloadSfx();
   }, []);
 
   useEffect(() => {

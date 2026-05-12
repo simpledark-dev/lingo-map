@@ -11,7 +11,7 @@
  * All errors are swallowed silently — SFX failures should never
  * surface to the player or block gameplay.
  */
-import { playAudioUrl } from './audioEngine';
+import { playAudioUrl, preloadAudio } from './audioEngine';
 
 export function playSfx(url: string): void {
   playAudioUrl(url).catch(() => { /* swallow */ });
@@ -25,3 +25,12 @@ export const SFX = {
   SWITCH_MAP: '/assets/audio/switch-map-sound.mp3',
   NEXT_DIALOGUE: '/assets/audio/next-dialogue-sound.mp3',
 } as const;
+
+/** Fetch + decode every entry in `SFX` so the first time the player
+ *  triggers any of them, the chime fires the same frame instead of
+ *  paying for a network roundtrip + decode. Called from GameCanvas
+ *  on mount. Safe to run before any user gesture — Web Audio decode
+ *  works on a suspended context. */
+export function preloadSfx(): Promise<void> {
+  return preloadAudio(Object.values(SFX));
+}
