@@ -21,6 +21,7 @@ export function playSfx(url: string): void {
  *  and a future asset rename is a one-line change. */
 export const SFX = {
   CORRECT: '/assets/audio/perfect.mp3',
+  UPGRADE: '/assets/audio/perfect-2.mp3',
   SWITCH_MAP: '/assets/audio/switch-map-sound.mp3',
   NEXT_DIALOGUE: '/assets/audio/next-dialogue-sound.mp3',
 } as const;

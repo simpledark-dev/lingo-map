@@ -385,6 +385,9 @@ const UI_ATLAS_TILE = 16;
  *  same texture as `ui:<col>_<row>` — both are registered. */
 const UI_ALIASES: Record<string, { col: number; row: number }> = {
   'exclamation-red': { col: 10, row: 4 },
+  // Requested tap-to-move cue: down arrow at column 4, row 2
+  // in 1-based atlas coordinates.
+  'tap-move-down-arrow': { col: 3, row: 1 },
 };
 
 let uiAtlasPromise: Promise<void> | null = null;

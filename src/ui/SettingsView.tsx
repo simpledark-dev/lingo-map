@@ -93,9 +93,10 @@ export default function SettingsView({
         padding: 16,
         boxSizing: 'border-box',
       }}
-      onClick={(e) => e.stopPropagation()}
+      onClick={onClose}
     >
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
           ...UI_THEME.modal.panelStyle,
           width: 'min(380px, 100%)',

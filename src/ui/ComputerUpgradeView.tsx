@@ -188,7 +188,8 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
     // delay gives the world FX time to play AFTER the modal is gone.
     setPurchasing(true);
     window.setTimeout(() => {
-      finishComputerUpgrade();
+      const result = finishComputerUpgrade();
+      if (result.ok) playSfx(SFX.UPGRADE);
       onClose();
     }, 280);
   };
@@ -276,7 +277,7 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
         padding: 16,
         boxSizing: "border-box",
       }}
-      onClick={(e) => e.stopPropagation()}
+      onClick={onClose}
     >
       <div
         style={{
@@ -287,6 +288,7 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
           gap: compact ? 6 : 12,
           overflowY: "auto",
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header: title + balance + close */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -672,7 +674,6 @@ function TierCard({ tier, label, tone, compact }: TierCardProps) {
           aspectRatio: "1 / 1",
           maxWidth: compact ? 64 : 120,
           background: COLORS.parchmentLight,
-          border: `2px solid ${COLORS.cardBorder}`,
           borderRadius: 4,
           display: "grid",
           placeItems: "center",

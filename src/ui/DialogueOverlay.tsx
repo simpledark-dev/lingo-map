@@ -159,6 +159,15 @@ export default function DialogueOverlay({
   // the next tick (within 22ms) overwrites revealedCount back to
   // its local `i`, making the click look like a no-op.
   const typewriterTimerRef = useRef<number | null>(null);
+  // Wall-clock when the current typewriter pass started. Used by
+  // handleBoxClick to ignore the "ghost click" on mobile — iOS
+  // synthesises a `click` after the `touchend` that opened the
+  // dialogue, and that click lands on the just-mounted overlay,
+  // fast-forwarding the typewriter the instant it tries to start.
+  // Same guard re-applies on every new line to prevent advance-then-
+  // skip races on the next line's typewriter.
+  const typewriterStartedAtRef = useRef<number>(0);
+  const TAP_COOLDOWN_MS = 250;
 
   useEffect(() => {
     if (!currentLine) {
@@ -175,6 +184,7 @@ export default function DialogueOverlay({
       return;
     }
     setRevealedCount(0);
+    typewriterStartedAtRef.current = performance.now();
     let i = 0;
     const tick = () => {
       i += 1;
@@ -225,6 +235,15 @@ export default function DialogueOverlay({
   // the player stalls on line 0 and never reaches the choices.
   const handleBoxClick = useCallback(() => {
     if (!isFullyRevealed) {
+      // Reject taps that arrive within `TAP_COOLDOWN_MS` of the
+      // typewriter starting. On mobile the `touchend` that opened
+      // the dialogue synthesises a `click` ~50-200ms later, and
+      // that click lands on the dialogue (now on top of the canvas)
+      // and instantly fast-forwards the typewriter that just began.
+      // Desktop clicks never fall inside this window so no UX cost.
+      if (performance.now() - typewriterStartedAtRef.current < TAP_COOLDOWN_MS) {
+        return;
+      }
       // Cancel the pending typewriter tick — without this, the
       // next scheduled tick fires within 22ms and overwrites
       // revealedCount back to its closure-local `i` value, making
@@ -257,7 +276,21 @@ export default function DialogueOverlay({
     <div
       style={{
         position: "absolute",
-        bottom: 16,
+        // Anchor strategy:
+        // • hasOptions → TOP-anchor 320px above container bottom so
+        //   the panel grows DOWNWARD when options arrive (or when
+        //   advancing to a longer line). The already-read text stays
+        //   put. 320px is sized for a 3-option dialogue + 1-3 lines
+        //   of text — when fully revealed the panel's bottom edge
+        //   sits ~16px above the viewport bottom (no big empty
+        //   space). Clamped to ≥40px from the top so the panel
+        //   never goes off-screen on tiny landscape phones. If a
+        //   dialogue ever needs 4+ options, bump this back up.
+        // • no options → BOTTOM-anchor (legacy behaviour). One-shot
+        //   NPC quips sit naturally at the bottom of the screen
+        //   instead of floating high with empty space below.
+        top: hasOptions ? "max(40px, calc(100% - 320px))" : "auto",
+        bottom: hasOptions ? "auto" : 16,
         left: 16,
         right: 16,
         zIndex: 50,

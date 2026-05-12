@@ -86,6 +86,7 @@ import {
   setVirtualDPadEnabled as persistVirtualDPadEnabled,
 } from "../data/settings";
 import { getComputerUpgradeLevel, useComputerUpgradeLevel } from "../data/computerUpgrade";
+import { useUpgradeTimer } from "../data/computerUpgradeTimer";
 import type { MarkerLabelStyleId } from "../data/markerLabelStyles";
 
 const UI_THEME = getUiTheme();
@@ -420,6 +421,7 @@ export default function GameCanvas() {
   // the `upgrade-computer` quest. Hook-subscribed here so the
   // chain useEffect re-runs the moment the player buys an upgrade.
   const computerLevel = useComputerUpgradeLevel();
+  const computerUpgradeTimer = useUpgradeTimer();
   const firstPaycheckTargetToastShownRef = useRef(false);
   const [questToastEvent, setQuestToastEvent] = useState<QuestTransition | null>(null);
 
@@ -1408,11 +1410,10 @@ export default function GameCanvas() {
     }
 
     // ── upgrade-computer wayfinding ──
-    // Outdoor: chevron over the home door so the player knows
-    // where to go. Inside 1F: chevron over the computer-desk so
-    // they don't have to hunt for the right object. Both fire
-    // only while the quest is `active` — completed/inactive
-    // states drop the markers.
+    // Outdoor: chevron over the home door while the explicit quest
+    // points there. Indoors: once the intro apartment dialogue has
+    // landed, keep a red exclamation on the broken computer until
+    // the player starts the first upgrade timer.
     const upgradeComputerActive =
       questStatuses["upgrade-computer"] === "active";
     if (upgradeComputerActive && currentMapId === "pokemon") {
@@ -1429,7 +1430,11 @@ export default function GameCanvas() {
         });
       }
     }
-    if (upgradeComputerActive && currentMapId === "pokemon-house-1f") {
+    const shouldFlagBrokenComputer =
+      hasFlag(FLAGS.INTRO_APARTMENT_SEEN) &&
+      computerLevel === 0 &&
+      !computerUpgradeTimer;
+    if (shouldFlagBrokenComputer && currentMapId === "pokemon-house-1f") {
       const computer = collectObjects("pokemon-house-1f").find(
         (o) => o.spriteKey === "computer-desk",
       );
@@ -1437,8 +1442,8 @@ export default function GameCanvas() {
         addMarker({
           id: `location-${currentMapId}-${computer.id}`,
           x: markerXForLocation(computer),
-          y: markerYForLocation(currentMapId, computer),
-          spriteKey: "edge-arrow-south-red",
+          y: markerYForLocation(currentMapId, computer) - 20,
+          spriteKey: "ui:exclamation-red",
         });
       }
     }
@@ -1517,7 +1522,15 @@ export default function GameCanvas() {
     return () => {
       app.setQuestMarkers([]);
     };
-  }, [currentMapId, questStatuses, dialogue, lifetimeEarnings, markerLabelStyle]);
+  }, [
+    currentMapId,
+    questStatuses,
+    dialogue,
+    lifetimeEarnings,
+    markerLabelStyle,
+    computerLevel,
+    computerUpgradeTimer,
+  ]);
 
   // Intro apartment back-and-forth — auto-fires the FIRST time
   // the player lands in F1 after the cutscene. Holds the practical
@@ -1903,6 +1916,14 @@ export default function GameCanvas() {
         setDialogue({
           npcId: dialogue.npcId,
           npcName: dialogue.npcName,
+          // `dialogueKind: "ceo-intro"` routes this through the CEO
+          // branch in `handleAdvanceDialogue` so we walk both lines
+          // locally and close via CLOSE_DIALOGUE on the final tap.
+          // Without it, the first advance falls through to ENGINE
+          // ADVANCE — which clears the engine's 1-line stub and
+          // fires `dialogueEnd`, prematurely closing the dialogue
+          // before line 2 ("Keep this up…") gets shown.
+          dialogueKind: "ceo-intro",
           lines: [
             t('dialogue.ceo.paycheckClaimedL1', { bonus: formatBalance(FIRST_PAYCHECK_BONUS_CENTS) }),
             t('dialogue.ceo.paycheckClaimedL2'),
@@ -1912,7 +1933,12 @@ export default function GameCanvas() {
         return;
       }
       if (optionId === "ceo-paycheck-decline") {
-        setDialogue(null);
+        // Use closeDialogueEverywhere — `setDialogue(null)` alone
+        // leaves the engine's `activeDialogue` set, which freezes
+        // the world-update loop (PixiApp.update bails on
+        // `gameState.activeDialogue`). Symptom: player stuck after
+        // clicking "Maybe later" until a page refresh.
+        closeDialogueEverywhere();
         return;
       }
       if (optionId === "mode-back") {

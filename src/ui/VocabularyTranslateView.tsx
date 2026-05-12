@@ -162,6 +162,12 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
    *  read-only state. `null` = no submission yet this round. */
   const [writeOutcome, setWriteOutcome] = useState<'correct' | 'wrong' | null>(null);
   const advanceTimerRef = useRef<number | null>(null);
+  /** Lifted up from WriteForm so the Next button can focus the
+   * input synchronously when the player taps it. iOS Safari only
+   * raises the virtual keyboard when `.focus()` is called inside a
+   * user-gesture event handler — calling it from the new round's
+   * useEffect (the desktop path) silently no-ops on mobile. */
+  const writeInputRef = useRef<HTMLInputElement>(null);
   /** True when the player ran out of energy. Replaces the round
    *  UI with a "go eat something" overlay; the player closes the
    *  view and uses the Bag pill to refill before coming back.
@@ -906,6 +912,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                 onSubmit={() => handleWriteSubmit(writeInput)}
                 outcome={writeOutcome}
                 disabled={writeOutcome !== null || waitingOnNext}
+                inputRef={writeInputRef}
               />
             ) : !showDetails ? (
             <div
@@ -1104,7 +1111,19 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                 )}
                 <button
                   type="button"
-                  onClick={advanceToNextRound}
+                  onClick={() => {
+                    // iOS: must call .focus() synchronously inside a
+                    // user-gesture event handler for the keyboard to
+                    // open. Doing it here (instead of relying on the
+                    // useEffect that fires after re-render) makes
+                    // the keyboard pop up immediately for the next
+                    // word in write mode.
+                    if (isWriteMode) {
+                      writeInputRef.current?.focus();
+                      writeInputRef.current?.select();
+                    }
+                    advanceToNextRound();
+                  }}
                   style={{
                     fontFamily: 'inherit',
                     fontSize: 14,
@@ -1319,6 +1338,7 @@ function WriteForm({
   onSubmit,
   outcome,
   disabled,
+  inputRef: externalRef,
 }: {
   target: string;
   value: string;
@@ -1326,8 +1346,15 @@ function WriteForm({
   onSubmit: () => void;
   outcome: 'correct' | 'wrong' | null;
   disabled: boolean;
+  /** Lifted to the parent so its Next button can call `.focus()`
+   * synchronously from the click handler. iOS only pops the
+   * keyboard when focus() runs inside a user-gesture event; calling
+   * it from a useEffect (the path used on initial mount) silently
+   * fails on mobile. */
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const localRef = useRef<HTMLInputElement>(null);
+  const inputRef = externalRef ?? localRef;
   const trimmed = value.trim();
   const canSubmit = trimmed.length > 0 && !disabled;
   const borderColor = outcome === 'correct'
