@@ -14,6 +14,7 @@ import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
 import { buildCarNetwork, carAABB, CAR_SPRITE_SETS, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
 import { getTexture, loadAssets, loadCharacterAtlas, loadInteriorSheets, loadPackSingle, loadUiAtlas } from './AssetLoader';
+import { getDeskSpriteKey, subscribeComputerUpgradeLevel } from '../data/computerUpgrade';
 import { getNpcFirstDialogueLine } from '../data/npcDialogue';
 
 /** localStorage key kept in sync with `data/car-collisions.json` by the
@@ -97,6 +98,10 @@ export class PixiApp {
    * fetch resolves (CarSystem falls back to a tile-sized box meanwhile). */
   private carCollisionOverrides: Record<string, CarCollisionBox> = {};
   private lastWorldSaveAt = 0;
+  /** Unsubscribe from upgrade-level changes. Set in `init`, called in
+   * `destroy`. The handler swaps the live `computer-desk` sprite's
+   * texture so the player sees the new tier without a scene reload. */
+  private computerUpgradeUnsub: (() => void) | null = null;
   private lastWorldSaveSignature = '';
   readonly bridge: GameBridge;
   readonly commandQueue: CommandQueue;
@@ -105,6 +110,20 @@ export class PixiApp {
   private findF1Computer(): Entity | null {
     if (!this.gameState || this.gameState.currentMapId !== 'pokemon-house-1f') return null;
     return this.gameState.entities.find((entity) => entity.spriteKey === 'computer-desk') ?? null;
+  }
+
+  /** Swap every `computer-desk` sprite in the current scene to the
+   * texture matching the current upgrade level. Called from the
+   * `subscribeComputerUpgradeLevel` callback so the player sees the
+   * room update the instant they buy an upgrade. No-op if RenderSystem
+   * isn't mounted yet (still loading) or no desk is on the active map. */
+  private refreshComputerDeskTexture(): void {
+    if (!this.renderSystem || !this.gameState) return;
+    const key = getDeskSpriteKey();
+    for (const entity of this.gameState.entities) {
+      if (entity.spriteKey !== 'computer-desk') continue;
+      this.renderSystem.refreshObjectTexture(entity.id, key);
+    }
   }
 
   private getComputerWorldBox(computer: Entity): WorldBox {
@@ -388,6 +407,12 @@ export class PixiApp {
     );
 
     if (this.destroyed) return;
+
+    // Refresh the desk sprite live whenever the player buys an upgrade,
+    // so they see the new tier on the room without a scene reload.
+    this.computerUpgradeUnsub = subscribeComputerUpgradeLevel(() => {
+      this.refreshComputerDeskTexture();
+    });
 
     this.initialized = true;
 
@@ -1434,6 +1459,10 @@ export class PixiApp {
     this.persistWorldState(true);
     this.destroyed = true;
     this.currentMap = null;
+    if (this.computerUpgradeUnsub) {
+      this.computerUpgradeUnsub();
+      this.computerUpgradeUnsub = null;
+    }
     this.inputAdapter.destroy();
     this.bgm.destroy();
     if (this.debugKeydownHandler) {

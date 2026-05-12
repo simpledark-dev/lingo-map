@@ -1,13 +1,21 @@
+import {
+  DEFAULT_MARKER_LABEL_STYLE,
+  normalizeMarkerLabelStyleId,
+} from "./markerLabelStyles";
+import type { MarkerLabelStyleId } from "./markerLabelStyles";
+
 export const SETTINGS_STORAGE_KEY = "lingo-settings:v1";
 
 export interface GameSettings {
   musicEnabled: boolean;
   virtualDPadEnabled: boolean;
+  markerLabelStyle: MarkerLabelStyleId;
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
   musicEnabled: true,
   virtualDPadEnabled: false,
+  markerLabelStyle: DEFAULT_MARKER_LABEL_STYLE,
 };
 
 function normalizeSettings(value: unknown): GameSettings {
@@ -22,6 +30,7 @@ function normalizeSettings(value: unknown): GameSettings {
       typeof parsed.virtualDPadEnabled === "boolean"
         ? parsed.virtualDPadEnabled
         : DEFAULT_SETTINGS.virtualDPadEnabled,
+    markerLabelStyle: normalizeMarkerLabelStyleId(parsed.markerLabelStyle),
   };
 }
 
@@ -66,4 +75,12 @@ export function getVirtualDPadEnabled(): boolean {
 
 export function setVirtualDPadEnabled(enabled: boolean): void {
   saveGameSettings({ virtualDPadEnabled: enabled });
+}
+
+export function getMarkerLabelStyle(): MarkerLabelStyleId {
+  return loadGameSettings().markerLabelStyle;
+}
+
+export function setMarkerLabelStyle(style: MarkerLabelStyleId): void {
+  saveGameSettings({ markerLabelStyle: normalizeMarkerLabelStyleId(style) });
 }

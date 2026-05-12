@@ -214,7 +214,20 @@ const spriteManifest: Record<string, string> = {
   'wall-painting': `${ASSET_BASE}wall-painting.webp`,
   'wall-clock': `${ASSET_BASE}wall-clock.webp`,
   'wall-staircase': `${ASSET_BASE}wall-staircase.webp`,
-  'computer-desk': `${ASSET_BASE}computer-desk.webp`,
+  // Editor-preview / fallback texture for the desk entity. Points at
+  // the L0 (broken) image so the editor shows the room's actual
+  // starting state. Runtime renders use `computer-desk-l*` via
+  // `resolveLeveledSpriteKey` and bypass this entry.
+  'computer-desk': `${ASSET_BASE}computer-desk-l0.webp`,
+  // Leveled desk variants resolved at render time based on the player's
+  // upgrade level. The default `computer-desk` key above is what the
+  // editor uses (so the placed object shows a stable preview); the
+  // runtime picks the matching leveled key. Files start as duplicates
+  // of the two existing images — replace per-tier art when ready.
+  'computer-desk-l0': `${ASSET_BASE}computer-desk-l0.webp`,
+  'computer-desk-l1': `${ASSET_BASE}computer-desk-l1.webp`,
+  'computer-desk-l2': `${ASSET_BASE}computer-desk-l2.webp`,
+  'computer-desk-l3': `${ASSET_BASE}computer-desk-l3.webp`,
   'dresser': `${ASSET_BASE}dresser.webp`,
   'fridge': `${ASSET_BASE}fridge.webp`,
   'sink-counter': `${ASSET_BASE}sink-counter.webp`,

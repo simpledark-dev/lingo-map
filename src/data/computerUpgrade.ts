@@ -91,6 +91,12 @@ export function getNextComputerLevel(level = read()): ComputerLevel | null {
   return COMPUTER_LEVELS[clampLevel(level) + 1] ?? null;
 }
 
+/** Sprite key used to render the desk for a given upgrade level.
+ * Keep in sync with the `computer-desk-l*` keys in AssetLoader. */
+export function getDeskSpriteKey(level = read()): string {
+  return `computer-desk-l${clampLevel(level)}`;
+}
+
 export function setComputerUpgradeLevel(level: number): number {
   const next = clampLevel(level);
   write(next);

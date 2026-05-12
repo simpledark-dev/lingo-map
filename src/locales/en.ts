@@ -431,6 +431,8 @@ export const en: Record<string, string> = {
   "settings.language": "Language",
   "settings.languageEnglish": "English",
   "settings.languageVietnamese": "Tiếng Việt",
+  "settings.visuals": "Visuals",
+  "settings.markerLabelStyle": "Marker label style",
   "settings.controls": "Controls",
   "settings.virtualDpad": "Virtual D-pad",
   "settings.virtualDpadHint": "Show on-screen movement controls on mobile.",
@@ -610,7 +612,7 @@ export const en: Record<string, string> = {
 
   // ── Apartment computer ──
   "computer.name": "Computer",
-  "computer.dialogue.prompt": "The computer sits on the desk, dusty and quiet.",
+  "computer.dialogue.prompt": "Your study setup is right here on the desk.",
   "computer.option.study": "Study",
   "computer.option.upgrade": "Upgrade",
   "computer.option.leave": "Leave",
@@ -631,18 +633,18 @@ export const en: Record<string, string> = {
   "computer.upgrade.success": "Upgraded to {item}.",
   "computer.upgrade.needMoney": "You need {amount} more.",
   "computer.upgrade.maxed": "This computer is already fully upgraded.",
-  "computer.level.broken.name": "Broken Computer",
+  "computer.level.broken.name": "Broken Screen",
   "computer.level.broken.description":
-    "Dead screen, tired keyboard, no chance of studying.",
-  "computer.level.usedLaptop.name": "Used Laptop",
+    "Dead screen, tired keyboard. You can't study with this.",
+  "computer.level.usedLaptop.name": "New Screen",
   "computer.level.usedLaptop.description":
-    "Old and scratched, but it turns on and can run basic lessons.",
-  "computer.level.homePc.name": "Home PC",
+    "A clean monitor and a working keyboard. Basic lessons run fine.",
+  "computer.level.homePc.name": "Used Laptop",
   "computer.level.homePc.description":
-    "A proper desktop with enough speed for long study sessions.",
-  "computer.level.studyRig.name": "Study Rig",
+    "Old and scratched, but portable. Study anywhere in the room.",
+  "computer.level.studyRig.name": "New Laptop",
   "computer.level.studyRig.description":
-    "Fast, clean, and comfortable. A real language-learning station.",
+    "Fast, clean, and comfortable. A real language-learning machine.",
 
   // ── Errors / fallbacks ──
   "common.unknown": "…",

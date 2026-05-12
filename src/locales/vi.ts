@@ -400,6 +400,8 @@ export const vi: Record<string, string> = {
   "settings.language": "Ngôn ngữ",
   "settings.languageEnglish": "English",
   "settings.languageVietnamese": "Tiếng Việt",
+  "settings.visuals": "Hiển thị",
+  "settings.markerLabelStyle": "Kiểu chữ nhãn trên bản đồ",
   "settings.controls": "Điều khiển",
   "settings.virtualDpad": "Phím ảo",
   "settings.virtualDpadHint":
@@ -576,7 +578,7 @@ export const vi: Record<string, string> = {
 
   // ── Apartment computer ──
   "computer.name": "Máy tính",
-  "computer.dialogue.prompt": "Máy tính nằm trên bàn, phủ bụi và im lặng.",
+  "computer.dialogue.prompt": "Bộ học tập của bạn đang ở trên bàn.",
   "computer.option.study": "Học",
   "computer.option.upgrade": "Nâng cấp",
   "computer.option.leave": "Rời đi",
@@ -597,18 +599,18 @@ export const vi: Record<string, string> = {
   "computer.upgrade.success": "Đã nâng cấp thành {item}.",
   "computer.upgrade.needMoney": "Cần thêm {amount}.",
   "computer.upgrade.maxed": "Máy tính này đã nâng cấp tối đa rồi.",
-  "computer.level.broken.name": "Máy tính hỏng",
+  "computer.level.broken.name": "Màn hình hỏng",
   "computer.level.broken.description":
-    "Màn hình chết, bàn phím cũ, chưa học được gì.",
-  "computer.level.usedLaptop.name": "Laptop cũ",
+    "Màn hình chết, bàn phím cũ. Chưa học được gì.",
+  "computer.level.usedLaptop.name": "Màn hình mới",
   "computer.level.usedLaptop.description":
-    "Cũ và trầy xước, nhưng bật được và học bài cơ bản được.",
-  "computer.level.homePc.name": "Máy bàn",
+    "Màn hình sạch sẽ và bàn phím còn tốt. Đủ để học bài cơ bản.",
+  "computer.level.homePc.name": "Laptop cũ",
   "computer.level.homePc.description":
-    "Máy bàn đàng hoàng, đủ nhanh để học lâu hơn.",
-  "computer.level.studyRig.name": "Góc học xịn",
+    "Cũ và trầy xước, nhưng linh hoạt. Có thể học ở bất kỳ đâu trong phòng.",
+  "computer.level.studyRig.name": "Laptop mới",
   "computer.level.studyRig.description":
-    "Nhanh, gọn, thoải mái. Một góc học ngôn ngữ thật sự.",
+    "Nhanh, gọn, thoải mái. Một chiếc máy học ngôn ngữ thật sự.",
 
   // ── Errors / fallbacks ──
   "common.unknown": "…",

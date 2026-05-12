@@ -27,8 +27,30 @@ import {
   loadAssets,
   loadPackSingle,
 } from "./AssetLoader";
+import { getDeskSpriteKey } from "../data/computerUpgrade";
+import { getMarkerLabelPreset } from "../data/markerLabelStyles";
+import { getMarkerLabelStyle } from "../data/settings";
 import { buildTransitionLayer, TRANSITION_ASSET_KEYS } from "./TransitionTiles";
 import { buildAutoTileLayer, isAutoTilesetReady } from "./AutoTileset";
+
+// Some spriteKeys in map data are "neutral" — they get resolved to a
+// concrete texture at runtime based on game state. Today the only such
+// key is `computer-desk`, which swaps to a per-level desk image so the
+// room visually reflects the player's upgrade tier without the map
+// editor having to know about levels.
+function resolveLeveledSpriteKey(spriteKey: string): string {
+  if (spriteKey === "computer-desk") return getDeskSpriteKey();
+  return spriteKey;
+}
+
+function getMarkerLabelTextResolution(): number {
+  if (typeof window === "undefined") return 2;
+  // Marker captions are tiny world-space Pixi Text textures that get
+  // resampled again by camera zoom. Oversampling the source texture keeps
+  // them readable at fractional zoom without meaningfully affecting memory
+  // because there are only a few labels on screen.
+  return Math.max(2, Math.min(4, (window.devicePixelRatio || 1) * 2));
+}
 
 // Filter thresholds for the occlusion-fade candidate list. Object
 // sprites narrower than `MIN_OCCLUDER_WIDTH` or shorter than
@@ -325,7 +347,8 @@ export class RenderSystem {
     // we'd rather have the player-controllable scene visible immediately
     // than block on every me:* PNG before first paint.
     for (const obj of map.objects) {
-      const texture = getTexture(obj.spriteKey);
+      const resolvedKey = resolveLeveledSpriteKey(obj.spriteKey);
+      const texture = getTexture(resolvedKey);
       if (texture) {
         this.createObjectSprite(obj, texture, layers, treeSeedRef);
       } else if (obj.spriteKey.startsWith("me:")) {
@@ -1074,6 +1097,20 @@ export class RenderSystem {
     sprite.texture = tex;
   }
 
+  /** Swap the texture on a live object sprite. Used when an object's
+   * visual depends on game state that changes after the scene mounted
+   * (e.g. the computer desk's image swaps when the player buys an
+   * upgrade). The spriteKey on the entity itself stays put — only the
+   * Pixi texture reference changes. No-op if the entity has no sprite
+   * yet (still lazy-loading) or the texture isn't loaded. */
+  refreshObjectTexture(entityId: string, spriteKey: string): void {
+    const sprite = this.objectSprites.get(entityId);
+    if (!sprite) return;
+    const tex = getTexture(spriteKey);
+    if (!tex) return;
+    sprite.texture = tex;
+  }
+
   /** Update idle animations for trees and NPCs. Call once per frame. */
   updateAnimations(time: number): void {
     if (!this.animationsEnabled) return;
@@ -1246,14 +1283,25 @@ export class RenderSystem {
         const labelOffset = tex.height;
         const labelBaseY = initY - labelOffset;
         if (m.label) {
+          const labelPreset = getMarkerLabelPreset(getMarkerLabelStyle());
+          const labelText =
+            labelPreset.textTransform === "uppercase"
+              ? m.label.toUpperCase()
+              : m.label;
           label = new Text({
-            text: m.label,
+            text: labelText,
+            resolution: getMarkerLabelTextResolution(),
+            roundPixels: true,
             style: {
-              fontFamily: "monospace",
-              fontSize: 6,
-              fontWeight: "700",
-              fill: 0xfdf6e0,
-              stroke: { color: 0x1a1008, width: 3, join: "round" },
+              fontFamily: labelPreset.fontFamily,
+              fontSize: labelPreset.fontSize,
+              fontWeight: labelPreset.fontWeight,
+              fill: labelPreset.fill,
+              stroke: {
+                color: labelPreset.strokeColor,
+                width: labelPreset.strokeWidth,
+                join: "round",
+              },
               align: "center",
             },
           });
@@ -1369,6 +1417,17 @@ export class RenderSystem {
         obj.collisionBox.width > 0 && obj.collisionBox.height > 0;
       if (isPackKey && !hasCollision) continue;
       keys.add(obj.spriteKey);
+      // The computer-desk's actual texture at render time is its
+      // leveled variant (computer-desk-l0..l3). Queue all four so the
+      // initial render finds its texture AND so upgrading mid-scene
+      // doesn't have to async-fetch — the refresh call hits a warm
+      // cache and the swap is instant.
+      if (obj.spriteKey === "computer-desk") {
+        keys.add("computer-desk-l0");
+        keys.add("computer-desk-l1");
+        keys.add("computer-desk-l2");
+        keys.add("computer-desk-l3");
+      }
     }
     for (const b of map.buildings) {
       keys.add(b.baseSpriteKey);

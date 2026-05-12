@@ -28,6 +28,10 @@ import {
   useTarget,
 } from '../data/target';
 import { getUiTheme } from './uiThemes';
+import {
+  MARKER_LABEL_STYLES,
+} from '../data/markerLabelStyles';
+import type { MarkerLabelStyleId } from '../data/markerLabelStyles';
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -36,12 +40,16 @@ interface SettingsViewProps {
   onClose: () => void;
   virtualDPadEnabled: boolean;
   onVirtualDPadEnabledChange: (enabled: boolean) => void;
+  markerLabelStyle: MarkerLabelStyleId;
+  onMarkerLabelStyleChange: (style: MarkerLabelStyleId) => void;
 }
 
 export default function SettingsView({
   onClose,
   virtualDPadEnabled,
   onVirtualDPadEnabledChange,
+  markerLabelStyle,
+  onMarkerLabelStyleChange,
 }: SettingsViewProps) {
   // Two-stage confirm: first tap arms the destructive button, second
   // tap actually wipes. A 3-second auto-cancel keeps the armed state
@@ -154,6 +162,81 @@ export default function SettingsView({
           {t('settings.targetLanguage')}
         </div>
         <TargetPicker />
+
+        <div
+          style={{
+            fontSize: 10,
+            textTransform: 'uppercase',
+            letterSpacing: 1.2,
+            fontWeight: 700,
+            color: COLORS.hintText,
+          }}
+        >
+          {t('settings.visuals')}
+        </div>
+
+        <div
+          style={{
+            background: COLORS.parchmentLight,
+            border: `2px solid ${COLORS.cardBorder}`,
+            borderRadius: 6,
+            padding: '10px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            color: COLORS.text,
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 700 }}>
+            {t('settings.markerLabelStyle')}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            {MARKER_LABEL_STYLES.map((style) => {
+              const active = markerLabelStyle === style.id;
+              return (
+                <button
+                  key={style.id}
+                  type="button"
+                  onClick={() => onMarkerLabelStyleChange(style.id)}
+                  aria-pressed={active}
+                  style={{
+                    minHeight: 44,
+                    background: active ? COLORS.accentGold : COLORS.cardRest,
+                    color: active ? '#fdf6e0' : COLORS.text,
+                    border: `2px solid ${active ? COLORS.accentGoldDark : COLORS.cardBorder}`,
+                    borderRadius: 5,
+                    padding: '6px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: style.cssFontFamily,
+                      fontSize: Math.max(11, style.fontSize + 5),
+                      fontWeight: style.fontWeight,
+                      lineHeight: 1,
+                      textShadow: `0 1px 0 #1a1008, 1px 0 0 #1a1008`,
+                      textTransform:
+                        style.textTransform === 'uppercase'
+                          ? 'uppercase'
+                          : 'none',
+                    }}
+                  >
+                    Exit
+                  </span>
+                  <span style={{ fontSize: 10, lineHeight: 1.1, opacity: 0.9 }}>
+                    {style.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div
           style={{

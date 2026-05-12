@@ -208,7 +208,7 @@ export const OBJECT_CATEGORIES = [
       { key: 'bed', label: 'Bed', path: '/assets/placeholder/bed.png' },
       { key: 'chair', label: 'Chair', path: '/assets/placeholder/chair.png' },
       { key: 'bookshelf', label: 'Bookshelf', path: '/assets/placeholder/bookshelf.png' },
-      { key: 'computer-desk', label: 'Comp Desk', path: '/assets/placeholder/computer-desk.png' },
+      { key: 'computer-desk', label: 'Comp Desk', path: '/assets/placeholder/computer-desk-l0.png' },
       { key: 'dresser', label: 'Dresser', path: '/assets/placeholder/dresser.png' },
       { key: 'fridge', label: 'Fridge', path: '/assets/placeholder/fridge.png' },
       { key: 'sink-counter', label: 'Sink', path: '/assets/placeholder/sink-counter.png' },

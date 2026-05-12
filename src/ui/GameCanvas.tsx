@@ -79,11 +79,14 @@ import { clearWorldSave, loadWorldSave } from "../data/worldSave";
 import { resetAllGameData } from "../data/reset";
 import {
   getMusicEnabled,
+  getMarkerLabelStyle,
   getVirtualDPadEnabled,
+  setMarkerLabelStyle as persistMarkerLabelStyle,
   setMusicEnabled as persistMusicEnabled,
   setVirtualDPadEnabled as persistVirtualDPadEnabled,
 } from "../data/settings";
 import { getComputerUpgradeLevel, useComputerUpgradeLevel } from "../data/computerUpgrade";
+import type { MarkerLabelStyleId } from "../data/markerLabelStyles";
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -201,6 +204,9 @@ export default function GameCanvas() {
   const soundOnRef = useRef(soundOn);
   const [virtualDPadEnabled, setVirtualDPadEnabledState] = useState(
     getVirtualDPadEnabled,
+  );
+  const [markerLabelStyle, setMarkerLabelStyleState] = useState(
+    getMarkerLabelStyle,
   );
   const [dialogue, setDialogue] = useState<DialogueState | null>(null);
   // While a dialogue is on screen, hold any new-quest pulse / quest-
@@ -749,6 +755,11 @@ export default function GameCanvas() {
     if (!enabled) {
       pixiAppRef.current?.setVirtualDirection(null);
     }
+  }, []);
+
+  const handleMarkerLabelStyleChange = useCallback((style: MarkerLabelStyleId) => {
+    setMarkerLabelStyleState(style);
+    persistMarkerLabelStyle(style);
   }, []);
 
   useEffect(() => {
@@ -1499,7 +1510,7 @@ export default function GameCanvas() {
     return () => {
       app.setQuestMarkers([]);
     };
-  }, [currentMapId, questStatuses, dialogue, lifetimeEarnings]);
+  }, [currentMapId, questStatuses, dialogue, lifetimeEarnings, markerLabelStyle]);
 
   // Intro apartment back-and-forth — auto-fires the FIRST time
   // the player lands in F1 after the cutscene. Holds the practical
@@ -2759,6 +2770,8 @@ export default function GameCanvas() {
             <SettingsView
               virtualDPadEnabled={virtualDPadEnabled}
               onVirtualDPadEnabledChange={handleVirtualDPadEnabledChange}
+              markerLabelStyle={markerLabelStyle}
+              onMarkerLabelStyleChange={handleMarkerLabelStyleChange}
               onClose={() => setSettingsOpen(false)}
             />
           </div>
