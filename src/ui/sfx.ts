@@ -18,12 +18,20 @@ export function playSfx(url: string): void {
 }
 
 /** Asset URLs centralised here so the call sites stay literal-free
- *  and a future asset rename is a one-line change. */
+ *  and a future asset rename is a one-line change.
+ *
+ *  Each URL carries a `?v=N` cache-buster. Bump the version on a
+ *  given line whenever you edit that file's bytes — same filename
+ *  means Vercel's CDN + the browser's HTTP cache + the service
+ *  worker's precache + the in-memory AudioBuffer cache would all
+ *  keep serving the OLD content otherwise (the audioEngine map is
+ *  keyed by URL string, so a new `?v=…` is a fresh entry). Remember
+ *  to mirror the version bump in `public/sw.js`'s PRECACHE_URLS. */
 export const SFX = {
-  CORRECT: '/assets/audio/perfect.mp3',
-  UPGRADE: '/assets/audio/pop.mp3',
-  SWITCH_MAP: '/assets/audio/switch-map-sound.mp3',
-  NEXT_DIALOGUE: '/assets/audio/next-dialogue-sound.mp3',
+  CORRECT: '/assets/audio/perfect.mp3?v=2',
+  UPGRADE: '/assets/audio/pop.mp3?v=2',
+  SWITCH_MAP: '/assets/audio/switch-map-sound.mp3?v=2',
+  NEXT_DIALOGUE: '/assets/audio/next-dialogue-sound.mp3?v=2',
 } as const;
 
 /** Fetch + decode every entry in `SFX` so the first time the player

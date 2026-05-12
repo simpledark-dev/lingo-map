@@ -1,6 +1,6 @@
 // Bump on every behavioural change so the activate handler purges the
 // old cache. (Browsers also refetch the SW when its bytes change.)
-const CACHE_NAME = 'lingo-map-v94';
+const CACHE_NAME = 'lingo-map-v95';
 
 // Bare-minimum precache: stuff every player needs on every map. Kept
 // short so install never fails — `cache.addAll` rejects atomically on
@@ -20,10 +20,13 @@ const PRECACHE_URLS = [
   '/assets/placeholder/floor.webp',
   '/assets/placeholder/wall.webp',
   '/assets/me-char-atlas.webp',
-  '/assets/audio/perfect.mp3',
-  '/assets/audio/pop.mp3',
-  '/assets/audio/switch-map-sound.mp3',
-  '/assets/audio/next-dialogue-sound.mp3',
+  // Audio URLs MUST match the `?v=…` suffix in src/ui/sfx.ts —
+  // SW.match() is exact-URL, so a mismatched precache key would
+  // cause a SW cache miss → fall through to network on every play.
+  '/assets/audio/perfect.mp3?v=2',
+  '/assets/audio/pop.mp3?v=2',
+  '/assets/audio/switch-map-sound.mp3?v=2',
+  '/assets/audio/next-dialogue-sound.mp3?v=2',
 ];
 
 self.addEventListener('install', (event) => {
