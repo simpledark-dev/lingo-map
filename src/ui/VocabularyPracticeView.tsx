@@ -483,8 +483,15 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                 disabled={writeOutcome !== null || waitingOnNext}
               />
             ) : !showDetails ? (
-            <div className="vp-choices" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {round.choices.map((choice, i) => {
+            <div
+              className="vp-choices"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 8,
+              }}
+            >
+              {round.choices.map((choice) => {
                 const isSelected = selectedTarget === choice.target;
                 const isCorrectChoice = choice.target === round.prompt.target;
                 const showAsCorrect = selectedTarget !== null && isCorrectChoice;
@@ -496,8 +503,8 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                     disabled={selectedTarget !== null}
                     onClick={() => handlePick(choice)}
                     style={{
-                      textAlign: 'left',
-                      padding: '10px 14px',
+                      textAlign: 'center',
+                      padding: '14px 10px',
                       background: showAsCorrect
                         ? COLORS.correctBg
                         : showAsWrong
@@ -506,6 +513,7 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                       border: `2px solid ${
                         showAsCorrect ? COLORS.correct : showAsWrong ? COLORS.wrong : COLORS.cardBorder
                       }`,
+                      borderRadius: 8,
                       boxShadow:
                         selectedTarget === null
                           ? `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`
@@ -514,24 +522,19 @@ export default function VocabularyPracticeView({ pack, npcName, mode = 'read', o
                       fontFamily: 'inherit',
                       color: COLORS.text,
                       fontSize: 15,
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                      minHeight: 48,
                       transition: 'background 160ms, border-color 160ms',
                       animation: showAsWrong ? 'lingoMapPracticeShake 280ms ease-in-out' : undefined,
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: 10,
+                      justifyContent: 'center',
+                      gap: 4,
                     }}
                   >
-                    <span
-                      style={{
-                        color: COLORS.hintText,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        minWidth: 18,
-                      }}
-                    >
-                      {String.fromCharCode(65 + i)}
-                    </span>
-                    <span style={{ flex: 1 }}>{getMeaning(choice)}</span>
+                    <span>{getMeaning(choice)}</span>
                     {showAsCorrect ? <span style={{ color: COLORS.correct, fontSize: 16 }}>✓</span> : null}
                     {showAsWrong ? <span style={{ color: COLORS.wrong, fontSize: 16 }}>✗</span> : null}
                   </button>

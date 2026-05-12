@@ -24,6 +24,7 @@ import {
   VocabularyEntry,
 } from "../data/vocabularyPacks";
 import { formatBalance, useWalletBalance } from "../data/wallet";
+import { playSfx, SFX } from "./sfx";
 import { getUiTheme } from "./uiThemes";
 
 // Source of words for the speed-up mini-quiz. Pinned to MIRA_PACK
@@ -207,24 +208,29 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
   };
 
   const handlePickAnswer = (entry: VocabularyEntry) => {
-    // Lock the buttons until the feedback hold elapses and the next
-    // question mounts. Prevents double-clicks racing the auto-advance.
+    // Lock the buttons; the round stays in "review" state until the
+    // player clicks Next, so they can see the correct answer + reward
+    // feedback at their own pace (matches the Translate-view pattern).
     if (answerState) return;
     const isCorrect = entry.target === question.correct.target;
     setAnswerState({ pickedTarget: entry.target, correct: isCorrect });
     if (isCorrect) {
       reduceUpgradeTimer(SPEEDUP_REWARD_MS);
+      playSfx(SFX.CORRECT);
       setFloater(
         t("computer.speedup.timeAdded", {
           seconds: Math.round(SPEEDUP_REWARD_MS / 1000),
         }),
       );
-    }
-    window.setTimeout(() => {
+    } else {
       setFloater(null);
-      setQuestion(buildSpeedupQuestion());
-      setAnswerState(null);
-    }, 700);
+    }
+  };
+
+  const handleSpeedupNext = () => {
+    setQuestion(buildSpeedupQuestion());
+    setAnswerState(null);
+    setFloater(null);
   };
 
   // When the timer completes mid-quiz (player's last correct answer
@@ -355,6 +361,7 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
             }
             onBack={exitSpeedup}
             onPick={handlePickAnswer}
+            onNext={handleSpeedupNext}
           />
         ) : (
           <>
@@ -773,6 +780,7 @@ interface SpeedupBodyProps {
   remainingLabel: string;
   onBack: () => void;
   onPick: (entry: VocabularyEntry) => void;
+  onNext: () => void;
 }
 
 function SpeedupBody({
@@ -783,7 +791,9 @@ function SpeedupBody({
   remainingLabel,
   onBack,
   onPick,
+  onNext,
 }: SpeedupBodyProps) {
+  const answered = answerState !== null;
   return (
     <div
       style={{
@@ -818,7 +828,6 @@ function SpeedupBody({
         </button>
         <div
           style={{
-            position: "relative",
             fontSize: compact ? 12 : 14,
             fontWeight: 800,
             color: COLORS.text,
@@ -830,29 +839,16 @@ function SpeedupBody({
           }}
         >
           {remainingLabel}
-          {floater && (
-            <span
-              key={floater + Date.now()}
-              style={{
-                position: "absolute",
-                top: -22,
-                right: 0,
-                fontSize: compact ? 11 : 13,
-                fontWeight: 800,
-                color: "#3a8a3a",
-                whiteSpace: "nowrap",
-                animation: "lingoSpeedupFloat 0.7s ease-out forwards",
-              }}
-            >
-              {floater}
-            </span>
-          )}
         </div>
       </div>
 
-      {/* Prompt */}
+      {/* Prompt — with the chunky reward badge floating over it on
+          a correct answer. The badge style mirrors the Translate
+          view's `.vt-money-feedback` so the visual language is
+          consistent across earning surfaces. */}
       <div
         style={{
+          position: "relative",
           textAlign: "center",
           padding: compact ? "6px 8px" : "10px 12px",
           background: COLORS.parchmentLight,
@@ -860,6 +856,35 @@ function SpeedupBody({
           borderRadius: 6,
         }}
       >
+        {floater && (
+          <div
+            key={floater + question.correct.target}
+            style={{
+              position: "absolute",
+              top: -16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              minWidth: 92,
+              padding: compact ? "6px 14px" : "8px 18px",
+              borderRadius: 6,
+              textAlign: "center",
+              fontSize: compact ? 18 : 22,
+              fontWeight: 900,
+              letterSpacing: 0,
+              lineHeight: 1,
+              color: "#1f5a1f",
+              background: "rgba(58, 138, 58, 0.18)",
+              border: "3px solid #3a8a3a",
+              boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 4px 0 0 ${COLORS.cardBorder}`,
+              pointerEvents: "none",
+              animation: "lingoSpeedupBadgePop 1450ms ease-out forwards",
+              textShadow: "1px 1px 0 rgba(255,255,255,0.35)",
+              zIndex: 2,
+            }}
+          >
+            {floater}
+          </div>
+        )}
         <div
           style={{
             fontSize: compact ? 10 : 11,
@@ -917,47 +942,81 @@ function SpeedupBody({
             <button
               key={opt.target}
               onClick={() => onPick(opt)}
-              disabled={!!answerState}
+              disabled={answered}
               style={{
+                position: "relative",
                 background: bg,
                 color: fg,
                 border: `2px solid ${borderColor}`,
-                borderRadius: 6,
+                borderRadius: 8,
                 padding: compact ? "9px 6px" : "12px 8px",
                 fontSize: compact ? 13 : 15,
                 fontWeight: 800,
                 letterSpacing: 0.3,
-                cursor: answerState ? "not-allowed" : "pointer",
+                cursor: answered ? "default" : "pointer",
                 transition: "background 0.15s ease-out",
                 minHeight: compact ? 36 : 44,
                 lineHeight: 1.15,
               }}
             >
               {getMeaning(opt)}
+              {isCorrect ? (
+                <span style={{ marginLeft: 6, fontSize: compact ? 13 : 15 }}>✓</span>
+              ) : null}
+              {isWrong ? (
+                <span style={{ marginLeft: 6, fontSize: compact ? 13 : 15 }}>✗</span>
+              ) : null}
             </button>
           );
         })}
       </div>
 
-      {/* Footer hint */}
-      <div
-        style={{
-          fontSize: compact ? 10 : 11,
-          color: COLORS.hintText,
-          textAlign: "center",
-          lineHeight: 1.3,
-        }}
-      >
-        {t("computer.speedup.hint", {
-          seconds: Math.round(SPEEDUP_REWARD_MS / 1000),
-        })}
-      </div>
+      {/* Footer: either the Next button (after the player has
+          answered) or the hint text reminding them how the speed-up
+          works (before they answer). */}
+      {answered ? (
+        <button
+          onClick={onNext}
+          style={{
+            background: COLORS.buyEnabled,
+            color: "#fdf6e0",
+            border: `2px solid ${COLORS.cardBorder}`,
+            borderRadius: 6,
+            padding: compact ? "8px 10px" : "10px 12px",
+            fontSize: compact ? 13 : 14,
+            fontWeight: 800,
+            letterSpacing: 0.5,
+            cursor: "pointer",
+            boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
+          }}
+        >
+          {t("computer.speedup.next")}
+        </button>
+      ) : (
+        <div
+          style={{
+            fontSize: compact ? 10 : 11,
+            color: COLORS.hintText,
+            textAlign: "center",
+            lineHeight: 1.3,
+          }}
+        >
+          {t("computer.speedup.hint", {
+            seconds: Math.round(SPEEDUP_REWARD_MS / 1000),
+          })}
+        </div>
+      )}
 
-      {/* CSS keyframe for the +Xs floater */}
+      {/* CSS keyframe for the chunky reward badge — pop in, hold,
+          then float up and fade out (matches the Translate view's
+          delta-float so the visual language is consistent). */}
       <style>{`
-        @keyframes lingoSpeedupFloat {
-          0%   { transform: translateY(0); opacity: 1; }
-          100% { transform: translateY(-18px); opacity: 0; }
+        @keyframes lingoSpeedupBadgePop {
+          0%   { opacity: 0; transform: translate(-50%, 10px) scale(0.82); }
+          14%  { opacity: 1; transform: translate(-50%, 0)    scale(1.16); }
+          30%  { opacity: 1; transform: translate(-50%, 0)    scale(1); }
+          74%  { opacity: 1; transform: translate(-50%, -6px)  scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -34px) scale(1.08); }
         }
       `}</style>
     </div>

@@ -695,6 +695,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   position: 'relative',
                   background: COLORS.cardRest,
                   border: `2px solid ${COLORS.coinGoldDark}`,
+                  borderRadius: 6,
                   boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}`,
                   padding: '6px 10px',
                   fontSize: 13,
@@ -705,6 +706,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   gap: 6,
                 }}
               >
+                <span style={{ color: COLORS.coinGold }}>●</span>
                 <span>{formatBalance(coins)}</span>
               </div>
               <PixelButton onClick={() => setSessionEnded(true)} small tone="danger">
@@ -876,6 +878,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                       fontWeight: isListenMode ? 700 : 400,
                       background: COLORS.speakerBg,
                       border: `2px solid ${COLORS.cardBorder}`,
+                      borderRadius: 6,
                       boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
                       padding: isListenMode ? '8px 16px' : '4px 10px',
                       cursor: 'pointer',
@@ -905,8 +908,15 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                 disabled={writeOutcome !== null || waitingOnNext}
               />
             ) : !showDetails ? (
-            <div className="vt-choices" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {round.choices.map((choice, i) => {
+            <div
+              className="vt-choices"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 8,
+              }}
+            >
+              {round.choices.map((choice) => {
                 const isSelected = selectedTarget === choice.target;
                 const isCorrectChoice = choice.target === round.prompt.target;
                 const showAsCorrect = selectedTarget !== null && isCorrectChoice;
@@ -918,37 +928,39 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                     disabled={selectedTarget !== null}
                     onClick={() => handlePick(choice)}
                     style={{
-                      textAlign: 'left',
-                      padding: '10px 14px',
+                      textAlign: 'center',
+                      padding: '14px 10px',
                       background: showAsCorrect
-                        ? COLORS.correctBg
+                        ? '#3a8a3a'
                         : showAsWrong
-                          ? COLORS.wrongBg
+                          ? '#a83b3b'
                           : COLORS.cardRest,
                       border: `2px solid ${
-                        showAsCorrect ? COLORS.correct : showAsWrong ? COLORS.wrong : COLORS.cardBorder
+                        showAsCorrect ? '#1f5a1f' : showAsWrong ? '#5d1f1f' : COLORS.cardBorder
                       }`,
+                      borderRadius: 8,
                       boxShadow:
                         selectedTarget === null
                           ? `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`
                           : 'none',
                       cursor: selectedTarget !== null ? 'default' : 'pointer',
                       fontFamily: 'inherit',
-                      color: COLORS.text,
+                      color: showAsCorrect || showAsWrong ? '#fdf6e0' : COLORS.text,
                       fontSize: 15,
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                      minHeight: 48,
                       transition: 'background 160ms, border-color 160ms',
                       animation: showAsWrong ? 'lingoMapTranslateShake 280ms ease-in-out' : undefined,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 10,
+                      justifyContent: 'center',
+                      gap: 6,
                     }}
                   >
-                    <span style={{ color: COLORS.hintText, fontSize: 12, fontWeight: 700, minWidth: 18 }}>
-                      {String.fromCharCode(65 + i)}
-                    </span>
-                    <span style={{ flex: 1 }}>{getMeaning(choice)}</span>
-                    {showAsCorrect ? <span style={{ color: COLORS.correct, fontSize: 16 }}>✓</span> : null}
-                    {showAsWrong ? <span style={{ color: COLORS.wrong, fontSize: 16 }}>✗</span> : null}
+                    <span>{getMeaning(choice)}</span>
+                    {showAsCorrect ? <span style={{ fontSize: 15 }}>✓</span> : null}
+                    {showAsWrong ? <span style={{ fontSize: 15 }}>✗</span> : null}
                   </button>
                 );
               })}
@@ -971,6 +983,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                   fontSize: 12,
                   background: 'transparent',
                   border: `1px dashed ${COLORS.cardBorder}`,
+                  borderRadius: 6,
                   color: COLORS.hintText,
                   padding: '8px 12px',
                   cursor: 'pointer',
@@ -1018,6 +1031,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                     style={{
                       background: COLORS.parchmentLight,
                       border: `2px solid ${COLORS.cardBorder}`,
+                      borderRadius: 8,
                       boxShadow: `inset 1px 1px 0 0 ${COLORS.parchmentLight}, 0 2px 0 0 ${COLORS.cardBorder}`,
                       padding: '10px 12px',
                       marginBottom: 12,
@@ -1098,6 +1112,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                     color: '#fff5d6',
                     background: COLORS.accentGold,
                     border: `2px solid ${COLORS.accentGoldDark}`,
+                    borderRadius: 8,
                     boxShadow: `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`,
                     padding: '10px 16px',
                     cursor: 'pointer',
@@ -1281,6 +1296,7 @@ function PixelButton({ children, onClick, small, tone = 'default' }: {
         color: text,
         background: bg,
         border: `2px solid ${border}`,
+        borderRadius: small ? 6 : 8,
         boxShadow: `inset 1px 1px 0 0 ${isDanger ? COLORS.wrongBg : COLORS.parchmentLight}, 0 2px 0 0 ${border}`,
         padding: small ? '6px 12px' : '8px 14px',
         cursor: 'pointer',
@@ -1368,7 +1384,7 @@ function WriteForm({
           background: bgColor,
           color: COLORS.text,
           border: `3px solid ${borderColor}`,
-          borderRadius: 4,
+          borderRadius: 8,
           outline: 'none',
           // Wrong-answer shake reuses the same keyframe the choice
           // grid uses, so the feel matches across modes.
@@ -1388,6 +1404,7 @@ function WriteForm({
             color: '#fdf6e0',
             background: canSubmit ? COLORS.accentGold : COLORS.parchmentShadow,
             border: `2px solid ${COLORS.accentGoldDark}`,
+            borderRadius: 8,
             boxShadow: canSubmit
               ? `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`
               : 'none',
