@@ -14,7 +14,7 @@ import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
 import { buildCarNetwork, carAABB, CAR_SPRITE_SETS, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
 import { getTexture, loadAssets, loadCharacterAtlas, loadInteriorSheets, loadPackSingle, loadUiAtlas } from './AssetLoader';
-import { getDeskSpriteKey, subscribeComputerUpgradeLevel } from '../data/computerUpgrade';
+import { getComputerLevel, getDeskSpriteKey, subscribeComputerUpgradeLevel } from '../data/computerUpgrade';
 import { getNpcFirstDialogueLine } from '../data/npcDialogue';
 
 /** localStorage key kept in sync with `data/car-collisions.json` by the
@@ -43,6 +43,19 @@ export type PixiAppOptions = StressOptions & {
    *  and its map matches `startMapId`, it wins over `startSpawnId`. */
   startWorldState?: SavedWorldState | null;
 };
+
+function isTextEntryTarget(target: EventTarget | null): boolean {
+  if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) {
+    return false;
+  }
+  const tag = target.tagName.toLowerCase();
+  return (
+    tag === 'input' ||
+    tag === 'textarea' ||
+    tag === 'select' ||
+    target.isContentEditable
+  );
+}
 
 export class PixiApp {
   app: Application;
@@ -117,12 +130,13 @@ export class PixiApp {
    * `subscribeComputerUpgradeLevel` callback so the player sees the
    * room update the instant they buy an upgrade. No-op if RenderSystem
    * isn't mounted yet (still loading) or no desk is on the active map. */
-  private refreshComputerDeskTexture(): void {
+  private refreshComputerDeskTexture(playFx = false): void {
     if (!this.renderSystem || !this.gameState) return;
     const key = getDeskSpriteKey();
     for (const entity of this.gameState.entities) {
       if (entity.spriteKey !== 'computer-desk') continue;
       this.renderSystem.refreshObjectTexture(entity.id, key);
+      if (playFx) this.renderSystem.playUpgradeFx(entity.id);
     }
   }
 
@@ -164,10 +178,11 @@ export class PixiApp {
   }
 
   private buildComputerDialogue(): DialogueState {
+    const tier = getComputerLevel();
     return {
       npcId: 'object-computer',
       npcName: t('computer.name'),
-      lines: [t('computer.dialogue.prompt')],
+      lines: [t(tier.promptKey)],
       currentLine: 0,
       options: [
         { id: 'computer-study', label: t('computer.option.study') },
@@ -362,6 +377,18 @@ export class PixiApp {
     // doesn't have keyboard focus — matching the user's expectation
     // that pressing the key from anywhere on the page just works.
     this.debugKeydownHandler = (e: KeyboardEvent) => {
+      if (
+        e.repeat ||
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey ||
+        isTextEntryTarget(e.target) ||
+        this.worldPausedByUI ||
+        !!this.gameState?.activeDialogue
+      ) {
+        return;
+      }
+
       // Backquote / backtick — toggle collision boxes.
       if (e.code === 'Backquote') {
         this.debugShowCollisions = !this.debugShowCollisions;
@@ -410,8 +437,11 @@ export class PixiApp {
 
     // Refresh the desk sprite live whenever the player buys an upgrade,
     // so they see the new tier on the room without a scene reload.
+    // `subscribeComputerUpgradeLevel` only fires on actual changes (not
+    // initial reads), so seeing a callback here always means a fresh
+    // purchase — safe to play the celebration FX.
     this.computerUpgradeUnsub = subscribeComputerUpgradeLevel(() => {
-      this.refreshComputerDeskTexture();
+      this.refreshComputerDeskTexture(true);
     });
 
     this.initialized = true;
@@ -1442,6 +1472,10 @@ export class PixiApp {
     if (paused) {
       this.inputAdapter.clearTransientInput({ suppressInteractUntilRelease: true });
       this.inputAdapter.setVirtualDirection(null);
+      if (this.debugShowTapZones) {
+        this.debugShowTapZones = false;
+        this.renderSystem?.clearDebugCollisions();
+      }
     }
   }
 

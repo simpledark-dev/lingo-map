@@ -612,7 +612,14 @@ export const en: Record<string, string> = {
 
   // ── Apartment computer ──
   "computer.name": "Computer",
-  "computer.dialogue.prompt": "Your study setup is right here on the desk.",
+  "computer.dialogue.prompt.broken":
+    "The screen sits dark and cracked. The keyboard barely responds.",
+  "computer.dialogue.prompt.usedLaptop":
+    "A fresh monitor hums softly. The keyboard is ready for work.",
+  "computer.dialogue.prompt.homePc":
+    "An old laptop rests open on the desk, lid scratched but inviting.",
+  "computer.dialogue.prompt.studyRig":
+    "A sleek laptop waits, screen bright and keys whisper-quiet.",
   "computer.option.study": "Study",
   "computer.option.upgrade": "Upgrade",
   "computer.option.leave": "Leave",

@@ -73,6 +73,34 @@ interface AnimData {
   swayAmount: number; // max X sway in pixels
 }
 
+// One-shot upgrade-celebration effects. Each variant carries the
+// minimum state its tween needs; `elapsed` advances toward `duration`
+// in updateUpgradeFx and the entry removes itself when t reaches 1.
+type UpgradeFx =
+  | {
+      kind: "flash";
+      sprite: Sprite;
+      elapsed: number;
+      duration: number;
+    }
+  | {
+      kind: "pop";
+      target: Sprite;
+      elapsed: number;
+      duration: number;
+      baseScaleX: number;
+      baseScaleY: number;
+    }
+  | {
+      kind: "sparkle";
+      graphic: Graphics;
+      elapsed: number;
+      duration: number;
+      vx: number;
+      vy: number;
+      gravity: number;
+    };
+
 export class RenderSystem {
   private app: Application;
   private worldContainer: Container;
@@ -150,6 +178,15 @@ export class RenderSystem {
   // Animation data — renderer-only, does not affect gameplay
   private treeAnims = new Map<string, AnimData>();
   private npcAnims = new Map<string, AnimData>();
+  /** One-shot "upgrade" effects (flash overlay + scale-pop + sparkles)
+   * driven from `playUpgradeFx`. Advanced each frame in
+   * `updateUpgradeFx`; entries remove themselves when their tween
+   * completes. Lives on the entity layer so sparkles Y-sort with the
+   * world. */
+  private upgradeFx: UpgradeFx[] = [];
+  /** Last value passed to `updateAnimations(time)`. Used to derive a
+   * frame dt for upgrade FX without bolting on a second ticker. */
+  private lastAnimTime: number | null = null;
   /** Edge-of-map district arrow bob — `id → { baseY, phase }`. Pure
    *  cosmetic: a 2px sine wave on Y to signal the arrow is tappable.
    *  Registered when an entity with a `edge-arrow-*` spriteKey lands
@@ -1111,8 +1148,127 @@ export class RenderSystem {
     sprite.texture = tex;
   }
 
+  /** Trigger the "ta-da" effects on an object sprite: a brief white
+   * flash overlay, a scale-pop on the sprite itself, and 8 gold pixel
+   * sparkles that fan outward with a touch of gravity. Used on computer
+   * upgrades so the desk transforms with weight instead of just
+   * swapping textures silently. No-op if the entity has no sprite. */
+  playUpgradeFx(entityId: string): void {
+    const target = this.objectSprites.get(entityId);
+    if (!target) return;
+
+    // 1) Flash overlay — same texture/anchor/scale as the desk, tinted
+    //    white, fading out. Sits one zIndex above so it hides the
+    //    instant texture swap behind the flash.
+    const flash = new Sprite(target.texture);
+    flash.anchor.set(target.anchor.x, target.anchor.y);
+    flash.x = target.x;
+    flash.y = target.y;
+    flash.scale.set(target.scale.x, target.scale.y);
+    flash.tint = 0xffffff;
+    flash.alpha = 0.95;
+    flash.zIndex = target.zIndex + 1;
+    this.entityLayer.addChild(flash);
+    this.upgradeFx.push({
+      kind: "flash",
+      sprite: flash,
+      elapsed: 0,
+      duration: 0.35,
+    });
+
+    // 2) Scale-pop on the desk itself. Snapshot the original scale so
+    //    when the FX completes we restore that, not 1.0 — desks could
+    //    in principle have a custom entity.scale.
+    this.upgradeFx.push({
+      kind: "pop",
+      target,
+      elapsed: 0,
+      duration: 0.5,
+      baseScaleX: target.scale.x,
+      baseScaleY: target.scale.y,
+    });
+
+    // 3) Sparkle burst — 12 small gold squares fanned around the
+    //    sprite, with light gravity so they arc up-and-down. Anchored
+    //    a bit above the feet so they read as coming "off" the object.
+    const burstY = target.y - (target.texture.height * target.scale.y) / 2;
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+      const speed = 75 + Math.random() * 35;
+      const sparkle = new Graphics();
+      sparkle.rect(-1.5, -1.5, 3, 3).fill(0xffe27a);
+      sparkle.x = target.x;
+      sparkle.y = burstY;
+      sparkle.zIndex = target.zIndex + 2;
+      this.entityLayer.addChild(sparkle);
+      this.upgradeFx.push({
+        kind: "sparkle",
+        graphic: sparkle,
+        elapsed: 0,
+        duration: 0.9,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 30, // bias slightly upward
+        gravity: 130,
+      });
+    }
+  }
+
+  /** Advance and remove finished upgrade effects. Called from
+   * `updateAnimations` so it shares the existing per-frame budget;
+   * no extra ticker subscription. */
+  private updateUpgradeFx(dt: number): void {
+    for (let i = this.upgradeFx.length - 1; i >= 0; i--) {
+      const fx = this.upgradeFx[i];
+      fx.elapsed += dt;
+      const t = Math.min(1, fx.elapsed / fx.duration);
+
+      if (fx.kind === "flash") {
+        fx.sprite.alpha = 0.85 * (1 - t);
+        if (t >= 1) {
+          this.entityLayer.removeChild(fx.sprite);
+          fx.sprite.destroy();
+          this.upgradeFx.splice(i, 1);
+        }
+      } else if (fx.kind === "pop") {
+        // 0..0.5 = ease-out toward 1.15×, 0.5..1 = ease-in back to 1×.
+        const peak = 0.15;
+        let mult: number;
+        if (t < 0.5) {
+          const u = t * 2;
+          mult = 1 + peak * (1 - Math.pow(1 - u, 3));
+        } else {
+          const u = (t - 0.5) * 2;
+          mult = 1 + peak * (1 - u) * (1 - u) * (1 - u);
+        }
+        fx.target.scale.set(fx.baseScaleX * mult, fx.baseScaleY * mult);
+        if (t >= 1) {
+          fx.target.scale.set(fx.baseScaleX, fx.baseScaleY);
+          this.upgradeFx.splice(i, 1);
+        }
+      } else if (fx.kind === "sparkle") {
+        fx.graphic.x += fx.vx * dt;
+        fx.vy += fx.gravity * dt;
+        fx.graphic.y += fx.vy * dt;
+        fx.graphic.alpha = 1 - t;
+        if (t >= 1) {
+          this.entityLayer.removeChild(fx.graphic);
+          fx.graphic.destroy();
+          this.upgradeFx.splice(i, 1);
+        }
+      }
+    }
+  }
+
   /** Update idle animations for trees and NPCs. Call once per frame. */
   updateAnimations(time: number): void {
+    // Upgrade FX use frame-to-frame delta time, while everything else
+    // here uses absolute `time` — derive dt by diffing the previous
+    // call. Reset to a sane small value on the first call so we don't
+    // burn through a one-shot FX in a single frame.
+    const dt = this.lastAnimTime === null ? 1 / 60 : Math.max(0, time - this.lastAnimTime);
+    this.lastAnimTime = time;
+    this.updateUpgradeFx(dt);
+
     if (!this.animationsEnabled) return;
 
     // Tree sway — rotation + slight X offset

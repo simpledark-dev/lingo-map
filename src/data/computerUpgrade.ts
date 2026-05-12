@@ -10,6 +10,10 @@ export interface ComputerLevel {
   id: ComputerLevelId;
   nameKey: string;
   descriptionKey: string;
+  /** i18n key for the atmospheric line shown when the player taps the
+   * computer at this tier. Each tier has its own line so the world
+   * description updates as the player upgrades. */
+  promptKey: string;
   costCents: number;
 }
 
@@ -19,6 +23,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     id: "broken",
     nameKey: "computer.level.broken.name",
     descriptionKey: "computer.level.broken.description",
+    promptKey: "computer.dialogue.prompt.broken",
     costCents: 0,
   },
   {
@@ -26,6 +31,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     id: "used-laptop",
     nameKey: "computer.level.usedLaptop.name",
     descriptionKey: "computer.level.usedLaptop.description",
+    promptKey: "computer.dialogue.prompt.usedLaptop",
     costCents: 500,
   },
   {
@@ -33,6 +39,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     id: "home-pc",
     nameKey: "computer.level.homePc.name",
     descriptionKey: "computer.level.homePc.description",
+    promptKey: "computer.dialogue.prompt.homePc",
     costCents: 2500,
   },
   {
@@ -40,6 +47,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     id: "study-rig",
     nameKey: "computer.level.studyRig.name",
     descriptionKey: "computer.level.studyRig.description",
+    promptKey: "computer.dialogue.prompt.studyRig",
     costCents: 7500,
   },
 ];

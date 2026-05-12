@@ -578,7 +578,14 @@ export const vi: Record<string, string> = {
 
   // ── Apartment computer ──
   "computer.name": "Máy tính",
-  "computer.dialogue.prompt": "Bộ học tập của bạn đang ở trên bàn.",
+  "computer.dialogue.prompt.broken":
+    "Màn hình tối thui và nứt vỡ. Bàn phím hầu như không phản hồi.",
+  "computer.dialogue.prompt.usedLaptop":
+    "Một màn hình mới đang vận hành êm ru. Bàn phím sẵn sàng để dùng.",
+  "computer.dialogue.prompt.homePc":
+    "Một chiếc laptop cũ nằm mở trên bàn, nắp trầy xước nhưng vẫn hấp dẫn.",
+  "computer.dialogue.prompt.studyRig":
+    "Một chiếc laptop bóng bẩy đang chờ, màn hình sáng và bàn phím nhẹ tênh.",
   "computer.option.study": "Học",
   "computer.option.upgrade": "Nâng cấp",
   "computer.option.leave": "Rời đi",

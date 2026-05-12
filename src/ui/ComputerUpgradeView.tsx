@@ -34,6 +34,11 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
   const level = useComputerUpgradeLevel();
   const balance = useWalletBalance();
   const [message, setMessage] = useState<string | null>(null);
+  // Flashes the Buy button gold for ~180ms on a successful purchase,
+  // then closes so the world FX (desk flash + sparkles + pop) are
+  // visible. We don't show the "Upgraded to X" toast anymore — the
+  // animated desk is the feedback.
+  const [purchasing, setPurchasing] = useState(false);
   const nextLevel = getNextComputerLevel(level);
   const currentLevel = COMPUTER_LEVELS[level] ?? COMPUTER_LEVELS[0];
   const totalTiers = COMPUTER_LEVELS.length;
@@ -41,20 +46,30 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
   const canAfford = nextLevel !== null && balance >= nextLevel.costCents;
 
   const handleUpgrade = () => {
-    const result = purchaseNextComputerUpgrade();
-    if (result.ok) {
-      setMessage(t("computer.upgrade.success", { item: t(result.level.nameKey) }));
+    if (purchasing) return;
+    if (!nextLevel || !canAfford) {
+      // Defensive — button is disabled in this state, but keep the
+      // error toasts working in case the disable race somehow fails.
+      if (nextLevel && balance < nextLevel.costCents) {
+        setMessage(
+          t("computer.upgrade.needMoney", {
+            amount: formatBalance(nextLevel.costCents - balance),
+          }),
+        );
+      } else {
+        setMessage(t("computer.upgrade.maxed"));
+      }
       return;
     }
-    if (result.reason === "insufficient" && result.level) {
-      setMessage(
-        t("computer.upgrade.needMoney", {
-          amount: formatBalance(result.level.costCents - balance),
-        }),
-      );
-      return;
-    }
-    setMessage(t("computer.upgrade.maxed"));
+    // Show the gold-flash on the Buy button now, then defer the
+    // actual purchase + modal close so the world FX on the desk
+    // (which fires the moment the level changes) runs AFTER the
+    // modal disappears — otherwise the dark overlay hides it.
+    setPurchasing(true);
+    window.setTimeout(() => {
+      purchaseNextComputerUpgrade();
+      onClose();
+    }, 280);
   };
 
   return (
@@ -269,18 +284,25 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
 
         <button
           onClick={handleUpgrade}
-          disabled={!nextLevel || !canAfford}
+          disabled={!nextLevel || !canAfford || purchasing}
           style={{
-            background: canAfford ? COLORS.buyEnabled : COLORS.buyDisabled,
+            background: purchasing
+              ? COLORS.coinGold
+              : canAfford
+                ? COLORS.buyEnabled
+                : COLORS.buyDisabled,
             color: "#fdf6e0",
-            border: `2px solid ${COLORS.cardBorder}`,
+            border: `2px solid ${purchasing ? COLORS.accentGoldDark : COLORS.cardBorder}`,
             borderRadius: 4,
             padding: "10px 12px",
             fontSize: 14,
             fontWeight: 800,
             letterSpacing: 0.5,
-            cursor: canAfford ? "pointer" : "not-allowed",
+            cursor: canAfford && !purchasing ? "pointer" : "not-allowed",
             opacity: nextLevel ? (canAfford ? 1 : 0.75) : 0.6,
+            transition: "background 0.15s linear, transform 0.15s ease-out",
+            transform: purchasing ? "scale(1.03)" : "scale(1)",
+            boxShadow: purchasing ? `0 0 18px ${COLORS.coinGold}` : "none",
           }}
         >
           {nextLevel
