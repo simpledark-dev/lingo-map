@@ -41,10 +41,13 @@ const TRANSLATE_MODE_OPTION_NUMBERS: Record<string, string> = {
  *  label. `←` for "back to previous menu", `✕` for "close the
  *  whole interaction". Detection is by id pattern — every leave
  *  id we use already follows one of these conventions, so adding
- *  a new one needs no type change. */
+ *  a new one needs no type change. Both `-decline` (NPC offers
+ *  with a polite turn-down) and `-leave` (computer / shop / lender
+ *  abandon options) get the exit ✕ so the visual is consistent
+ *  across every "back out" affordance. */
 function leaveIcon(optionId: string): "back" | "exit" | null {
   if (optionId === "mode-back") return "back";
-  if (/(^|-)decline$/.test(optionId)) return "exit";
+  if (/(^|-)(decline|leave)$/.test(optionId)) return "exit";
   return null;
 }
 
