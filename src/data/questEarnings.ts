@@ -10,7 +10,7 @@
  * earnings, which broke in two ways:
  *   1. Dev cheats / earlier mode work pushed lifetime past the
  *      threshold, so each quest auto-completed the instant it
- *      started. Player never met Rina or Yusuf; sandwich quest
+ *      started. Player never met Rina or Yusuf; bread quest
  *      kicked off out of order.
  *   2. Doing more read sessions on Eli would silently complete
  *      the listen / write quests too — defeating the "tutorial

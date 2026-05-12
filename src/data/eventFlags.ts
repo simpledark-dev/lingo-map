@@ -1,7 +1,7 @@
 /**
  * Tiny boolean-flag store for one-shot game progression events.
  *
- * Slice 1 uses this for things like "child-asked-for-sandwich" and
+ * Slice 1 uses this for things like the legacy child food-request flag and
  * "child-fed" — too small for a full quest engine, but enough to
  * branch dialogue on what's already happened. When slice 2 lands a
  * proper quest state machine, flags here become quest-step keys

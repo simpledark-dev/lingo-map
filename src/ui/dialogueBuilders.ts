@@ -23,7 +23,6 @@ import {
   getBalance,
   getLifetimeEarnings,
 } from '../data/wallet';
-import { hasItem } from '../data/inventory';
 import {
   getDebt,
   canBorrow,
@@ -39,8 +38,8 @@ import { t } from '../data/i18n';
  *  state machine to the quest module — same four branches:
  *    1. Quest inactive → Mim asks; we `startQuest` so future
  *       visits skip the ask AND the toast fires.
- *    2. Active, no sandwich → Mim nags, no options.
- *    3. Active, has sandwich → "Give it" option appears. (The
+ *    2. Active, no bread → Mim nags, no options.
+ *    3. Active, has bread → "Give it" option appears. (The
  *       option handler is what actually completes the quest, so a
  *       player who opens this dialogue and walks away keeps the
  *       quest active rather than auto-finishing it on view.)
@@ -75,7 +74,7 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
   }
   if (status === 'completed') {
     return withChildName({
-      lines: [t('dialogue.mim.thanksForSandwich')],
+      lines: [t('dialogue.mim.thanksForBread')],
     });
   }
   if (status === 'inactive') {
@@ -83,7 +82,7 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
     // → Yusuf) is complete. Earlier this gated on `first-paycheck`,
     // which meant the moment the player claimed their first
     // paycheck they could walk home and Mim would kick off the
-    // sandwich quest mid-tutorial. The home thread should not
+    // bread quest mid-tutorial. The home thread should not
     // open until the office arc is closed.
     if (getQuestStatus('third-paycheck') === 'completed') {
       startQuest('child-sandwich');
@@ -107,7 +106,7 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
   // a Mim dialogue, so the very first visit needs to land the
   // hungry-ask beat — flagged so subsequent returns flip to the
   // ongoing "did you get it?" exchange. The Give option is shown
-  // both when the player has the sandwich AND when they don't:
+  // both when the player has the bread AND when they don't:
   // the option handler differentiates, and an inventory check at
   // selection time lets Mim deliver the "huh? where?" line as a
   // direct reaction to the player tapping Give without having one.
@@ -119,15 +118,13 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
       ],
     });
   }
-  // hasItem('sandwich') is read at option-handle time, not here, so
-  // the "Give" option always renders and the routing decides the
+  // The "Give" option always renders and the routing decides the
   // outcome based on inventory state at that moment. Keeps the
   // dialogue builder a pure projection of quest + flag state.
-  void hasItem;
   return withChildName({
-    lines: [t('dialogue.mim.didYouGet')],
+    lines: [t('dialogue.mim.didYouGetBread')],
     options: [
-      { id: 'child-give-sandwich', label: t('dialogue.mim.giveSandwich') },
+      { id: 'child-give-bread', label: t('dialogue.mim.giveBread') },
       { id: 'child-decline', label: t('dialogue.mim.notYet') },
     ],
   });
@@ -415,7 +412,7 @@ export const APARTMENT_DIALOGUE: ReadonlyArray<{
   { speaker: 'parent', text: () => t('apartment.line.smallButRent') },
   // Establish the concrete needs (food + broken computer) early so
   // the player has a why for the upcoming "I need money" beat. The
-  // child's hunger sets up the sandwich quest later; the broken
+  // child's hunger sets up the bread quest later; the broken
   // computer is the first home-upgrade objective the loop will lean
   // on once the tutorial chain wires up.
   { speaker: 'child',  text: () => t('apartment.line.childHungry') },

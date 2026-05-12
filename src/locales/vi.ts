@@ -183,16 +183,16 @@ export const vi: Record<string, string> = {
   "dialogue.mim.fallback": "Hi ba!",
   "dialogue.mim.goodLuckDad":
     "Ba đi cẩn thận nhé! Con chờ ở nhà. Ba mang tin vui về nha!",
-  "dialogue.mim.thanksForSandwich":
+  "dialogue.mim.thanksForBread":
     "Cảm ơn ba mua bánh mì cho con. Con thương ba nhất.",
   "dialogue.mim.imHungry":
-    "Con đói quá ba ơi… Ba qua Mart mua bánh mì sandwich cho con được không?…",
-  "dialogue.mim.didYouGet": "Ba mua bánh mì cho con chưa?",
-  "dialogue.mim.giveSandwich": "Đưa bánh mì 🥪",
+    "Con đói quá ba ơi… Ba qua Mart mua bánh mì cho con được không?…",
+  "dialogue.mim.didYouGetBread": "Ba mua bánh mì cho con chưa?",
+  "dialogue.mim.giveBread": "Đưa bánh mì 🍞",
   "dialogue.mim.notYet": "Con chờ thêm chút nữa",
   "dialogue.mim.preFirstPaycheck": "Ba ơi… mình ổn chứ ba?",
   "dialogue.mim.thanksNow": "Ngon quá! Cảm ơn ba!",
-  "dialogue.mim.noSandwich": "Ơ? Đâu ạ? Ba chưa mua mà…",
+  "dialogue.mim.noBread": "Ơ? Đâu ạ? Ba chưa mua mà…",
 
   // ── Translator-offer ──
   "dialogue.offer.generic":
@@ -560,9 +560,9 @@ export const vi: Record<string, string> = {
   "wordStats.filter.inReviewHint": "Những từ đang được đánh dấu ôn lại.",
 
   // ── Items ──
-  "item.sandwich.name": "Bánh mì",
-  "item.sandwich.description":
-    "Bánh mì kẹp phô mai với thịt nguội. Đơn giản nhưng no bụng.",
+  "item.bread.name": "Bánh mì",
+  "item.bread.description":
+    "Ổ bánh mì đơn giản từ Mart. Rẻ, no bụng, đáng tin.",
   "item.onigiri.name": "Cơm nắm",
   "item.onigiri.description": "Tam giác cơm với nhân mặn bên trong, rất tiện.",
   "item.apple.name": "Quả táo",

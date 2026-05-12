@@ -80,7 +80,7 @@ export interface QuestDef {
    *  pure. Skipped when undefined — the static `objective` field
    *  is shown instead. Lets a quest like child-sandwich say
    *  "your child wanted to talk to you" pre-conversation and
-   *  "Buy a sandwich at the Mart…" after they have actually asked. */
+   *  "Buy bread at the Mart…" after they have actually asked. */
   computeObjective?: () => string;
   /** Hint shown in the log BEFORE the quest is started — points
    *  the player at the NPC or location that triggers it. Lets
@@ -161,7 +161,7 @@ export function isAvailable(quest: QuestDef, statuses: StatusMap): boolean {
  *  single source of truth for quest copy. */
 export const QUESTS: Record<string, QuestDef> = {
   // Three tiny tutorial quests teaching the borrow → buy → eat
-  // loop. Auto-chained after the sandwich so the player has just
+  // loop. Auto-chained after the bread quest so the player has just
   // spent their starting cash and is in the right mindset for
   // "what do I do when I'm broke?". Each completes from inside
   // the relevant action handler (Theo's borrow, ShopView's buy,
@@ -207,7 +207,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   "child-sandwich": {
     id: "child-sandwich",
-    title: "A Sandwich for Your Child",
+    title: "Bread for Your Child",
     computeTitle: () =>
       t("quest.childSandwich.title", { child: childDisplayName() }),
     // Static fallback — only shown if `computeObjective` is somehow
@@ -216,7 +216,7 @@ export const QUESTS: Record<string, QuestDef> = {
     // Two-stage objective: pre-Mim-ask vs post-Mim-ask. Keeps the
     // quest log faithful to what the PLAYER currently knows
     // (Mim hasn't said anything yet → "go home and find out") vs
-    // what they're acting on (Mim asked → "buy a sandwich").
+    // what they're acting on (Mim asked → "buy bread").
     // Stage flips when CHILD_ASKED_FOR_SANDWICH is set inside
     // Mim's dialogue handler.
     computeObjective: () =>
@@ -225,11 +225,11 @@ export const QUESTS: Record<string, QuestDef> = {
         : t("quest.childSandwich.objectivePreAsk", {
             child: childDisplayName(),
           }),
-    completedSummary: "You brought your child a sandwich.",
+    completedSummary: "You brought your child bread.",
     computeCompletedSummary: () =>
       t("quest.childSandwich.completedSummary", { child: childDisplayName() }),
     // Auto-chained after the FULL office tutorial (Eli → Rina →
-    // Yusuf), not after first-paycheck alone — the sandwich beat
+    // Yusuf), not after first-paycheck alone — the bread beat
     // shouldn't arrive while the player is still mid-tutorial in
     // the office. By the time third-paycheck completes the player
     // has earnings + workflow muscle memory, and Mim's request
@@ -568,7 +568,7 @@ export function startQuest(id: string): void {
   const def = QUESTS[id];
   if (!def) return;
   // Disabled quests are silently skipped — keeps chain-trigger code
-  // (e.g. "after sandwich, start tutorial-borrow") working without
+  // (e.g. "after bread, start tutorial-borrow") working without
   // having to gate every call site.
   if (def.disabled) return;
   const current = read();

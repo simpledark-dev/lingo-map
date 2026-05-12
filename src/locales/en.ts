@@ -202,20 +202,20 @@ export const en: Record<string, string> = {
   "dialogue.theo.afterBorrow": "Here's {amount}. You now owe me {total}.",
   "dialogue.theo.squareUp": "Paid in full — we’re square. {amount} settled.",
 
-  // ── Mim (child sandwich) ──
+  // ── Mim (child bread) ──
   "dialogue.mim.fallback": "Hi!",
   "dialogue.mim.goodLuckDad":
     "Good luck, dad! I'll wait here. Bring back some good news!",
-  "dialogue.mim.thanksForSandwich":
-    "Thanks for the sandwich earlier! I love you, dad.",
+  "dialogue.mim.thanksForBread":
+    "Thanks for the bread earlier! I love you, dad.",
   "dialogue.mim.imHungry":
-    "I'm hungry… can you go to the Mart and grab me a sandwich? Please?",
-  "dialogue.mim.didYouGet": "Did you get my sandwich?",
-  "dialogue.mim.giveSandwich": "Give the sandwich 🥪",
+    "I'm hungry… can you go to the Mart and grab me some bread? Please?",
+  "dialogue.mim.didYouGetBread": "Did you get my bread?",
+  "dialogue.mim.giveBread": "Give the bread 🍞",
   "dialogue.mim.notYet": "Not yet",
   "dialogue.mim.preFirstPaycheck": "Hi dad. Are we okay?",
   "dialogue.mim.thanksNow": "Yes! Thank you, dad!",
-  "dialogue.mim.noSandwich": "Huh? Where? You didn’t buy it…",
+  "dialogue.mim.noBread": "Huh? Where? You didn’t buy it…",
 
   // ── Translator-offer (engine fallback used by NPCs without dialogueKind) ──
   "dialogue.offer.generic":
@@ -332,11 +332,11 @@ export const en: Record<string, string> = {
     "The third tutor wants to USE words, not just recognise them — earn another {threshold} in Write mode.",
   "quest.thirdPaycheck.completedSummary":
     "You learned to write the words you've learned.",
-  "quest.childSandwich.title": "A Sandwich for {child}",
+  "quest.childSandwich.title": "Bread for {child}",
   "quest.childSandwich.objectivePreAsk":
     "{child} wanted to talk to you. Head home.",
   "quest.childSandwich.objective":
-    "{child} is hungry. Buy a sandwich at the Mart and bring it home.",
+    "{child} is hungry. Buy bread at the Mart and bring it home.",
   "quest.childSandwich.completedSummary":
     "{child} ate. One less thing to worry about today.",
   "quest.upgradeComputer.title": "Replace the Broken Computer",
@@ -594,9 +594,9 @@ export const en: Record<string, string> = {
   "wordStats.filter.inReviewHint": "Currently flagged for forced review.",
 
   // ── Items ──
-  "item.sandwich.name": "Sandwich",
-  "item.sandwich.description":
-    "Soft bread, cheese, a slice of something. Lunchbox classic.",
+  "item.bread.name": "Bread",
+  "item.bread.description":
+    "Fresh loaf from the Mart. Simple, filling, dependable.",
   "item.onigiri.name": "Onigiri",
   "item.onigiri.description":
     "Triangle of warm rice with a salty surprise inside.",

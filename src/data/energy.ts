@@ -22,7 +22,7 @@ const STORAGE_KEY = 'lingo-energy:v1';
 
 /** Hard cap on the energy bar. Items refill toward this; any
  *  excess is silently dropped. Picked so the costliest food
- *  (sandwich, 10) plus a fresh-save starter still fits inside. */
+ *  (bread, 10) plus a fresh-save starter still fits inside. */
 export const MAX_ENERGY = 30;
 
 /** Energy a brand-new save starts with. Tuned generous so the

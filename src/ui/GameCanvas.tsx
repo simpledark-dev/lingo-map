@@ -582,9 +582,9 @@ export default function GameCanvas() {
       completeQuest("third-paycheck");
     }
     // After the office tutorial chain completes (Eli → Rina →
-    // Yusuf), the home thread picks up: Mim asks for a sandwich.
+    // Yusuf), the home thread picks up: Mim asks for bread.
     // Previously chained off `first-paycheck`, which meant the
-    // sandwich quest popped up right after Eli's job — before
+    // bread quest popped up right after Eli's job — before
     // the player had even met Rina or Yusuf. Gating on the LAST
     // tutorial keeps the office arc self-contained.
     if (
@@ -616,7 +616,7 @@ export default function GameCanvas() {
     ) {
       completeQuest("upgrade-computer");
     }
-    // Sandwich → tutorial chain (borrow → buy → eat). Each step
+    // Bread → tutorial chain (borrow → buy → eat). Each step
     // teaches one piece of the survival loop. Completion of each
     // step is fired from the relevant action handler so the
     // start-of-next-step toast lands exactly when the player
@@ -1793,14 +1793,14 @@ export default function GameCanvas() {
         closeDialogueEverywhere();
         return;
       }
-      // Child quest routes — give-the-sandwich consumes the item,
+      // Child quest routes — give-bread consumes the item,
       // sets CHILD_FED, and pushes a thank-you reply (single line, no
       // options). Decline just closes; the dialogue can be reopened
-      // later to give the sandwich. Inventory and flags are read
+      // later to give the bread. Inventory and flags are read
       // fresh each branch so the click reflects current state, not a
       // stale snapshot from when the menu rendered.
-      if (optionId === "child-give-sandwich") {
-        if (consumeItem("sandwich", 1)) {
+      if (optionId === "child-give-bread") {
+        if (consumeItem("bread", 1) || consumeItem("sandwich", 1)) {
           completeQuest("child-sandwich");
           setDialogue({
             npcId: dialogue.npcId,
@@ -1810,13 +1810,13 @@ export default function GameCanvas() {
           });
         } else {
           // The Give option is offered regardless of inventory now;
-          // tapping it without a sandwich means Mim catches the
+          // tapping it without bread means Mim catches the
           // bluff. Stay in the dialogue (no auto-close) so the
           // player can reread before walking away.
           setDialogue({
             npcId: dialogue.npcId,
             npcName: dialogue.npcName,
-            lines: [t('dialogue.mim.noSandwich')],
+            lines: [t('dialogue.mim.noBread')],
             currentLine: 0,
           });
         }
@@ -2467,7 +2467,7 @@ export default function GameCanvas() {
           >
             {inventoryRows.map((row) => (
               // Each chip gets its own outlined pill so neighbouring
-              // items don't visually merge into "(apple sandwich) ×2".
+              // items don't visually merge into "(apple bread) ×2".
               // The ×N counter renders even at count 1 (always
               // shows what belongs to which icon, no ambiguity).
               <span

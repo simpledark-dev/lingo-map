@@ -138,7 +138,7 @@ describe('buildChildSandwichDialogue', () => {
     expect(result.options).toBeUndefined();
   });
 
-  it('shows the give-sandwich option when sandwich quest is active and asked-flag is set', async () => {
+  it('shows the give-bread option when bread quest is active and asked-flag is set', async () => {
     const { buildChildSandwichDialogue } = await import('./dialogueBuilders');
     const { startQuest, completeQuest } = await import('../data/quests');
     const { setFlag, FLAGS } = await import('../data/eventFlags');
@@ -148,19 +148,19 @@ describe('buildChildSandwichDialogue', () => {
     setFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
     const result = buildChildSandwichDialogue(stub);
     expect(result.options?.map((o) => o.id)).toEqual([
-      'child-give-sandwich',
+      'child-give-bread',
       'child-decline',
     ]);
   });
 
-  it('returns the thank-you line when sandwich quest is completed', async () => {
+  it('returns the thank-you line when bread quest is completed', async () => {
     const { buildChildSandwichDialogue } = await import('./dialogueBuilders');
     const { completeQuest } = await import('../data/quests');
     completeQuest('intro-translator-job');
     completeQuest('first-paycheck');
     completeQuest('child-sandwich');
     const result = buildChildSandwichDialogue(stub);
-    expect(result.lines[0]).toMatch(/Thanks for the sandwich/);
+    expect(result.lines[0]).toMatch(/Thanks for the bread/);
     expect(result.options).toBeUndefined();
   });
 });
@@ -173,7 +173,9 @@ describe('APARTMENT_DIALOGUE script', () => {
     // Exact sequence is part of the narrative beat — locking it
     // means a copy-paste reorder would surface in tests.
     expect(speakers).toEqual([
-      'parent', 'parent', 'parent', 'parent',
+      'parent', 'parent',
+      'child',
+      'parent', 'parent', 'parent',
       'child',
       'parent', 'parent',
       'child',

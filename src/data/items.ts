@@ -33,13 +33,13 @@ export interface ItemDef {
 }
 
 export const ITEMS: Record<string, ItemDef> = {
-  sandwich: {
-    id: 'sandwich',
-    name: 'Sandwich',
-    icon: '🥪',
+  bread: {
+    id: 'bread',
+    name: 'Bread',
+    icon: '🍞',
     priceCents: 299,
     energy: 10,
-    description: 'Soft bread, cheese, a slice of something. Lunchbox classic.',
+    description: 'Fresh loaf from the Mart. Simple, filling, dependable.',
   },
   onigiri: {
     id: 'onigiri',
