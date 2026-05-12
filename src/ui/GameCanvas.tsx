@@ -1094,6 +1094,13 @@ export default function GameCanvas() {
               currentLine: 0,
             });
             break;
+          case "openComputerUpgrade":
+            // Player tapped the computer while a timer is running →
+            // skip the Study/Upgrade/Leave dialogue and jump straight
+            // into the upgrade view (where they can watch the bar tick
+            // or click "Finish" if it's ready).
+            setComputerUpgradeOpen(true);
+            break;
         }
       });
       return pixiApp.init(containerRef.current).catch((err) => {

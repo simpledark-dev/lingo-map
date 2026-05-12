@@ -73,6 +73,20 @@ interface AnimData {
   swayAmount: number; // max X sway in pixels
 }
 
+// Persistent in-world progress bar above an entity (the computer
+// desk) while an upgrade timer is running. Created on first
+// `setUpgradeProgressBar` call for an entity; mutated on subsequent
+// calls; destroyed by `clearUpgradeProgressBar` when the timer is
+// consumed. The container is parented to entityLayer so it Y-sorts
+// alongside the world.
+interface UpgradeBar {
+  container: Container;
+  fillBar: Graphics;
+  label: Text;
+  width: number;
+  height: number;
+}
+
 // One-shot upgrade-celebration effects. Each variant carries the
 // minimum state its tween needs; `elapsed` advances toward `duration`
 // in updateUpgradeFx and the entry removes itself when t reaches 1.
@@ -187,6 +201,12 @@ export class RenderSystem {
   /** Last value passed to `updateAnimations(time)`. Used to derive a
    * frame dt for upgrade FX without bolting on a second ticker. */
   private lastAnimTime: number | null = null;
+  /** In-world progress bars for objects with an "upgrade in progress"
+   * timer (currently just the computer-desk). One entry per entity;
+   * `setUpgradeProgressBar` creates/updates, `clearUpgradeProgressBar`
+   * destroys. PixiApp drives the lifecycle by subscribing to the
+   * timer state. */
+  private upgradeBars = new Map<string, UpgradeBar>();
   /** Edge-of-map district arrow bob — `id → { baseY, phase }`. Pure
    *  cosmetic: a 2px sine wave on Y to signal the arrow is tappable.
    *  Registered when an entity with a `edge-arrow-*` spriteKey lands
@@ -351,6 +371,11 @@ export class RenderSystem {
 
   renderObjects(map: MapData): void {
     this.currentMap = map;
+    // Destroy any in-world upgrade bars from the previous scene before
+    // we wipe entityLayer — otherwise `removeChildren` unparents the
+    // containers but the map still holds stale references that we'd
+    // then try to mutate next time `setUpgradeProgressBar` ran.
+    this.clearAllUpgradeProgressBars();
     this.entityLayer.removeChildren();
     this.floorContainer.removeChildren();
     this.roofLayer.removeChildren();
@@ -1210,6 +1235,94 @@ export class RenderSystem {
         vy: Math.sin(angle) * speed - 30, // bias slightly upward
         gravity: 130,
       });
+    }
+  }
+
+  /** Show or update the in-world progress bar above an entity. Driven
+   * by PixiApp's per-frame timer poll. Idempotent: creates the
+   * container on the first call, mutates fill + label on subsequent
+   * calls. `progress01` is clamped 0..1; `complete` flips the bar's
+   * color to bright gold so a ready-to-claim upgrade reads at a
+   * glance without the player having to open the modal. */
+  setUpgradeProgressBar(
+    entityId: string,
+    progress01: number,
+    label: string,
+    complete: boolean,
+  ): void {
+    const target = this.objectSprites.get(entityId);
+    if (!target) return;
+    const clamped = Math.max(0, Math.min(1, progress01));
+    let bar = this.upgradeBars.get(entityId);
+    const BAR_WIDTH = 26;
+    const BAR_HEIGHT = 3;
+    if (!bar) {
+      const container = new Container();
+      // Border + dark background drawn once; the fill is its own
+      // Graphics so we redraw only the moving rect each frame.
+      const bg = new Graphics();
+      bg.rect(-BAR_WIDTH / 2 - 1, -1, BAR_WIDTH + 2, BAR_HEIGHT + 2)
+        .fill(0x000000)
+        .rect(-BAR_WIDTH / 2, 0, BAR_WIDTH, BAR_HEIGHT)
+        .fill(0x3a2f1d);
+      const fillBar = new Graphics();
+      const labelText = new Text({
+        text: label,
+        style: {
+          fontFamily: "monospace",
+          fontSize: 5,
+          fontWeight: "bold",
+          fill: 0xfdf6e0,
+          stroke: { color: 0x000000, width: 2 },
+        },
+        resolution: 3,
+      });
+      labelText.anchor.set(0.5, 1);
+      labelText.x = 0;
+      labelText.y = -1;
+      container.addChild(bg, fillBar, labelText);
+      // Sit just above the regular object zIndex so the bar paints on
+      // top of the desk but still below UI overlays.
+      container.zIndex = target.zIndex + 50;
+      this.entityLayer.addChild(container);
+      bar = {
+        container,
+        fillBar,
+        label: labelText,
+        width: BAR_WIDTH,
+        height: BAR_HEIGHT,
+      };
+      this.upgradeBars.set(entityId, bar);
+    }
+    // Position above the desk's visible top edge.
+    bar.container.x = target.x;
+    bar.container.y =
+      target.y - target.texture.height * target.scale.y - 6;
+    // Update label (text + color for "ready").
+    if (bar.label.text !== label) bar.label.text = label;
+    bar.label.style.fill = complete ? 0xffd96b : 0xfdf6e0;
+    // Redraw fill width + color.
+    bar.fillBar.clear();
+    bar.fillBar
+      .rect(-bar.width / 2, 0, bar.width * clamped, bar.height)
+      .fill(complete ? 0xffd96b : 0xf2c34c);
+  }
+
+  /** Remove the in-world progress bar for an entity, if any. Called
+   * when the timer is consumed (player clicked "Finish") or canceled. */
+  clearUpgradeProgressBar(entityId: string): void {
+    const bar = this.upgradeBars.get(entityId);
+    if (!bar) return;
+    this.entityLayer.removeChild(bar.container);
+    bar.container.destroy({ children: true });
+    this.upgradeBars.delete(entityId);
+  }
+
+  /** Remove every in-world progress bar. Used on scene teardown so
+   * bars from the previous scene don't leak into the new one. */
+  clearAllUpgradeProgressBars(): void {
+    for (const id of [...this.upgradeBars.keys()]) {
+      this.clearUpgradeProgressBar(id);
     }
   }
 

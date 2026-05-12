@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import { addBalance, getBalance } from "./wallet";
+import {
+  clearUpgradeTimer,
+  getUpgradeTimer,
+  isUpgradeTimerComplete,
+  startUpgradeTimer,
+} from "./computerUpgradeTimer";
 
 export const COMPUTER_UPGRADE_STORAGE_KEY = "lingo-computer:level";
 
@@ -15,6 +21,11 @@ export interface ComputerLevel {
    * description updates as the player upgrades. */
   promptKey: string;
   costCents: number;
+  /** Time the upgrade timer runs for after the player starts buying
+   * this tier. Interpreted as "the wait BEFORE reaching this level."
+   * Undefined / 0 only valid for the starting tier (no upgrade into
+   * it). Kept short for early dev; tune up later. */
+  upgradeDurationMs?: number;
 }
 
 export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
@@ -33,6 +44,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     descriptionKey: "computer.level.usedLaptop.description",
     promptKey: "computer.dialogue.prompt.usedLaptop",
     costCents: 500,
+    upgradeDurationMs: 30_000, // 30s — easy to test
   },
   {
     level: 2,
@@ -41,6 +53,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     descriptionKey: "computer.level.homePc.description",
     promptKey: "computer.dialogue.prompt.homePc",
     costCents: 2500,
+    upgradeDurationMs: 60_000, // 1 min
   },
   {
     level: 3,
@@ -49,6 +62,7 @@ export const COMPUTER_LEVELS: readonly ComputerLevel[] = [
     descriptionKey: "computer.level.studyRig.description",
     promptKey: "computer.dialogue.prompt.studyRig",
     costCents: 7500,
+    upgradeDurationMs: 120_000, // 2 min
   },
 ];
 
@@ -112,17 +126,38 @@ export function setComputerUpgradeLevel(level: number): number {
   return next;
 }
 
-export function purchaseNextComputerUpgrade():
+/** Step 1 of the two-step upgrade flow: deduct money, start the
+ * countdown timer. The actual level change happens later via
+ * `finishComputerUpgrade` once the timer completes. */
+export function startNextComputerUpgrade():
   | { ok: true; level: ComputerLevel }
-  | { ok: false; reason: "max" | "insufficient"; level?: ComputerLevel } {
+  | {
+      ok: false;
+      reason: "max" | "insufficient" | "alreadyRunning";
+      level?: ComputerLevel;
+    } {
+  if (getUpgradeTimer()) return { ok: false, reason: "alreadyRunning" };
   const nextLevel = getNextComputerLevel();
   if (!nextLevel) return { ok: false, reason: "max" };
   if (getBalance() < nextLevel.costCents) {
     return { ok: false, reason: "insufficient", level: nextLevel };
   }
   addBalance(-nextLevel.costCents);
-  setComputerUpgradeLevel(nextLevel.level);
+  startUpgradeTimer(nextLevel.level, nextLevel.upgradeDurationMs ?? 0);
   return { ok: true, level: nextLevel };
+}
+
+/** Step 2 of the two-step upgrade flow: apply the queued level change
+ * and clear the timer. Only succeeds when the timer has completed.
+ * The level-change listener (PixiApp's subscriber) fires the
+ * celebration FX from here. */
+export function finishComputerUpgrade(): { ok: true; level: ComputerLevel } | { ok: false; reason: "noTimer" | "notReady" } {
+  const timer = getUpgradeTimer();
+  if (!timer) return { ok: false, reason: "noTimer" };
+  if (!isUpgradeTimerComplete(timer)) return { ok: false, reason: "notReady" };
+  setComputerUpgradeLevel(timer.targetLevel);
+  clearUpgradeTimer();
+  return { ok: true, level: getComputerLevel(timer.targetLevel) };
 }
 
 export function subscribeComputerUpgradeLevel(listener: Listener): () => void {

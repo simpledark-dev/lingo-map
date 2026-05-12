@@ -15,6 +15,11 @@ import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NP
 import { buildCarNetwork, carAABB, CAR_SPRITE_SETS, CarCollisionBox, CarNetwork, CarSystemState, createCarSystemState, lookAheadBox, spriteKeyForCar, updateCars } from '../core/CarSystem';
 import { getTexture, loadAssets, loadCharacterAtlas, loadInteriorSheets, loadPackSingle, loadUiAtlas } from './AssetLoader';
 import { getComputerLevel, getDeskSpriteKey, subscribeComputerUpgradeLevel } from '../data/computerUpgrade';
+import {
+  formatUpgradeRemaining,
+  getUpgradeTimer,
+  getUpgradeTimerProgress,
+} from '../data/computerUpgradeTimer';
 import { getNpcFirstDialogueLine } from '../data/npcDialogue';
 
 /** localStorage key kept in sync with `data/car-collisions.json` by the
@@ -130,6 +135,32 @@ export class PixiApp {
    * `subscribeComputerUpgradeLevel` callback so the player sees the
    * room update the instant they buy an upgrade. No-op if RenderSystem
    * isn't mounted yet (still loading) or no desk is on the active map. */
+  /** Sync the in-world progress bars above any `computer-desk` in the
+   * current scene with the upgrade-timer state. Called every frame so
+   * the bar animates smoothly. Cheap: one object allocation + at most
+   * one RenderSystem call per desk; no-op when there's no timer and
+   * no bar to clear. */
+  private refreshUpgradeProgressBars(): void {
+    if (!this.renderSystem || !this.gameState) return;
+    const progress = getUpgradeTimerProgress();
+    for (const entity of this.gameState.entities) {
+      if (entity.spriteKey !== 'computer-desk') continue;
+      if (!progress) {
+        this.renderSystem.clearUpgradeProgressBar(entity.id);
+        continue;
+      }
+      const label = progress.complete
+        ? t('computer.upgrade.ready')
+        : formatUpgradeRemaining(progress.remainingMs);
+      this.renderSystem.setUpgradeProgressBar(
+        entity.id,
+        progress.progress01,
+        label,
+        progress.complete,
+      );
+    }
+  }
+
   private refreshComputerDeskTexture(playFx = false): void {
     if (!this.renderSystem || !this.gameState) return;
     const key = getDeskSpriteKey();
@@ -202,6 +233,14 @@ export class PixiApp {
 
     if ((input.interact || tappedComputer) && nearComputer) {
       input.moveTarget = null;
+      // Upgrade in progress (or ready to claim) → skip the regular
+      // Study/Upgrade/Leave dialogue and open the upgrade modal
+      // directly. The player's intent on tapping the computer during
+      // a timer is overwhelmingly "check the timer / finish it."
+      if (getUpgradeTimer()) {
+        this.bridge.emit({ type: 'openComputerUpgrade' });
+        return null;
+      }
       return this.buildComputerDialogue();
     }
 
@@ -872,6 +911,11 @@ export class PixiApp {
     const map = this.currentMap;
     const mapW = map.width * map.tileSize;
     const mapH = map.height * map.tileSize;
+
+    // Keep the in-world upgrade-timer bar in sync each frame. Cheap
+    // when there's no timer (early return inside the helper) so this
+    // doesn't add per-frame cost in the common case.
+    this.refreshUpgradeProgressBars();
 
     this.inputAdapter.cameraOffset = { ...this.gameState.camera };
     this.inputAdapter.playerPos = { x: this.gameState.player.x, y: this.gameState.player.y };

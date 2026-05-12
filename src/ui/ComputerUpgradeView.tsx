@@ -5,10 +5,17 @@ import {
   COMPUTER_LEVELS,
   ComputerLevel,
   ComputerLevelId,
+  finishComputerUpgrade,
   getNextComputerLevel,
-  purchaseNextComputerUpgrade,
+  startNextComputerUpgrade,
   useComputerUpgradeLevel,
 } from "../data/computerUpgrade";
+import {
+  formatUpgradeRemaining,
+  getUpgradeTimerProgress,
+  useNow,
+  useUpgradeTimer,
+} from "../data/computerUpgradeTimer";
 import { t } from "../data/i18n";
 import { formatBalance, useWalletBalance } from "../data/wallet";
 import { getUiTheme } from "./uiThemes";
@@ -57,44 +64,93 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
   const level = useComputerUpgradeLevel();
   const balance = useWalletBalance();
   const compact = useCompactLayout();
+  const timer = useUpgradeTimer();
+  // Re-tick every 250ms so the MM:SS label + progress bar refresh
+  // while a timer is running. No-op when there's no timer.
+  const now = useNow(250);
   const [message, setMessage] = useState<string | null>(null);
-  // Flashes the Buy button gold for ~180ms on a successful purchase,
-  // then closes so the world FX (desk flash + sparkles + pop) are
-  // visible. We don't show the "Upgraded to X" toast anymore — the
-  // animated desk is the feedback.
   const [purchasing, setPurchasing] = useState(false);
-  const nextLevel = getNextComputerLevel(level);
+
   const currentLevel = COMPUTER_LEVELS[level] ?? COMPUTER_LEVELS[0];
   const totalTiers = COMPUTER_LEVELS.length;
+  // While a timer is running, the "next" card should reflect the tier
+  // the player is actually upgrading TO, not whatever
+  // `getNextComputerLevel(level)` would say (those match in normal
+  // flow, but using the timer's target avoids any drift if level got
+  // bumped externally).
+  const nextLevel: ComputerLevel | null = timer
+    ? COMPUTER_LEVELS[timer.targetLevel] ?? null
+    : getNextComputerLevel(level);
   const isMaxed = nextLevel === null;
-  const canAfford = nextLevel !== null && balance >= nextLevel.costCents;
+  const progress = getUpgradeTimerProgress(now, timer);
 
-  const handleUpgrade = () => {
+  // Three modes — each maps to a different button + state-line.
+  type Mode = "idle" | "running" | "ready";
+  const mode: Mode = progress
+    ? progress.complete
+      ? "ready"
+      : "running"
+    : "idle";
+
+  const canAfford =
+    mode === "idle" && nextLevel !== null && balance >= nextLevel.costCents;
+
+  const handleStart = () => {
     if (purchasing) return;
-    if (!nextLevel || !canAfford) {
-      // Defensive — button is disabled in this state, but keep the
-      // error toasts working in case the disable race somehow fails.
-      if (nextLevel && balance < nextLevel.costCents) {
-        setMessage(
-          t("computer.upgrade.needMoney", {
-            amount: formatBalance(nextLevel.costCents - balance),
-          }),
-        );
-      } else {
-        setMessage(t("computer.upgrade.maxed"));
-      }
+    if (!nextLevel) {
+      setMessage(t("computer.upgrade.maxed"));
       return;
     }
-    // Show the gold-flash on the Buy button now, then defer the
-    // actual purchase + modal close so the world FX on the desk
-    // (which fires the moment the level changes) runs AFTER the
-    // modal disappears — otherwise the dark overlay hides it.
+    if (balance < nextLevel.costCents) {
+      setMessage(
+        t("computer.upgrade.needMoney", {
+          amount: formatBalance(nextLevel.costCents - balance),
+        }),
+      );
+      return;
+    }
+    // Gold-flash the button, then commit the start. Modal stays open
+    // so the player sees the timer tick down right away.
     setPurchasing(true);
     window.setTimeout(() => {
-      purchaseNextComputerUpgrade();
+      startNextComputerUpgrade();
+      setPurchasing(false);
+    }, 200);
+  };
+
+  const handleFinish = () => {
+    if (purchasing) return;
+    // Same flash-then-close cadence as the old one-step flow — the
+    // delay gives the world FX time to play AFTER the modal is gone.
+    setPurchasing(true);
+    window.setTimeout(() => {
+      finishComputerUpgrade();
       onClose();
     }, 280);
   };
+
+  const handlePrimaryClick = () => {
+    if (mode === "ready") handleFinish();
+    else handleStart();
+  };
+
+  const primaryDisabled =
+    purchasing ||
+    (mode === "idle" && (!nextLevel || !canAfford)) ||
+    mode === "running";
+
+  const primaryLabel = (() => {
+    if (mode === "ready") return t("computer.upgrade.finishButton");
+    if (mode === "running" && progress) {
+      return t("computer.upgrade.runningButton", {
+        time: formatUpgradeRemaining(progress.remainingMs),
+      });
+    }
+    if (!nextLevel) return t("computer.upgrade.maxedButton");
+    return t("computer.upgrade.button", {
+      price: formatBalance(nextLevel.costCents),
+    });
+  })();
 
   return (
     <div
@@ -340,32 +396,99 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
           </div>
         )}
 
+        {/* Timer progress bar — only shown while an upgrade is in
+            progress or has just completed. Sits right above the
+            primary button so the eye moves "progress → action". */}
+        {progress && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                fontSize: compact ? 10 : 11,
+                fontWeight: 800,
+                letterSpacing: 0.5,
+                textTransform: "uppercase",
+                color: progress.complete
+                  ? COLORS.accentGoldDark
+                  : COLORS.hintText,
+              }}
+            >
+              <span>
+                {progress.complete
+                  ? t("computer.upgrade.ready")
+                  : t("computer.upgrade.inProgress")}
+              </span>
+              {!progress.complete && (
+                <span style={{ color: COLORS.text, fontVariantNumeric: "tabular-nums" }}>
+                  {formatUpgradeRemaining(progress.remainingMs)}
+                </span>
+              )}
+            </div>
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                height: 8,
+                background: COLORS.parchmentLight,
+                border: `2px solid ${COLORS.cardBorder}`,
+                borderRadius: 4,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: `${progress.progress01 * 100}%`,
+                  background: COLORS.coinGold,
+                  transition: "width 0.25s linear",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         <button
-          onClick={handleUpgrade}
-          disabled={!nextLevel || !canAfford || purchasing}
+          onClick={handlePrimaryClick}
+          disabled={primaryDisabled}
           style={{
             background: purchasing
               ? COLORS.coinGold
-              : canAfford
-                ? COLORS.buyEnabled
-                : COLORS.buyDisabled,
+              : mode === "ready"
+                ? COLORS.coinGold
+                : canAfford
+                  ? COLORS.buyEnabled
+                  : COLORS.buyDisabled,
             color: "#fdf6e0",
-            border: `2px solid ${purchasing ? COLORS.accentGoldDark : COLORS.cardBorder}`,
+            border: `2px solid ${
+              purchasing || mode === "ready" ? COLORS.accentGoldDark : COLORS.cardBorder
+            }`,
             borderRadius: 4,
             padding: compact ? "7px 10px" : "10px 12px",
             fontSize: compact ? 13 : 14,
             fontWeight: 800,
             letterSpacing: 0.5,
-            cursor: canAfford && !purchasing ? "pointer" : "not-allowed",
-            opacity: nextLevel ? (canAfford ? 1 : 0.75) : 0.6,
+            cursor: primaryDisabled ? "not-allowed" : "pointer",
+            opacity: primaryDisabled && mode !== "running" ? 0.7 : 1,
             transition: "background 0.15s linear, transform 0.15s ease-out",
             transform: purchasing ? "scale(1.03)" : "scale(1)",
-            boxShadow: purchasing ? `0 0 18px ${COLORS.coinGold}` : "none",
+            boxShadow:
+              purchasing || mode === "ready"
+                ? `0 0 18px ${COLORS.coinGold}`
+                : "none",
           }}
         >
-          {nextLevel
-            ? t("computer.upgrade.button", { price: formatBalance(nextLevel.costCents) })
-            : t("computer.upgrade.maxedButton")}
+          {primaryLabel}
         </button>
       </div>
     </div>

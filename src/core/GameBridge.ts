@@ -15,7 +15,11 @@ export type GameEvent =
    *  can show a placeholder ("You must reach <title> to visit this
    *  district."). Fires once per overlap; player must step off the
    *  trigger before another one will fire. */
-  | { type: 'lockedTransition'; title: string };
+  | { type: 'lockedTransition'; title: string }
+  /** Player tapped/interacted with the apartment computer while an
+   *  upgrade timer is running. The UI opens the upgrade modal directly
+   *  instead of showing the regular Study/Upgrade/Leave dialogue. */
+  | { type: 'openComputerUpgrade' };
 
 type Listener = (event: GameEvent) => void;
 
