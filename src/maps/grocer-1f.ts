@@ -105,11 +105,11 @@ const objects: Entity[] = [
 const npcs: NPCData[] = [
   {
     id: "grocer-1f-npc-shopkeeper",
-    x: tx(14) + T / 2,
-    y: ty(6),
+    x: tx(9),
+    y: ty(5),
     spriteKey: "me-char-15",
     anchor: { x: 0.5, y: 1.0 },
-    sortY: ty(6),
+    sortY: ty(5),
     collisionBox: { offsetX: -4, offsetY: -6, width: 8, height: 6 },
     name: "Shopkeeper",
     dialogue: ["Welcome!"],
