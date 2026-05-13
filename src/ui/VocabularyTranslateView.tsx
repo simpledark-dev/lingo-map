@@ -79,6 +79,57 @@ interface VocabularyTranslateViewProps {
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
 
+type VisibleViewport = {
+  width: number;
+  height: number;
+  offsetTop: number;
+  offsetLeft: number;
+  keyboardOpen: boolean;
+};
+
+function readVisibleViewport(): VisibleViewport | null {
+  if (typeof window === 'undefined') return null;
+  const vv = window.visualViewport;
+  if (!vv) return null;
+  const layoutHeight = window.innerHeight || document.documentElement.clientHeight || vv.height;
+  return {
+    width: vv.width,
+    height: vv.height,
+    offsetTop: vv.offsetTop,
+    offsetLeft: vv.offsetLeft,
+    keyboardOpen: layoutHeight - vv.height > 120,
+  };
+}
+
+function useVisibleViewport(): VisibleViewport | null {
+  const [viewport, setViewport] = useState<VisibleViewport | null>(() =>
+    readVisibleViewport(),
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    let raf = 0;
+    const sync = () => {
+      window.cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(() => {
+        setViewport(readVisibleViewport());
+      });
+    };
+    sync();
+    window.visualViewport.addEventListener('resize', sync);
+    window.visualViewport.addEventListener('scroll', sync);
+    window.addEventListener('resize', sync);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.visualViewport?.removeEventListener('resize', sync);
+      window.visualViewport?.removeEventListener('scroll', sync);
+      window.removeEventListener('resize', sync);
+    };
+  }, []);
+
+  return viewport;
+}
+
 interface Round {
   prompt: VocabularyEntry;
   choices: VocabularyEntry[];
@@ -119,6 +170,8 @@ function creditQuestEarningsIfMatched(
 export default function VocabularyTranslateView({ pack, npcName, mode = 'read', onClose }: VocabularyTranslateViewProps) {
   const isListenMode = mode === 'listen';
   const isWriteMode = mode === 'write';
+  const visibleViewport = useVisibleViewport();
+  const keyboardOpen = isWriteMode && !!visibleViewport?.keyboardOpen;
   // Load persisted progress for this pack first; the picker reads
   // it to bias toward weak words. Initialised inside useState's
   // initializer so we only hit localStorage once per mount.
@@ -704,17 +757,39 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
     return <OutOfEnergyPanel npcName={npcName} onClose={onClose} />;
   }
 
+  const translateOverlayStyle = keyboardOpen && visibleViewport
+    ? {
+        position: 'fixed' as const,
+        left: visibleViewport.offsetLeft,
+        top: visibleViewport.offsetTop,
+        width: visibleViewport.width,
+        height: visibleViewport.height,
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: 10,
+        overflowY: 'auto' as const,
+        WebkitOverflowScrolling: 'touch' as const,
+      }
+    : {
+        position: 'absolute' as const,
+        inset: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+      };
+  const translatePanelMaxHeight =
+    keyboardOpen && visibleViewport
+      ? `${Math.max(220, Math.floor(visibleViewport.height) - 20)}px`
+      : '90vh';
+
   return (
     <div
       style={{
-        position: 'absolute',
-        inset: 0,
+        ...translateOverlayStyle,
         zIndex: 60,
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         background: 'rgba(0,0,0,0.5)',
-        padding: 16,
+        boxSizing: 'border-box',
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -724,7 +799,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           ...UI_THEME.modal.panelStyle,
           width: '100%',
           maxWidth: 480,
-          maxHeight: '90vh',
+          maxHeight: translatePanelMaxHeight,
           pointerEvents: endingToSummary ? 'none' : 'auto',
           animation: endingToSummary
             ? 'lingoMapTranslatePanelOut 180ms ease-in forwards'
@@ -1195,10 +1270,23 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                     // open. Doing it here (instead of relying on the
                     // useEffect that fires after re-render) makes
                     // the keyboard pop up immediately for the next
-                    // word in write mode.
+                    // word in write mode. The input is readOnly
+                    // while the answered round is locked; iOS will
+                    // focus a readOnly input without opening the
+                    // keyboard, so clear that DOM flag first. React
+                    // re-applies the correct non-readOnly state when
+                    // advanceToNextRound renders the next prompt.
                     if (isWriteMode) {
-                      writeInputRef.current?.focus();
-                      writeInputRef.current?.select();
+                      const input = writeInputRef.current;
+                      if (input) {
+                        input.readOnly = false;
+                        input.focus();
+                        input.select();
+                        input.scrollIntoView({ block: 'center', inline: 'nearest' });
+                        window.setTimeout(() => {
+                          input.scrollIntoView({ block: 'center', inline: 'nearest' });
+                        }, 260);
+                      }
                     }
                     advanceToNextRound();
                   }}
@@ -1456,8 +1544,14 @@ function WriteForm({
   useEffect(() => {
     if (disabled || outcome !== null) return;
     const timer = window.setTimeout(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
+      const input = inputRef.current;
+      if (!input) return;
+      input.focus();
+      input.select();
+      input.scrollIntoView({ block: 'center', inline: 'nearest' });
+      window.setTimeout(() => {
+        input.scrollIntoView({ block: 'center', inline: 'nearest' });
+      }, 260);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [disabled, outcome, target]);
