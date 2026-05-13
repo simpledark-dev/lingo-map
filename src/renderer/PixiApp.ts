@@ -100,6 +100,13 @@ export class PixiApp {
   private debugShowTapZones = false;
   private debugKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private pageLifecycleHandler: (() => void) | null = null;
+  private contextLostHandler: ((e: Event) => void) | null = null;
+  private contextRestoredHandler: (() => void) | null = null;
+  /** Set when the WebGL context is lost. The per-frame tick bails on
+   * this so we don't issue draw calls against a dead context — the
+   * recovery path (full page reload, gated on a fresh persistWorldState)
+   * runs from the contextlost handler itself. */
+  private contextLost = false;
   /** Frame counter for the path/target "give up" guard. Each tick the
    * player is in path/target mode but didn't actually move (collision
    * blocked us, or pathfinding sent us at an obstacle), this
@@ -500,8 +507,32 @@ export class PixiApp {
     this.app.resize();
 
     this.app.ticker.add((ticker) => {
+      if (this.contextLost) return;
       this.update(ticker.deltaMS / 1000);
     });
+
+    // WebGL context loss recovery. Android Chrome aggressively discards
+    // GPU contexts when a PWA/tab is backgrounded; when it returns, all
+    // texture handles are dead. Without this, the symptom is a black
+    // ground layer (tile textures gone) with intact HUD + character
+    // sprites (lazy-reloaded later). Persist world state synchronously
+    // inside the handler so the reload picks up at the exact same map +
+    // position, then full-reload — cleanest path through Pixi 8's atlas /
+    // auto-tile texture sources.
+    this.contextLostHandler = (e: Event) => {
+      e.preventDefault();
+      this.contextLost = true;
+      try {
+        this.persistWorldState(true);
+      } catch {
+        /* persist failures shouldn't block reload */
+      }
+    };
+    this.contextRestoredHandler = () => {
+      if (typeof window !== 'undefined') window.location.reload();
+    };
+    canvas.addEventListener('webglcontextlost', this.contextLostHandler);
+    canvas.addEventListener('webglcontextrestored', this.contextRestoredHandler);
 
     // Earlier we kicked off a `preloadAllAssets()` here to make scene
     // transitions instant. The cost: ~3 MB of PNGs fetched in the
@@ -1564,6 +1595,15 @@ export class PixiApp {
       window.removeEventListener('pagehide', this.pageLifecycleHandler);
       document.removeEventListener('visibilitychange', this.pageLifecycleHandler);
       this.pageLifecycleHandler = null;
+    }
+    if (this.contextLostHandler || this.contextRestoredHandler) {
+      const canvas = this.app?.canvas as HTMLCanvasElement | undefined;
+      if (canvas) {
+        if (this.contextLostHandler) canvas.removeEventListener('webglcontextlost', this.contextLostHandler);
+        if (this.contextRestoredHandler) canvas.removeEventListener('webglcontextrestored', this.contextRestoredHandler);
+      }
+      this.contextLostHandler = null;
+      this.contextRestoredHandler = null;
     }
     if (this.tapFeedback) {
       this.tapFeedback.destroy();
