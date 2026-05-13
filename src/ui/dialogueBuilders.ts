@@ -32,6 +32,11 @@ import {
 import { hasFlag, setFlag, FLAGS } from '../data/eventFlags';
 import { getPlayerName, getChildName } from '../data/profile';
 import { t } from '../data/i18n';
+import { getTarget } from '../data/target';
+
+function targetLanguageName(): string {
+  return t(`targetLanguageName.${getTarget()}`);
+}
 
 /** Compose the child NPC's dialogue based on the current quest's
  *  status + inventory. Slice 2 promotes the previous flag-driven
@@ -419,7 +424,7 @@ export const APARTMENT_DIALOGUE: ReadonlyArray<{
   { speaker: 'parent', text: () => t('apartment.line.foodAndFix') },
   { speaker: 'parent', text: () => t('apartment.line.needMoney') },
   { speaker: 'parent', text: () => t('apartment.line.sawAd') },
-  { speaker: 'child',  text: () => t('apartment.line.childObjection') },
+  { speaker: 'child',  text: () => t('apartment.line.childObjection', { language: targetLanguageName() }) },
   { speaker: 'parent', text: () => t('apartment.line.iKnow') },
   { speaker: 'parent', text: () => t('apartment.line.fakeIt') },
   { speaker: 'child',  text: () => t('apartment.line.willItWork') },

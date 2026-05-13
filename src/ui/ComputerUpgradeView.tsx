@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   COMPUTER_LEVELS,
   ComputerLevel,
@@ -18,53 +18,21 @@ import {
   useUpgradeTimer,
 } from "../data/computerUpgradeTimer";
 import { t } from "../data/i18n";
+import { getMeaning, VocabularyEntry } from "../data/vocabularyPacks";
 import {
-  getMeaning,
-  MIRA_PACK,
-  VocabularyEntry,
-} from "../data/vocabularyPacks";
+  hasSeenWords,
+  pickSpeedupQuestion,
+  type SpeedupQuestion,
+} from "../data/speedupQuiz";
 import { formatBalance, useWalletBalance } from "../data/wallet";
 import { playSfx, SFX } from "./sfx";
 import { getUiTheme } from "./uiThemes";
 
-// Source of words for the speed-up mini-quiz. Pinned to MIRA_PACK
-// because it's the broadest beginner-friendly deck; later we can
-// route to whatever pack the player is currently studying.
-const SPEEDUP_PACK = MIRA_PACK;
 // How much time each correct answer shaves off the timer.
 const SPEEDUP_REWARD_MS = 10_000;
-
-interface SpeedupQuestion {
-  correct: VocabularyEntry;
-  options: VocabularyEntry[];
-}
-
-function buildSpeedupQuestion(): SpeedupQuestion {
-  const pool = SPEEDUP_PACK.entries;
-  const correct = pool[Math.floor(Math.random() * pool.length)];
-  // Prefer same-POS distractors so the test is meaningful — fall
-  // back to any if the POS pool is too small.
-  const samePos = pool.filter(
-    (e) => e.target !== correct.target && e.pos === correct.pos,
-  );
-  const fallback = pool.filter((e) => e.target !== correct.target);
-  const distractorPool = samePos.length >= 3 ? samePos : fallback;
-  const distractors: VocabularyEntry[] = [];
-  const used = new Set<string>();
-  while (distractors.length < 3 && distractors.length < distractorPool.length) {
-    const candidate =
-      distractorPool[Math.floor(Math.random() * distractorPool.length)];
-    if (used.has(candidate.target)) continue;
-    used.add(candidate.target);
-    distractors.push(candidate);
-  }
-  const options = [correct, ...distractors];
-  for (let i = options.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [options[i], options[j]] = [options[j], options[i]];
-  }
-  return { correct, options };
-}
+// Don't replay the last N answered targets when picking the next
+// question — keeps the same word from firing twice in a row.
+const SPEEDUP_RECENT_CAP = 3;
 
 const UI_THEME = getUiTheme();
 const COLORS = UI_THEME.colors;
@@ -121,9 +89,26 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
   // close X) stays the same across both so the player can always bail
   // out the same way.
   const [view, setView] = useState<"upgrade" | "speedup">("upgrade");
-  const [question, setQuestion] = useState<SpeedupQuestion>(() =>
-    buildSpeedupQuestion(),
-  );
+  // Picked lazily when the player enters the speed-up view — picking
+  // at mount would needlessly read every pack's localStorage on every
+  // open of the upgrade modal, even when the player just wants to
+  // start/finish a tier.
+  const [question, setQuestion] = useState<SpeedupQuestion | null>(null);
+  // Rolling buffer of the last few correct targets so the picker
+  // doesn't show the same word twice in a row. Cleared when the
+  // modal unmounts.
+  const recentTargetsRef = useRef<string[]>([]);
+  const nextQuestion = (): SpeedupQuestion | null => {
+    const recent = new Set(recentTargetsRef.current);
+    return pickSpeedupQuestion(recent);
+  };
+  const rememberAsked = (target: string) => {
+    const next = [...recentTargetsRef.current, target];
+    if (next.length > SPEEDUP_RECENT_CAP) {
+      next.splice(0, next.length - SPEEDUP_RECENT_CAP);
+    }
+    recentTargetsRef.current = next;
+  };
   // After answering, freeze the buttons for a beat to show feedback
   // (green for correct, red for wrong), then auto-advance to the
   // next question.
@@ -196,7 +181,16 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
 
   const enterSpeedup = () => {
     if (mode !== "running") return;
-    setQuestion(buildSpeedupQuestion());
+    const q = nextQuestion();
+    // No seen words in the active target language — nothing valid
+    // to review yet. Surface a one-shot hint and stay on the upgrade
+    // view rather than opening an empty quiz.
+    if (!q) {
+      setMessage(t("computer.speedup.needSeenWords"));
+      return;
+    }
+    rememberAsked(q.correct.target);
+    setQuestion(q);
     setAnswerState(null);
     setFloater(null);
     setView("speedup");
@@ -212,7 +206,7 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
     // Lock the buttons; the round stays in "review" state until the
     // player clicks Next, so they can see the correct answer + reward
     // feedback at their own pace (matches the Translate-view pattern).
-    if (answerState) return;
+    if (answerState || !question) return;
     const isCorrect = entry.target === question.correct.target;
     setAnswerState({ pickedTarget: entry.target, correct: isCorrect });
     if (isCorrect) {
@@ -229,7 +223,18 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
   };
 
   const handleSpeedupNext = () => {
-    setQuestion(buildSpeedupQuestion());
+    const q = nextQuestion();
+    // Vocabulary state changed mid-session (e.g. the player reset
+    // progress in another tab) and there's nothing valid left to
+    // review — bail back to the upgrade view rather than rendering
+    // an empty quiz.
+    if (!q) {
+      exitSpeedup();
+      setMessage(t("computer.speedup.needSeenWords"));
+      return;
+    }
+    rememberAsked(q.correct.target);
+    setQuestion(q);
     setAnswerState(null);
     setFloater(null);
   };
@@ -252,12 +257,24 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
     else handleStart();
   };
 
+  // Resolve once per render so the disabled state + the helper-line
+  // below the button stay in sync. Cheap (bails on first seen word)
+  // and recomputes naturally when the player closes/reopens the
+  // modal after translating something new.
+  const speedupAvailable = mode === "running" ? hasSeenWords() : false;
+
   const primaryDisabled =
-    purchasing || (mode === "idle" && (!nextLevel || !canAfford));
+    purchasing ||
+    (mode === "idle" && (!nextLevel || !canAfford)) ||
+    (mode === "running" && !speedupAvailable);
 
   const primaryLabel = (() => {
     if (mode === "ready") return t("computer.upgrade.finishButton");
-    if (mode === "running") return t("computer.upgrade.speedupButton");
+    if (mode === "running") {
+      return speedupAvailable
+        ? t("computer.upgrade.speedupButton")
+        : t("computer.speedup.lockedButton");
+    }
     if (!nextLevel) return t("computer.upgrade.maxedButton");
     return t("computer.upgrade.button", {
       price: formatBalance(nextLevel.costCents),
@@ -350,7 +367,7 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
           </button>
         </div>
 
-        {view === "speedup" ? (
+        {view === "speedup" && question ? (
           <SpeedupBody
             compact={compact}
             question={question}
@@ -627,7 +644,10 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
             fontWeight: 800,
             letterSpacing: 0.5,
             cursor: primaryDisabled ? "not-allowed" : "pointer",
-            opacity: primaryDisabled && mode !== "running" ? 0.7 : 1,
+            opacity:
+              primaryDisabled && (mode !== "running" || !speedupAvailable)
+                ? 0.7
+                : 1,
             transition: "background 0.15s linear, transform 0.15s ease-out",
             transform: purchasing ? "scale(1.03)" : "scale(1)",
             boxShadow:
@@ -638,6 +658,19 @@ export default function ComputerUpgradeView({ onClose }: ComputerUpgradeViewProp
         >
           {primaryLabel}
         </button>
+        {mode === "running" && !speedupAvailable && (
+          <div
+            style={{
+              fontSize: compact ? 10 : 11,
+              color: COLORS.hintText,
+              textAlign: "center",
+              marginTop: 6,
+              lineHeight: 1.35,
+            }}
+          >
+            {t("computer.speedup.lockedHint")}
+          </div>
+        )}
           </>
         )}
       </div>

@@ -25,6 +25,9 @@ export const vi: Record<string, string> = {
   "targetPicker.english": "Tiếng Anh",
   "targetPicker.selected": "Đang chọn",
   "targetPicker.continue": "Tiếp tục ▶",
+  "targetLanguageName.lingo": "tiếng Lingo",
+  "targetLanguageName.french": "tiếng Pháp",
+  "targetLanguageName.english": "tiếng Anh",
   "settings.targetLanguage": "Ngôn ngữ muốn học",
 
   // ── Welcome splash ──
@@ -72,7 +75,7 @@ export const vi: Record<string, string> = {
   "apartment.line.sawAd":
     "Ba thấy báo có đăng tin tuyển phiên dịch ở phố Mart. Ba định đi thử.",
   "apartment.line.childObjection":
-    "Hả? Nhưng mà ba đâu có biết tiếng Pháp đâu?",
+    "Hả? Nhưng mà ba đâu có biết {language} đâu?",
   "apartment.line.iKnow": "Ba biết điều đó.",
   "apartment.line.fakeIt":
     "Nhưng ba sẽ giả vờ đến khi nào thành thạo luôn. Lúc phỏng vấn ba sẽ cười nhiều, gật đầu nhiều. Họ chẳng biết đâu.",
@@ -610,6 +613,9 @@ export const vi: Record<string, string> = {
   "computer.speedup.hint": "Mỗi câu đúng sẽ rút bớt {seconds} giây.",
   "computer.speedup.timeAdded": "-{seconds}s ⚡",
   "computer.speedup.next": "Tiếp →",
+  "computer.speedup.needSeenWords": "Hãy dịch vài từ trước — tăng tốc chỉ ôn lại những từ bạn đã gặp.",
+  "computer.speedup.lockedButton": "🔒 Tăng tốc — Đã khóa",
+  "computer.speedup.lockedHint": "Hãy dịch vài từ với người trong phố để mở khóa tăng tốc.",
   "computer.upgrade.finishButton": "Hoàn tất nâng cấp",
   "computer.upgrade.maxedButton": "Đã nâng cấp tối đa",
   "computer.upgrade.inProgress": "Đang chạy",

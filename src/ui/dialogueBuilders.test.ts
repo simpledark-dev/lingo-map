@@ -190,4 +190,14 @@ describe('APARTMENT_DIALOGUE script', () => {
     expect(text).toContain('Pip');
     expect(text).toMatch(/Stay here/);
   });
+
+  it('uses the selected target language in the child objection line', async () => {
+    const { setTarget } = await import('../data/target');
+    setTarget('french');
+    const { APARTMENT_DIALOGUE } = await import('./dialogueBuilders');
+    const objection = APARTMENT_DIALOGUE.find((line) =>
+      line.text({ parent: 'You', child: 'Pip' }).includes("don't even speak"),
+    );
+    expect(objection?.text({ parent: 'You', child: 'Pip' })).toContain('French');
+  });
 });

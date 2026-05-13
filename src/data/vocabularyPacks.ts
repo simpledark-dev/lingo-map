@@ -302,6 +302,8 @@ const MIRA_FRENCH_ENTRIES: VocabularyEntry[] = [
   { target: 'maison', english: 'house', vi: 'nhà', pos: 'noun' },
   { target: 'manger', english: 'to eat', vi: 'ăn', pos: 'verb' },
   { target: 'boire', english: 'to drink', vi: 'uống', pos: 'verb' },
+  { target: 'dormir', english: 'to sleep', vi: 'ngủ', pos: 'verb' },
+  { target: 'se réveiller', english: 'to wake', vi: 'thức dậy', pos: 'verb' },
   { target: 'aller', english: 'to go', vi: 'đi', pos: 'verb' },
   { target: 'voir', english: 'to see', vi: 'thấy', pos: 'verb' },
 ];
@@ -323,6 +325,8 @@ const MIRA_ENGLISH_ENTRIES: VocabularyEntry[] = [
   { target: 'house', english: 'house', vi: 'nhà', pos: 'noun' },
   { target: 'to eat', english: 'to eat', vi: 'ăn', pos: 'verb' },
   { target: 'to drink', english: 'to drink', vi: 'uống', pos: 'verb' },
+  { target: 'to sleep', english: 'to sleep', vi: 'ngủ', pos: 'verb' },
+  { target: 'to wake', english: 'to wake', vi: 'thức dậy', pos: 'verb' },
   { target: 'to go', english: 'to go', vi: 'đi', pos: 'verb' },
   { target: 'to see', english: 'to see', vi: 'thấy', pos: 'verb' },
 ];
@@ -445,21 +449,42 @@ export const SABA_PACK: VocabularyPack = makeSabaPack('lingo');
 /**
  * Pio's pack — five everyday-life verbs, themed around the room
  * the NPC stands in (Pokemon house 1F: kitchen/dining/bedroom). All
- * five reuse Mira's verb entries so the player sees the same Lingo
+ * five reuse Mira's verb entries so the player sees the same target
  * spelling consistently across NPCs (no "is it `mufra` or `nomra`?
  * depends on who I'm talking to" friction). No `audio` map yet —
  * the picker treats absence-of-audio-map as "all entries are
  * playable via TTS fallback" (see `playableEntries` in
  * `vocabSelection.ts`).
+ *
+ * Filter key is `english` rather than `target`: `english` is the
+ * canonical meaning that's stable across all target-language
+ * variants, so a single list works for lingo / french / english
+ * without needing per-variant target strings.
  */
-export const PIO_PACK: VocabularyPack = {
-  id: 'pio-pack-1',
-  theme: 'Daily verbs',
-  target: 'lingo',
-  entries: MIRA_PACK.entries.filter((e) =>
-    ['mufra', 'naren', 'solpi', 'demba', 'palba'].includes(e.target),
-  ),
-};
+const PIO_MEANINGS: ReadonlyArray<string> = [
+  'to eat',
+  'to drink',
+  'to sleep',
+  'to wake',
+  'to see',
+];
+
+function makePioVariant(target: TargetLanguage): VocabularyPack {
+  const source =
+    target === 'french'
+      ? MIRA_FRENCH_ENTRIES
+      : target === 'english'
+        ? MIRA_ENGLISH_ENTRIES
+        : MIRA_PACK.entries;
+  return {
+    id: 'pio-pack-1',
+    theme: 'Daily verbs',
+    target,
+    entries: source.filter((e) => PIO_MEANINGS.includes(e.english)),
+  };
+}
+
+export const PIO_PACK: VocabularyPack = makePioVariant('lingo');
 
 /** Tutorial pack — used by the office tutor NPC during the intro
  *  quest's mock job. Deliberately tiny (3 words) so the player can
@@ -566,7 +591,11 @@ const PACK_REGISTRY: PackRegistry = {
     french: makeSabaPack('french'),
     english: makeSabaPack('english'),
   },
-  [PIO_PACK.id]: { lingo: PIO_PACK },
+  [PIO_PACK.id]: {
+    lingo: PIO_PACK,
+    french: makePioVariant('french'),
+    english: makePioVariant('english'),
+  },
   'office-tutor-pack': {
     lingo: OFFICE_TUTOR_PACK,
     french: makeOfficePack('office-tutor-pack', 'Trainer warm-up', 'french'),

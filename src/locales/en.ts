@@ -32,6 +32,9 @@ export const en: Record<string, string> = {
   "targetPicker.english": "English",
   "targetPicker.selected": "Selected",
   "targetPicker.continue": "Continue ▶",
+  "targetLanguageName.lingo": "Lingo",
+  "targetLanguageName.french": "French",
+  "targetLanguageName.english": "English",
   // Settings section labels — mirror the existing language picker
   // so the in-Settings selector reads the same way as the boot
   // picker.
@@ -81,7 +84,7 @@ export const en: Record<string, string> = {
   "apartment.line.sawAd":
     "I saw an ad in the paper — translation office on Mart Street. I'm going to apply.",
   "apartment.line.childObjection":
-    "Wait — but you don't even speak the language!",
+    "Wait — but you don't even speak {language}!",
   "apartment.line.iKnow": "I know.",
   "apartment.line.fakeIt":
     "I'll fake it till I make it. Smile. Nod. They won't have to know.",
@@ -645,6 +648,9 @@ export const en: Record<string, string> = {
   "computer.speedup.hint": "Each correct answer cuts {seconds}s off the timer.",
   "computer.speedup.timeAdded": "-{seconds}s ⚡",
   "computer.speedup.next": "Next →",
+  "computer.speedup.needSeenWords": "Translate some words first — speed-up reviews words you've already seen.",
+  "computer.speedup.lockedButton": "🔒 Speed Up — Locked",
+  "computer.speedup.lockedHint": "Translate words with someone in town to unlock speed-up.",
   "computer.upgrade.finishButton": "Finish Upgrade",
   "computer.upgrade.maxedButton": "Fully upgraded",
   "computer.upgrade.inProgress": "In Progress",
