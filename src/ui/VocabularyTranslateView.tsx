@@ -781,6 +781,33 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
     keyboardOpen && visibleViewport
       ? `${Math.max(220, Math.floor(visibleViewport.height) - 20)}px`
       : '90vh';
+  const nextButtonLabel =
+    selectedTarget !== null && selectedTarget === round.prompt.target
+      ? t('translate.next.correct')
+      : writeOutcome === 'correct'
+        ? t('translate.next.correct')
+        : t('translate.next.studied');
+  const handleNextRoundClick = () => {
+    // iOS: must call .focus() synchronously inside a user-gesture
+    // event handler for the keyboard to open. The input is readOnly
+    // while the answered round is locked; iOS will focus a readOnly
+    // input without opening the keyboard, so clear that DOM flag
+    // first. React re-applies the correct non-readOnly state when
+    // advanceToNextRound renders the next prompt.
+    if (isWriteMode) {
+      const input = writeInputRef.current;
+      if (input) {
+        input.readOnly = false;
+        input.focus();
+        input.select();
+        input.scrollIntoView({ block: 'center', inline: 'nearest' });
+        window.setTimeout(() => {
+          input.scrollIntoView({ block: 'center', inline: 'nearest' });
+        }, 260);
+      }
+    }
+    advanceToNextRound();
+  };
 
   return (
     <div
@@ -800,6 +827,8 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
           width: '100%',
           maxWidth: 480,
           maxHeight: translatePanelMaxHeight,
+          minHeight: 0,
+          boxSizing: 'border-box',
           pointerEvents: endingToSummary ? 'none' : 'auto',
           animation: endingToSummary
             ? 'lingoMapTranslatePanelOut 180ms ease-in forwards'
@@ -824,6 +853,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
               borderBottom: `2px solid ${COLORS.cardBorder}`,
               background: COLORS.parchmentLight,
               gap: 12,
+              flexShrink: 0,
             }}
           >
             <div>
@@ -888,6 +918,9 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
               flex: 1,
               minHeight: 0,
               position: 'relative',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              boxSizing: 'border-box',
             }}
           >
             {/* Big money feedback — intentionally lives in the work
@@ -1291,6 +1324,7 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
                     advanceToNextRound();
                   }}
                   style={{
+                    display: 'none',
                     fontFamily: 'inherit',
                     fontSize: 14,
                     fontWeight: 700,
@@ -1324,6 +1358,51 @@ export default function VocabularyTranslateView({ pack, npcName, mode = 'read', 
               </div>
             ) : null}
           </div>
+          {waitingOnNext ? (
+            <div
+              className="vt-next-footer"
+              style={{
+                flexShrink: 0,
+                padding: '10px 16px 14px',
+                background: COLORS.parchment,
+                borderTop: `2px solid ${COLORS.cardBorder}`,
+                boxShadow: `0 -6px 10px ${COLORS.parchment}`,
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleNextRoundClick}
+                style={{
+                  fontFamily: 'inherit',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: '#fff5d6',
+                  background: COLORS.accentGold,
+                  border: `2px solid ${COLORS.accentGoldDark}`,
+                  borderRadius: 8,
+                  boxShadow: `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`,
+                  padding: '10px 16px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  letterSpacing: 0.5,
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(2px)';
+                  e.currentTarget.style.boxShadow = 'inset 1px 1px 0 0 #ffd47a';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = '';
+                  e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = '';
+                  e.currentTarget.style.boxShadow = `inset 1px 1px 0 0 #ffd47a, 0 2px 0 0 ${COLORS.accentGoldDark}`;
+                }}
+              >
+                {nextButtonLabel}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <style>{`
