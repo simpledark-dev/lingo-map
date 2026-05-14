@@ -202,7 +202,7 @@ export const vi: Record<string, string> = {
     "Ê! Anh là phiên dịch viên mới phải không? Tôi đang bí mấy từ này. Giúp tôi với được không?",
   "dialogue.offer.help": "Được, để tôi thử",
   "dialogue.offer.helpHint": "Từ đúng được tiền, sai bị trừ.",
-  "dialogue.offer.view": "Xem trước ({count} từ)",
+  "dialogue.offer.view": "Để tôi xem qua trước ({count} từ)",
   "dialogue.offer.viewHint":
     "Xem từ, nghe phát âm, luyện thoải mái (không mất tiền)",
   "dialogue.offer.decline": "Xin lỗi, lần sau nhé",
@@ -613,9 +613,11 @@ export const vi: Record<string, string> = {
   "computer.speedup.hint": "Mỗi câu đúng sẽ rút bớt {seconds} giây.",
   "computer.speedup.timeAdded": "-{seconds}s ⚡",
   "computer.speedup.next": "Tiếp →",
-  "computer.speedup.needSeenWords": "Hãy dịch vài từ trước — tăng tốc chỉ ôn lại những từ bạn đã gặp.",
+  "computer.speedup.needSeenWords":
+    "Hãy dịch vài từ trước — tăng tốc chỉ ôn lại những từ bạn đã gặp.",
   "computer.speedup.lockedButton": "🔒 Tăng tốc — Đã khóa",
-  "computer.speedup.lockedHint": "Hãy dịch vài từ với người trong phố để mở khóa tăng tốc.",
+  "computer.speedup.lockedHint":
+    "Hãy dịch vài từ với người trong phố để mở khóa tăng tốc.",
   "computer.upgrade.finishButton": "Hoàn tất nâng cấp",
   "computer.upgrade.maxedButton": "Đã nâng cấp tối đa",
   "computer.upgrade.inProgress": "Đang chạy",

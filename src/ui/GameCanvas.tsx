@@ -2009,30 +2009,21 @@ export default function GameCanvas() {
           {
             id: "mode-read",
             label: t('dialogue.offer.modeRead'),
-            // Cost suffix on every paid mode so the player always
-            // sees the entry fee before they tap. Practice is exempt
-            // (and accessed via the dictionary view) so it stays
-            // unannotated. Session-cost, not per-round — same fee
-            // whether they drill 5 words or 50.
-            hint: t('dialogue.offer.modeReadHint'),
             mode: 'read' as const,
           },
           {
             id: "mode-listen",
             label: t('dialogue.offer.modeListen'),
-            hint: t('dialogue.offer.modeListenHint'),
             mode: 'listen' as const,
           },
           {
             id: "mode-write",
             label: t('dialogue.offer.modeWrite'),
-            hint: t('dialogue.offer.modeWriteHint'),
             mode: 'write' as const,
           },
           {
             id: "mode-speak",
             label: t('dialogue.offer.modeSpeak'),
-            hint: t('dialogue.offer.modeSpeakHint'),
             comingSoon: true,
             mode: 'speak' as const,
           },
@@ -2066,7 +2057,6 @@ export default function GameCanvas() {
             {
               id: "mode-back",
               label: t('dialogue.offer.modeBack'),
-              hint: t('dialogue.offer.modeBackHint'),
             },
           ],
         });

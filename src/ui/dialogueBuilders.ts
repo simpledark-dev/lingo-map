@@ -227,17 +227,14 @@ export function buildOfficeTutorDialogue(stub: DialogueState): DialogueState {
       {
         id: 'help',
         label: t('dialogue.offer.help'),
-        hint: t('dialogue.offer.helpHint'),
       },
       {
         id: 'view',
         label: t('dialogue.offer.view', { count: 3 }),
-        hint: t('dialogue.offer.viewHint'),
       },
       {
         id: 'decline',
         label: t('dialogue.offer.decline'),
-        hint: '',
       },
     ],
   };
@@ -267,17 +264,14 @@ export function buildListenTutorDialogue(stub: DialogueState): DialogueState {
       {
         id: 'help',
         label: t('dialogue.offer.help'),
-        hint: t('dialogue.offer.helpHint'),
       },
       {
         id: 'view',
         label: t('dialogue.offer.view', { count: 3 }),
-        hint: t('dialogue.offer.viewHint'),
       },
       {
         id: 'decline',
         label: t('dialogue.offer.decline'),
-        hint: '',
       },
     ],
   };
@@ -306,17 +300,14 @@ export function buildWriteTutorDialogue(stub: DialogueState): DialogueState {
       {
         id: 'help',
         label: t('dialogue.offer.help'),
-        hint: t('dialogue.offer.helpHint'),
       },
       {
         id: 'view',
         label: t('dialogue.offer.view', { count: 3 }),
-        hint: t('dialogue.offer.viewHint'),
       },
       {
         id: 'decline',
         label: t('dialogue.offer.decline'),
-        hint: '',
       },
     ],
   };

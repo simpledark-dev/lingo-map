@@ -463,7 +463,13 @@ export default function DialogueOverlay({
                       e.currentTarget.style.boxShadow = optionRestShadow;
                     }}
                   >
-                    <div style={theme.optionLabelStyle}>
+                    <div
+                      style={
+                        modeOptionNumber
+                          ? { ...theme.optionLabelStyle, fontSize: 16 }
+                          : theme.optionLabelStyle
+                      }
+                    >
                       {modeOptionNumber ? (
                         <span
                           style={{

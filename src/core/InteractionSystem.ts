@@ -80,17 +80,14 @@ export function checkInteraction(
           {
             id: "help",
             label: t('dialogue.offer.help'),
-            hint: t('dialogue.offer.helpHint'),
           },
           {
             id: "view",
             label: t('dialogue.offer.view', { count: wordCount }),
-            hint: t('dialogue.offer.viewHint'),
           },
           {
             id: "decline",
             label: t('dialogue.offer.decline'),
-            hint: "",
           },
         ],
       };
