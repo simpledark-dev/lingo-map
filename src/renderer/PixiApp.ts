@@ -561,6 +561,21 @@ export class PixiApp {
     this.renderSystem.setQuestMarkers(markers);
   }
 
+  /** Snap an NPC to a new world position. No walking animation —
+   *  scripted scenes use this when a beat asks an NPC to be
+   *  somewhere new (e.g. customer arrives at a chosen table after
+   *  the seat-pick step). Returns true if the NPC was found. */
+  teleportNpc(npcId: string, x: number, y: number, facing?: Direction): boolean {
+    if (this.destroyed || !this.renderSystem || !this.gameState) return false;
+    const npc = this.gameState.npcs.find((n) => n.id === npcId);
+    if (!npc) return false;
+    npc.x = x;
+    npc.y = y;
+    npc.sortY = y;
+    this.renderSystem.updateNPC(npcId, x, y, facing, false, 0);
+    return true;
+  }
+
   /** Public teleport hook used by the intro cutscene to drop the
    *  player at a specific spawn after the world has already booted.
    *  Mirrors the door-trigger code path exactly — same `loadScene`

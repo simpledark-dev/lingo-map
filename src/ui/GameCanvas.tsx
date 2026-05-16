@@ -7,6 +7,7 @@ import { PixiApp } from "../renderer/PixiApp";
 import { DialogueState, MapData, GameState } from "../core/types";
 import { GameEvent } from "../core/GameBridge";
 import DialogueOverlay from "./DialogueOverlay";
+import CafeIntroScene from "./CafeIntroScene";
 import VocabularyListView from "./VocabularyListView";
 import VocabularyTranslateView from "./VocabularyTranslateView";
 import ShopView from "./ShopView";
@@ -1069,7 +1070,15 @@ export default function GameCanvas() {
             // they reflect inventory + event-flag state at interaction
             // time. Keeps the engine layer pure (no localStorage reads
             // in src/core).
-            if (event.dialogue.dialogueKind === "child-sandwich") {
+            if (event.dialogue.dialogueKind === "cafe-scripted") {
+              // The CafeIntroScene component owns the entire dialogue
+              // surface for these NPCs — close the engine-side
+              // dialogue immediately and let the scene's own bridge
+              // subscriber handle step advancement. Without this the
+              // default DialogueOverlay would flash for one frame.
+              setDialogue(null);
+              pixiAppRef.current?.commandQueue.push({ type: "CLOSE_DIALOGUE" });
+            } else if (event.dialogue.dialogueKind === "child-sandwich") {
               setDialogue(buildChildSandwichDialogue(event.dialogue));
             } else if (event.dialogue.dialogueKind === "lender") {
               setDialogue(buildLenderDialogue(event.dialogue));
@@ -1304,6 +1313,12 @@ export default function GameCanvas() {
     // pointing at Mim while she's the one talking is jarring.
     if (dialogue?.npcId === "intro-apartment") {
       app.setQuestMarkers([]);
+      return;
+    }
+    // Scripted scenes (e.g. `cafe-intro`) own the marker layer
+    // themselves — bail out so this effect doesn't clobber the
+    // scene runner's markers on unrelated state changes.
+    if (currentMapId === "cafe-intro") {
       return;
     }
 
@@ -2754,6 +2769,10 @@ export default function GameCanvas() {
               onSelectOption={handleSelectDialogueOption}
             />
           </div>
+        )}
+
+        {currentMapId === "cafe-intro" && (
+          <CafeIntroScene pixiAppRef={pixiAppRef} />
         )}
 
         {vocabularyView &&

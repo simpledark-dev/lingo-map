@@ -5,6 +5,7 @@ import { pokemonHouse1fMap } from '../maps/pokemon-house-1f';
 import { pokemonHouse2fMap } from '../maps/pokemon-house-2f';
 import { grocer1fMap } from '../maps/grocer-1f';
 import { officeMap } from '../maps/office';
+import { cafeIntroMap } from '../maps/cafe-intro';
 
 const mapRegistry: Record<string, MapData> = {
   pokemon: normalizeMapData(pokemonMap),
@@ -12,6 +13,7 @@ const mapRegistry: Record<string, MapData> = {
   'pokemon-house-2f': normalizeMapData(pokemonHouse2fMap),
   'grocer-1f': normalizeMapData(grocer1fMap),
   office: normalizeMapData(officeMap),
+  'cafe-intro': normalizeMapData(cafeIntroMap),
 };
 
 export function loadMap(mapId: string): MapData {
