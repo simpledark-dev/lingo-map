@@ -2376,7 +2376,11 @@ export default function GameCanvas() {
             the top-right icon buttons. Wrapped in a flex container
             so future pills (focus, hunger, whatever) stay a single
             child append. Subscribes via useWalletBalance / useEnergy
-            so vocab views don't have to call back up here. */}
+            so vocab views don't have to call back up here.
+            Suppressed on the `social-hub` experiment — that scene
+            tracks tips in its own scene-local state and shouldn't
+            mix with the translator-job wallet/energy. */}
+        {currentMapId !== "social-hub" && (
         <div style={HUD.statusRowStyle}>
           <div
             style={HUD.statusPlateStyle}
@@ -2453,6 +2457,7 @@ export default function GameCanvas() {
             <EnergyCostBurst />
           </div>
         </div>
+        )}
 
         {/* Inventory HUD — sits right under the wallet/energy row,
             one chip per held item with its emoji icon and a ×N
@@ -2460,7 +2465,7 @@ export default function GameCanvas() {
             player can eat held food to refill energy. Hides
             entirely when empty so the corner stays clean for new
             players. */}
-        {inventoryRows.length > 0 && (
+        {currentMapId !== "social-hub" && inventoryRows.length > 0 && (
           <button
             onClick={() => setInventoryOpen(true)}
             style={HUD.inventoryButtonStyle}
@@ -2874,11 +2879,15 @@ export default function GameCanvas() {
         {/* Persistent ACTIVE-quests strip. Replaces the standalone
             IntroHintBanner since the intro quest's title alone
             already conveys "head to the office." Tap to open the
-            full log; auto-hides when no quest is active. */}
-        <QuestHud
-          liftedForModal={questHudLiftedForModal}
-          onOpenLog={openQuestLog}
-        />
+            full log; auto-hides when no quest is active. Hidden
+            on the social-hub experiment — its quests/quest log
+            aren't part of that scene's gameplay. */}
+        {currentMapId !== "social-hub" && (
+          <QuestHud
+            liftedForModal={questHudLiftedForModal}
+            onOpenLog={openQuestLog}
+          />
+        )}
 
 
         {/* Intro cutscene — full-screen overlay shown once on a

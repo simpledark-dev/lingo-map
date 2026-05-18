@@ -82,5 +82,8 @@ export const socialHubMap: MapData = {
     // entrance gap so the first incoming guest is visible.
     { id: "default", x: tx(13), y: ty(15), facing: "down" },
     { id: "owner-counter", x: tx(13), y: ty(10), facing: "down" },
+    // Leaving NPCs don't use a named spawn point — they re-use
+    // the entrance POI slots from `src/data/socialHub/pois.ts`,
+    // picked at random per departure (see `beginLeave`).
   ],
 };

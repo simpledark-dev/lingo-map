@@ -15,12 +15,7 @@
  * converts to world coords when walking NPCs to them.
  */
 
-export type PoiType =
-  | 'entrance'
-  | 'lounge'
-  | 'reading'
-  | 'game'
-  | 'staff';
+export type PoiType = "entrance" | "lounge" | "reading" | "game" | "staff";
 
 export interface PoiSlot {
   /** Stable id used by occupancy tracking and marker placement. */
@@ -46,62 +41,63 @@ export interface Poi {
  *  `src/maps/social-hub.ts`'s tile map. */
 export const SOCIAL_HUB_POIS: ReadonlyArray<Poi> = [
   {
-    id: 'entrance',
-    type: 'entrance',
-    label: 'Entrance',
+    id: "entrance",
+    type: "entrance",
+    label: "Entrance",
     // Five slots side-by-side just inside the door gap (row 17).
     // Order matters: NPCs prefer the LEFTMOST free slot so the
     // queue reads from left to right.
     slots: [
-      { id: 'entrance-1', col: 11, row: 17 },
-      { id: 'entrance-2', col: 12, row: 17 },
-      { id: 'entrance-3', col: 13, row: 17 },
-      { id: 'entrance-4', col: 14, row: 17 },
-      { id: 'entrance-5', col: 15, row: 17 },
+      { id: "e1", col: 11, row: 27 },
+      { id: "e2", col: 12, row: 27 },
+      { id: "e3", col: 13, row: 27 },
+      { id: "e4", col: 14, row: 27 },
+      { id: "e5", col: 15, row: 27 },
     ],
   },
   {
-    id: 'lounge',
-    type: 'lounge',
-    label: 'Lounge',
+    id: "lounge",
+    type: "lounge",
+    label: "Lounge",
     // 3 slots — total non-entrance capacity (9) needs to exceed
     // MAX_NPCS (8) so a fully-occupied venue never deadlocks
     // post-welcome guests at the entrance with nowhere to go.
     slots: [
-      { id: 'lounge-1', col: 4, row: 5 },
-      { id: 'lounge-2', col: 6, row: 5 },
-      { id: 'lounge-3', col: 4, row: 8 },
+      { id: "l1", col: 4, row: 5 },
+      { id: "l2", col: 6, row: 7 },
+      { id: "l3", col: 4, row: 10 },
+      { id: "l4", col: 4, row: 15 },
+      { id: "l5", col: 6, row: 17 },
+      { id: "l6", col: 4, row: 20 },
     ],
   },
   {
-    id: 'reading',
-    type: 'reading',
-    label: 'Reading',
+    id: "reading",
+    type: "reading",
+    label: "Reading",
     slots: [
-      { id: 'reading-1', col: 22, row: 4 },
-      { id: 'reading-2', col: 24, row: 4 },
-      { id: 'reading-3', col: 22, row: 7 },
+      { id: "g1", col: 22, row: 20 },
+      { id: "g2", col: 25, row: 24 },
+      { id: "g3", col: 22, row: 27 },
     ],
   },
   {
-    id: 'game',
-    type: 'game',
-    label: 'Game area',
+    id: "game",
+    type: "game",
+    label: "Game area",
     slots: [
-      { id: 'game-1', col: 22, row: 13 },
-      { id: 'game-2', col: 24, row: 13 },
-      { id: 'game-3', col: 22, row: 15 },
+      { id: "r1", col: 22, row: 13 },
+      { id: "r2", col: 24, row: 13 },
+      { id: "r3", col: 17, row: 14 },
     ],
   },
   {
-    id: 'staff',
-    type: 'staff',
-    label: 'Staff counter',
+    id: "staff",
+    type: "staff",
+    label: "Staff counter",
     // The staff NPC stands here; guests don't queue here, the player
     // walks here to delegate tasks.
-    slots: [
-      { id: 'staff-1', col: 13, row: 9 },
-    ],
+    slots: [{ id: "s1", col: 11, row: 9 }],
   },
 ];
 

@@ -620,17 +620,17 @@ export class PixiApp {
     return true;
   }
 
-  /** Smoothly walk an NPC toward `(x, y)` in a straight line at
-   *  `speed` pixels/sec. Calls `onArrive` once the NPC reaches the
-   *  target (within 1 px) and removes the guided entry. If a guided
-   *  walk for this NPC was already in flight, the previous one is
-   *  cancelled silently — the new target overrides.
+  /** Walk an NPC to `(x, y)` using the same A* pathfinder the
+   *  player uses — so they route around walls, furniture, and other
+   *  NPCs instead of clipping through them. `onArrive` fires once
+   *  the NPC reaches the final waypoint (within 1 px) and the
+   *  guided entry is removed. Re-calling overrides any in-flight
+   *  walk for this NPC.
    *
-   *  V1 deliberately skips pathfinding: the social-hub map is a
-   *  single open room with no obstacles between POIs, and adding A*
-   *  here would complicate the runtime for no visible benefit. If a
-   *  later experiment needs obstacle-aware NPC walks, swap this for
-   *  the `findPath` call already used by the player. */
+   *  Falls back to a straight-line single-waypoint walk if the
+   *  pathfinder returns no route (caller may have asked for an
+   *  unreachable target). That keeps the gameplay loop unblocked
+   *  even if a POI slot ends up sealed off by editor edits. */
   walkNpcTo(
     npcId: string,
     x: number,
@@ -640,9 +640,35 @@ export class PixiApp {
     if (this.destroyed || !this.gameState) return false;
     const npc = this.gameState.npcs.find((n) => n.id === npcId);
     if (!npc) return false;
+    // Pathfinder needs the walk grid built at scene load. If it's
+    // missing (very early in init), fall back to straight-line.
+    let waypoints: Position[] = [];
+    if (this.walkGrid) {
+      // Exclude self from the obstacle list — an NPC can't collide
+      // with their own collision box, and the pathfinder would
+      // refuse any starting cell otherwise.
+      const otherNpcs = this.gameState.npcs.filter((n) => n.id !== npcId);
+      waypoints = findPath(
+        this.walkGrid,
+        npc.x,
+        npc.y,
+        x,
+        y,
+        otherNpcs,
+        npc.collisionBox,
+        this.getCarObstacleBoxes(16),
+      );
+    }
+    if (waypoints.length === 0) {
+      // No route — bail rather than fall back to a wall-clipping
+      // straight line. Caller is expected to handle false (most
+      // wander calls just retry on the next tick when other NPCs
+      // have moved out of the way). For leaving NPCs the lifecycle
+      // module has its own teleport-out fallback.
+      return false;
+    }
     this.guidedNpcs.set(npcId, {
-      targetX: x,
-      targetY: y,
+      waypoints,
       speed: options?.speed ?? 60,
       finalFacing: options?.facing,
       onArrive: options?.onArrive,
@@ -653,18 +679,22 @@ export class PixiApp {
   private guidedNpcs = new Map<
     string,
     {
-      targetX: number;
-      targetY: number;
+      /** Remaining waypoints in walk order; index 0 is the next
+       *  point the NPC steps toward. Last entry is the final goal
+       *  that fires `onArrive`. */
+      waypoints: Position[];
       speed: number;
       finalFacing?: Direction;
       onArrive?: () => void;
     }
   >();
 
-  /** Advance every guided NPC one tick. Called from the main update
-   *  loop. Each NPC steps `speed * delta` px toward its target; on
-   *  arrival the entry is removed and `onArrive` fires. The NPC's
-   *  facing is derived from the dominant axis of motion. */
+  /** Advance every guided NPC one tick. Each NPC steps toward the
+   *  head of its waypoint queue at `speed` px/sec; when a waypoint
+   *  is reached, it's popped and the NPC continues to the next.
+   *  When the queue empties, `onArrive` fires and the entry is
+   *  removed. Facing follows the dominant axis of motion toward
+   *  whichever waypoint is currently being chased. */
   private updateGuidedNpcs(delta: number): void {
     if (this.guidedNpcs.size === 0) return;
     if (!this.gameState || !this.renderSystem) return;
@@ -675,23 +705,34 @@ export class PixiApp {
         arrived.push(npcId);
         continue;
       }
-      const dx = guide.targetX - npc.x;
-      const dy = guide.targetY - npc.y;
+      if (guide.waypoints.length === 0) {
+        arrived.push(npcId);
+        continue;
+      }
+      const target = guide.waypoints[0];
+      const dx = target.x - npc.x;
+      const dy = target.y - npc.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < 1) {
-        npc.x = guide.targetX;
-        npc.y = guide.targetY;
+        // Snap to this waypoint and pop it. If that was the last,
+        // mark as arrived; otherwise fall through to next tick
+        // where we'll start moving toward the next waypoint.
+        npc.x = target.x;
+        npc.y = target.y;
         npc.sortY = npc.y;
-        const facing = guide.finalFacing ?? this.getNpcMotionFacing(npcId) ?? 'down';
-        this.renderSystem.updateNPC(npcId, npc.x, npc.y, facing, false, 0);
-        arrived.push(npcId);
+        guide.waypoints.shift();
+        if (guide.waypoints.length === 0) {
+          const facing = guide.finalFacing ?? 'down';
+          this.renderSystem.updateNPC(npcId, npc.x, npc.y, facing, false, 0);
+          arrived.push(npcId);
+        }
         continue;
       }
       const step = Math.min(dist, guide.speed * delta);
       npc.x += (dx / dist) * step;
       npc.y += (dy / dist) * step;
       npc.sortY = npc.y;
-      // Dominant axis = facing
+      // Dominant axis = facing toward current waypoint
       const facing: Direction =
         Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
       // Walk-frame cycles every 0.3 sec
@@ -703,17 +744,6 @@ export class PixiApp {
       this.guidedNpcs.delete(id);
       try { guide?.onArrive?.(); } catch { /* swallow callback errors */ }
     }
-  }
-
-  private getNpcMotionFacing(npcId: string): Direction | null {
-    const guide = this.guidedNpcs.get(npcId);
-    if (!guide || !this.gameState) return null;
-    const npc = this.gameState.npcs.find((n) => n.id === npcId);
-    if (!npc) return null;
-    const dx = guide.targetX - npc.x;
-    const dy = guide.targetY - npc.y;
-    if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'right' : 'left';
-    return dy > 0 ? 'down' : 'up';
   }
 
   /** Public teleport hook used by the intro cutscene to drop the

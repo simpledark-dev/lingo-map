@@ -90,7 +90,7 @@ export default function SocialHubScene({ pixiAppRef }: Props) {
       const current = stateRef.current;
       let next = trySpawnGuest(current, app, now);
       next = tickGuestArrivals(next, app);
-      next = tickIdleWandering(next, app);
+      next = tickIdleWandering(next, app, now);
       next = finaliseLeavers(next, app);
       if (next !== current) setState(next);
     }, 500);
@@ -130,7 +130,11 @@ export default function SocialHubScene({ pixiAppRef }: Props) {
       .map((g) => ({
         id: `social-marker-${g.id}`,
         x: 0,
-        y: 0,
+        // The marker's bottom anchors at `npc.y + offsetY`.
+        // `npc.y` is the NPC's feet (anchor.y=1), and the sprite
+        // is 32 px tall — so -32 puts the marker's bottom at head
+        // level, and the extra -4 leaves a small gap above the head.
+        y: -28,
         spriteKey: 'ui:exclamation-red',
         followNpcId: g.id,
       }));
@@ -144,18 +148,17 @@ export default function SocialHubScene({ pixiAppRef }: Props) {
       ? SOCIAL_HUB_POIS.flatMap((poi) =>
           poi.slots.map((slot) => {
             const w = slotToWorld(slot);
-            const claimant = state.slotClaims[slot.id];
             return {
               id: `debug-poi-${slot.id}`,
               x: w.x,
               y: w.y - 4,
-              text: `${slot.id}${claimant ? ` ⟵ ${claimant}` : ''}`,
+              text: slot.id,
             };
           }),
         )
       : [];
     app.setDebugLabels(debugLabels);
-  }, [state.npcsById, state.slotClaims, debugShowPois, pixiAppRef]);
+  }, [state.npcsById, debugShowPois, pixiAppRef]);
 
   // Clean markers when scene unmounts.
   useEffect(() => {
@@ -310,57 +313,63 @@ function Hud({ moneyCents, guestCount, reviews, debugShowPois }: HudProps) {
       style={{
         position: 'absolute',
         top: 12,
-        right: 12,
+        left: '50%',
+        transform: 'translateX(-50%)',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         gap: 6,
         pointerEvents: 'auto',
         zIndex: 720,
         fontFamily: 'inherit',
       }}
     >
-      <div
-        style={{
-          background: COLORS.parchment,
-          border: `2px solid ${COLORS.cardBorder}`,
-          borderRadius: 6,
-          padding: '6px 10px',
-          fontSize: 14,
-          fontWeight: 800,
-          color: COLORS.text,
-        }}
-      >
-        💰 ${(moneyCents / 100).toFixed(2)}
+      {/* Top row: tip jar, guest count, reviews — horizontal so
+          the centred bar reads as one HUD bar instead of a column
+          stack flying down the middle of the screen. */}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div
+          style={{
+            background: COLORS.parchment,
+            border: `2px solid ${COLORS.cardBorder}`,
+            borderRadius: 6,
+            padding: '6px 10px',
+            fontSize: 14,
+            fontWeight: 800,
+            color: COLORS.text,
+          }}
+        >
+          💰 ${(moneyCents / 100).toFixed(2)}
+        </div>
+        <div
+          style={{
+            background: COLORS.parchmentLight,
+            border: `2px solid ${COLORS.cardBorder}`,
+            borderRadius: 6,
+            padding: '4px 10px',
+            fontSize: 12,
+            color: COLORS.text,
+          }}
+        >
+          Guests: {guestCount}
+        </div>
+        <button
+          onClick={() => setReviewsOpen((o) => !o)}
+          style={{
+            background: COLORS.accentGold,
+            border: `2px solid ${COLORS.accentGoldDark}`,
+            color: '#fff',
+            borderRadius: 6,
+            padding: '4px 10px',
+            fontSize: 12,
+            fontWeight: 800,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          Reviews ({reviews.length})
+        </button>
       </div>
-      <div
-        style={{
-          background: COLORS.parchmentLight,
-          border: `2px solid ${COLORS.cardBorder}`,
-          borderRadius: 6,
-          padding: '4px 10px',
-          fontSize: 12,
-          color: COLORS.text,
-        }}
-      >
-        Guests: {guestCount}
-      </div>
-      <button
-        onClick={() => setReviewsOpen((o) => !o)}
-        style={{
-          background: COLORS.accentGold,
-          border: `2px solid ${COLORS.accentGoldDark}`,
-          color: '#fff',
-          borderRadius: 6,
-          padding: '4px 10px',
-          fontSize: 12,
-          fontWeight: 800,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-        }}
-      >
-        Reviews ({reviews.length})
-      </button>
       <div
         style={{
           fontSize: 10,
