@@ -9,6 +9,7 @@ import { updateCamera, getViewportWorldSize } from '../core/CameraSystem';
 import { checkDoorTriggers } from '../core/TriggerSystem';
 import { checkInteraction, advanceDialogue } from '../core/InteractionSystem';
 import { GameBridge } from '../core/GameBridge';
+import { getLayers } from '../core/Layers';
 import { CommandQueue } from '../core/CommandQueue';
 import { buildWalkGrid, findPath } from '../core/Pathfinding';
 import { NPCWanderState, initWanderStates, updateWanderStates } from '../core/NPCWanderSystem';
@@ -561,6 +562,13 @@ export class PixiApp {
     this.renderSystem.setQuestMarkers(markers);
   }
 
+  /** Plain-text labels at world positions — no sprite, no bob. Used
+   *  by debug overlays (social-hub POI viewer). Pass `[]` to clear. */
+  setDebugLabels(labels: ReadonlyArray<{ id: string; x: number; y: number; text: string }>): void {
+    if (this.destroyed || !this.renderSystem) return;
+    this.renderSystem.setDebugLabels(labels);
+  }
+
   /** Snap an NPC to a new world position. No walking animation —
    *  scripted scenes use this when a beat asks an NPC to be
    *  somewhere new (e.g. customer arrives at a chosen table after
@@ -574,6 +582,138 @@ export class PixiApp {
     npc.sortY = y;
     this.renderSystem.updateNPC(npcId, x, y, facing, false, 0);
     return true;
+  }
+
+  /** Spawn an NPC at runtime. Used by the social-hub experiment: the
+   *  map ships with zero NPCs and the runtime gradually populates
+   *  the venue as guests arrive at the entrance. Returns false if
+   *  the sprite can't load (missing texture) or the engine isn't
+   *  ready. The NPC is added to gameState, the input adapter, AND
+   *  the renderer in one call. */
+  addNpc(npc: import('../core/types').NPCData): boolean {
+    if (this.destroyed || !this.renderSystem || !this.gameState || !this.currentMap) return false;
+    if (this.gameState.npcs.some((n) => n.id === npc.id)) return false;
+    this.gameState.npcs.push(npc);
+    this.inputAdapter.npcs = this.gameState.npcs;
+    const layers = (this.currentMap.layers ?? []) as ReturnType<typeof getLayers>;
+    const seed = (Math.random() * 0x7fffffff) | 0;
+    const ok = this.renderSystem.spawnNpcSprite(npc, layers, seed);
+    if (!ok) {
+      // Roll back the data-side push so a missing-texture NPC isn't
+      // left orphaned in gameState (would still be tap-detectable
+      // but visually missing).
+      this.gameState.npcs = this.gameState.npcs.filter((n) => n.id !== npc.id);
+      this.inputAdapter.npcs = this.gameState.npcs;
+      return false;
+    }
+    return true;
+  }
+
+  /** Remove an NPC by id — sprite, gameState entry, guided-movement
+   *  bookkeeping. Used when a social-hub guest leaves. */
+  removeNpc(npcId: string): boolean {
+    if (this.destroyed || !this.renderSystem || !this.gameState) return false;
+    this.guidedNpcs.delete(npcId);
+    this.gameState.npcs = this.gameState.npcs.filter((n) => n.id !== npcId);
+    this.inputAdapter.npcs = this.gameState.npcs;
+    this.renderSystem.destroyNpcSprite(npcId);
+    return true;
+  }
+
+  /** Smoothly walk an NPC toward `(x, y)` in a straight line at
+   *  `speed` pixels/sec. Calls `onArrive` once the NPC reaches the
+   *  target (within 1 px) and removes the guided entry. If a guided
+   *  walk for this NPC was already in flight, the previous one is
+   *  cancelled silently — the new target overrides.
+   *
+   *  V1 deliberately skips pathfinding: the social-hub map is a
+   *  single open room with no obstacles between POIs, and adding A*
+   *  here would complicate the runtime for no visible benefit. If a
+   *  later experiment needs obstacle-aware NPC walks, swap this for
+   *  the `findPath` call already used by the player. */
+  walkNpcTo(
+    npcId: string,
+    x: number,
+    y: number,
+    options?: { speed?: number; facing?: Direction; onArrive?: () => void },
+  ): boolean {
+    if (this.destroyed || !this.gameState) return false;
+    const npc = this.gameState.npcs.find((n) => n.id === npcId);
+    if (!npc) return false;
+    this.guidedNpcs.set(npcId, {
+      targetX: x,
+      targetY: y,
+      speed: options?.speed ?? 60,
+      finalFacing: options?.facing,
+      onArrive: options?.onArrive,
+    });
+    return true;
+  }
+
+  private guidedNpcs = new Map<
+    string,
+    {
+      targetX: number;
+      targetY: number;
+      speed: number;
+      finalFacing?: Direction;
+      onArrive?: () => void;
+    }
+  >();
+
+  /** Advance every guided NPC one tick. Called from the main update
+   *  loop. Each NPC steps `speed * delta` px toward its target; on
+   *  arrival the entry is removed and `onArrive` fires. The NPC's
+   *  facing is derived from the dominant axis of motion. */
+  private updateGuidedNpcs(delta: number): void {
+    if (this.guidedNpcs.size === 0) return;
+    if (!this.gameState || !this.renderSystem) return;
+    const arrived: string[] = [];
+    for (const [npcId, guide] of this.guidedNpcs) {
+      const npc = this.gameState.npcs.find((n) => n.id === npcId);
+      if (!npc) {
+        arrived.push(npcId);
+        continue;
+      }
+      const dx = guide.targetX - npc.x;
+      const dy = guide.targetY - npc.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 1) {
+        npc.x = guide.targetX;
+        npc.y = guide.targetY;
+        npc.sortY = npc.y;
+        const facing = guide.finalFacing ?? this.getNpcMotionFacing(npcId) ?? 'down';
+        this.renderSystem.updateNPC(npcId, npc.x, npc.y, facing, false, 0);
+        arrived.push(npcId);
+        continue;
+      }
+      const step = Math.min(dist, guide.speed * delta);
+      npc.x += (dx / dist) * step;
+      npc.y += (dy / dist) * step;
+      npc.sortY = npc.y;
+      // Dominant axis = facing
+      const facing: Direction =
+        Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+      // Walk-frame cycles every 0.3 sec
+      const phase = ((performance.now() / 300) | 0) % 2 as 0 | 1;
+      this.renderSystem.updateNPC(npcId, npc.x, npc.y, facing, true, phase);
+    }
+    for (const id of arrived) {
+      const guide = this.guidedNpcs.get(id);
+      this.guidedNpcs.delete(id);
+      try { guide?.onArrive?.(); } catch { /* swallow callback errors */ }
+    }
+  }
+
+  private getNpcMotionFacing(npcId: string): Direction | null {
+    const guide = this.guidedNpcs.get(npcId);
+    if (!guide || !this.gameState) return null;
+    const npc = this.gameState.npcs.find((n) => n.id === npcId);
+    if (!npc) return null;
+    const dx = guide.targetX - npc.x;
+    const dy = guide.targetY - npc.y;
+    if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'right' : 'left';
+    return dy > 0 ? 'down' : 'up';
   }
 
   /** Public teleport hook used by the intro cutscene to drop the
@@ -1371,6 +1511,11 @@ export class PixiApp {
     // inside the visible window and anything outside renders as black.
     const viewportCap = getViewportWorldSize(map, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height);
     this.gameState.camera = updateCamera(this.gameState.player, mapW, mapH, this.inputAdapter.zoom, this.app.screen.width, this.app.screen.height, viewportCap);
+
+    // Guided NPC walks (social-hub: walk to POI). Runs BEFORE the
+    // wander update so guided positions are authoritative for this
+    // tick — wander state would otherwise overwrite them.
+    this.updateGuidedNpcs(delta);
 
     // Update NPC wandering
     if (this.npcWanderStates.length > 0 && this.walkGrid) {

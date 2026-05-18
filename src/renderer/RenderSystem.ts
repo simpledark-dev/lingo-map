@@ -248,6 +248,13 @@ export class RenderSystem {
     }
   >();
   private questMarkerLayer: Container | null = null;
+  /** Independent layer for plain-text debug labels (e.g. POI slot
+   *  names in the social-hub experiment). Lives alongside the quest
+   *  markers in world space so labels follow the camera, but has no
+   *  sprite/icon — just text. Cleared and rebuilt by
+   *  `setDebugLabels`. */
+  private debugLabelLayer: Container | null = null;
+  private debugLabels = new Map<string, Text>();
   animationsEnabled = true;
 
   // Player walk animation state
@@ -276,6 +283,7 @@ export class RenderSystem {
     // never occluded by a building roof or tall decor. Not depth-
     // sorted — markers are world-space but always-on-top.
     this.questMarkerLayer = new Container();
+    this.debugLabelLayer = new Container();
 
     // Entity layer uses sortableChildren for zIndex-based depth sorting.
     // floorContainer intentionally does NOT — its children are flat
@@ -289,6 +297,7 @@ export class RenderSystem {
     this.worldContainer.addChild(this.entityLayer);
     this.worldContainer.addChild(this.roofLayer);
     this.worldContainer.addChild(this.questMarkerLayer);
+    this.worldContainer.addChild(this.debugLabelLayer);
     this.app.stage.addChild(this.worldContainer);
   }
 
@@ -484,38 +493,60 @@ export class RenderSystem {
     // before but the dependency was incidental, not desirable.
     let npcSeed = treeSeedRef.value;
     for (const npc of map.npcs) {
-      // NPC `spriteKey` is treated as a prefix when a directional
-      // texture (`<key>-down`) exists — that's the convention for
-      // Modern-Interiors `me-char-NN` characters which animate by
-      // facing. Otherwise it's a single static texture (legacy NPCs:
-      // "npc", "npc-blue"). Default to facing down at scene mount.
-      const texture =
-        getTexture(`${npc.spriteKey}-down`) ?? getTexture(npc.spriteKey);
-      if (!texture) continue;
-      const sprite = new Sprite(texture);
-      sprite.anchor.set(npc.anchor.x, npc.anchor.y);
-      sprite.x = npc.x;
-      sprite.y = npc.y;
-      sprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, npc.sortY);
-      this.entityLayer.addChild(sprite);
-      this.npcSprites.set(npc.id, sprite);
-      this.npcMotion.set(npc.id, {
-        facing: "down",
-        walking: false,
-        walkFrame: 0,
-      });
-
-      // NPC idle bob — very subtle vertical movement
       npcSeed = (npcSeed * 1103515245 + 12345) & 0x7fffffff;
-      this.npcAnims.set(npc.id, {
-        baseX: npc.x,
-        baseY: npc.y,
-        phase: ((npcSeed % 1000) / 1000) * Math.PI * 2,
-        speed: 1.2 + (npcSeed % 400) / 1000, // 1.2–1.6
-        rotAmount: 0,
-        swayAmount: 0.8, // subtle vertical bob in pixels
-      });
+      this.spawnNpcSprite(npc, layers, npcSeed);
     }
+  }
+
+  /** Build a sprite + motion + idle-bob entry for one NPC. Shared by
+   *  the initial scene-mount loop and the runtime `addNpc` API used
+   *  by the social-hub experiment to spawn guests dynamically.
+   *  Returns false if the NPC's sprite key has no texture — caller
+   *  decides whether that's fatal or fine (seat-anchors are
+   *  intentionally spriteless). */
+  spawnNpcSprite(
+    npc: import('../core/types').NPCData,
+    layers: ReturnType<typeof getLayers>,
+    seed: number,
+  ): boolean {
+    const texture =
+      getTexture(`${npc.spriteKey}-down`) ?? getTexture(npc.spriteKey);
+    if (!texture) return false;
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(npc.anchor.x, npc.anchor.y);
+    sprite.x = npc.x;
+    sprite.y = npc.y;
+    sprite.zIndex = getEffectiveZIndex(layers, PLAYER_LAYER_ID, npc.sortY);
+    this.entityLayer.addChild(sprite);
+    this.npcSprites.set(npc.id, sprite);
+    this.npcMotion.set(npc.id, {
+      facing: "down",
+      walking: false,
+      walkFrame: 0,
+    });
+    this.npcAnims.set(npc.id, {
+      baseX: npc.x,
+      baseY: npc.y,
+      phase: ((seed % 1000) / 1000) * Math.PI * 2,
+      speed: 1.2 + (seed % 400) / 1000,
+      rotAmount: 0,
+      swayAmount: 0.8,
+    });
+    return true;
+  }
+
+  /** Tear down the sprite + bookkeeping for one NPC by id. Used when
+   *  social-hub NPCs leave the venue. Idempotent — calling on an id
+   *  that's not in `npcSprites` is a no-op. */
+  destroyNpcSprite(npcId: string): void {
+    const sprite = this.npcSprites.get(npcId);
+    if (sprite) {
+      this.entityLayer.removeChild(sprite);
+      sprite.destroy();
+      this.npcSprites.delete(npcId);
+    }
+    this.npcMotion.delete(npcId);
+    this.npcAnims.delete(npcId);
   }
 
   /** Build the sprite for a single object and stash it in the right
@@ -1617,6 +1648,48 @@ export class RenderSystem {
       label?.destroy();
     }
     this.questMarkers.clear();
+  }
+
+  /** Plain-text debug labels at arbitrary world positions. No sprite,
+   *  no bob — just text. Used by the social-hub POI overlay (press
+   *  M) to show every slot id without polluting the marker layer
+   *  with bobbing icons. Call with `[]` to clear. */
+  setDebugLabels(labels: ReadonlyArray<{ id: string; x: number; y: number; text: string }>): void {
+    if (this.destroyed || !this.debugLabelLayer) return;
+    // Destroy any existing labels not in the new set, update / add
+    // others. Tiny set so brute-force is fine.
+    const incomingIds = new Set(labels.map((l) => l.id));
+    for (const [id, txt] of this.debugLabels) {
+      if (!incomingIds.has(id)) {
+        txt.destroy();
+        this.debugLabels.delete(id);
+      }
+    }
+    for (const l of labels) {
+      let txt = this.debugLabels.get(l.id);
+      if (!txt) {
+        txt = new Text({
+          text: l.text,
+          resolution: 2,
+          roundPixels: true,
+          style: {
+            fontFamily: 'monospace',
+            fontSize: 9,
+            fontWeight: '700',
+            fill: 0xffffff,
+            stroke: { color: 0x000000, width: 3, join: 'round' },
+            align: 'center',
+          },
+        });
+        txt.anchor.set(0.5, 1);
+        this.debugLabelLayer.addChild(txt);
+        this.debugLabels.set(l.id, txt);
+      } else if (txt.text !== l.text) {
+        txt.text = l.text;
+      }
+      txt.x = l.x;
+      txt.y = l.y;
+    }
   }
 
   /** Get the world container for attaching overlays (e.g. tap indicators). */

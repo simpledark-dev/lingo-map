@@ -8,6 +8,7 @@ import { DialogueState, MapData, GameState } from "../core/types";
 import { GameEvent } from "../core/GameBridge";
 import DialogueOverlay from "./DialogueOverlay";
 import CafeIntroScene from "./CafeIntroScene";
+import SocialHubScene from "./SocialHubScene";
 import VocabularyListView from "./VocabularyListView";
 import VocabularyTranslateView from "./VocabularyTranslateView";
 import ShopView from "./ShopView";
@@ -1070,12 +1071,12 @@ export default function GameCanvas() {
             // they reflect inventory + event-flag state at interaction
             // time. Keeps the engine layer pure (no localStorage reads
             // in src/core).
-            if (event.dialogue.dialogueKind === "cafe-scripted") {
-              // The CafeIntroScene component owns the entire dialogue
-              // surface for these NPCs — close the engine-side
-              // dialogue immediately and let the scene's own bridge
-              // subscriber handle step advancement. Without this the
-              // default DialogueOverlay would flash for one frame.
+            if (event.dialogue.dialogueKind === "cafe-scripted" || event.dialogue.dialogueKind === "social-hub") {
+              // Scripted scenes (CafeIntroScene / SocialHubScene)
+              // own their own dialogue surface — close the engine-
+              // side dialogue immediately so the default overlay
+              // doesn't flash for a frame. The scene's own bridge
+              // subscriber handles the rest.
               setDialogue(null);
               pixiAppRef.current?.commandQueue.push({ type: "CLOSE_DIALOGUE" });
             } else if (event.dialogue.dialogueKind === "child-sandwich") {
@@ -1315,10 +1316,10 @@ export default function GameCanvas() {
       app.setQuestMarkers([]);
       return;
     }
-    // Scripted scenes (e.g. `cafe-intro`) own the marker layer
-    // themselves — bail out so this effect doesn't clobber the
-    // scene runner's markers on unrelated state changes.
-    if (currentMapId === "cafe-intro") {
+    // Scripted scenes (e.g. `cafe-intro`, `social-hub`) own the
+    // marker layer themselves — bail out so this effect doesn't
+    // clobber the scene runner's markers on unrelated state changes.
+    if (currentMapId === "cafe-intro" || currentMapId === "social-hub") {
       return;
     }
 
@@ -2773,6 +2774,10 @@ export default function GameCanvas() {
 
         {currentMapId === "cafe-intro" && (
           <CafeIntroScene pixiAppRef={pixiAppRef} />
+        )}
+
+        {currentMapId === "social-hub" && (
+          <SocialHubScene pixiAppRef={pixiAppRef} />
         )}
 
         {vocabularyView &&

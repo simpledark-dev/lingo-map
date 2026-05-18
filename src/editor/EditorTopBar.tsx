@@ -5,7 +5,7 @@ import { EditorAction, EditorState, getPrimaryTiles, getAllObjects } from './edi
 import { loadMap } from '../core/MapLoader';
 import { parseSavedMap } from '../core/SaveSchema';
 
-const GAME_MAPS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f', 'office', 'cafe-intro'];
+const GAME_MAPS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f', 'office', 'cafe-intro', 'social-hub'];
 
 interface Props {
   state: EditorState;

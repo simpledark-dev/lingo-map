@@ -166,7 +166,8 @@ export interface NPCData {
     | 'office-tutor'
     | 'office-tutor-listen'
     | 'office-tutor-write'
-    | 'cafe-scripted';
+    | 'cafe-scripted'
+    | 'social-hub';
 }
 
 // ── Map ──
@@ -390,7 +391,8 @@ export interface DialogueState {
     | 'office-tutor'
     | 'office-tutor-listen'
     | 'office-tutor-write'
-    | 'cafe-scripted';
+    | 'cafe-scripted'
+    | 'social-hub';
   /** Synthetic React-only dialogue that the engine never opened —
    *  e.g. the locked-district notice or the post-session thank-you
    *  fired from `handleCloseTranslateView`. The advance handler
