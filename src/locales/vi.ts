@@ -230,6 +230,8 @@ export const vi: Record<string, string> = {
   "npc.pokemon.kit.line2": "...thôi được, bạn thắng.",
   "npc.pokemon.tomas.line1": "Chỗ xây dựng này làm mấy tuần rồi.",
   "npc.pokemon.tomas.line2": "Họ chẳng bao giờ xong.",
+  "npc.pokemon.tomas.offer":
+    "Ê phiên dịch viên! Tôi đang chờ ở công trình này — giúp tôi mấy từ vui vui nhé?",
   "npc.pokemon.ada.line1": "Tôi trễ ca rồi. Cho tôi qua nhé!",
   "npc.pokemon.jun.line1":
     "Bạn có thấy con mèo hoang nào không? Đen, chân trắng.",

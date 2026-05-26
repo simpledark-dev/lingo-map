@@ -447,6 +447,104 @@ function makeSabaPack(target: TargetLanguage): VocabularyPack {
 export const SABA_PACK: VocabularyPack = makeSabaPack('lingo');
 
 /**
+ * Tomas's pack — 20 universal entertainment / leisure words.
+ *
+ * Universal in the sense the early-spec uses: these are words a
+ * learner encounters in every culture they land in (music, friend,
+ * laugh, party…) — so the pack pays off the same way no matter what
+ * the player ends up using the language for. Mix of nouns / verbs /
+ * adjectives so the practice flow gets variety: "watch", "happy",
+ * "joke" all behave differently in the quiz UI.
+ *
+ * Lingo target words follow the project's CV/CVC phonology
+ * (consonants `m n p t k b d g s h l r v f z j w`, vowels `a e i o u`,
+ * no internal clusters beyond syllable boundaries). Deliberately
+ * non-cognate with English so the player has to actually recall the
+ * mapping instead of guessing from spelling.
+ */
+const TOMAS_ENTRIES: Record<TargetLanguage, VocabularyEntry[]> = {
+  lingo: [
+    { target: 'moza', english: 'music', vi: 'âm nhạc', pos: 'noun' },
+    { target: 'tonpa', english: 'song', vi: 'bài hát', pos: 'noun' },
+    { target: 'kuvra', english: 'movie', vi: 'phim', pos: 'noun' },
+    { target: 'tiba', english: 'game', vi: 'trò chơi', pos: 'noun' },
+    { target: 'jorba', english: 'party', vi: 'tiệc', pos: 'noun' },
+    { target: 'panza', english: 'joke', vi: 'lời đùa', pos: 'noun' },
+    { target: 'hodna', english: 'story', vi: 'câu chuyện', pos: 'noun' },
+    { target: 'pemba', english: 'book', vi: 'sách', pos: 'noun' },
+    { target: 'darnek', english: 'show', vi: 'buổi diễn', pos: 'noun' },
+    { target: 'molva', english: 'art', vi: 'nghệ thuật', pos: 'noun' },
+    { target: 'sokma', english: 'friend', vi: 'bạn', pos: 'noun' },
+    { target: 'balsi', english: 'dance', vi: 'nhảy', pos: 'verb' },
+    { target: 'nolpa', english: 'play', vi: 'chơi', pos: 'verb' },
+    { target: 'rika', english: 'laugh', vi: 'cười', pos: 'verb' },
+    { target: 'jenta', english: 'sing', vi: 'hát', pos: 'verb' },
+    { target: 'milza', english: 'watch', vi: 'xem', pos: 'verb' },
+    { target: 'henka', english: 'listen', vi: 'nghe', pos: 'verb' },
+    { target: 'mefi', english: 'fun', vi: 'vui', pos: 'adjective' },
+    { target: 'jubna', english: 'happy', vi: 'vui vẻ', pos: 'adjective' },
+    { target: 'denko', english: 'boring', vi: 'chán', pos: 'adjective' },
+  ],
+  french: [
+    { target: 'musique', english: 'music', vi: 'âm nhạc', pos: 'noun' },
+    { target: 'chanson', english: 'song', vi: 'bài hát', pos: 'noun' },
+    { target: 'film', english: 'movie', vi: 'phim', pos: 'noun' },
+    { target: 'jeu', english: 'game', vi: 'trò chơi', pos: 'noun' },
+    { target: 'fête', english: 'party', vi: 'tiệc', pos: 'noun' },
+    { target: 'blague', english: 'joke', vi: 'lời đùa', pos: 'noun' },
+    { target: 'histoire', english: 'story', vi: 'câu chuyện', pos: 'noun' },
+    { target: 'livre', english: 'book', vi: 'sách', pos: 'noun' },
+    { target: 'spectacle', english: 'show', vi: 'buổi diễn', pos: 'noun' },
+    { target: 'art', english: 'art', vi: 'nghệ thuật', pos: 'noun' },
+    { target: 'ami', english: 'friend', vi: 'bạn', pos: 'noun' },
+    { target: 'danser', english: 'dance', vi: 'nhảy', pos: 'verb' },
+    { target: 'jouer', english: 'play', vi: 'chơi', pos: 'verb' },
+    { target: 'rire', english: 'laugh', vi: 'cười', pos: 'verb' },
+    { target: 'chanter', english: 'sing', vi: 'hát', pos: 'verb' },
+    { target: 'regarder', english: 'watch', vi: 'xem', pos: 'verb' },
+    { target: 'écouter', english: 'listen', vi: 'nghe', pos: 'verb' },
+    { target: 'amusant', english: 'fun', vi: 'vui', pos: 'adjective' },
+    { target: 'heureux', english: 'happy', vi: 'vui vẻ', pos: 'adjective' },
+    { target: 'ennuyeux', english: 'boring', vi: 'chán', pos: 'adjective' },
+  ],
+  english: [
+    { target: 'music', english: 'music', vi: 'âm nhạc', pos: 'noun' },
+    { target: 'song', english: 'song', vi: 'bài hát', pos: 'noun' },
+    { target: 'movie', english: 'movie', vi: 'phim', pos: 'noun' },
+    { target: 'game', english: 'game', vi: 'trò chơi', pos: 'noun' },
+    { target: 'party', english: 'party', vi: 'tiệc', pos: 'noun' },
+    { target: 'joke', english: 'joke', vi: 'lời đùa', pos: 'noun' },
+    { target: 'story', english: 'story', vi: 'câu chuyện', pos: 'noun' },
+    { target: 'book', english: 'book', vi: 'sách', pos: 'noun' },
+    { target: 'show', english: 'show', vi: 'buổi diễn', pos: 'noun' },
+    { target: 'art', english: 'art', vi: 'nghệ thuật', pos: 'noun' },
+    { target: 'friend', english: 'friend', vi: 'bạn', pos: 'noun' },
+    { target: 'dance', english: 'dance', vi: 'nhảy', pos: 'verb' },
+    { target: 'play', english: 'play', vi: 'chơi', pos: 'verb' },
+    { target: 'laugh', english: 'laugh', vi: 'cười', pos: 'verb' },
+    { target: 'sing', english: 'sing', vi: 'hát', pos: 'verb' },
+    { target: 'watch', english: 'watch', vi: 'xem', pos: 'verb' },
+    { target: 'listen', english: 'listen', vi: 'nghe', pos: 'verb' },
+    { target: 'fun', english: 'fun', vi: 'vui', pos: 'adjective' },
+    { target: 'happy', english: 'happy', vi: 'vui vẻ', pos: 'adjective' },
+    { target: 'boring', english: 'boring', vi: 'chán', pos: 'adjective' },
+  ],
+};
+
+function makeTomasPack(target: TargetLanguage): VocabularyPack {
+  const entries = TOMAS_ENTRIES[target];
+  return {
+    id: 'tomas-pack-1',
+    theme: 'Entertainment',
+    target,
+    entries,
+    audio: audioMapFor(target, entries),
+  };
+}
+
+export const TOMAS_PACK: VocabularyPack = makeTomasPack('lingo');
+
+/**
  * Pio's pack — five everyday-life verbs, themed around the room
  * the NPC stands in (Pokemon house 1F: kitchen/dining/bedroom). All
  * five reuse Mira's verb entries so the player sees the same target
@@ -595,6 +693,11 @@ const PACK_REGISTRY: PackRegistry = {
     lingo: PIO_PACK,
     french: makePioVariant('french'),
     english: makePioVariant('english'),
+  },
+  [TOMAS_PACK.id]: {
+    lingo: TOMAS_PACK,
+    french: makeTomasPack('french'),
+    english: makeTomasPack('english'),
   },
   'office-tutor-pack': {
     lingo: OFFICE_TUTOR_PACK,

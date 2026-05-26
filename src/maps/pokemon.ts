@@ -264,6 +264,13 @@ const npcs: NPCData[] = [
     dialogue: ["Construction's been going on for weeks.", "They never finish."],
     dialogueKeys: ["npc.pokemon.tomas.line1", "npc.pokemon.tomas.line2"],
     wanderRadius: 32,
+    // 20-word "Entertainment" pack — see `TOMAS_PACK` in
+    // vocabularyPacks.ts. Tomas leans into the "kill time on the
+    // job" framing his existing small-talk already sets up.
+    vocabularyPackId: "tomas-pack-1",
+    vocabularyOfferLine:
+      "Translator! While I'm waiting on this site — help me with these fun words?",
+    vocabularyOfferLineKey: "npc.pokemon.tomas.offer",
   },
   {
     id: "pk-npc-7",

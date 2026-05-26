@@ -257,6 +257,8 @@ export const en: Record<string, string> = {
   "npc.pokemon.kit.line2": "...okay, fine, you win.",
   "npc.pokemon.tomas.line1": "Construction's been going on for weeks.",
   "npc.pokemon.tomas.line2": "They never finish.",
+  "npc.pokemon.tomas.offer":
+    "Translator! While I'm waiting on this site — help me with these fun words?",
   "npc.pokemon.ada.line1": "I'm late for my shift. Excuse me!",
   "npc.pokemon.jun.line1": "Have you seen a stray cat? Black with white socks.",
   "npc.pokemon.pia.line1":
