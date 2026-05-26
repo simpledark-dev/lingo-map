@@ -21,7 +21,8 @@
  */
 
 import { useMemo, useState } from 'react';
-import { VOCABULARY_PACKS, type VocabularyEntry, getExamples, getMeaning } from '../data/vocabularyPacks';
+import { VOCABULARY_PACKS, type VocabularyEntry, getExamples, getMeaning, getVocabularyPack } from '../data/vocabularyPacks';
+import { useTarget } from '../data/target';
 import { t } from '../data/i18n';
 import { loadProgress, type WordState } from '../data/vocabSelection';
 import { speakVocabWord } from './wordSpeak';
@@ -68,12 +69,23 @@ interface WordStatsViewProps {
 export default function WordStatsView({ onClose }: WordStatsViewProps) {
   const [filter, setFilter] = useState<FilterId>('all');
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  // Re-render when the player switches target language so the list
+  // refreshes with the new variant of every pack. `useTarget` returns
+  // the current id; we don't read it directly, just subscribe so the
+  // `useMemo` below recomputes with the new packs resolved via
+  // `getVocabularyPack`.
+  const target = useTarget();
 
   // Aggregate every catalog word, summing per-pack progress when the
   // same target appears in multiple packs. The displayed `packTheme`
   // is whichever pack the player actually has progress on, falling
   // back to the alphabetically-first pack so a never-touched word
-  // still shows a sensible source.
+  // still shows a sensible source. Packs resolve via
+  // `getVocabularyPack` so each pack id maps to the variant that
+  // matches the player's active target language — Word Stats was
+  // previously locked to the lingo variant (legacy VOCABULARY_PACKS
+  // export always returns lingo), so a French-target player saw
+  // Lingo words instead of `chanson` / `livre` / etc.
   const rows = useMemo<RowData[]>(() => {
     const progressByPack = new Map<string, ReturnType<typeof loadProgress>>();
     const wrongQueueWords = new Set<string>();
@@ -82,6 +94,14 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
       progressByPack.set(packId, p);
       for (const w of p.wrongQueue) wrongQueueWords.add(w);
     }
+    // Resolve target-language variants of every known pack id. Some
+    // ids have no variant for the active target — `getVocabularyPack`
+    // falls back to the lingo variant in that case so the player
+    // still sees something rather than an empty list. Drop nullish
+    // entries defensively.
+    const targetPacks = Object.keys(VOCABULARY_PACKS)
+      .map((id) => getVocabularyPack(id))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p));
     // Aggregate by target. Each target accumulates tallies from
     // every pack that contains it; the "home" pack for display
     // purposes is whichever pack contributed the most exposure
@@ -91,7 +111,7 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
       perPack: Array<{ packId: string; packTheme: string; ws: WordState }>;
     };
     const aggs = new Map<string, Agg>();
-    for (const pack of Object.values(VOCABULARY_PACKS)) {
+    for (const pack of targetPacks) {
       for (const entry of pack.entries) {
         const key = entry.target;
         const ws: WordState = progressByPack.get(pack.id)!.byWord[key] ?? {
@@ -126,7 +146,10 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
       });
     }
     return out;
-  }, []);
+    // `target` is in deps so the memo invalidates when the player
+    // switches target language — recomputing the rows against the
+    // newly-resolved packs.
+  }, [target]);
 
   const filtered = useMemo(() => {
     const base = [...rows];
@@ -181,7 +204,14 @@ export default function WordStatsView({ onClose }: WordStatsViewProps) {
 
   const handleSpeak = (entry: VocabularyEntry, packId: string) => {
     cancelDialogueSpeech();
-    const pack = VOCABULARY_PACKS[packId];
+    // Resolve the pack via the target-aware getter so the audio map
+    // we look `entry.target` up in matches the variant being shown.
+    // Reading `VOCABULARY_PACKS[packId]` always returned the lingo
+    // variant, whose audio map is keyed by lingo target words —
+    // a French row's `chanson` had no entry there, silently
+    // falling through to TTS even when /assets/audio/english/song.mp3
+    // existed on disk.
+    const pack = getVocabularyPack(packId);
     if (pack) speakVocabWord(pack, entry.target);
   };
 
