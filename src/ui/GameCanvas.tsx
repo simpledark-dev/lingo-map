@@ -14,7 +14,6 @@ import ComputerUpgradeView from "./ComputerUpgradeView";
 import { getVocabularyPack } from "../data/vocabularyPacks";
 import {
   useWalletBalance,
-  useLifetimeEarnings,
   formatBalance,
   getBalance,
   getLifetimeEarnings,
@@ -42,14 +41,9 @@ import {
   useQuestStatuses,
   subscribeQuestTransitions,
   setQuestVisibilityDeferred,
-  getQuestDef,
-  type QuestTransition,
-  FIRST_PAYCHECK_THRESHOLD_CENTS,
-  SECOND_PAYCHECK_PHASE_CENTS,
-  THIRD_PAYCHECK_PHASE_CENTS,
-  FIRST_PAYCHECK_BONUS_CENTS,
 } from "../data/quests";
-import { getQuestEarnings, useQuestEarnings } from "../data/questEarnings";
+import { getShiftRoster, SHIFT_BONUS_CENTS } from "../data/shifts";
+import ShiftSummaryView from "./ShiftSummaryView";
 import QuestToast from "./QuestToast";
 import QuestLog from "./QuestLog";
 import InventoryView from "./InventoryView";
@@ -123,9 +117,9 @@ const QUEST_TALK_TARGETS: ReadonlyArray<{
   mapId: string;
 }> = [
   { questId: "intro-translator-job", npcName: "CEO", mapId: "office" },
-  { questId: "first-paycheck", npcName: "Eli", mapId: "office" },
-  { questId: "second-paycheck", npcName: "Rina", mapId: "office" },
-  { questId: "third-paycheck", npcName: "Yusuf", mapId: "office" },
+  // Office clients (Eli/Rina/Yusuf) are NOT in this table — during a
+  // shift they're marked by the bespoke shift-wayfinding block, which
+  // tracks per-client served state rather than a single quest target.
   { questId: "child-sandwich", npcName: "Mim", mapId: "pokemon-house-1f" },
   { questId: "tutorial-borrow", npcName: "Theo", mapId: "pokemon" },
   { questId: "tutorial-buy-food", npcName: "Shopkeeper", mapId: "grocer-1f" },
@@ -266,9 +260,30 @@ export default function GameCanvas() {
   const [translateView, setTranslateView] = useState<{
     packId: string;
     npcName: string;
+    /** Map NPC id of the client being served — lets the shift layer
+     *  mark this client served when the session closes. */
+    npcId: string;
     mode: "read" | "listen" | "write";
   } | null>(null);
   const translationModeReturnDialogueRef = useRef<DialogueState | null>(null);
+  /** Active office shift, or null when off-shift. The player clocks in
+   *  with the CEO; `clients` is the fixed roster they serve by walking
+   *  up to each. `startedLifetime` snapshots lifetime earnings at clock-
+   *  in so the wrap-up summary can show what THIS shift earned. */
+  const [shift, setShift] = useState<{
+    clients: { npcId: string; npcName: string; mode: "read" | "listen" | "write"; served: boolean }[];
+    startedLifetime: number;
+  } | null>(null);
+  /** Mirror of `shift` for the bridge subscriber (set up once on mount,
+   *  so it can't see live state otherwise). */
+  const shiftRef = useRef<typeof shift>(null);
+  shiftRef.current = shift;
+  /** Shift wrap-up modal payload, or null when not showing. */
+  const [shiftSummary, setShiftSummary] = useState<{
+    served: number;
+    earnedCents: number;
+    bonusCents: number;
+  } | null>(null);
   /** Shop modal state — opened when the player selects "Browse" on
    *  a shopkeeper's offer dialogue. Carries only the display name;
    *  the catalog lives in `src/data/items.ts` and is shared across
@@ -409,27 +424,13 @@ export default function GameCanvas() {
   const [loading, setLoading] = useState(true);
   const [loadingVisible, setLoadingVisible] = useState(true);
   const walletBalance = useWalletBalance();
-  // Drives the first-paycheck marker handoff (Saba → CEO once the
-  // earnings threshold is hit). Reading the hook here forces the
-  // marker effect below to re-run whenever earnings change.
-  const lifetimeEarnings = useLifetimeEarnings();
   const debt = useDebt();
   const questStatuses = useQuestStatuses();
-  // Per-quest earnings counters drive the office tutorial chain's
-  // auto-complete (see questEarnings.ts). Hook-subscribed here so
-  // the chain useEffect re-runs the moment a translate session
-  // banks another correct answer for the right mode — that's the
-  // ONLY thing that should advance the chain past read → listen
-  // → write.
-  const secondPaycheckEarnings = useQuestEarnings('second-paycheck');
-  const thirdPaycheckEarnings = useQuestEarnings('third-paycheck');
   // Computer upgrade level — drives the auto-complete check for
   // the `upgrade-computer` quest. Hook-subscribed here so the
   // chain useEffect re-runs the moment the player buys an upgrade.
   const computerLevel = useComputerUpgradeLevel();
   const computerUpgradeTimer = useUpgradeTimer();
-  const firstPaycheckTargetToastShownRef = useRef(false);
-  const [questToastEvent, setQuestToastEvent] = useState<QuestTransition | null>(null);
 
   // Pulse-the-quest-button driver. Listens for `started` transitions
   // and flips the unread flag; the QuestLog open handler clears it.
@@ -453,23 +454,6 @@ export default function GameCanvas() {
     void preloadSfx();
   }, []);
 
-  useEffect(() => {
-    const firstPaycheckActive = questStatuses["first-paycheck"] === "active";
-    if (!firstPaycheckActive) {
-      firstPaycheckTargetToastShownRef.current = false;
-      return;
-    }
-    if (
-      lifetimeEarnings >= FIRST_PAYCHECK_THRESHOLD_CENTS &&
-      !firstPaycheckTargetToastShownRef.current
-    ) {
-      firstPaycheckTargetToastShownRef.current = true;
-      const def = getQuestDef("first-paycheck");
-      if (def) {
-        setQuestToastEvent({ kind: "target-reached", def });
-      }
-    }
-  }, [questStatuses, lifetimeEarnings]);
 
   const openQuestLog = useCallback((questId?: string) => {
     setQuestLogFocusId(questId ?? null);
@@ -524,71 +508,20 @@ export default function GameCanvas() {
   useEffect(() => {
     if (
       questStatuses["intro-translator-job"] === "completed" &&
-      !questStatuses["first-paycheck"]
+      !questStatuses["first-shift"]
     ) {
-      startQuest("first-paycheck");
+      startQuest("first-shift");
     }
-    // first-paycheck → second-paycheck → third-paycheck. Each
-    // tutor introduces a new translate mode and the chain enforces
-    // strict ordering: a quest only auto-completes once the player
-    // has banked $2 of work IN ITS OWN MODE (listen for second,
-    // write for third), tracked via a per-quest earnings counter
-    // updated only by VocabularyTranslateView when the session's
-    // mode matches. This means dev cheats, read-mode grinding, or
-    // any other lifetime gain CANNOT close out second / third —
-    // the player must actually do listen sessions on Rina and
-    // write sessions on Yusuf, in order.
-    //
-    // Auto-complete + auto-start for the office tutorial chain
-    // (second / third paycheck) are gated on
-    // `!translateView && !dialogue`:
-    //   - while a session is open, threshold-crossing must NOT
-    //     start the next quest behind the live UI;
-    //   - while a dialogue is open (e.g. the NPC's post-session
-    //     thank-you set in `handleCloseTranslateView`), the chain
-    //     waits so the new-quest toast + HUD row don't pop on top
-    //     of the wrap-up line.
-    // The first-paycheck → second-paycheck START step is also
-    // gated on dialogue because the CEO claim flow itself opens
-    // a dialogue — we want the "New Quest: Listen & Translate"
-    // beat to land after the CEO line closes, not during it.
-    const officeChainGate = !translateView && !dialogue;
+    // first-shift completion happens in the shift-end effect (when the
+    // player serves the whole roster). Here we only chain OFF it: after
+    // the first shift wraps, the home thread picks up and Mim asks for
+    // bread. Gated on `!translateView && !dialogue && !shiftSummary` so
+    // the bread quest's toast + HUD row don't pop while the shift
+    // wrap-up modal (or any session/dialogue) is still on screen.
+    const officeChainGate = !translateView && !dialogue && !shiftSummary;
     if (
       officeChainGate &&
-      questStatuses["first-paycheck"] === "completed" &&
-      !questStatuses["second-paycheck"]
-    ) {
-      startQuest("second-paycheck");
-    }
-    if (
-      officeChainGate &&
-      questStatuses["second-paycheck"] === "active" &&
-      getQuestEarnings("second-paycheck") >= SECOND_PAYCHECK_PHASE_CENTS
-    ) {
-      completeQuest("second-paycheck");
-    }
-    if (
-      officeChainGate &&
-      questStatuses["second-paycheck"] === "completed" &&
-      !questStatuses["third-paycheck"]
-    ) {
-      startQuest("third-paycheck");
-    }
-    if (
-      officeChainGate &&
-      questStatuses["third-paycheck"] === "active" &&
-      getQuestEarnings("third-paycheck") >= THIRD_PAYCHECK_PHASE_CENTS
-    ) {
-      completeQuest("third-paycheck");
-    }
-    // After the office tutorial chain completes (Eli → Rina →
-    // Yusuf), the home thread picks up: Mim asks for bread.
-    // Previously chained off `first-paycheck`, which meant the
-    // bread quest popped up right after Eli's job — before
-    // the player had even met Rina or Yusuf. Gating on the LAST
-    // tutorial keeps the office arc self-contained.
-    if (
-      questStatuses["third-paycheck"] === "completed" &&
+      questStatuses["first-shift"] === "completed" &&
       !questStatuses["child-sandwich"]
     ) {
       startQuest("child-sandwich");
@@ -639,12 +572,28 @@ export default function GameCanvas() {
     ) {
       startQuest("tutorial-eat");
     }
-    // secondPaycheckEarnings / thirdPaycheckEarnings are referenced
-    // implicitly via getQuestEarnings() inside the body — listing
-    // them in deps forces the effect to re-run when their counters
-    // increment, so auto-complete fires the same render the
-    // threshold is crossed.
-  }, [questStatuses, lifetimeEarnings, secondPaycheckEarnings, thirdPaycheckEarnings, translateView, dialogue, computerLevel, computerUpgradeOpen]);
+  }, [questStatuses, translateView, dialogue, shiftSummary, computerLevel, computerUpgradeOpen]);
+
+  // Shift wrap-up: once EVERY client on the roster is served, settle the
+  // shift. Pay the flat bonus on top of the per-answer earnings the
+  // sessions already credited, show the summary modal, and (first time
+  // only) complete the first-shift quest — which the chain effect then
+  // hands off to the home thread. Later shifts just pay out, no quest.
+  useEffect(() => {
+    if (!shift) return;
+    if (!shift.clients.every((c) => c.served)) return;
+    const earnedCents = Math.max(0, getLifetimeEarnings() - shift.startedLifetime);
+    addBalance(SHIFT_BONUS_CENTS);
+    setShiftSummary({
+      served: shift.clients.length,
+      earnedCents,
+      bonusCents: SHIFT_BONUS_CENTS,
+    });
+    if (getQuestStatus("first-shift") === "active") {
+      completeQuest("first-shift");
+    }
+    setShift(null);
+  }, [shift]);
   const energy = useEnergy();
   const energyMax = getMaxEnergy();
   const inventory = useInventory();
@@ -1074,7 +1023,7 @@ export default function GameCanvas() {
             } else if (event.dialogue.dialogueKind === "lender") {
               setDialogue(buildLenderDialogue(event.dialogue));
             } else if (event.dialogue.dialogueKind === "ceo-intro") {
-              setDialogue(buildCeoIntroDialogue(event.dialogue));
+              setDialogue(buildCeoIntroDialogue(event.dialogue, { shiftActive: !!shiftRef.current }));
             } else if (event.dialogue.dialogueKind === "office-tutor") {
               setDialogue(buildOfficeTutorDialogue(event.dialogue));
             } else if (event.dialogue.dialogueKind === "office-tutor-listen") {
@@ -1418,18 +1367,13 @@ export default function GameCanvas() {
     // "Office" label so a player coming back from a break
     // recognises it as "head this way" without re-reading the log.
     const introActive = questStatuses["intro-translator-job"] === "active";
-    const paycheckActive = questStatuses["first-paycheck"] === "active";
-    const paycheckReadyToClaim =
-      paycheckActive &&
-      getLifetimeEarnings() >= FIRST_PAYCHECK_THRESHOLD_CENTS;
-    // Mode-tutorial quests (second / third paycheck) also live in
-    // the office, so the outdoor "Office" chevron should keep
-    // pointing there until the player has finished the whole
-    // tutorial chain.
-    const modeQuestActive =
-      questStatuses["second-paycheck"] === "active" ||
-      questStatuses["third-paycheck"] === "active";
-    if ((introActive || paycheckActive || modeQuestActive) && currentMapId === "pokemon") {
+    const firstShiftActive = questStatuses["first-shift"] === "active";
+    const shiftInProgress = !!shift;
+    // Outdoor "Office" chevron points the player to work while the
+    // intro (apply with CEO) or the first-shift quest (clock in + serve
+    // the floor) is active. Once the first shift is done the player
+    // knows the way, so the forced chevron retires.
+    if ((introActive || firstShiftActive) && currentMapId === "pokemon") {
       const office = collectObjects("pokemon").find(
         (o) => o.transition?.incomingSpawnId === "outdoor-office",
       );
@@ -1439,9 +1383,7 @@ export default function GameCanvas() {
           x: markerXForLocation(office),
           y: markerYForLocation(currentMapId, office),
           spriteKey: "edge-arrow-south-red",
-          label: paycheckReadyToClaim
-            ? t('mapMarker.collectPaycheck')
-            : t('mapMarker.office'),
+          label: t('mapMarker.office'),
         });
       }
     }
@@ -1499,11 +1441,6 @@ export default function GameCanvas() {
     // -28 floats the chevron above the head sprite.
     for (const target of QUEST_TALK_TARGETS) {
       if (questStatuses[target.questId] !== "active") continue;
-      // First-paycheck has TWO talk targets across its lifetime:
-      // Eli (in office, repeatable until threshold) — handled by
-      // this loop's table entry — and CEO (claim) once threshold
-      // is met, handled by the bespoke claim block below.
-      if (target.questId === "first-paycheck" && paycheckReadyToClaim) continue;
       if (currentMapId !== target.mapId) continue;
       let map;
       try {
@@ -1527,31 +1464,46 @@ export default function GameCanvas() {
       });
     }
 
-    // ── First-paycheck claim: CEO marker once threshold is met ──
-    // Special-case override of the QUEST_TALK_TARGETS Eli entry
-    // (skipped above when paycheckReadyToClaim is true). The
-    // outdoor-map case is covered by the office-building marker
-    // higher up; this one floats over the CEO when the player is
-    // already inside the office.
-    if (paycheckReadyToClaim && currentMapId === "office") {
+    // ── Office shift wayfinding ──
+    // In the office: during an active shift, float a red exclamation
+    // over every client still to be served so the player can see who's
+    // left on the floor. Off-shift but with the first-shift quest still
+    // active → point at the CEO instead, so the player knows to clock
+    // in. Once the first shift is done these markers go quiet (repeat
+    // shifts are opt-in via the CEO, no forced wayfinding).
+    if (currentMapId === "office") {
       let officeMap;
       try {
         officeMap = loadMap("office");
       } catch {
         officeMap = null;
       }
-      const ceoNpc = officeMap?.npcs.find((n) => n.name === "CEO");
-      if (ceoNpc) {
-        addMarker({
-          id: "paycheck-ceo",
-          x: 0,
-          y: -28,
-          // Same red-exclamation as the regular talk-target loop.
-          // No caption — the icon over CEO's head is enough; the
-          // "Collect paycheck" copy stays in the quest log.
-          spriteKey: "ui:exclamation-red",
-          followNpcId: ceoNpc.id,
-        });
+      if (officeMap) {
+        if (shiftInProgress && shift) {
+          for (const client of shift.clients) {
+            if (client.served) continue;
+            const npc = officeMap.npcs.find((n) => n.id === client.npcId);
+            if (!npc) continue;
+            addMarker({
+              id: `shift-client-${client.npcId}`,
+              x: 0,
+              y: -28,
+              spriteKey: "ui:exclamation-red",
+              followNpcId: npc.id,
+            });
+          }
+        } else if (firstShiftActive) {
+          const ceoNpc = officeMap.npcs.find((n) => n.name === "CEO");
+          if (ceoNpc) {
+            addMarker({
+              id: "shift-clock-in",
+              x: 0,
+              y: -28,
+              spriteKey: "ui:exclamation-red",
+              followNpcId: ceoNpc.id,
+            });
+          }
+        }
       }
     }
 
@@ -1563,7 +1515,7 @@ export default function GameCanvas() {
     currentMapId,
     questStatuses,
     dialogue,
-    lifetimeEarnings,
+    shift,
     markerLabelStyle,
     computerLevel,
     computerUpgradeTimer,
@@ -1910,12 +1862,10 @@ export default function GameCanvas() {
 
       // CEO intro — Stage 2 → Stage 3 (hired). Confident vs honest
       // changes the opening line of the wrap-up; the rest of the
-      // explanation (job mechanics, payout, return-for-bonus pitch)
-      // is identical. The intro quest completes here and the
-      // first-paycheck quest auto-starts via the catch-up effect.
-      // Eli (the in-office first customer) is the FIRST beat of
-      // first-paycheck — handled by that quest's marker logic and
-      // dialogue gating, not by intro-translator-job.
+      // explanation (job mechanics, payout, how a shift works) is
+      // identical. The intro quest completes here and the first-shift
+      // quest auto-starts via the catch-up effect. The player then
+      // clocks in with the CEO to begin serving the floor.
       if (
         optionId === "ceo-intro-confident" ||
         optionId === "ceo-intro-honest"
@@ -1925,7 +1875,7 @@ export default function GameCanvas() {
             ? t('dialogue.ceo.hireConfident')
             : t('dialogue.ceo.hireHonest');
         completeQuest("intro-translator-job");
-        startQuest("first-paycheck");
+        startQuest("first-shift");
         setDialogue({
           npcId: dialogue.npcId,
           npcName: dialogue.npcName,
@@ -1938,43 +1888,26 @@ export default function GameCanvas() {
               wrong: `<loss>${formatBalance(PENALTY_PER_WRONG)}</loss>`,
               idk: `<warn>${formatBalance(PENALTY_PER_IDK)}</warn>`,
             }),
-            t('dialogue.ceo.hireBonus', { threshold: formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS) }),
+            t('dialogue.ceo.hireBonus'),
             t('dialogue.ceo.hireOffYouGo'),
           ],
           currentLine: 0,
         });
         return;
       }
-      // First-paycheck claim — pays the bonus + completes the quest.
-      // Decline lets the player walk away (claim again next visit).
-      if (optionId === "ceo-paycheck-claim") {
-        addBalance(FIRST_PAYCHECK_BONUS_CENTS);
-        completeQuest("first-paycheck");
-        setDialogue({
-          npcId: dialogue.npcId,
-          npcName: dialogue.npcName,
-          // `dialogueKind: "ceo-intro"` routes this through the CEO
-          // branch in `handleAdvanceDialogue` so we walk both lines
-          // locally and close via CLOSE_DIALOGUE on the final tap.
-          // Without it, the first advance falls through to ENGINE
-          // ADVANCE — which clears the engine's 1-line stub and
-          // fires `dialogueEnd`, prematurely closing the dialogue
-          // before line 2 ("Keep this up…") gets shown.
-          dialogueKind: "ceo-intro",
-          lines: [
-            t('dialogue.ceo.paycheckClaimedL1', { bonus: formatBalance(FIRST_PAYCHECK_BONUS_CENTS) }),
-            t('dialogue.ceo.paycheckClaimedL2'),
-          ],
-          currentLine: 0,
+      // Clock in — start a shift. The roster is the fixed office floor
+      // (Eli/Rina/Yusuf). closeDialogueEverywhere unfreezes the world
+      // so the player can walk up to each client.
+      if (optionId === "ceo-start-shift") {
+        setShift({
+          clients: getShiftRoster().map((c) => ({
+            npcId: c.npcId,
+            npcName: c.npcName,
+            mode: c.mode,
+            served: false,
+          })),
+          startedLifetime: getLifetimeEarnings(),
         });
-        return;
-      }
-      if (optionId === "ceo-paycheck-decline") {
-        // Use closeDialogueEverywhere — `setDialogue(null)` alone
-        // leaves the engine's `activeDialogue` set, which freezes
-        // the world-update loop (PixiApp.update bails on
-        // `gameState.activeDialogue`). Symptom: player stuck after
-        // clicking "Maybe later" until a page refresh.
         closeDialogueEverywhere();
         return;
       }
@@ -2062,17 +1995,17 @@ export default function GameCanvas() {
         return;
       }
       if (optionId === "mode-read" && packId) {
-        setTranslateView({ packId, npcName: dialogue.npcName, mode: "read" });
+        setTranslateView({ packId, npcName: dialogue.npcName, npcId: dialogue.npcId, mode: "read" });
         closeDialogueEverywhere();
         return;
       }
       if (optionId === "mode-listen" && packId) {
-        setTranslateView({ packId, npcName: dialogue.npcName, mode: "listen" });
+        setTranslateView({ packId, npcName: dialogue.npcName, npcId: dialogue.npcId, mode: "listen" });
         closeDialogueEverywhere();
         return;
       }
       if (optionId === "mode-write" && packId) {
-        setTranslateView({ packId, npcName: dialogue.npcName, mode: "write" });
+        setTranslateView({ packId, npcName: dialogue.npcName, npcId: dialogue.npcId, mode: "write" });
         closeDialogueEverywhere();
         return;
       }
@@ -2099,36 +2032,23 @@ export default function GameCanvas() {
   }, []);
 
   const handleCloseTranslateView = useCallback(() => {
-    // When the session crossed the active office-tutorial quest's
-    // earnings threshold, route the player through the NPC's
-    // thank-you line BEFORE the chain advances. The chain's
-    // auto-complete + auto-start are gated on (!translateView &&
-    // !dialogue), so opening this dialogue here keeps the next
-    // quest's toast + HUD row from popping until the player has
-    // dismissed the wrap-up beat. If the threshold wasn't crossed,
-    // session ends silently as before.
+    // Closing a session ends it. If the client just served is part of
+    // the active shift, mark them served — the shift-end effect picks
+    // up once the whole roster is done and fires the wrap-up. Serving a
+    // roster client off-shift (e.g. free practice) just no-ops here.
     setTranslateView((prev) => {
-      if (!prev) return null;
-      const { mode, npcName } = prev;
-      if (mode === 'listen' &&
-          getQuestStatus('second-paycheck') === 'active' &&
-          getQuestEarnings('second-paycheck') >= SECOND_PAYCHECK_PHASE_CENTS) {
-        setDialogue({
-          npcId: 'office-npc-listen-tutor',
-          npcName,
-          lines: [t('dialogue.listenTutor.thanks')],
-          currentLine: 0,
-          clientOnly: true,
-        });
-      } else if (mode === 'write' &&
-          getQuestStatus('third-paycheck') === 'active' &&
-          getQuestEarnings('third-paycheck') >= THIRD_PAYCHECK_PHASE_CENTS) {
-        setDialogue({
-          npcId: 'office-npc-write-tutor',
-          npcName,
-          lines: [t('dialogue.writeTutor.thanks')],
-          currentLine: 0,
-          clientOnly: true,
+      const servedNpcId = prev?.npcId;
+      if (servedNpcId) {
+        setShift((s) => {
+          if (!s) return s;
+          const idx = s.clients.findIndex(
+            (c) => c.npcId === servedNpcId && !c.served,
+          );
+          if (idx === -1) return s;
+          const clients = s.clients.map((c, i) =>
+            i === idx ? { ...c, served: true } : c,
+          );
+          return { ...s, clients };
         });
       }
       return null;
@@ -2786,6 +2706,17 @@ export default function GameCanvas() {
             );
           })()}
 
+        {shiftSummary && (
+          <div style={{ pointerEvents: "auto" }}>
+            <ShiftSummaryView
+              served={shiftSummary.served}
+              earnedCents={shiftSummary.earnedCents}
+              bonusCents={shiftSummary.bonusCents}
+              onClose={() => setShiftSummary(null)}
+            />
+          </div>
+        )}
+
         {shopView && (
           <div style={{ pointerEvents: "auto" }}>
             <ShopView
@@ -2844,7 +2775,7 @@ export default function GameCanvas() {
             so it picks up events from any source (dialogue, future
             world triggers). pointer-events: none on the wrapper so
             it never blocks the canvas. */}
-        <QuestToast event={questToastEvent} />
+        <QuestToast />
 
         {/* Persistent ACTIVE-quests strip. Replaces the standalone
             IntroHintBanner since the intro quest's title alone

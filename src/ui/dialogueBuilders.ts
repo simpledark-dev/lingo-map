@@ -15,13 +15,10 @@ import { DialogueState } from '../core/types';
 import {
   getQuestStatus,
   startQuest,
-  FIRST_PAYCHECK_THRESHOLD_CENTS,
-  FIRST_PAYCHECK_BONUS_CENTS,
 } from '../data/quests';
 import {
   formatBalance,
   getBalance,
-  getLifetimeEarnings,
 } from '../data/wallet';
 import {
   getDebt,
@@ -30,7 +27,7 @@ import {
   MAX_DEBT_CENTS,
 } from '../data/debt';
 import { hasFlag, setFlag, FLAGS } from '../data/eventFlags';
-import { getPlayerName, getChildName } from '../data/profile';
+import { getChildName } from '../data/profile';
 import { t } from '../data/i18n';
 import { getTarget } from '../data/target';
 
@@ -83,13 +80,13 @@ export function buildChildSandwichDialogue(stub: DialogueState): DialogueState {
     });
   }
   if (status === 'inactive') {
-    // Auto-start ONLY when the FULL office tutorial (Eli → Rina
-    // → Yusuf) is complete. Earlier this gated on `first-paycheck`,
-    // which meant the moment the player claimed their first
-    // paycheck they could walk home and Mim would kick off the
-    // bread quest mid-tutorial. The home thread should not
-    // open until the office arc is closed.
-    if (getQuestStatus('third-paycheck') === 'completed') {
+    // Auto-start ONLY once the player's first shift is done. The
+    // GameCanvas chain effect normally starts child-sandwich the
+    // moment first-shift completes, so this is a defensive fallback
+    // for the case where the player walks home before that effect
+    // has run. The home thread should not open until the office arc
+    // (the first shift) is closed.
+    if (getQuestStatus('first-shift') === 'completed') {
       startQuest('child-sandwich');
       return withChildName({
         lines: [
@@ -331,13 +328,18 @@ export function buildWriteTutorDialogue(stub: DialogueState): DialogueState {
  *                        the lines via handleAdvanceDialogue's
  *                        ceo-intro local-advance branch.
  *
- *  Post-intro:
- *    - first-paycheck active + lifetime < threshold → progress check-in
- *    - first-paycheck active + lifetime ≥ threshold → claim button
- *    - everything else → engine static line. */
-export function buildCeoIntroDialogue(stub: DialogueState): DialogueState {
+ *  Post-intro the CEO is the shift MANAGER (clock in / clock out):
+ *    - a shift is currently running   → "back to the floor" nudge
+ *    - no shift, first shift not done → "Start shift" (your first one)
+ *    - no shift, first shift done     → "Start shift" (another one).
+ *
+ *  `opts.shiftActive` is the live React shift state (the data layer
+ *  can't see it), passed in by the bridge subscriber in GameCanvas. */
+export function buildCeoIntroDialogue(
+  stub: DialogueState,
+  opts?: { shiftActive?: boolean },
+): DialogueState {
   const introStatus = getQuestStatus('intro-translator-job');
-  const playerName = getPlayerName() ?? 'you';
 
   if (introStatus === 'active') {
     // Stage 1 — greeting. CEO doesn't know the player's name yet
@@ -363,36 +365,33 @@ export function buildCeoIntroDialogue(stub: DialogueState): DialogueState {
     };
   }
 
-  const paycheckStatus = getQuestStatus('first-paycheck');
-  if (paycheckStatus === 'active') {
-    const earned = getLifetimeEarnings();
-    if (earned >= FIRST_PAYCHECK_THRESHOLD_CENTS) {
+  // Hired — the CEO runs shifts now. (Only once the intro is actually
+  // COMPLETE; if it never started we fall through to the engine stub so
+  // a stray CEO tap pre-hire doesn't offer work out of nowhere.)
+  if (introStatus === 'completed') {
+    if (opts?.shiftActive) {
+      // Mid-shift: don't offer a new one, just point back to the floor.
       return {
         ...stub,
-        lines: [
-          t('dialogue.ceo.paycheckClaimL1', { name: playerName, threshold: formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS) }),
-          t('dialogue.ceo.paycheckClaimL2', { bonus: formatBalance(FIRST_PAYCHECK_BONUS_CENTS) }),
-        ],
-        options: [
-          {
-            id: 'ceo-paycheck-claim',
-            label: t('dialogue.ceo.paycheckClaimOption', { bonus: formatBalance(FIRST_PAYCHECK_BONUS_CENTS) }),
-            hint: t('dialogue.ceo.paycheckClaimOptionHint'),
-          },
-          { id: 'ceo-paycheck-decline', label: t('dialogue.ceo.paycheckMaybeLater') },
-        ],
+        dialogueKind: 'ceo-intro',
+        lines: [t('dialogue.ceo.shiftInProgress')],
+        currentLine: 0,
       };
     }
+    const firstShiftDone = getQuestStatus('first-shift') === 'completed';
     return {
       ...stub,
-      lines: [
-        t('dialogue.ceo.paycheckCheckin1', { name: playerName, earned: formatBalance(earned) }),
-        t('dialogue.ceo.paycheckCheckin2', { threshold: formatBalance(FIRST_PAYCHECK_THRESHOLD_CENTS) }),
+      dialogueKind: 'ceo-intro',
+      lines: [firstShiftDone ? t('dialogue.ceo.shiftAnother') : t('dialogue.ceo.shiftReady')],
+      currentLine: 0,
+      options: [
+        { id: 'ceo-start-shift', label: t('dialogue.ceo.startShiftOption') },
       ],
     };
   }
 
-  // Quest done (or never started) — fall back to the engine's line.
+  // Intro never started (or some other state) — fall back to the
+  // engine's line.
   return stub;
 }
 

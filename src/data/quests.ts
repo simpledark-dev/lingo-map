@@ -228,16 +228,15 @@ export const QUESTS: Record<string, QuestDef> = {
     completedSummary: "You brought your child bread.",
     computeCompletedSummary: () =>
       t("quest.childSandwich.completedSummary", { child: childDisplayName() }),
-    // Auto-chained after the FULL office tutorial (Eli → Rina →
-    // Yusuf), not after first-paycheck alone — the bread beat
-    // shouldn't arrive while the player is still mid-tutorial in
-    // the office. By the time third-paycheck completes the player
-    // has earnings + workflow muscle memory, and Mim's request
-    // closes the loop on "you came to the city to feed your kid".
-    // No `availableHint` is intentional: the chain auto-starts via
-    // GameCanvas's catch-up effect, so the quest skips the
-    // Available tier entirely and lands directly in In Progress.
-    requiresCompleted: ["third-paycheck"],
+    // Auto-chained after the player's first full shift (serving all
+    // three office clients), not mid-shift — the bread beat shouldn't
+    // arrive while the player is still learning the job. By the time
+    // the shift wraps they have earnings + workflow muscle memory, and
+    // Mim's request closes the loop on "you came to the city to feed
+    // your kid". No `availableHint` is intentional: the chain
+    // auto-starts via GameCanvas's catch-up effect, so the quest skips
+    // the Available tier entirely and lands directly in In Progress.
+    requiresCompleted: ["first-shift"],
   },
   // Replace the broken computer at home. Chained off child-sandwich
   // so the home thread reads as: feed the kid → fix what's broken →
@@ -268,52 +267,25 @@ export const QUESTS: Record<string, QuestDef> = {
     computeCompletedSummary: () =>
       t("quest.introTranslatorJob.completedSummary"),
   },
-  "first-paycheck": {
-    id: "first-paycheck",
-    title: "Earn Your First Paycheck",
-    computeTitle: () => t("quest.firstPaycheck.title"),
-    objective: "Eli's at the office. Earn $2.00 and return to the CEO.",
-    computeObjective: () =>
-      t("quest.firstPaycheck.objective", { threshold: "$2.00" }),
-    availableHint: "The CEO promised a paycheck.",
-    computeAvailableHint: () => t("quest.firstPaycheck.availableHint"),
-    completedSummary: "You earned your first paycheck.",
-    computeCompletedSummary: () => t("quest.firstPaycheck.completedSummary"),
-    // Auto-starts as soon as the intro is done (see GameCanvas's
-    // catch-up effect), but prereq is set anyway so a stale save
-    // mid-intro doesn't accidentally surface this in Available.
+  // First shift = the office tutorial, collapsed into one repeatable
+  // job. The CEO (shift manager) clocks the player in; they serve the
+  // three office clients (Eli → read, Rina → listen, Yusuf → write),
+  // each of whom introduces one drill mode. Completing the roster
+  // wraps the shift and completes this quest, which hands off to the
+  // home thread. Subsequent shifts are free practice with no quest.
+  // Auto-starts once the intro is done (GameCanvas catch-up effect);
+  // prereq is set anyway so a stale mid-intro save can't surface it.
+  "first-shift": {
+    id: "first-shift",
+    title: "Work Your First Shift",
+    computeTitle: () => t("quest.firstShift.title"),
+    objective: "Clock in with the CEO, then serve every client on the floor.",
+    computeObjective: () => t("quest.firstShift.objective"),
+    availableHint: "The CEO is ready to put you to work.",
+    computeAvailableHint: () => t("quest.firstShift.availableHint"),
+    completedSummary: "You worked your first shift at the office.",
+    computeCompletedSummary: () => t("quest.firstShift.completedSummary"),
     requiresCompleted: ["intro-translator-job"],
-  },
-  // Mode-tutorial chain. Each office-floor NPC offers exactly ONE
-  // translate mode (read → listen → write), introducing them one
-  // at a time so the player learns each option in isolation. Both
-  // auto-complete the moment lifetime earnings cross the threshold
-  // — no CEO claim, since the narrative bonus already fired with
-  // first-paycheck. Same lifetime counter is reused so the player
-  // doesn't have to "reset" their work after the first paycheck.
-  "second-paycheck": {
-    id: "second-paycheck",
-    title: "Listen & Translate",
-    computeTitle: () => t("quest.secondPaycheck.title"),
-    objective:
-      "A new tutor in the office struggles with audio — earn another $2.00 in Listen mode.",
-    computeObjective: () =>
-      t("quest.secondPaycheck.objective", { threshold: "$2.00" }),
-    completedSummary: "You learned to translate by listening.",
-    computeCompletedSummary: () => t("quest.secondPaycheck.completedSummary"),
-    requiresCompleted: ["first-paycheck"],
-  },
-  "third-paycheck": {
-    id: "third-paycheck",
-    title: "Write from Meaning",
-    computeTitle: () => t("quest.thirdPaycheck.title"),
-    objective:
-      "The third tutor wants to USE words, not just recognise them — earn another $2.00 in Write mode.",
-    computeObjective: () =>
-      t("quest.thirdPaycheck.objective", { threshold: "$2.00" }),
-    completedSummary: "You learned to write the words you've learned.",
-    computeCompletedSummary: () => t("quest.thirdPaycheck.completedSummary"),
-    requiresCompleted: ["second-paycheck"],
   },
 };
 

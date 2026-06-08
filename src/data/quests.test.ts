@@ -20,7 +20,7 @@ describe('arePrereqsMet', () => {
   it('returns false when a prereq is not yet completed', async () => {
     const { arePrereqsMet, QUESTS } = await import('./quests');
     expect(
-      arePrereqsMet(QUESTS['first-paycheck'].requiresCompleted, {
+      arePrereqsMet(QUESTS['first-shift'].requiresCompleted, {
         'intro-translator-job': 'active',
       }),
     ).toBe(false);
@@ -29,7 +29,7 @@ describe('arePrereqsMet', () => {
   it('returns true when all prereqs are completed', async () => {
     const { arePrereqsMet, QUESTS } = await import('./quests');
     expect(
-      arePrereqsMet(QUESTS['first-paycheck'].requiresCompleted, {
+      arePrereqsMet(QUESTS['first-shift'].requiresCompleted, {
         'intro-translator-job': 'completed',
       }),
     ).toBe(true);
@@ -54,7 +54,7 @@ describe('isAvailable', () => {
   it('returns true when prereqs are met and quest has not yet started', async () => {
     const { isAvailable, QUESTS } = await import('./quests');
     expect(
-      isAvailable(QUESTS['first-paycheck'], {
+      isAvailable(QUESTS['first-shift'], {
         'intro-translator-job': 'completed',
       }),
     ).toBe(true);
@@ -68,11 +68,11 @@ describe('completeQuest + getCompletionOrder', () => {
     );
     startQuest('intro-translator-job');
     completeQuest('intro-translator-job');
-    startQuest('first-paycheck');
-    completeQuest('first-paycheck');
+    startQuest('first-shift');
+    completeQuest('first-shift');
     expect(getCompletionOrder()).toEqual([
       'intro-translator-job',
-      'first-paycheck',
+      'first-shift',
     ]);
   });
 
@@ -131,11 +131,11 @@ describe('getObjective', () => {
     ).toBe('Static fallback string.');
   });
 
-  it('first-paycheck objective references the threshold dollar amount', async () => {
+  it('first-shift objective tells the player to serve the floor', async () => {
     const { getObjective, QUESTS } = await import('./quests');
-    // Locks in: copy must mention $1.00 so the player knows the
-    // target. If we change the threshold constant, we should
-    // notice this test fail and update the copy together.
-    expect(getObjective(QUESTS['first-paycheck'])).toMatch(/\$1\.00/);
+    // Locks in: the first-shift copy must point the player at serving
+    // clients (the core loop), not a dollar threshold like the old
+    // paycheck quests did.
+    expect(getObjective(QUESTS['first-shift'])).toMatch(/serve/i);
   });
 });

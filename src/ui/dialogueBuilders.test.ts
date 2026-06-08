@@ -79,36 +79,23 @@ describe('buildCeoIntroDialogue', () => {
     ]);
   });
 
-  it('returns paycheck progress check-in when active and earnings < threshold', async () => {
+  it('offers Start shift once hired and no shift is running', async () => {
     const { buildCeoIntroDialogue } = await import('./dialogueBuilders');
-    const { startQuest, completeQuest } = await import('../data/quests');
+    const { completeQuest } = await import('../data/quests');
     completeQuest('intro-translator-job');
-    startQuest('first-paycheck');
     const result = buildCeoIntroDialogue(stub);
-    expect(result.options).toBeUndefined();
-    expect(result.lines.length).toBe(2);
-    expect(result.lines[0]).toMatch(/Translating going alright/);
-    expect(result.lines[1]).toMatch(/bonus waiting/);
+    expect(result.dialogueKind).toBe('ceo-intro');
+    expect(result.options?.map((o) => o.id)).toEqual(['ceo-start-shift']);
+    expect(result.lines[0]).toMatch(/shift/i);
   });
 
-  it('returns claim dialogue with options when earnings >= threshold', async () => {
+  it('nudges back to the floor (no Start option) while a shift is running', async () => {
     const { buildCeoIntroDialogue } = await import('./dialogueBuilders');
-    const { startQuest, completeQuest, FIRST_PAYCHECK_THRESHOLD_CENTS } =
-      await import('../data/quests');
-    const { creditEarnings } = await import('../data/wallet');
+    const { completeQuest } = await import('../data/quests');
     completeQuest('intro-translator-job');
-    startQuest('first-paycheck');
-    creditEarnings(FIRST_PAYCHECK_THRESHOLD_CENTS);
-    const result = buildCeoIntroDialogue(stub);
-    expect(result.lines.length).toBe(2);
-    expect(result.lines[0]).toMatch(/Word is you've cleared/);
-    expect(result.options?.map((o) => o.id)).toEqual([
-      'ceo-paycheck-claim',
-      'ceo-paycheck-decline',
-    ]);
-    // Claim button is the FIRST option — guards against ordering
-    // regressions that would change the keyboard-default action.
-    expect(result.options?.[0].id).toBe('ceo-paycheck-claim');
+    const result = buildCeoIntroDialogue(stub, { shiftActive: true });
+    expect(result.options).toBeUndefined();
+    expect(result.lines[0]).toMatch(/still running/);
   });
 
   it('falls back to engine stub when no relevant quest is active', async () => {
@@ -143,7 +130,7 @@ describe('buildChildSandwichDialogue', () => {
     const { startQuest, completeQuest } = await import('../data/quests');
     const { setFlag, FLAGS } = await import('../data/eventFlags');
     completeQuest('intro-translator-job');
-    completeQuest('first-paycheck');
+    completeQuest('first-shift');
     startQuest('child-sandwich');
     setFlag(FLAGS.CHILD_ASKED_FOR_SANDWICH);
     const result = buildChildSandwichDialogue(stub);
@@ -157,7 +144,7 @@ describe('buildChildSandwichDialogue', () => {
     const { buildChildSandwichDialogue } = await import('./dialogueBuilders');
     const { completeQuest } = await import('../data/quests');
     completeQuest('intro-translator-job');
-    completeQuest('first-paycheck');
+    completeQuest('first-shift');
     completeQuest('child-sandwich');
     const result = buildChildSandwichDialogue(stub);
     expect(result.lines[0]).toMatch(/Thanks for the bread/);

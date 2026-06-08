@@ -113,9 +113,9 @@ export const en: Record<string, string> = {
   "dialogue.ceo.hirePay":
     "Pays {reward} for every word you nail. Lose {wrong} on a wrong guess — focus matters. And {idk} if you admit you don’t know it.",
   "dialogue.ceo.hireBonus":
-    "Earn {threshold} translating and circle back — there’s a bonus waiting on top.",
+    "Here's how a shift works: serve every client on the floor, then check back with me to wrap it — there's a bonus waiting on top of what you earn.",
   "dialogue.ceo.hireOffYouGo":
-    "Eli's at the desk waiting on you — only four words, easy first job. Get those done and circle back if you want a bigger street route.",
+    "Eli's at the desk waiting on you — only four words, easy first one. Come see me when you've worked the whole floor.",
   "dialogue.ceo.paycheckClaimL1":
     "{name}! Word is you've cleared {threshold} translating. That's a real paycheck.",
   "dialogue.ceo.paycheckClaimL2":
@@ -133,6 +133,21 @@ export const en: Record<string, string> = {
     "Next up is Rina. Exact same four words Eli had, but she struggles when she has to listen to them.",
   "dialogue.ceo.standard":
     "Come back when you are ready for your first contract.",
+  // CEO as shift manager (post-hire). `shiftReady`/`shiftAnother` carry
+  // the "Start shift" option; `shiftInProgress` is the mid-shift nudge.
+  "dialogue.ceo.shiftReady":
+    "Ready for your first shift? The clients are waiting on the floor — serve every one of them, then check back with me.",
+  "dialogue.ceo.shiftAnother":
+    "Back for another shift? The floor's yours — serve everyone and I'll settle up when you're done.",
+  "dialogue.ceo.shiftInProgress":
+    "Your shift's still running — get back out there and help the clients waiting on the floor.",
+  "dialogue.ceo.startShiftOption": "Start shift",
+  // Shift wrap-up modal.
+  "shift.summary.title": "Shift complete",
+  "shift.summary.clientsServed": "Clients served",
+  "shift.summary.earned": "Earned this shift",
+  "shift.summary.bonus": "Shift bonus",
+  "shift.summary.close": "Clock out",
 
   // ── Eli (in-office first customer) ──
   "dialogue.eli.preHire":
@@ -337,6 +352,13 @@ export const en: Record<string, string> = {
     "The third tutor wants to USE words, not just recognise them — earn another {threshold} in Write mode.",
   "quest.thirdPaycheck.completedSummary":
     "You learned to write the words you've learned.",
+  "quest.firstShift.title": "Work Your First Shift",
+  "quest.firstShift.objective":
+    "Clock in with the CEO, then serve every client on the office floor — Eli, Rina, and Yusuf.",
+  "quest.firstShift.availableHint":
+    "The CEO is ready to put you on the floor.",
+  "quest.firstShift.completedSummary":
+    "You worked your first shift — three clients served.",
   "quest.childSandwich.title": "Bread for {child}",
   "quest.childSandwich.objectivePreAsk":
     "{child} wanted to talk to you. Head home.",
