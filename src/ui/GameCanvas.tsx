@@ -7,8 +7,6 @@ import { PixiApp } from "../renderer/PixiApp";
 import { DialogueState, MapData, GameState } from "../core/types";
 import { GameEvent } from "../core/GameBridge";
 import DialogueOverlay from "./DialogueOverlay";
-import CafeIntroScene from "./CafeIntroScene";
-import SocialHubScene from "./SocialHubScene";
 import VocabularyListView from "./VocabularyListView";
 import VocabularyTranslateView from "./VocabularyTranslateView";
 import ShopView from "./ShopView";
@@ -1071,15 +1069,7 @@ export default function GameCanvas() {
             // they reflect inventory + event-flag state at interaction
             // time. Keeps the engine layer pure (no localStorage reads
             // in src/core).
-            if (event.dialogue.dialogueKind === "cafe-scripted" || event.dialogue.dialogueKind === "social-hub") {
-              // Scripted scenes (CafeIntroScene / SocialHubScene)
-              // own their own dialogue surface — close the engine-
-              // side dialogue immediately so the default overlay
-              // doesn't flash for a frame. The scene's own bridge
-              // subscriber handles the rest.
-              setDialogue(null);
-              pixiAppRef.current?.commandQueue.push({ type: "CLOSE_DIALOGUE" });
-            } else if (event.dialogue.dialogueKind === "child-sandwich") {
+            if (event.dialogue.dialogueKind === "child-sandwich") {
               setDialogue(buildChildSandwichDialogue(event.dialogue));
             } else if (event.dialogue.dialogueKind === "lender") {
               setDialogue(buildLenderDialogue(event.dialogue));
@@ -1316,13 +1306,6 @@ export default function GameCanvas() {
       app.setQuestMarkers([]);
       return;
     }
-    // Scripted scenes (e.g. `cafe-intro`, `social-hub`) own the
-    // marker layer themselves — bail out so this effect doesn't
-    // clobber the scene runner's markers on unrelated state changes.
-    if (currentMapId === "cafe-intro" || currentMapId === "social-hub") {
-      return;
-    }
-
     type ObjLike = {
       id: string;
       x: number;
@@ -2376,11 +2359,7 @@ export default function GameCanvas() {
             the top-right icon buttons. Wrapped in a flex container
             so future pills (focus, hunger, whatever) stay a single
             child append. Subscribes via useWalletBalance / useEnergy
-            so vocab views don't have to call back up here.
-            Suppressed on the `social-hub` experiment — that scene
-            tracks tips in its own scene-local state and shouldn't
-            mix with the translator-job wallet/energy. */}
-        {currentMapId !== "social-hub" && (
+            so vocab views don't have to call back up here. */}
         <div style={HUD.statusRowStyle}>
           <div
             style={HUD.statusPlateStyle}
@@ -2457,7 +2436,6 @@ export default function GameCanvas() {
             <EnergyCostBurst />
           </div>
         </div>
-        )}
 
         {/* Inventory HUD — sits right under the wallet/energy row,
             one chip per held item with its emoji icon and a ×N
@@ -2465,7 +2443,7 @@ export default function GameCanvas() {
             player can eat held food to refill energy. Hides
             entirely when empty so the corner stays clean for new
             players. */}
-        {currentMapId !== "social-hub" && inventoryRows.length > 0 && (
+        {inventoryRows.length > 0 && (
           <button
             onClick={() => setInventoryOpen(true)}
             style={HUD.inventoryButtonStyle}
@@ -2777,14 +2755,6 @@ export default function GameCanvas() {
           </div>
         )}
 
-        {currentMapId === "cafe-intro" && (
-          <CafeIntroScene pixiAppRef={pixiAppRef} />
-        )}
-
-        {currentMapId === "social-hub" && (
-          <SocialHubScene pixiAppRef={pixiAppRef} />
-        )}
-
         {vocabularyView &&
           (() => {
             const pack = getVocabularyPack(vocabularyView.packId);
@@ -2879,15 +2849,11 @@ export default function GameCanvas() {
         {/* Persistent ACTIVE-quests strip. Replaces the standalone
             IntroHintBanner since the intro quest's title alone
             already conveys "head to the office." Tap to open the
-            full log; auto-hides when no quest is active. Hidden
-            on the social-hub experiment — its quests/quest log
-            aren't part of that scene's gameplay. */}
-        {currentMapId !== "social-hub" && (
-          <QuestHud
-            liftedForModal={questHudLiftedForModal}
-            onOpenLog={openQuestLog}
-          />
-        )}
+            full log; auto-hides when no quest is active. */}
+        <QuestHud
+          liftedForModal={questHudLiftedForModal}
+          onOpenLog={openQuestLog}
+        />
 
 
         {/* Intro cutscene — full-screen overlay shown once on a

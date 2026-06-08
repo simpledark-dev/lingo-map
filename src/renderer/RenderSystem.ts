@@ -248,13 +248,6 @@ export class RenderSystem {
     }
   >();
   private questMarkerLayer: Container | null = null;
-  /** Independent layer for plain-text debug labels (e.g. POI slot
-   *  names in the social-hub experiment). Lives alongside the quest
-   *  markers in world space so labels follow the camera, but has no
-   *  sprite/icon — just text. Cleared and rebuilt by
-   *  `setDebugLabels`. */
-  private debugLabelLayer: Container | null = null;
-  private debugLabels = new Map<string, Text>();
   animationsEnabled = true;
 
   // Player walk animation state
@@ -283,7 +276,6 @@ export class RenderSystem {
     // never occluded by a building roof or tall decor. Not depth-
     // sorted — markers are world-space but always-on-top.
     this.questMarkerLayer = new Container();
-    this.debugLabelLayer = new Container();
 
     // Entity layer uses sortableChildren for zIndex-based depth sorting.
     // floorContainer intentionally does NOT — its children are flat
@@ -297,7 +289,6 @@ export class RenderSystem {
     this.worldContainer.addChild(this.entityLayer);
     this.worldContainer.addChild(this.roofLayer);
     this.worldContainer.addChild(this.questMarkerLayer);
-    this.worldContainer.addChild(this.debugLabelLayer);
     this.app.stage.addChild(this.worldContainer);
   }
 
@@ -498,12 +489,10 @@ export class RenderSystem {
     }
   }
 
-  /** Build a sprite + motion + idle-bob entry for one NPC. Shared by
-   *  the initial scene-mount loop and the runtime `addNpc` API used
-   *  by the social-hub experiment to spawn guests dynamically.
-   *  Returns false if the NPC's sprite key has no texture — caller
-   *  decides whether that's fatal or fine (seat-anchors are
-   *  intentionally spriteless). */
+  /** Build a sprite + motion + idle-bob entry for one NPC. Used by
+   *  the initial scene-mount loop. Returns false if the NPC's sprite
+   *  key has no texture — caller decides whether that's fatal or fine
+   *  (seat-anchors are intentionally spriteless). */
   spawnNpcSprite(
     npc: import('../core/types').NPCData,
     layers: ReturnType<typeof getLayers>,
@@ -533,20 +522,6 @@ export class RenderSystem {
       swayAmount: 0.8,
     });
     return true;
-  }
-
-  /** Tear down the sprite + bookkeeping for one NPC by id. Used when
-   *  social-hub NPCs leave the venue. Idempotent — calling on an id
-   *  that's not in `npcSprites` is a no-op. */
-  destroyNpcSprite(npcId: string): void {
-    const sprite = this.npcSprites.get(npcId);
-    if (sprite) {
-      this.entityLayer.removeChild(sprite);
-      sprite.destroy();
-      this.npcSprites.delete(npcId);
-    }
-    this.npcMotion.delete(npcId);
-    this.npcAnims.delete(npcId);
   }
 
   /** Build the sprite for a single object and stash it in the right
@@ -1648,48 +1623,6 @@ export class RenderSystem {
       label?.destroy();
     }
     this.questMarkers.clear();
-  }
-
-  /** Plain-text debug labels at arbitrary world positions. No sprite,
-   *  no bob — just text. Used by the social-hub POI overlay (press
-   *  M) to show every slot id without polluting the marker layer
-   *  with bobbing icons. Call with `[]` to clear. */
-  setDebugLabels(labels: ReadonlyArray<{ id: string; x: number; y: number; text: string }>): void {
-    if (this.destroyed || !this.debugLabelLayer) return;
-    // Destroy any existing labels not in the new set, update / add
-    // others. Tiny set so brute-force is fine.
-    const incomingIds = new Set(labels.map((l) => l.id));
-    for (const [id, txt] of this.debugLabels) {
-      if (!incomingIds.has(id)) {
-        txt.destroy();
-        this.debugLabels.delete(id);
-      }
-    }
-    for (const l of labels) {
-      let txt = this.debugLabels.get(l.id);
-      if (!txt) {
-        txt = new Text({
-          text: l.text,
-          resolution: 2,
-          roundPixels: true,
-          style: {
-            fontFamily: 'monospace',
-            fontSize: 9,
-            fontWeight: '700',
-            fill: 0xffffff,
-            stroke: { color: 0x000000, width: 3, join: 'round' },
-            align: 'center',
-          },
-        });
-        txt.anchor.set(0.5, 1);
-        this.debugLabelLayer.addChild(txt);
-        this.debugLabels.set(l.id, txt);
-      } else if (txt.text !== l.text) {
-        txt.text = l.text;
-      }
-      txt.x = l.x;
-      txt.y = l.y;
-    }
   }
 
   /** Get the world container for attaching overlays (e.g. tap indicators). */

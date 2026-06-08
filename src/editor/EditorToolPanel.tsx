@@ -1002,7 +1002,7 @@ function NumberRow({
  * `/api/maps` so the dropdown is synchronous and the user can wire up a
  * door even before the disk-load round-trip resolves. New maps in the
  * registry need to be added here too. */
-const TARGET_MAP_IDS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f', 'office', 'cafe-intro', 'social-hub'] as const;
+const TARGET_MAP_IDS = ['pokemon', 'pokemon-house-1f', 'pokemon-house-2f', 'grocer-1f', 'office'] as const;
 
 /** Door / Transition editor sub-section. When toggled on, sets
  * `entity.transition` so the runtime PixiApp auto-generates a door
